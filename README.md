@@ -11,7 +11,7 @@ New in pongo2
  * Entirely rewritten from the ground-up.
  * Easy API to create new filters and tags (including parsing arguments); take a look on an example and the differences between pongo1 and pongo2: [old](https://github.com/flosch/pongo/blob/master/filters.go#L65) and [new](https://github.com/flosch/pongo2/blob/master/filters_builtin.go#L72).
  * Advanced C-like expressions.
- * Function calls from whereever you like.
+ * Function calls within expressions from wherever you like.
 
 What's missing
 --------------
