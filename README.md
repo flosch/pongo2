@@ -1,7 +1,7 @@
 pongo2
 ======
 
-** STILL A PREVIEW AND IN BETA - Not ready for production-use yet. **
+**STILL A PREVIEW AND IN BETA - Not ready for production-use yet.**
 
 pongo2 is the successor of [pongo](https://github.com/flosch/pongo), a Django-syntax like templating-language.
 
