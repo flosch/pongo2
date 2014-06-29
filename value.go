@@ -64,6 +64,12 @@ func (v *Value) String() string {
 		return strconv.FormatInt(v.getResolvedValue().Int(), 10)
 	case reflect.Float32, reflect.Float64:
 		return fmt.Sprintf("%f", v.getResolvedValue().Float())
+	case reflect.Bool:
+		if v.Bool() {
+			return "True"
+		} else {
+			return "False"
+		}
 	default:
 		if v.IsNil() {
 			return ""
