@@ -16,7 +16,9 @@ func init() {
 	RegisterFilter("length", filterLength)
 	RegisterFilter("upper", filterUpper)
 	RegisterFilter("date", filterDate)
+	RegisterFilter("time", filterDate) // time uses filterDate (same golang-format)
 	RegisterFilter("striptags", filterStriptags)
+	RegisterFilter("capfirst", filterCapfirst)
 
 	RegisterFilter("float", filterFloat)     // pongo-specific
 	RegisterFilter("integer", filterInteger) // pongo-specific
@@ -24,7 +26,6 @@ func init() {
 	/* Missing:
 	   add
 	   addslashes
-	   capfirst
 	   center
 	   cut
 	   default
@@ -59,7 +60,6 @@ func init() {
 	   slice
 	   slugify
 	   stringformat
-	   time
 	   timesince
 	   timeuntil
 	   title
@@ -100,6 +100,10 @@ func filterLength(in *Value, param *Value) (*Value, error) {
 
 func filterUpper(in *Value, param *Value) (*Value, error) {
 	return AsValue(strings.ToUpper(in.String())), nil
+}
+
+func filterCapfirst(in *Value, param *Value) (*Value, error) {
+	return AsValue(strings.Title(in.String())), nil
 }
 
 func filterDate(in *Value, param *Value) (*Value, error) {

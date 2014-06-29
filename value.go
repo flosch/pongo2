@@ -38,7 +38,7 @@ func (v *Value) String() string {
 	case reflect.Float32, reflect.Float64:
 		return fmt.Sprintf("%f", v.getResolvedValue().Float())
 	default:
-		fmt.Printf("Value.String() not implemented for type: %s\n", v.getResolvedValue().Kind().String())
+		logf("Value.String() not implemented for type: %s\n", v.getResolvedValue().Kind().String())
 		return v.getResolvedValue().String()
 	}
 }
@@ -49,7 +49,7 @@ func (v *Value) Integer() int {
 		reflect.Int64, reflect.Uint, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uint8:
 		return int(v.getResolvedValue().Int())
 	default:
-		fmt.Printf("Value.Integer() not available for type: %s\n", v.getResolvedValue().Kind().String())
+		logf("Value.Integer() not available for type: %s\n", v.getResolvedValue().Kind().String())
 		return 0
 	}
 }
@@ -62,7 +62,7 @@ func (v *Value) Float() float64 {
 	case reflect.Float32, reflect.Float64:
 		return v.getResolvedValue().Float()
 	default:
-		fmt.Printf("Value.Float() not available for type: %s\n", v.getResolvedValue().Kind().String())
+		logf("Value.Float() not available for type: %s\n", v.getResolvedValue().Kind().String())
 		return 0
 	}
 }
@@ -72,7 +72,7 @@ func (v *Value) Bool() bool {
 	case reflect.Bool:
 		return v.getResolvedValue().Bool()
 	default:
-		fmt.Printf("Value.Bool() not available for type: %s\n", v.getResolvedValue().Kind().String())
+		logf("Value.Bool() not available for type: %s\n", v.getResolvedValue().Kind().String())
 		return false
 	}
 }
@@ -87,7 +87,7 @@ func (v *Value) IsTrue() bool {
 	case reflect.Bool:
 		return v.getResolvedValue().Bool()
 	default:
-		fmt.Printf("Value.IsTrue() not available for type: %s\n", v.getResolvedValue().Kind().String())
+		logf("Value.IsTrue() not available for type: %s\n", v.getResolvedValue().Kind().String())
 		return false
 	}
 }
@@ -106,7 +106,7 @@ func (v *Value) Negate() *Value {
 	case reflect.Bool:
 		return AsValue(!v.getResolvedValue().Bool())
 	default:
-		fmt.Printf("Value.IsTrue() not available for type: %s\n", v.getResolvedValue().Kind().String())
+		logf("Value.IsTrue() not available for type: %s\n", v.getResolvedValue().Kind().String())
 		return AsValue(true)
 	}
 }
@@ -116,7 +116,7 @@ func (v *Value) Len() int {
 	case reflect.Array, reflect.Chan, reflect.Map, reflect.Slice, reflect.String:
 		return v.getResolvedValue().Len()
 	default:
-		fmt.Printf("Value.Len() not available for type: %s\n", v.getResolvedValue().Kind().String())
+		logf("Value.Len() not available for type: %s\n", v.getResolvedValue().Kind().String())
 		return 0
 	}
 }
@@ -126,7 +126,7 @@ func (v *Value) Slice(i, j int) *Value {
 	case reflect.Array, reflect.Slice, reflect.String:
 		return AsValue(v.getResolvedValue().Slice(i, j).Interface())
 	default:
-		fmt.Printf("Value.Slice() not available for type: %s\n", v.getResolvedValue().Kind().String())
+		logf("Value.Slice() not available for type: %s\n", v.getResolvedValue().Kind().String())
 		return AsValue([]int{})
 	}
 }
@@ -155,7 +155,7 @@ func (v *Value) Contains(other *Value) bool {
 	// TODO: reflect.Array, reflect.Slice
 
 	default:
-		fmt.Printf("Value.Contains() not available for type: %s\n", v.getResolvedValue().Kind().String())
+		logf("Value.Contains() not available for type: %s\n", v.getResolvedValue().Kind().String())
 		return false
 	}
 }
@@ -196,7 +196,7 @@ func (v *Value) Iterate(fn func(idx, count int, key, value *Value) bool, empty f
 		}
 		return // done
 	default:
-		fmt.Printf("Value.Iterate() not available for type: %s\n", v.getResolvedValue().Kind().String())
+		logf("Value.Iterate() not available for type: %s\n", v.getResolvedValue().Kind().String())
 	}
 	empty()
 }

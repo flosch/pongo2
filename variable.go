@@ -80,40 +80,51 @@ func (vr *variableResolver) resolve(ctx *ExecutionContext) (*Value, error) {
 		} else {
 			// Next parts, resolve it from current
 
-			// If current a pointer, resolve it
-			if current.Kind() == reflect.Ptr {
-				current = current.Elem()
-				if !current.IsValid() {
-					// Value is not valid (anymore), so we're returning the default value (empty string)
-					return AsValue(""), nil
+			// Before resolving the pointer, let's see if we have a method to call
+			// Problem with resolving the pointer is we're changing the receiver
+			is_func := false
+			if part.typ == varTypeIdent {
+				func_value := current.MethodByName(part.s)
+				if func_value.IsValid() {
+					current = func_value
+					is_func = true
 				}
 			}
 
-			// Look up which part must be called now
-			switch part.typ {
-			case varTypeInt:
-				// fmt.Printf("Calling now index '%d'\n", part.i)
+			if !is_func {
+				// If current a pointer, resolve it
+				if current.Kind() == reflect.Ptr {
+					current = current.Elem()
+					if !current.IsValid() {
+						// Value is not valid (anymore), so we're returning the default value (empty string)
+						return AsValue(""), nil
+					}
+				}
 
-				// Calling an index is only possible for:
-				// * slices/arrays/strings
-				switch current.Kind() {
-				case reflect.String, reflect.Array, reflect.Slice:
-					current = current.Index(part.i)
+				// Look up which part must be called now
+				switch part.typ {
+				case varTypeInt:
+					// Calling an index is only possible for:
+					// * slices/arrays/strings
+					switch current.Kind() {
+					case reflect.String, reflect.Array, reflect.Slice:
+						current = current.Index(part.i)
+					default:
+						return nil, errors.New(fmt.Sprintf("Can't access an index on type %s (variable %s)", current.Kind().String(), vr.String()))
+					}
+				case varTypeIdent:
+					// If not, go ahead:
+					switch current.Kind() {
+					case reflect.Struct:
+						current = current.FieldByName(part.s)
+					case reflect.Map:
+						current = current.MapIndex(reflect.ValueOf(part.s))
+					default:
+						return nil, errors.New(fmt.Sprintf("Can't access a field by name on type %s (variable %s)", current.Kind().String(), vr.String()))
+					}
 				default:
-					return nil, errors.New(fmt.Sprintf("Can't access an index on type %s (variable %s)", current.Kind().String(), vr.String()))
+					panic("unimplemented")
 				}
-			case varTypeIdent:
-				// fmt.Printf("Calling now '%s'\n", part.s)
-				switch current.Kind() {
-				case reflect.Struct:
-					current = current.FieldByName(part.s)
-				case reflect.Map:
-					current = current.MapIndex(reflect.ValueOf(part.s))
-				default:
-					return nil, errors.New(fmt.Sprintf("Can't access a field by name on type %s (variable %s)", current.Kind().String(), vr.String()))
-				}
-			default:
-				panic("unimplemented")
 			}
 		}
 
@@ -129,10 +140,8 @@ func (vr *variableResolver) resolve(ctx *ExecutionContext) (*Value, error) {
 			current = current.Interface().(*Value).v
 		}
 
-		// fmt.Printf("=> %+v\n", part.is_function_call)
-
 		// Check if the part is a function call
-		if part.is_function_call {
+		if part.is_function_call || current.Kind() == reflect.Func {
 			// Check for callable
 			if current.Kind() != reflect.Func {
 				return nil, errors.New(fmt.Sprintf("'%s' is not a function (it is %s).", vr.String(), current.Kind().String()))
@@ -194,7 +203,7 @@ func (vr *variableResolver) resolve(ctx *ExecutionContext) (*Value, error) {
 func (vr *variableResolver) Evaluate(ctx *ExecutionContext) (*Value, error) {
 	value, err := vr.resolve(ctx)
 	if err != nil {
-		return AsValue(nil), err
+		return AsValue(nil), ctx.Error(err.Error(), vr.location_token)
 	}
 	return value, nil
 }
