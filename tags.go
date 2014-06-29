@@ -16,8 +16,6 @@ Missing built-in tags:
     regroup
     Grouping on other properties
     spaceless
-    ssi
-    templatetag
     url
     verbatim
     widthratio
