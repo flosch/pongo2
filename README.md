@@ -7,9 +7,9 @@ pongo2 is the successor of [pongo](https://github.com/flosch/pongo), a Django-sy
 
 [See my blog post announcement and migration tutorial for more.](http://www.florian-schlachter.de/post/pongo2/)
 
-Please use the [issue tracker](https://github.com/flosch/pongo2/issues) if you're encountering any problems with pongo2 or if you need help with implementing tags or filters.
+Please use the [issue tracker](https://github.com/flosch/pongo2/issues) if you're encountering any problems with pongo2 or if you need help with implementing tags or filters (create a ticket!).
 
-pongo2 is **still in beta**.
+pongo2 is **still in beta** and under heavy development.
 
 New in pongo2
 -------------
