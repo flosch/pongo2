@@ -8,21 +8,9 @@ Missing built-in tags:
     debug
     filter
     firstof
-    for ... empty
     Boolean operators
-    == operator
-    != operator
-    < operator
-    > operator
-    <= operator
-    >= operator
-    in operator
     not in operator
-    Filters
-    Complex expressions
     ifchanged
-    ifequal
-    ifnotequal
     load
     now
     regroup
