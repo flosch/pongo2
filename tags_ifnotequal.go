@@ -2,13 +2,13 @@ package pongo2
 
 //import "fmt"
 
-type tagIfEqualNode struct {
+type tagIfNotEqualNode struct {
 	var1, var2  IEvaluator
 	thenWrapper *NodeWrapper
 	elseWrapper *NodeWrapper
 }
 
-func (node *tagIfEqualNode) Execute(ctx *ExecutionContext) (string, error) {
+func (node *tagIfNotEqualNode) Execute(ctx *ExecutionContext) (string, error) {
 	r1, err := node.var1.Evaluate(ctx)
 	if err != nil {
 		return "", err
@@ -18,7 +18,7 @@ func (node *tagIfEqualNode) Execute(ctx *ExecutionContext) (string, error) {
 		return "", err
 	}
 
-	result := r1.EqualValueTo(r2)
+	result := !r1.EqualValueTo(r2)
 
 	if result {
 		return node.thenWrapper.Execute(ctx)
@@ -30,8 +30,8 @@ func (node *tagIfEqualNode) Execute(ctx *ExecutionContext) (string, error) {
 	return "", nil
 }
 
-func tagIfEqualParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, error) {
-	ifequal_node := &tagIfEqualNode{}
+func tagIfNotEqualParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, error) {
+	ifnotequal_node := &tagIfNotEqualNode{}
 
 	// Parse two expressions
 	var1, err := arguments.ParseExpression()
@@ -42,8 +42,8 @@ func tagIfEqualParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, e
 	if err != nil {
 		return nil, err
 	}
-	ifequal_node.var1 = var1
-	ifequal_node.var2 = var2
+	ifnotequal_node.var1 = var1
+	ifnotequal_node.var2 = var2
 
 	if arguments.Remaining() > 0 {
 		return nil, arguments.Error("ifequal only takes 2 arguments.", nil)
@@ -54,7 +54,7 @@ func tagIfEqualParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, e
 	if err != nil {
 		return nil, err
 	}
-	ifequal_node.thenWrapper = wrapper
+	ifnotequal_node.thenWrapper = wrapper
 
 	if wrapper.Endtag == "else" {
 		// if there's an else in the if-statement, we need the else-Block as well
@@ -63,12 +63,12 @@ func tagIfEqualParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, e
 			return nil, err
 		}
 
-		ifequal_node.elseWrapper = wrapper
+		ifnotequal_node.elseWrapper = wrapper
 	}
 
-	return ifequal_node, nil
+	return ifnotequal_node, nil
 }
 
 func init() {
-	RegisterTag("ifequal", tagIfEqualParser)
+	RegisterTag("ifnotequal", tagIfNotEqualParser)
 }
