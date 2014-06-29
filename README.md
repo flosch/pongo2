@@ -25,6 +25,45 @@ What's missing
  * Documentation
  * Examples
 
+
+A tiny example (template string)
+--------------------------------
+
+	tpl, err := pongo.FromString("Hello {{ name|capfirst }}!")
+	if err != nil {
+		panic(err)
+	}
+	out, err := tpl.Execute(&pongo.Context{"name": "florian"})
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(out) // Output: Hello Florian!
+
+Example server-usage (template file)
+------------------------------------
+
+	package main
+	
+	import (
+		"github.com/flosch/pongo2"
+		"net/http"
+	)
+	
+	var tplExample = pongo.Must(pongo.FromFile("example.html"))
+	
+	func examplePage(w http.ResponseWriter, r *http.Request) {
+		err := tplExample.ExecuteRW(w, &pongo.Context{"query": r.FormValue("query")})
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
+	}
+	
+	func main() {
+		http.HandleFunc("/", examplePage)
+		http.ListenAndServe(":8080", nil)
+	}
+
+
 Documentation
 -------------
 
