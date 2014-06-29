@@ -25,15 +25,21 @@ What's missing
  * Documentation
  * Examples
 
+Documentation
+-------------
+
+For a documentation on how the templating language works you can [head over to the Django documentation](https://docs.djangoproject.com/en/dev/topics/templates/). pongo2 aims to be fully compatible with it.
+
+I still have to improve the pongo2-specific documentation over time. It will be available through [godoc](https://godoc.org/github.com/flosch/pongo2).
 
 A tiny example (template string)
 --------------------------------
 
-	tpl, err := pongo.FromString("Hello {{ name|capfirst }}!")
+	tpl, err := pongo2.FromString("Hello {{ name|capfirst }}!")
 	if err != nil {
 		panic(err)
 	}
-	out, err := tpl.Execute(&pongo.Context{"name": "florian"})
+	out, err := tpl.Execute(&pongo2.Context{"name": "florian"})
 	if err != nil {
 		panic(err)
 	}
@@ -49,10 +55,10 @@ Example server-usage (template file)
 		"net/http"
 	)
 	
-	var tplExample = pongo.Must(pongo.FromFile("example.html"))
+	var tplExample = pongo2.Must(pongo2.FromFile("example.html"))
 	
 	func examplePage(w http.ResponseWriter, r *http.Request) {
-		err := tplExample.ExecuteRW(w, &pongo.Context{"query": r.FormValue("query")})
+		err := tplExample.ExecuteRW(w, &pongo2.Context{"query": r.FormValue("query")})
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}
@@ -62,11 +68,3 @@ Example server-usage (template file)
 		http.HandleFunc("/", examplePage)
 		http.ListenAndServe(":8080", nil)
 	}
-
-
-Documentation
--------------
-
-For a documentation on how the templating language works you can [head over to the Django documentation](https://docs.djangoproject.com/en/dev/topics/templates/). pongo2 aims to be fully compatible with it.
-
-I still have to improve the pongo2-specific documentation over time. It will be available through [godoc](https://godoc.org/github.com/flosch/pongo2).
