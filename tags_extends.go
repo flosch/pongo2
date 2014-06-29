@@ -26,7 +26,7 @@ func tagExtendsParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, e
 	}
 
 	if filename_token := arguments.MatchType(TokenString); filename_token != nil {
-		// prepared, static template (because string is given)
+		// prepared, static template
 
 		// Get parent's filename relative to the child's template directory
 		childs_dir := filepath.Dir(doc.template.name)
