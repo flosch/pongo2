@@ -46,6 +46,10 @@ func (v *Value) IsInteger() bool {
 		v.getResolvedValue().Kind() == reflect.Uint64
 }
 
+func (v *Value) IsNumber() bool {
+	return v.IsInteger() || v.IsFLoat()
+}
+
 func (v *Value) String() string {
 	switch v.getResolvedValue().Kind() {
 	case reflect.String:
