@@ -13,6 +13,7 @@ func init() {
 	RegisterFilter("safe", filterSafe)
 	RegisterFilter("unsafe", filterUnsafe)
 	RegisterFilter("truncatechars", filterTruncatechars)
+	RegisterFilter("add", filterAdd)
 	RegisterFilter("length", filterLength)
 	RegisterFilter("upper", filterUpper)
 	RegisterFilter("lower", filterLower)
@@ -25,7 +26,6 @@ func init() {
 	RegisterFilter("integer", filterInteger) // pongo-specific
 
 	/* Missing:
-	   add
 	   addslashes
 	   center
 	   cut
@@ -92,6 +92,19 @@ func filterSafe(in *Value, param *Value) (*Value, error) {
 
 func filterUnsafe(in *Value, param *Value) (*Value, error) {
 	return in, nil // nothing to do here, just to keep track of the unsafe application
+}
+
+func filterAdd(in *Value, param *Value) (*Value, error) {
+	if in.IsNumber() && param.IsNumber() {
+		if in.IsFloat() || param.IsFloat() {
+			return AsValue(in.Float() + param.Float()), nil
+		} else {
+			return AsValue(in.Integer() + param.Integer()), nil
+		}
+	}
+	// If in/param is not a number, we're relying on the
+	// Value's String() convertion and just add them both together
+	return AsValue(in.String() + param.String()), nil
 }
 
 func filterLength(in *Value, param *Value) (*Value, error) {
