@@ -1,0 +1,44 @@
+package pongo2
+
+type tagTemplateTagNode struct {
+	content string
+}
+
+var templateTagMapping = map[string]string{
+	"openblock":     "{%",
+	"closeblock":    "%}",
+	"openvariable":  "{{",
+	"closevariable": "}}",
+	"openbrace":     "{",
+	"closebrace":    "}",
+	"opencomment":   "{#",
+	"closecomment":  "#}",
+}
+
+func (node *tagTemplateTagNode) Execute(ctx *ExecutionContext) (string, error) {
+	return node.content, nil
+}
+
+func tagTemplateTagParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, error) {
+	tt_node := &tagTemplateTagNode{}
+
+	if arg_token := arguments.MatchType(TokenIdentifier); arg_token != nil {
+		output, found := templateTagMapping[arg_token.Val]
+		if !found {
+			return nil, arguments.Error("Argument not found", arg_token)
+		}
+		tt_node.content = output
+	} else {
+		return nil, arguments.Error("Identifier expected.", nil)
+	}
+
+	if arguments.Remaining() > 0 {
+		return nil, arguments.Error("Malformed templatetag-tag argument.", nil)
+	}
+
+	return tt_node, nil
+}
+
+func init() {
+	RegisterTag("templatetag", tagTemplateTagParser)
+}
