@@ -15,6 +15,7 @@ func init() {
 	RegisterFilter("truncatechars", filterTruncatechars)
 	RegisterFilter("length", filterLength)
 	RegisterFilter("upper", filterUpper)
+	RegisterFilter("lower", filterLower)
 	RegisterFilter("date", filterDate)
 	RegisterFilter("time", filterDate) // time uses filterDate (same golang-format)
 	RegisterFilter("striptags", filterStriptags)
@@ -48,7 +49,6 @@ func init() {
 	   linebreaksbr
 	   linenumbers
 	   ljust
-	   lower
 	   make_list
 	   phone2numeric
 	   pluralize
@@ -100,6 +100,10 @@ func filterLength(in *Value, param *Value) (*Value, error) {
 
 func filterUpper(in *Value, param *Value) (*Value, error) {
 	return AsValue(strings.ToUpper(in.String())), nil
+}
+
+func filterLower(in *Value, param *Value) (*Value, error) {
+	return AsValue(strings.ToLower(in.String())), nil
 }
 
 func filterCapfirst(in *Value, param *Value) (*Value, error) {
