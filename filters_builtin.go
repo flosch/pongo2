@@ -14,6 +14,7 @@ func init() {
 	RegisterFilter("unsafe", filterUnsafe)
 	RegisterFilter("truncatechars", filterTruncatechars)
 	RegisterFilter("add", filterAdd)
+	RegisterFilter("cut", filterCut)
 	RegisterFilter("length", filterLength)
 	RegisterFilter("upper", filterUpper)
 	RegisterFilter("lower", filterLower)
@@ -28,7 +29,6 @@ func init() {
 	/* Missing:
 	   addslashes
 	   center
-	   cut
 	   default
 	   default_if_none
 	   dictsort
@@ -105,6 +105,10 @@ func filterAdd(in *Value, param *Value) (*Value, error) {
 	// If in/param is not a number, we're relying on the
 	// Value's String() convertion and just add them both together
 	return AsValue(in.String() + param.String()), nil
+}
+
+func filterCut(in *Value, param *Value) (*Value, error) {
+	return AsValue(strings.Replace(in.String(), param.String(), "", -1)), nil
 }
 
 func filterLength(in *Value, param *Value) (*Value, error) {
