@@ -12,16 +12,18 @@ import (
 func init() {
 	RegisterFilter("safe", filterSafe)
 	RegisterFilter("unsafe", filterUnsafe)
-	RegisterFilter("truncatechars", filterTruncatechars)
+
 	RegisterFilter("add", filterAdd)
-	RegisterFilter("cut", filterCut)
-	RegisterFilter("length", filterLength)
-	RegisterFilter("upper", filterUpper)
-	RegisterFilter("lower", filterLower)
-	RegisterFilter("date", filterDate)
-	RegisterFilter("time", filterDate) // time uses filterDate (same golang-format)
-	RegisterFilter("striptags", filterStriptags)
 	RegisterFilter("capfirst", filterCapfirst)
+	RegisterFilter("cut", filterCut)
+	RegisterFilter("date", filterDate)
+	RegisterFilter("default", filterDefault)
+	RegisterFilter("length", filterLength)
+	RegisterFilter("lower", filterLower)
+	RegisterFilter("upper", filterUpper)
+	RegisterFilter("striptags", filterStriptags)
+	RegisterFilter("time", filterDate) // time uses filterDate (same golang-format)
+	RegisterFilter("truncatechars", filterTruncatechars)
 
 	RegisterFilter("float", filterFloat)     // pongo-specific
 	RegisterFilter("integer", filterInteger) // pongo-specific
@@ -29,7 +31,6 @@ func init() {
 	/* Missing:
 	   addslashes
 	   center
-	   default
 	   default_if_none
 	   dictsort
 	   dictsortreversed
@@ -113,6 +114,13 @@ func filterCut(in *Value, param *Value) (*Value, error) {
 
 func filterLength(in *Value, param *Value) (*Value, error) {
 	return AsValue(in.Len()), nil
+}
+
+func filterDefault(in *Value, param *Value) (*Value, error) {
+	if !in.IsTrue() {
+		return param, nil
+	}
+	return in, nil
 }
 
 func filterUpper(in *Value, param *Value) (*Value, error) {

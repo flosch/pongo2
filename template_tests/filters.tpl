@@ -9,3 +9,8 @@ add
 cut
 {{ 15|cut:"5" }}
 {{ "Hello world"|cut: " " }}
+
+default
+{{ nothing|default:"n/a" }}
+{{ number|default:"n/a" }}
+{{ 5|default:"n/a" }}
