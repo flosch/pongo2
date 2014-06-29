@@ -2,23 +2,31 @@ package pongo2
 
 import (
 	"errors"
+	"fmt"
+	"regexp"
 	"strconv"
 	"strings"
+	"time"
 )
 
 func init() {
 	RegisterFilter("safe", filterSafe)
+	RegisterFilter("unsafe", filterUnsafe)
 	RegisterFilter("truncatechars", filterTruncatechars)
 	RegisterFilter("length", filterLength)
 	RegisterFilter("upper", filterUpper)
-	RegisterFilter("float", filterFloat) // pongo-specific
+	RegisterFilter("date", filterDate)
+	RegisterFilter("striptags", filterStriptags)
+
+	RegisterFilter("float", filterFloat)     // pongo-specific
+	RegisterFilter("integer", filterInteger) // pongo-specific
+
 	/* Missing:
 	   add
 	   addslashes
 	   capfirst
 	   center
 	   cut
-	   date
 	   default
 	   default_if_none
 	   dictsort
@@ -51,7 +59,6 @@ func init() {
 	   slice
 	   slugify
 	   stringformat
-	   striptags
 	   time
 	   timesince
 	   timeuntil
@@ -77,7 +84,14 @@ func filterTruncatechars(in *Value, param *Value) (*Value, error) {
 }
 
 func filterSafe(in *Value, param *Value) (*Value, error) {
-	panic("unimplemented")
+	output := strings.Replace(in.String(), "&", "&amp;", -1)
+	output = strings.Replace(output, ">", "&gt;", -1)
+	output = strings.Replace(output, "<", "&lt;", -1)
+	return AsValue(output), nil
+}
+
+func filterUnsafe(in *Value, param *Value) (*Value, error) {
+	return in, nil // nothing to do here, just to keep track of the unsafe application
 }
 
 func filterLength(in *Value, param *Value) (*Value, error) {
@@ -88,10 +102,44 @@ func filterUpper(in *Value, param *Value) (*Value, error) {
 	return AsValue(strings.ToUpper(in.String())), nil
 }
 
+func filterDate(in *Value, param *Value) (*Value, error) {
+	t, is_time := in.Interface().(time.Time)
+	if !is_time {
+		return nil, errors.New("Filter input argument must be of type 'time.Time'.")
+	}
+	return AsValue(t.Format(param.String())), nil
+}
+
 func filterFloat(in *Value, param *Value) (*Value, error) {
 	f, err := strconv.ParseFloat(in.String(), 64)
 	if err != nil {
 		return nil, err
 	}
 	return AsValue(f), nil
+}
+
+func filterInteger(in *Value, param *Value) (*Value, error) {
+	i, err := strconv.Atoi(in.String())
+	if err != nil {
+		return nil, err
+	}
+	return AsValue(i), nil
+}
+
+var re_striptags = regexp.MustCompile("<[^>]*?>")
+
+func filterStriptags(in *Value, param *Value) (*Value, error) {
+	s := in.String()
+	tags := strings.Split(param.String(), ",")
+	if param.Len() > 0 && len(tags) > 0 {
+		// Strip only specific tags
+		for _, tag := range tags {
+			re := regexp.MustCompile(fmt.Sprintf("</?%s/?>", tag))
+			s = re.ReplaceAllString(s, "")
+		}
+	} else {
+		// Strip all tags
+		s = re_striptags.ReplaceAllString(s, "")
+	}
+	return AsValue(strings.TrimSpace(s)), nil
 }

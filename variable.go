@@ -206,22 +206,26 @@ func (v *NodeVariable) Evaluate(ctx *ExecutionContext) (*Value, error) {
 		return nil, err
 	}
 
+	unsafe := false
 	for _, filter := range v.filterChain {
+		if filter.name == "unsafe" {
+			unsafe = true
+		}
 		value, err = filter.Execute(value, ctx)
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	return value, nil
-}
-
-func (v *NodeVariable) Execute(ctx *ExecutionContext) (string, error) {
-	value, err := v.Evaluate(ctx)
-	if err != nil {
-		return "", err
+	if !unsafe && value.IsString() {
+		// apply safe filter
+		value, err = filters["safe"](value, nil)
+		if err != nil {
+			return nil, err
+		}
 	}
-	return value.String(), nil
+
+	return value, nil
 }
 
 // IDENT | IDENT.(IDENT|NUMBER)...

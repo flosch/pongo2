@@ -1,39 +1,57 @@
 package pongo2
 
 import (
+	"errors"
 	"fmt"
 )
 
 type tagBlockNode struct {
-	name    string
-	wrapper *NodeWrapper
+	name string
+}
+
+func (node *tagBlockNode) getBlockWrapperByName(tpl *Template) *NodeWrapper {
+	var t *NodeWrapper
+	if tpl.child != nil {
+		// First ask the child for the block
+		t = node.getBlockWrapperByName(tpl.child)
+	}
+	if t == nil {
+		// Child has no block, lets look up here at parent
+		t = tpl.blocks[node.name]
+	}
+	return t
 }
 
 func (node *tagBlockNode) Execute(ctx *ExecutionContext) (string, error) {
-	// Check for internal 'block:$name:content'-key
-	key := fmt.Sprintf("block:%s:content", node.name)
-	override, key_exists := ctx.StringStore[key]
-	if !key_exists {
-		// This could be the child template which extends the base template, so we're executing
-		// the wrapped elements and saving the result
-		rv, err := node.wrapper.Execute(ctx)
-		if err != nil {
-			return "", err
-		}
-		ctx.StringStore[key] = rv
-		return rv, nil
+	tpl := ctx.template
+	if tpl == nil {
+		panic("internal error: tpl == nil")
 	}
-	return override, nil
+	// Determine the block to execute
+	block_wrapper := node.getBlockWrapperByName(tpl)
+	if block_wrapper == nil {
+		fmt.Printf("could not find: %s\n", node.name)
+		return "", errors.New("boo")
+	}
+	rv, err := block_wrapper.Execute(ctx)
+	if err != nil {
+		return "", err
+	}
+
+	// TODO: Add support for {{ block.super }}
+
+	return rv, nil
 }
 
 func tagBlockParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, error) {
-	block_node := &tagBlockNode{}
+	if doc.template.level > 1 {
+		return nil, arguments.Error("The 'block' tag can only defined on root level (especially no nesting).", start)
+	}
 
 	wrapper, err := doc.WrapUntilTag("endblock")
 	if err != nil {
 		return nil, err
 	}
-	block_node.wrapper = wrapper
 
 	if arguments.Count() == 0 {
 		return nil, arguments.Error("Tag 'block' requires an identifier.", nil)
@@ -43,13 +61,23 @@ func tagBlockParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, err
 	if name_token == nil {
 		return nil, arguments.Error("First argument for tag 'block' must be an identifier.", nil)
 	}
-	block_node.name = name_token.Val
 
 	if arguments.Remaining() != 0 {
 		return nil, arguments.Error("Tag 'block' takes exactly 1 argument (an identifier).", nil)
 	}
 
-	return block_node, nil
+	tpl := doc.template
+	if tpl == nil {
+		panic("internal error: tpl == nil")
+	}
+	_, has_block := tpl.blocks[name_token.Val]
+	if !has_block {
+		tpl.blocks[name_token.Val] = wrapper
+	} else {
+		return nil, arguments.Error("Block already defined", nil)
+	}
+
+	return &tagBlockNode{name: name_token.Val}, nil
 }
 
 func init() {

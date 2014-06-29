@@ -23,15 +23,20 @@ type Parser struct {
 	name   string
 	idx    int
 	tokens []*Token
+
+	// if the parser parses a template document, here will be
+	// a reference to it (needed to access the template through Tags)
+	template *Template
 }
 
 // Creates a new parser to parse tokens.
 // Used inside pongo2 to parse documents and to provide an easy-to-use
 // parser for tag authors
-func newParser(name string, tokens []*Token) *Parser {
+func newParser(name string, tokens []*Token, template *Template) *Parser {
 	return &Parser{
-		name:   name,
-		tokens: tokens,
+		name:     name,
+		tokens:   tokens,
+		template: template,
 	}
 }
 

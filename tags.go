@@ -99,5 +99,7 @@ func (p *Parser) parseTagElement() (INodeTag, error) {
 
 	p.Match(TokenSymbol, "%}")
 
-	return tag.parser(p, token_name, newParser(p.name, args_token))
+	p.template.level++
+	defer func() { p.template.level-- }()
+	return tag.parser(p, token_name, newParser(p.name, args_token, nil))
 }

@@ -2,19 +2,25 @@ package pongo2
 
 import (
 	"io/ioutil"
-	"path/filepath"
 )
 
-func NewTemplateFromString(tpl string) (*Template, error) {
+func Must(tpl *Template, err error) *Template {
+	if err != nil {
+		panic(err)
+	}
+	return tpl
+}
+
+func FromString(tpl string) (*Template, error) {
 	t, err := newTemplateString(tpl)
 	return t, err
 }
 
-func NewTemplateFromFile(filename string) (*Template, error) {
+func FromFile(filename string) (*Template, error) {
 	buf, err := ioutil.ReadFile(filename)
 	if err != nil {
 		return nil, err
 	}
-	t, err := newTemplate(filepath.Base(filename), string(buf))
+	t, err := newTemplate(filename, string(buf))
 	return t, err
 }

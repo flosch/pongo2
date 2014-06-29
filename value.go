@@ -24,6 +24,10 @@ func (v *Value) getResolvedValue() reflect.Value {
 	return v.v
 }
 
+func (v *Value) IsString() bool {
+	return v.getResolvedValue().Kind() == reflect.String
+}
+
 func (v *Value) String() string {
 	switch v.getResolvedValue().Kind() {
 	case reflect.String:

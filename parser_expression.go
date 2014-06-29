@@ -235,7 +235,7 @@ func (p *Parser) parseSimpleExpression() (IEvaluator, error) {
 		}
 	}
 
-	if p.Match(TokenSymbol, "!") != nil {
+	if p.Match(TokenSymbol, "!") != nil || p.Match(TokenKeyword, "not") != nil {
 		expr.negate = true
 	}
 
