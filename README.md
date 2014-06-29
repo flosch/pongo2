@@ -25,6 +25,12 @@ What's missing
  * Documentation
  * Examples
 
+Documentation
+-------------
+
+For a documentation on how the templating language works you can [head over to the Django documentation](https://docs.djangoproject.com/en/dev/topics/templates/). pongo2 aims to be fully compatible with it.
+
+I still have to improve the pongo2-specific documentation over time. It will be available through [godoc](https://godoc.org/github.com/flosch/pongo2).
 
 A tiny example (template string)
 --------------------------------
@@ -52,7 +58,7 @@ Example server-usage (template file)
 	var tplExample = pongo.Must(pongo.FromFile("example.html"))
 	
 	func examplePage(w http.ResponseWriter, r *http.Request) {
-		err := tplExample.ExecuteRW(w, &pongo.Context{"query": r.FormValue("query")})
+		err := tplExample.ExecuteRW(w, &pongo2.Context{"query": r.FormValue("query")})
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}
@@ -62,11 +68,3 @@ Example server-usage (template file)
 		http.HandleFunc("/", examplePage)
 		http.ListenAndServe(":8080", nil)
 	}
-
-
-Documentation
--------------
-
-For a documentation on how the templating language works you can [head over to the Django documentation](https://docs.djangoproject.com/en/dev/topics/templates/). pongo2 aims to be fully compatible with it.
-
-I still have to improve the pongo2-specific documentation over time. It will be available through [godoc](https://godoc.org/github.com/flosch/pongo2).
