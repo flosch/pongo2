@@ -10,8 +10,8 @@ import (
 )
 
 func init() {
+	RegisterFilter("escape", filterEscape)
 	RegisterFilter("safe", filterSafe)
-	RegisterFilter("unsafe", filterUnsafe)
 
 	RegisterFilter("add", filterAdd)
 	RegisterFilter("capfirst", filterCapfirst)
@@ -85,15 +85,17 @@ func filterTruncatechars(in *Value, param *Value) (*Value, error) {
 	return in.Slice(0, param.Integer()), nil
 }
 
-func filterSafe(in *Value, param *Value) (*Value, error) {
+func filterEscape(in *Value, param *Value) (*Value, error) {
 	output := strings.Replace(in.String(), "&", "&amp;", -1)
 	output = strings.Replace(output, ">", "&gt;", -1)
 	output = strings.Replace(output, "<", "&lt;", -1)
+	output = strings.Replace(output, "\"", "&quot;", -1)
+	output = strings.Replace(output, "'", "&#39;", -1)
 	return AsValue(output), nil
 }
 
-func filterUnsafe(in *Value, param *Value) (*Value, error) {
-	return in, nil // nothing to do here, just to keep track of the unsafe application
+func filterSafe(in *Value, param *Value) (*Value, error) {
+	return in, nil // nothing to do here, just to keep track of the safe application
 }
 
 func filterAdd(in *Value, param *Value) (*Value, error) {

@@ -215,10 +215,10 @@ func (v *NodeVariable) Evaluate(ctx *ExecutionContext) (*Value, error) {
 		return nil, err
 	}
 
-	unsafe := false
+	safe := false
 	for _, filter := range v.filterChain {
-		if filter.name == "unsafe" {
-			unsafe = true
+		if filter.name == "safe" {
+			safe = true
 		}
 		value, err = filter.Execute(value, ctx)
 		if err != nil {
@@ -226,9 +226,9 @@ func (v *NodeVariable) Evaluate(ctx *ExecutionContext) (*Value, error) {
 		}
 	}
 
-	if !unsafe && value.IsString() {
-		// apply safe filter
-		value, err = filters["safe"](value, nil)
+	if !safe && value.IsString() {
+		// apply escape filter
+		value, err = filters["escape"](value, nil)
 		if err != nil {
 			return nil, err
 		}
