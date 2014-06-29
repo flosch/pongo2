@@ -47,7 +47,7 @@ func (v *Value) IsInteger() bool {
 }
 
 func (v *Value) IsNumber() bool {
-	return v.IsInteger() || v.IsFLoat()
+	return v.IsInteger() || v.IsFloat()
 }
 
 func (v *Value) String() string {
