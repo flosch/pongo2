@@ -79,15 +79,39 @@ func (expr *relationalExpression) Evaluate(ctx *ExecutionContext) (*Value, error
 		}
 		switch expr.op_token.Val {
 		case "<=":
-			return AsValue(v1.Integer() <= v2.Integer()), nil
+			if v1.IsFloat() || v2.IsFloat() {
+				// Result will be a float
+				return AsValue(v1.Float() <= v2.Float()), nil
+			} else {
+				// Result will be an integer
+				return AsValue(v1.Integer() <= v2.Integer()), nil
+			}
 		case ">=":
-			return AsValue(v1.Integer() >= v2.Integer()), nil
+			if v1.IsFloat() || v2.IsFloat() {
+				// Result will be a float
+				return AsValue(v1.Float() >= v2.Float()), nil
+			} else {
+				// Result will be an integer
+				return AsValue(v1.Integer() >= v2.Integer()), nil
+			}
 		case "==":
 			return AsValue(v1.EqualValueTo(v2)), nil
 		case ">":
-			return AsValue(v1.Integer() > v2.Integer()), nil
+			if v1.IsFloat() || v2.IsFloat() {
+				// Result will be a float
+				return AsValue(v1.Float() > v2.Float()), nil
+			} else {
+				// Result will be an integer
+				return AsValue(v1.Integer() > v2.Integer()), nil
+			}
 		case "<":
-			return AsValue(v1.Integer() < v2.Integer()), nil
+			if v1.IsFloat() || v2.IsFloat() {
+				// Result will be a float
+				return AsValue(v1.Float() < v2.Float()), nil
+			} else {
+				// Result will be an integer
+				return AsValue(v1.Integer() < v2.Integer()), nil
+			}
 		case "!=", "<>":
 			return AsValue(!v1.EqualValueTo(v2)), nil
 		case "in":
@@ -118,9 +142,21 @@ func (expr *simpleExpression) Evaluate(ctx *ExecutionContext) (*Value, error) {
 		}
 		switch expr.op_token.Val {
 		case "+":
-			return AsValue(result.Integer() + t2.Integer()), nil
+			if result.IsFloat() || t2.IsFloat() {
+				// Result will be a float
+				return AsValue(result.Float() + t2.Float()), nil
+			} else {
+				// Result will be an integer
+				return AsValue(result.Integer() + t2.Integer()), nil
+			}
 		case "-":
-			return AsValue(result.Integer() - t2.Integer()), nil
+			if result.IsFloat() || t2.IsFloat() {
+				// Result will be a float
+				return AsValue(result.Float() - t2.Float()), nil
+			} else {
+				// Result will be an integer
+				return AsValue(result.Integer() - t2.Integer()), nil
+			}
 		default:
 			panic("unimplemented")
 		}

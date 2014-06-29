@@ -16,10 +16,12 @@ Missing built-in tags:
     regroup
     Grouping on other properties
     spaceless
-    url
     verbatim
     widthratio
     with
+
+Following built-in tags wont be added:
+	url
 */
 
 import (

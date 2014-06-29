@@ -28,6 +28,24 @@ func (v *Value) IsString() bool {
 	return v.getResolvedValue().Kind() == reflect.String
 }
 
+func (v *Value) IsFloat() bool {
+	return v.getResolvedValue().Kind() == reflect.Float32 ||
+		v.getResolvedValue().Kind() == reflect.Float64
+}
+
+func (v *Value) IsInteger() bool {
+	return v.getResolvedValue().Kind() == reflect.Int ||
+		v.getResolvedValue().Kind() == reflect.Int8 ||
+		v.getResolvedValue().Kind() == reflect.Int16 ||
+		v.getResolvedValue().Kind() == reflect.Int32 ||
+		v.getResolvedValue().Kind() == reflect.Int64 ||
+		v.getResolvedValue().Kind() == reflect.Uint ||
+		v.getResolvedValue().Kind() == reflect.Uint8 ||
+		v.getResolvedValue().Kind() == reflect.Uint16 ||
+		v.getResolvedValue().Kind() == reflect.Uint32 ||
+		v.getResolvedValue().Kind() == reflect.Uint64
+}
+
 func (v *Value) String() string {
 	switch v.getResolvedValue().Kind() {
 	case reflect.String:
@@ -48,6 +66,8 @@ func (v *Value) Integer() int {
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32,
 		reflect.Int64, reflect.Uint, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uint8:
 		return int(v.getResolvedValue().Int())
+	case reflect.Float32, reflect.Float64:
+		return int(v.getResolvedValue().Float())
 	default:
 		logf("Value.Integer() not available for type: %s\n", v.getResolvedValue().Kind().String())
 		return 0
