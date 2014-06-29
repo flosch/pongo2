@@ -113,7 +113,7 @@ func (vr *variableResolver) resolve(ctx *ExecutionContext) (*Value, error) {
 						return nil, errors.New(fmt.Sprintf("Can't access an index on type %s (variable %s)", current.Kind().String(), vr.String()))
 					}
 				case varTypeIdent:
-					// If not, go ahead:
+					// Calling a field or key
 					switch current.Kind() {
 					case reflect.Struct:
 						current = current.FieldByName(part.s)

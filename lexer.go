@@ -183,8 +183,41 @@ func (l *lexer) eof() bool {
 
 func (l *lexer) run() {
 	for {
-		if strings.HasPrefix(l.input[l.pos:], "{{") ||
-			strings.HasPrefix(l.input[l.pos:], "{%") {
+		// Ignore single-line comments {# ... #}
+		if strings.HasPrefix(l.input[l.pos:], "{#") {
+			if l.pos > l.start {
+				l.emit(TokenHTML)
+			}
+
+			l.pos += 2 // pass '{#'
+			l.col += 2
+
+			for {
+				switch l.peek() {
+				case EOF:
+					l.errorf("Single-line comment not closed.")
+					return
+				case '\n':
+					l.errorf("Newline not permitted in a single-line comment.")
+					return
+				}
+
+				if strings.HasPrefix(l.input[l.pos:], "#}") {
+					l.pos += 2 // pass '#}'
+					l.col += 2
+					break
+				}
+				l.pos++
+				l.col++
+			}
+			l.ignore() // ignore whole comment
+
+			// Comment skipped
+			continue // next token
+		}
+
+		if strings.HasPrefix(l.input[l.pos:], "{{") || // variable
+			strings.HasPrefix(l.input[l.pos:], "{%") { // tag
 			if l.pos > l.start {
 				l.emit(TokenHTML)
 			}
