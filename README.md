@@ -1,6 +1,8 @@
 pongo2
 ======
 
+[![GoDoc](https://godoc.org/github.com/flosch/pongo2?status.png)](https://godoc.org/github.com/flosch/pongo2)
+
 pongo2 is the successor of [pongo](https://github.com/flosch/pongo), a Django-syntax like templating-language.
 
 [See my blog post announcement and migration tutorial for more.](http://www.florian-schlachter.de/post/pongo2/)
