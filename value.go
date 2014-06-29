@@ -50,6 +50,11 @@ func (v *Value) IsNumber() bool {
 	return v.IsInteger() || v.IsFloat()
 }
 
+func (v *Value) IsNil() bool {
+	//fmt.Printf("%+v\n", v.getResolvedValue().Type().String())
+	return !v.getResolvedValue().IsValid()
+}
+
 func (v *Value) String() string {
 	switch v.getResolvedValue().Kind() {
 	case reflect.String:
@@ -60,6 +65,9 @@ func (v *Value) String() string {
 	case reflect.Float32, reflect.Float64:
 		return fmt.Sprintf("%f", v.getResolvedValue().Float())
 	default:
+		if v.IsNil() {
+			return ""
+		}
 		logf("Value.String() not implemented for type: %s\n", v.getResolvedValue().Kind().String())
 		return v.getResolvedValue().String()
 	}
@@ -87,7 +95,7 @@ func (v *Value) Float() float64 {
 		return v.getResolvedValue().Float()
 	default:
 		logf("Value.Float() not available for type: %s\n", v.getResolvedValue().Kind().String())
-		return 0
+		return 0.0
 	}
 }
 
@@ -226,7 +234,10 @@ func (v *Value) Iterate(fn func(idx, count int, key, value *Value) bool, empty f
 }
 
 func (v *Value) Interface() interface{} {
-	return v.v.Interface()
+	if v.v.IsValid() {
+		return v.v.Interface()
+	}
+	return nil
 }
 
 func (v *Value) EqualValueTo(other *Value) bool {

@@ -97,7 +97,7 @@ func (vr *variableResolver) resolve(ctx *ExecutionContext) (*Value, error) {
 					current = current.Elem()
 					if !current.IsValid() {
 						// Value is not valid (anymore), so we're returning the default value (empty string)
-						return AsValue(""), nil
+						return AsValue(nil), nil
 					}
 				}
 
@@ -130,7 +130,7 @@ func (vr *variableResolver) resolve(ctx *ExecutionContext) (*Value, error) {
 
 		if !current.IsValid() {
 			// Value is not valid (anymore), so we're returning the default value (empty string)
-			return AsValue(""), nil
+			return AsValue(nil), nil
 		}
 
 		// If current is a reflect.ValueOf(pongo2.Value), then unpack it

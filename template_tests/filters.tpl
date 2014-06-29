@@ -14,3 +14,8 @@ default
 {{ nothing|default:"n/a" }}
 {{ number|default:"n/a" }}
 {{ 5|default:"n/a" }}
+
+default_if_none
+{{ nothing|default_if_none:"n/a" }}
+{{ ""|default_if_none:"n/a" }}
+{{ nil|default_if_none:"n/a" }}

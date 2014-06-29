@@ -18,6 +18,7 @@ func init() {
 	RegisterFilter("cut", filterCut)
 	RegisterFilter("date", filterDate)
 	RegisterFilter("default", filterDefault)
+	RegisterFilter("default_if_none", filterDefaultIfNone)
 	RegisterFilter("length", filterLength)
 	RegisterFilter("lower", filterLower)
 	RegisterFilter("upper", filterUpper)
@@ -118,6 +119,13 @@ func filterLength(in *Value, param *Value) (*Value, error) {
 
 func filterDefault(in *Value, param *Value) (*Value, error) {
 	if !in.IsTrue() {
+		return param, nil
+	}
+	return in, nil
+}
+
+func filterDefaultIfNone(in *Value, param *Value) (*Value, error) {
+	if in.IsNil() {
 		return param, nil
 	}
 	return in, nil

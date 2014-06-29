@@ -26,6 +26,7 @@ func TestRun(t *testing.T) {
 			"number":        42,
 			"name":          "flosch",
 			"included_file": "INCLUDES.helper",
+			"nil":           nil,
 		})
 		if err != nil {
 			t.Fatal(err)
