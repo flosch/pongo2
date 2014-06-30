@@ -27,6 +27,10 @@ func TestRun(t *testing.T) {
 			"name":          "flosch",
 			"included_file": "INCLUDES.helper",
 			"nil":           nil,
+			"uint":          uint(8),
+			"str":           "string",
+			"bool_true":     true,
+			"bool_false":    false,
 		})
 		if err != nil {
 			t.Fatal(err)

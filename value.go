@@ -61,7 +61,7 @@ func (v *Value) String() string {
 		return v.getResolvedValue().String()
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 		return strconv.FormatInt(v.getResolvedValue().Int(), 10)
-	case reflect.Uint, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uint8:
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
 		return strconv.FormatUint(v.getResolvedValue().Uint(), 10)
 	case reflect.Float32, reflect.Float64:
 		return fmt.Sprintf("%f", v.getResolvedValue().Float())
@@ -82,9 +82,10 @@ func (v *Value) String() string {
 
 func (v *Value) Integer() int {
 	switch v.getResolvedValue().Kind() {
-	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32,
-		reflect.Int64, reflect.Uint, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uint8:
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 		return int(v.getResolvedValue().Int())
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		return int(v.getResolvedValue().Uint())
 	case reflect.Float32, reflect.Float64:
 		return int(v.getResolvedValue().Float())
 	case reflect.String:
@@ -102,9 +103,10 @@ func (v *Value) Integer() int {
 
 func (v *Value) Float() float64 {
 	switch v.getResolvedValue().Kind() {
-	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32,
-		reflect.Int64, reflect.Uint, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uint8:
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 		return float64(v.getResolvedValue().Int())
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		return float64(v.getResolvedValue().Uint())
 	case reflect.Float32, reflect.Float64:
 		return v.getResolvedValue().Float()
 	case reflect.String:
@@ -132,9 +134,10 @@ func (v *Value) Bool() bool {
 
 func (v *Value) IsTrue() bool {
 	switch v.getResolvedValue().Kind() {
-	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32,
-		reflect.Int64, reflect.Uint, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uint8:
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 		return v.getResolvedValue().Int() != 0
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		return v.getResolvedValue().Uint() != 0
 	case reflect.Array, reflect.Chan, reflect.Map, reflect.Slice, reflect.String:
 		return v.getResolvedValue().Len() > 0
 	case reflect.Bool:
@@ -147,9 +150,9 @@ func (v *Value) IsTrue() bool {
 
 func (v *Value) Negate() *Value {
 	switch v.getResolvedValue().Kind() {
-	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32,
-		reflect.Int64, reflect.Uint, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uint8:
-		if v.getResolvedValue().Int() != 0 {
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
+		reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		if v.Integer() != 0 {
 			return AsValue(0)
 		} else {
 			return AsValue(1)
