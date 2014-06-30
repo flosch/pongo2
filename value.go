@@ -86,6 +86,13 @@ func (v *Value) Integer() int {
 		return int(v.getResolvedValue().Int())
 	case reflect.Float32, reflect.Float64:
 		return int(v.getResolvedValue().Float())
+	case reflect.String:
+		// Try to convert from string to int (base 10)
+		i, err := strconv.Atoi(v.getResolvedValue().String())
+		if err != nil {
+			return 0
+		}
+		return i
 	default:
 		logf("Value.Integer() not available for type: %s\n", v.getResolvedValue().Kind().String())
 		return 0
@@ -99,6 +106,13 @@ func (v *Value) Float() float64 {
 		return float64(v.getResolvedValue().Int())
 	case reflect.Float32, reflect.Float64:
 		return v.getResolvedValue().Float()
+	case reflect.String:
+		// Try to convert from string to float64 (base 10)
+		f, err := strconv.ParseFloat(v.getResolvedValue().String(), 64)
+		if err != nil {
+			return 0.0
+		}
+		return f
 	default:
 		logf("Value.Float() not available for type: %s\n", v.getResolvedValue().Kind().String())
 		return 0.0
