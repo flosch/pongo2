@@ -32,3 +32,9 @@ divisibleby
 {{ 21|divisibleby:"3" }}
 {{ 21|float|divisibleby:"3" }}
 {{ 22|divisibleby:"3" }}
+
+striptags
+{{ "<strong><i>Hello!</i></strong>"|striptags|safe }}
+
+removetags
+{{ "<strong><i>Hello!</i></strong>"|removetags:"i"|safe }}

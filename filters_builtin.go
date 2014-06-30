@@ -22,6 +22,7 @@ func init() {
 	RegisterFilter("divisibleby", filterDivisibleby)
 	RegisterFilter("length", filterLength)
 	RegisterFilter("lower", filterLower)
+	RegisterFilter("removetags", filterRemovetags)
 	RegisterFilter("upper", filterUpper)
 	RegisterFilter("striptags", filterStriptags)
 	RegisterFilter("time", filterDate) // time uses filterDate (same golang-format)
@@ -30,7 +31,8 @@ func init() {
 	RegisterFilter("float", filterFloat)     // pongo-specific
 	RegisterFilter("integer", filterInteger) // pongo-specific
 
-	/* Missing:
+	/* Missing filters:
+
 	   addslashes
 	   center
 	   default_if_none
@@ -75,6 +77,11 @@ func init() {
 	   wordcount
 	   wordwrap
 	   yesno
+
+	   Filters that won't be added:
+
+	   static
+	   get_static_prefix¶
 	*/
 }
 
@@ -177,16 +184,22 @@ var re_striptags = regexp.MustCompile("<[^>]*?>")
 
 func filterStriptags(in *Value, param *Value) (*Value, error) {
 	s := in.String()
+
+	// Strip all tags
+	s = re_striptags.ReplaceAllString(s, "")
+
+	return AsValue(strings.TrimSpace(s)), nil
+}
+
+func filterRemovetags(in *Value, param *Value) (*Value, error) {
+	s := in.String()
 	tags := strings.Split(param.String(), ",")
-	if param.Len() > 0 && len(tags) > 0 {
-		// Strip only specific tags
-		for _, tag := range tags {
-			re := regexp.MustCompile(fmt.Sprintf("</?%s/?>", tag))
-			s = re.ReplaceAllString(s, "")
-		}
-	} else {
-		// Strip all tags
-		s = re_striptags.ReplaceAllString(s, "")
+
+	// Strip only specific tags
+	for _, tag := range tags {
+		re := regexp.MustCompile(fmt.Sprintf("</?%s/?>", tag))
+		s = re.ReplaceAllString(s, "")
 	}
+
 	return AsValue(strings.TrimSpace(s)), nil
 }

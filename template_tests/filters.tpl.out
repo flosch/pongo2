@@ -32,3 +32,9 @@ True
 True
 True
 False
+
+striptags
+Hello!
+
+removetags
+<strong>Hello!</strong>
