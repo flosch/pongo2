@@ -19,6 +19,7 @@ func init() {
 	RegisterFilter("date", filterDate)
 	RegisterFilter("default", filterDefault)
 	RegisterFilter("default_if_none", filterDefaultIfNone)
+	RegisterFilter("divisibleby", filterDivisibleby)
 	RegisterFilter("length", filterLength)
 	RegisterFilter("lower", filterLower)
 	RegisterFilter("upper", filterUpper)
@@ -35,7 +36,6 @@ func init() {
 	   default_if_none
 	   dictsort
 	   dictsortreversed
-	   divisibleby
 	   escape
 	   escapejs
 	   filesizeformat
@@ -131,6 +131,10 @@ func filterDefaultIfNone(in *Value, param *Value) (*Value, error) {
 		return param, nil
 	}
 	return in, nil
+}
+
+func filterDivisibleby(in *Value, param *Value) (*Value, error) {
+	return AsValue(in.Integer()%param.Integer() == 0), nil
 }
 
 func filterUpper(in *Value, param *Value) (*Value, error) {

@@ -26,3 +26,9 @@ safe
 
 escape
 {{ "<script>"|safe|escape }}
+
+divisibleby
+{{ 21|divisibleby:3 }}
+{{ 21|divisibleby:"3" }}
+{{ 21|float|divisibleby:"3" }}
+{{ 22|divisibleby:"3" }}
