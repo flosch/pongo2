@@ -81,7 +81,7 @@ func init() {
 	   Filters that won't be added:
 
 	   static
-	   get_static_prefix¶
+	   get_static_prefix
 	*/
 }
 
