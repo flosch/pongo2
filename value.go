@@ -59,9 +59,10 @@ func (v *Value) String() string {
 	switch v.getResolvedValue().Kind() {
 	case reflect.String:
 		return v.getResolvedValue().String()
-	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32,
-		reflect.Int64, reflect.Uint, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uint8:
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 		return strconv.FormatInt(v.getResolvedValue().Int(), 10)
+	case reflect.Uint, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uint8:
+		return strconv.FormatUint(v.getResolvedValue().Uint(), 10)
 	case reflect.Float32, reflect.Float64:
 		return fmt.Sprintf("%f", v.getResolvedValue().Float())
 	case reflect.Bool:
