@@ -24,6 +24,7 @@ func init() {
 	RegisterFilter("first", filterFirst)
 	RegisterFilter("last", filterLast)
 	RegisterFilter("length", filterLength)
+	RegisterFilter("linebreaksbr", filterLinebreaksbr)
 	RegisterFilter("lower", filterLower)
 	RegisterFilter("pluralize", filterPluralize)
 	RegisterFilter("removetags", filterRemovetags)
@@ -53,7 +54,6 @@ func init() {
 	   join
 	   length_is
 	   linebreaks
-	   linebreaksbr
 	   linenumbers
 	   ljust
 	   make_list
@@ -195,6 +195,10 @@ func filterInteger(in *Value, param *Value) (*Value, error) {
 		return nil, err
 	}
 	return AsValue(i), nil
+}
+
+func filterLinebreaksbr(in *Value, param *Value) (*Value, error) {
+	return AsValue(strings.Replace(in.String(), "\n", "<br />", -1)), nil
 }
 
 func filterUrlencode(in *Value, param *Value) (*Value, error) {

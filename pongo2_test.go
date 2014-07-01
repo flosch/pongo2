@@ -60,6 +60,8 @@ func TestRun(t *testing.T) {
 			"str":           "string",
 			"bool_true":     true,
 			"bool_false":    false,
+			"newline_text": `this is a text
+with a new line in it`,
 		},
 		"complex": map[string]interface{}{
 			"is_admin": is_admin,

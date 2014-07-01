@@ -78,3 +78,8 @@ t
 
 urlencode
 http%3A%2F%2Fwww.example.org%2Ffoo%3Fa%3Db%26c%3Dd
+
+linebreaksbr
+this is a text&lt;br /&gt;with a new line in it
+
+hallo

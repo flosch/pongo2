@@ -78,3 +78,8 @@ last
 
 urlencode
 {{ "http://www.example.org/foo?a=b&c=d"|urlencode }}
+
+linebreaksbr
+{{ simple.newline_text|linebreaksbr }}
+{{ ""|linebreaksbr }}
+{{ "hallo"|linebreaksbr }}
