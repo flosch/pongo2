@@ -5,6 +5,7 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
+	"time"
 )
 
 type Value struct {
@@ -71,13 +72,17 @@ func (v *Value) String() string {
 		} else {
 			return "False"
 		}
-	default:
-		if v.IsNil() {
-			return ""
+	case reflect.Struct:
+		if v.getResolvedValue().Type() == reflect.TypeOf(time.Time{}) {
+			return v.getResolvedValue().Interface().(time.Time).String()
 		}
-		logf("Value.String() not implemented for type: %s\n", v.getResolvedValue().Kind().String())
-		return v.getResolvedValue().String()
 	}
+
+	if v.IsNil() {
+		return ""
+	}
+	logf("Value.String() not implemented for type: %s\n", v.getResolvedValue().Kind().String())
+	return v.getResolvedValue().String()
 }
 
 func (v *Value) Integer() int {
