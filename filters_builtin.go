@@ -27,6 +27,7 @@ func init() {
 	RegisterFilter("striptags", filterStriptags)
 	RegisterFilter("time", filterDate) // time uses filterDate (same golang-format)
 	RegisterFilter("truncatechars", filterTruncatechars)
+	RegisterFilter("yesno", filterYesno)
 
 	RegisterFilter("float", filterFloat)     // pongo-specific
 	RegisterFilter("integer", filterInteger) // pongo-specific
@@ -76,7 +77,6 @@ func init() {
 	   urlizetrunc
 	   wordcount
 	   wordwrap
-	   yesno
 
 	   Filters that won't be added:
 
@@ -141,6 +141,9 @@ func filterDefaultIfNone(in *Value, param *Value) (*Value, error) {
 }
 
 func filterDivisibleby(in *Value, param *Value) (*Value, error) {
+	if param.Integer() == 0 {
+		return AsValue(false), nil
+	}
 	return AsValue(in.Integer()%param.Integer() == 0), nil
 }
 
@@ -202,4 +205,41 @@ func filterRemovetags(in *Value, param *Value) (*Value, error) {
 	}
 
 	return AsValue(strings.TrimSpace(s)), nil
+}
+
+func filterYesno(in *Value, param *Value) (*Value, error) {
+	choices := map[int]string{
+		0: "yes",
+		1: "no",
+		2: "maybe",
+	}
+	custom_choices := strings.Split(param.String(), ",")
+	if len(custom_choices) > 0 {
+		if len(custom_choices) > 3 {
+			return nil, errors.New("You cannot pass more than 3 options to the 'yesno'-filter.")
+		}
+		if len(custom_choices) < 2 {
+			return nil, errors.New("You must pass either no or at least 2 arguments to the 'yesno'-filter.")
+		}
+
+		// Map to the options now
+		choices[0] = custom_choices[0]
+		choices[1] = custom_choices[1]
+		if len(custom_choices) == 3 {
+			choices[2] = custom_choices[2]
+		}
+	}
+
+	// maybe
+	if in.IsNil() {
+		return AsValue(choices[2]), nil
+	}
+
+	// yes
+	if in.IsTrue() {
+		return AsValue(choices[0]), nil
+	}
+
+	// no
+	return AsValue(choices[1]), nil
 }
