@@ -20,6 +20,8 @@ func init() {
 	RegisterFilter("default", filterDefault)
 	RegisterFilter("default_if_none", filterDefaultIfNone)
 	RegisterFilter("divisibleby", filterDivisibleby)
+	RegisterFilter("first", filterFirst)
+	RegisterFilter("last", filterLast)
 	RegisterFilter("length", filterLength)
 	RegisterFilter("lower", filterLower)
 	RegisterFilter("pluralize", filterPluralize)
@@ -43,13 +45,11 @@ func init() {
 	   escape
 	   escapejs
 	   filesizeformat
-	   first
 	   floatformat
 	   force_escape
 	   get_digit
 	   iriencode
 	   join
-	   last
 	   length_is
 	   linebreaks
 	   linebreaksbr
@@ -145,6 +145,20 @@ func filterDivisibleby(in *Value, param *Value) (*Value, error) {
 		return AsValue(false), nil
 	}
 	return AsValue(in.Integer()%param.Integer() == 0), nil
+}
+
+func filterFirst(in *Value, param *Value) (*Value, error) {
+	if in.CanSlice() {
+		return in.Slice(0, 1), nil
+	}
+	return AsValue(""), nil
+}
+
+func filterLast(in *Value, param *Value) (*Value, error) {
+	if in.CanSlice() {
+		return in.Slice(in.Len()-1, in.Len()), nil
+	}
+	return AsValue(""), nil
 }
 
 func filterUpper(in *Value, param *Value) (*Value, error) {

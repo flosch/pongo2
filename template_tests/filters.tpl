@@ -61,3 +61,17 @@ cherr{{ 2|pluralize:"y,ies" }}
 walrus{{ 0|pluralize:"es" }}
 walrus{{ 1|pluralize:"es" }}
 walrus{{ simple.number|pluralize:"es" }}
+
+first
+{{ "Test"|first }}
+{{ complex.comments|first }}
+{{ 5|first }}
+{{ true|first }}
+{{ nothing|first }}
+
+last
+{{ "Test"|last }}
+{{ complex.comments|last }}
+{{ 5|last }}
+{{ true|last }}
+{{ nothing|last }}
