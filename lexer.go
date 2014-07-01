@@ -85,7 +85,8 @@ func (t *Token) String() string {
 		typ = "Unknown"
 	}
 
-	return fmt.Sprintf("<Token typ=%s (%d) val='%s'>", typ, t.Typ, val)
+	return fmt.Sprintf("<Token Typ=%s (%d) Val='%s' Line=%d Col=%d>",
+		typ, t.Typ, val, t.Line, t.Col)
 }
 
 func lex(name string, input string) ([]*Token, error) {
@@ -111,6 +112,10 @@ func (l *lexer) value() string {
 	return l.input[l.start:l.pos]
 }
 
+func (l *lexer) length() int {
+	return l.pos - l.start
+}
+
 func (l *lexer) emit(t TokenType) {
 	tok := &Token{
 		Typ:  t,
@@ -132,11 +137,13 @@ func (l *lexer) next() rune {
 	r, w := utf8.DecodeRuneInString(l.input[l.pos:])
 	l.width = w
 	l.pos += l.width
+	l.col += l.width
 	return r
 }
 
 func (l *lexer) backup() {
 	l.pos -= l.width
+	l.col -= l.width
 }
 
 func (l *lexer) peek() rune {
@@ -147,6 +154,8 @@ func (l *lexer) peek() rune {
 
 func (l *lexer) ignore() {
 	l.start = l.pos
+	l.startline = l.line
+	l.startcol = l.col
 }
 
 func (l *lexer) accept(what string) bool {
@@ -207,8 +216,8 @@ func (l *lexer) run() {
 					l.col += 2
 					break
 				}
-				l.pos++
-				l.col++
+
+				l.next()
 			}
 			l.ignore() // ignore whole comment
 
@@ -229,9 +238,7 @@ func (l *lexer) run() {
 			switch l.peek() {
 			case '\n':
 				l.line++
-				l.col = 1
-			default:
-				l.col++
+				l.col = 0
 			}
 			if l.next() == EOF {
 				break
@@ -256,10 +263,7 @@ outer_loop:
 		switch {
 		case l.accept(tokenSpaceChars):
 			if l.value() == "\n" {
-				l.line++
-				l.col = 1
-			} else {
-				l.col++
+				return l.errorf("Newline not allowed within tag/variable.")
 			}
 			l.ignore()
 			continue
@@ -275,7 +279,7 @@ outer_loop:
 		for _, sym := range tokenSymbols {
 			if strings.HasPrefix(l.input[l.start:], sym) {
 				l.pos += len(sym)
-				l.col += len(sym)
+				l.col += l.length()
 				l.emit(TokenSymbol)
 
 				if sym == "%}" || sym == "}}" {
@@ -307,7 +311,6 @@ func (l *lexer) stateIdentifier() lexerStateFn {
 			return l.stateCode
 		}
 	}
-	l.col += len(l.value())
 	l.emit(TokenIdentifier)
 	return l.stateCode
 }
@@ -328,22 +331,26 @@ func (l *lexer) stateNumber() lexerStateFn {
 			l.acceptRun(tokenDigits)
 		}
 	*/
-	l.col += len(l.value())
 	l.emit(TokenNumber)
 	return l.stateCode
 }
 
 func (l *lexer) stateString() lexerStateFn {
 	l.ignore()
+	l.startcol -= 1 // we're starting the position at the first "
 	for !l.accept(`"`) {
-		if l.next() == EOF {
+		switch l.next() {
+		case EOF:
 			return l.errorf("Unexpected EOF, string not closed.")
+		case '\n':
+			return l.errorf("Newline in string is not allowed.")
 		}
 	}
 	l.backup()
-	l.col += len(l.value())
 	l.emit(TokenString)
+
 	l.next()
 	l.ignore()
+
 	return l.stateCode
 }
