@@ -75,3 +75,6 @@ last
 {{ 5|last }}
 {{ true|last }}
 {{ nothing|last }}
+
+urlencode
+{{ "http://www.example.org/foo?a=b&c=d"|urlencode }}

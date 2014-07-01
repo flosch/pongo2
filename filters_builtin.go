@@ -3,6 +3,7 @@ package pongo2
 import (
 	"errors"
 	"fmt"
+	"net/url"
 	"regexp"
 	"strconv"
 	"strings"
@@ -27,6 +28,7 @@ func init() {
 	RegisterFilter("pluralize", filterPluralize)
 	RegisterFilter("removetags", filterRemovetags)
 	RegisterFilter("upper", filterUpper)
+	RegisterFilter("urlencode", filterUrlencode)
 	RegisterFilter("striptags", filterStriptags)
 	RegisterFilter("time", filterDate) // time uses filterDate (same golang-format)
 	RegisterFilter("truncatechars", filterTruncatechars)
@@ -39,7 +41,6 @@ func init() {
 
 	   addslashes
 	   center
-	   default_if_none
 	   dictsort
 	   dictsortreversed
 	   escape
@@ -72,7 +73,6 @@ func init() {
 	   truncatewords
 	   truncatewords_html
 	   unordered_list
-	   urlencode
 	   urlize
 	   urlizetrunc
 	   wordcount
@@ -195,6 +195,10 @@ func filterInteger(in *Value, param *Value) (*Value, error) {
 		return nil, err
 	}
 	return AsValue(i), nil
+}
+
+func filterUrlencode(in *Value, param *Value) (*Value, error) {
+	return AsValue(url.QueryEscape(in.String())), nil
 }
 
 var re_striptags = regexp.MustCompile("<[^>]*?>")
