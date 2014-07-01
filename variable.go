@@ -114,7 +114,8 @@ func (vr *variableResolver) resolve(ctx *ExecutionContext) (*Value, error) {
 					}
 				case varTypeIdent:
 					// debugging:
-					fmt.Printf("now = %s (kind: %s)\n", part.s, current.Kind().String())
+					// fmt.Printf("now = %s (kind: %s)\n", part.s, current.Kind().String())
+
 					// Calling a field or key
 					switch current.Kind() {
 					case reflect.Struct:
