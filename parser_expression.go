@@ -45,10 +45,11 @@ func (expr *Expression) Execute(ctx *ExecutionContext) (string, error) {
 }
 
 func (expr *Expression) Evaluate(ctx *ExecutionContext) (*Value, error) {
-	v1, err := expr.expr1.Evaluate(ctx)
+	value, err := expr.expr1.Evaluate(ctx)
 	if err != nil {
 		return nil, err
 	}
+
 	if expr.expr2 != nil {
 		v2, err := expr.expr2.Evaluate(ctx)
 		if err != nil {
@@ -56,15 +57,15 @@ func (expr *Expression) Evaluate(ctx *ExecutionContext) (*Value, error) {
 		}
 		switch expr.op_token.Val {
 		case "and", "&&":
-			return AsValue(v1.IsTrue() && v2.IsTrue()), nil
+			return AsValue(value.IsTrue() && v2.IsTrue()), nil
 		case "or", "||":
-			return AsValue(v1.IsTrue() || v2.IsTrue()), nil
+			return AsValue(value.IsTrue() || v2.IsTrue()), nil
 		default:
 			panic(fmt.Sprintf("unimplemented: %s", expr.op_token.Val))
 		}
-	} else {
-		return v1, nil
 	}
+
+	return value, nil
 }
 
 func (expr *relationalExpression) Evaluate(ctx *ExecutionContext) (*Value, error) {
@@ -205,18 +206,20 @@ func (pw *power) Evaluate(ctx *ExecutionContext) (*Value, error) {
 }
 
 func (p *Parser) parseFactor() (IEvaluator, error) {
-	if p.Match(TokenSymbol, "(") != nil {
-		expr, err := p.ParseExpression()
-		if err != nil {
-			return nil, err
+	/*
+		if p.Match(TokenSymbol, "(") != nil {
+			expr, err := p.ParseExpression()
+			if err != nil {
+				return nil, err
+			}
+			if p.Match(TokenSymbol, ")") == nil {
+				return nil, p.Error("Closing bracket expected after expression", nil)
+			}
+			return p.parseFilter(expr)
 		}
-		if p.Match(TokenSymbol, ")") == nil {
-			return nil, p.Error("Closing bracket expected after expression", nil)
-		}
-		return expr, nil
-	}
+	*/
 
-	return p.parseVariableOrLiteralWithFilter()
+	return p.parseLiteralWithFilter()
 }
 
 func (p *Parser) parseTerm() (IEvaluator, error) {

@@ -151,11 +151,11 @@ func (p *Parser) Error(msg string, token *Token) error {
 	if token != nil {
 		// No tokens available
 		// TODO: Add location (from where?)
-		pos = fmt.Sprintf(" | Line %d Col %d (%s)",
-			token.Line, token.Col, token.String())
+		pos = fmt.Sprintf(" | Line %d Col %d Value '%s' (%s)",
+			token.Line, token.Col, token.Val, token.Type())
 	}
 	return errors.New(
-		fmt.Sprintf("[Parse Error in %s%s] %s",
+		fmt.Sprintf("[Parse Error in '%s'%s] %s",
 			p.name, pos, msg,
 		))
 }

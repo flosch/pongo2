@@ -61,3 +61,24 @@ cherr{{ 2|pluralize:"y,ies" }}
 walrus{{ 0|pluralize:"es" }}
 walrus{{ 1|pluralize:"es" }}
 walrus{{ simple.number|pluralize:"es" }}
+
+float
+{{ "5.5"|float }}
+{{ simple.number|float }}
+{{ ("5.5"|float + "2.5"|float)|integer == 8 }}
+
+integer
+
+first
+{{ (complex.comments|first).Author.Name }}
+{{ (complex.comments|first).Author.Name == "user1" }}
+{{ nothing|first }}
+{{ 5|first }}
+{{ "test"|first }}
+
+last
+{{ (complex.comments|last).Author.Name }}
+{{ (complex.comments|last).Author.Name == "user3" }}
+{{ nothing|last }}
+{{ 5|last }}
+{{ "test"|last }}

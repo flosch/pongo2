@@ -35,6 +35,12 @@ type filterCall struct {
 	filterFunc FilterFunction
 }
 
+type nodeFilter struct {
+	location_token *Token
+	expr           IEvaluator
+	filterChain    []*filterCall
+}
+
 func (fc *filterCall) Execute(v *Value, ctx *ExecutionContext) (*Value, error) {
 	var param *Value
 	var err error
@@ -55,8 +61,36 @@ func (fc *filterCall) Execute(v *Value, ctx *ExecutionContext) (*Value, error) {
 	return filtered_value, nil
 }
 
+func (f *nodeFilter) Evaluate(ctx *ExecutionContext) (*Value, error) {
+	value, err := f.expr.Evaluate(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	safe := false
+	for _, filter := range f.filterChain {
+		if filter.name == "safe" {
+			safe = true
+		}
+		value, err = filter.Execute(value, ctx)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	if !safe && value.IsString() {
+		// apply escape filter
+		value, err = filters["escape"](value, nil)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return value, nil
+}
+
 // Filter = IDENT | IDENT ":" FilterArg | IDENT "|" Filter
-func (p *Parser) parseFilter() (*filterCall, error) {
+func (p *Parser) parseSingleFilter() (*filterCall, error) {
 	ident_token := p.MatchType(TokenIdentifier)
 
 	// Check filter ident
@@ -85,8 +119,8 @@ func (p *Parser) parseFilter() (*filterCall, error) {
 			return nil, p.Error("Filter parameter required after ':'.", nil)
 		}
 
-		// Get filter argument expression
-		v, err := p.parseVariableOrLiteral()
+		// Get filter argument
+		v, err := p.parseFactor()
 		if err != nil {
 			return nil, err
 		}
@@ -94,4 +128,31 @@ func (p *Parser) parseFilter() (*filterCall, error) {
 	}
 
 	return filter, nil
+}
+
+func (p *Parser) parseFilter(expr IEvaluator) (IEvaluator, error) {
+	// Check for filter (if there's none, we don't need a nodeFilter here)
+	if p.Peek(TokenSymbol, "|") == nil {
+		return expr, nil
+	}
+
+	f := &nodeFilter{
+		expr: expr,
+	}
+
+	// Are there filters applied to the expression?
+	// Parse all the filters
+filterLoop:
+	for p.Match(TokenSymbol, "|") != nil {
+		// Parse one single filter
+		filter, err := p.parseSingleFilter()
+		if err != nil {
+			return nil, err
+		}
+		f.filterChain = append(f.filterChain, filter)
+
+		continue filterLoop
+	}
+
+	return f, nil
 }

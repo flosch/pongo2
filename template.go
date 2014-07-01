@@ -81,6 +81,9 @@ func (tpl *Template) Execute(context *Context) (string, error) {
 		StringStore: make(map[string]string),
 	}
 
+	// Create default resolution variable
+	ctx.pushInternalResolveValue()
+
 	// Run the selected document
 	return parent.root.Execute(ctx)
 }

@@ -59,34 +59,35 @@ type lexer struct {
 	col       int
 }
 
+func (t *Token) Type() string {
+	switch t.Typ {
+	case TokenHTML:
+		return "HTML"
+	case TokenError:
+		return "Error"
+	case TokenIdentifier:
+		return "Identifier"
+	case TokenKeyword:
+		return "Keyword"
+	case TokenNumber:
+		return "Number"
+	case TokenString:
+		return "String"
+	case TokenSymbol:
+		return "Symbol"
+	default:
+		return "Unknown"
+	}
+}
+
 func (t *Token) String() string {
 	val := t.Val
 	if len(val) > 1000 {
 		val = fmt.Sprintf("%s...%s", val[:10], val[len(val)-5:len(val)])
 	}
 
-	typ := ""
-	switch t.Typ {
-	case TokenHTML:
-		typ = "HTML"
-	case TokenError:
-		typ = "Error"
-	case TokenIdentifier:
-		typ = "Identifier"
-	case TokenKeyword:
-		typ = "Keyword"
-	case TokenNumber:
-		typ = "Number"
-	case TokenString:
-		typ = "String"
-	case TokenSymbol:
-		typ = "Symbol"
-	default:
-		typ = "Unknown"
-	}
-
 	return fmt.Sprintf("<Token Typ=%s (%d) Val='%s' Line=%d Col=%d>",
-		typ, t.Typ, val, t.Line, t.Col)
+		t.Type(), t.Typ, val, t.Line, t.Col)
 }
 
 func lex(name string, input string) ([]*Token, error) {

@@ -1,11 +1,9 @@
 package pongo2
 
 import (
-	"errors"
 	"fmt"
 	"reflect"
 	"strconv"
-	"strings"
 )
 
 const (
@@ -13,6 +11,7 @@ const (
 	varTypeIdent
 )
 
+/*
 type variablePart struct {
 	typ int
 	s   string
@@ -21,26 +20,18 @@ type variablePart struct {
 	is_function_call bool
 	calling_args     []functionCallArgument // needed for a function call, represents all argument nodes (INode supports nested function calls)
 }
-
-type functionCallArgument interface {
-	Evaluate(*ExecutionContext) (*Value, error)
-}
+*/
 
 type stringResolver string
+type identResolver string
 type numberResolver int
 type boolResolver bool
 
-type variableResolver struct {
+type nodeResolver struct {
 	location_token *Token // TODO: Use it in Evaluate()/Execute() for proper in-execution error messages
-
-	parts []*variablePart
-}
-
-type nodeVariable struct {
-	location_token *Token // TODO: Use it in Evaluate()/Execute() for proper in-execution error messages
-
-	resolver    IEvaluator
-	filterChain []*filterCall
+	expr           INodeEvaluator
+	resolver       IEvaluator
+	args           []IEvaluator
 }
 
 func (s *stringResolver) Evaluate(ctx *ExecutionContext) (*Value, error) {
@@ -55,205 +46,171 @@ func (b *boolResolver) Evaluate(ctx *ExecutionContext) (*Value, error) {
 	return AsValue(bool(*b)), nil
 }
 
-func (vr *variableResolver) String() string {
-	parts := make([]string, 0, len(vr.parts))
-	for _, p := range vr.parts {
-		switch p.typ {
-		case varTypeInt:
-			parts = append(parts, strconv.Itoa(p.i))
-		case varTypeIdent:
-			parts = append(parts, p.s)
-		default:
-			panic("unimplemented")
-		}
-	}
-	return strings.Join(parts, ".")
+func (i *identResolver) Evaluate(ctx *ExecutionContext) (*Value, error) {
+	return AsValue(string(*i)), nil
 }
 
-func (vr *variableResolver) resolve(ctx *ExecutionContext) (*Value, error) {
-	var current reflect.Value
-
-	for idx, part := range vr.parts {
-		if idx == 0 {
-			// First part, get it from public context
-			current = reflect.ValueOf((*ctx.Public)[vr.parts[0].s]) // Get the initial value
-		} else {
-			// Next parts, resolve it from current
-
-			// Before resolving the pointer, let's see if we have a method to call
-			// Problem with resolving the pointer is we're changing the receiver
-			is_func := false
-			if part.typ == varTypeIdent {
-				func_value := current.MethodByName(part.s)
-				if func_value.IsValid() {
-					current = func_value
-					is_func = true
-				}
-			}
-
-			if !is_func {
-				// If current a pointer, resolve it
-				if current.Kind() == reflect.Ptr {
-					current = current.Elem()
-					if !current.IsValid() {
-						// Value is not valid (anymore)
-						return AsValue(nil), nil
-					}
-				}
-
-				// Look up which part must be called now
-				switch part.typ {
-				case varTypeInt:
-					// Calling an index is only possible for:
-					// * slices/arrays/strings
-					switch current.Kind() {
-					case reflect.String, reflect.Array, reflect.Slice:
-						current = current.Index(part.i)
-					default:
-						return nil, errors.New(fmt.Sprintf("Can't access an index on type %s (variable %s)", current.Kind().String(), vr.String()))
-					}
-				case varTypeIdent:
-					// debugging:
-					// fmt.Printf("now = %s (kind: %s)\n", part.s, current.Kind().String())
-
-					// Calling a field or key
-					switch current.Kind() {
-					case reflect.Struct:
-						current = current.FieldByName(part.s)
-					case reflect.Map:
-						current = current.MapIndex(reflect.ValueOf(part.s))
-					default:
-						return nil, errors.New(fmt.Sprintf("Can't access a field by name on type %s (variable %s)", current.Kind().String(), vr.String()))
-					}
-				default:
-					panic("unimplemented")
-				}
-			}
-		}
-
-		if !current.IsValid() {
-			// Value is not valid (anymore)
-			return AsValue(nil), nil
-		}
-
-		// If current is a reflect.ValueOf(pongo2.Value), then unpack it
-		// Happens in function calls (as a return value) or by injecting
-		// into the execution context (e.g. in a for-loop)
-		if current.Type() == reflect.TypeOf(&Value{}) {
-			current = current.Interface().(*Value).v
-		}
-
-		// Check whether this is an interface and resolve it where required
-		if current.Kind() == reflect.Interface {
-			current = reflect.ValueOf(current.Interface())
-		}
-
-		// Check if the part is a function call
-		if part.is_function_call || current.Kind() == reflect.Func {
-			// Check for callable
-			if current.Kind() != reflect.Func {
-				return nil, errors.New(fmt.Sprintf("'%s' is not a function (it is %s).", vr.String(), current.Kind().String()))
-			}
-
-			// Check for correct function syntax and types
-			// func(*Value, ...) *Value
-			t := current.Type()
-
-			// Input arguments
-			for i := 0; i < t.NumIn(); i++ {
-				if t.In(i) != reflect.TypeOf(new(Value)) {
-					return nil, errors.New(fmt.Sprintf("Function input argument %d of '%s' must be of type *Value.", i, vr.String()))
-				}
-			}
-			if len(part.calling_args) != t.NumIn() {
-				return nil,
-					errors.New(fmt.Sprintf("Function input argument count (%d) of '%s' must be equal to the calling argument count (%d).",
-						t.NumIn(), vr.String(), len(part.calling_args)))
-			}
-
-			// Output arguments
-			if t.NumOut() != 1 {
-				return nil, errors.New(fmt.Sprintf("'%s' must have exactly 1 output argument.", vr.String()))
-			}
-			if t.Out(0) != reflect.TypeOf(new(Value)) {
-				return nil, errors.New(fmt.Sprintf("Function return type of '%s' must be of type *Value.", vr.String()))
-			}
-
-			// Evaluate all parameters
-			parameters := make([]reflect.Value, 0)
-			for _, arg := range part.calling_args {
-				pv, err := arg.Evaluate(ctx)
-				if err != nil {
-					return nil, err
-				}
-				parameters = append(parameters, reflect.ValueOf(pv))
-			}
-
-			// Call it
-			rv := current.Call(parameters)
-
-			// Return the function call value
-			//return rv[0].Interface().(*Value), nil
-			current = rv[0].Interface().(*Value).v
-			// fmt.Printf("=> %+v %+T\n\n", current, current)
-		}
-	}
-
-	if !current.IsValid() {
-		// Value is not valid (e. g. NIL value)
-		return AsValue(nil), nil
-	}
-
-	return &Value{current}, nil
+func (i *identResolver) Execute(ctx *ExecutionContext) (string, error) {
+	return string(*i), nil
 }
 
-// Is being used within a function call to get the argument
-func (vr *variableResolver) Evaluate(ctx *ExecutionContext) (*Value, error) {
-	value, err := vr.resolve(ctx)
-	if err != nil {
-		return AsValue(nil), ctx.Error(err.Error(), vr.location_token)
-	}
-	return value, nil
-}
-
-// Is being used within a function call to get the argument
-func (v *nodeVariable) Evaluate(ctx *ExecutionContext) (*Value, error) {
-	value, err := v.resolver.Evaluate(ctx)
+func (vr *nodeResolver) Evaluate(ctx *ExecutionContext) (*Value, error) {
+	lookup_value, err := vr.expr.Evaluate(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	safe := false
-	for _, filter := range v.filterChain {
-		if filter.name == "safe" {
-			safe = true
+	if !ctx.isInternalResolveValueSet() {
+		//fmt.Printf("fresh start with lookup name=%s\n", lookup_value.String())
+		// No current value, then do a lookup in the Public context and fill
+		// ctx.internalResolveValue with an initial value
+
+		// Key will be of type identifier (name is accessable by String())
+		ctx.setInternalResolveValue(reflect.ValueOf((*ctx.Public)[lookup_value.String()]))
+	} else {
+		if !ctx.getInternalResolveValue().IsValid() {
+			// Value is not valid (anymore)
+			return AsValue(nil), nil
 		}
-		value, err = filter.Execute(value, ctx)
-		if err != nil {
-			return nil, err
+
+		//fmt.Printf("next lookup name=%s\n", lookup_value.String())
+		// Before resolving the pointer, let's see if we have a method to call
+		// Problem with resolving the pointer is we're changing the receiver
+		is_func := false
+
+		// There are only functions with a NAME (as string; not an integer)
+		if lookup_value.IsString() {
+			func_value := ctx.getInternalResolveValue().MethodByName(lookup_value.String())
+			if func_value.IsValid() {
+				ctx.setInternalResolveValue(func_value)
+				is_func = true
+			}
+		}
+
+		// No function? Okay, then let's resolve the part
+		if !is_func {
+			// If current a pointer, resolve it
+			if ctx.getInternalResolveValue().Kind() == reflect.Ptr {
+				ctx.setInternalResolveValue(ctx.getInternalResolveValue().Elem())
+				if !ctx.getInternalResolveValue().IsValid() {
+					// Value is not valid (anymore)
+					return AsValue(nil), nil
+				}
+			}
+
+			// Look up which part must be called now
+			if lookup_value.IsInteger() {
+				// Calling an index is only possible for:
+				// * slices/arrays/strings
+				switch ctx.getInternalResolveValue().Kind() {
+				case reflect.String, reflect.Array, reflect.Slice:
+					ctx.setInternalResolveValue(ctx.getInternalResolveValue().Index(lookup_value.Integer()))
+				default:
+					return nil, ctx.Error(fmt.Sprintf("Can't access an index on type %s (lookup-index: %d)",
+						ctx.getInternalResolveValue().Kind().String(), lookup_value.Integer()), vr.location_token)
+				}
+			} else if lookup_value.IsString() {
+				// debugging:
+				// fmt.Printf("now = %s (kind: %s)\n", part.s, current.Kind().String())
+
+				// Calling a field or key
+				switch ctx.getInternalResolveValue().Kind() {
+				case reflect.Struct:
+					ctx.setInternalResolveValue(ctx.getInternalResolveValue().FieldByName(lookup_value.String()))
+				case reflect.Map:
+					ctx.setInternalResolveValue(ctx.getInternalResolveValue().MapIndex(reflect.ValueOf(lookup_value.String())))
+				default:
+					return nil, ctx.Error(fmt.Sprintf("Can't access a field by name on type %s (lookup-name: '%s')",
+						ctx.getInternalResolveValue().Kind().String(), lookup_value.String()), vr.location_token)
+				}
+			} else {
+				panic("resolver type unimplemented")
+			}
 		}
 	}
 
-	if !safe && value.IsString() {
-		// apply escape filter
-		value, err = filters["escape"](value, nil)
-		if err != nil {
-			return nil, err
-		}
+	if !ctx.getInternalResolveValue().IsValid() {
+		// Value is not valid (anymore)
+		return AsValue(nil), nil
 	}
 
-	return value, nil
+	// If current is a reflect.ValueOf(pongo2.Value), then unpack it
+	// Happens in function calls (as a return value) or by injecting
+	// into the execution context (e.g. in a for-loop)
+	if ctx.getInternalResolveValue().Type() == reflect.TypeOf(&Value{}) {
+		ctx.setInternalResolveValue(ctx.getInternalResolveValue().Interface().(*Value).v)
+	}
+
+	// Check whether this is an interface and resolve it where required
+	if ctx.getInternalResolveValue().Kind() == reflect.Interface {
+		ctx.setInternalResolveValue(reflect.ValueOf(ctx.getInternalResolveValue().Interface()))
+	}
+
+	// Check if the part is a function call
+	if ctx.getInternalResolveValue().Kind() == reflect.Func {
+		// Check for correct function syntax and types
+		// func(*Value, ...) *Value
+		t := ctx.getInternalResolveValue().Type()
+
+		// Input arguments
+		for i := 0; i < t.NumIn(); i++ {
+			if t.In(i) != reflect.TypeOf(new(Value)) {
+				return nil, ctx.Error(fmt.Sprintf("Function input argument %d must be of type *Value.", i), vr.location_token)
+			}
+		}
+		if len(vr.args) != t.NumIn() {
+			return nil,
+				ctx.Error(fmt.Sprintf("Function input argument count (%d) must be equal to the calling argument count (%d).",
+					t.NumIn(), len(vr.args)), vr.location_token)
+		}
+
+		// Output arguments
+		if t.NumOut() != 1 {
+			return nil, ctx.Error(fmt.Sprintf("'%s' must have exactly 1 output argument.",
+				lookup_value.String()), vr.location_token)
+		}
+		if t.Out(0) != reflect.TypeOf(new(Value)) {
+			return nil, ctx.Error(fmt.Sprintf("Function return type of '%s' must be of type *Value.",
+				lookup_value.String()), vr.location_token)
+		}
+
+		// Evaluate all parameters
+		parameters := make([]reflect.Value, 0)
+		for _, arg := range vr.args {
+			ctx.pushInternalResolveValue()
+			pv, err := arg.Evaluate(ctx)
+			if err != nil {
+				return nil, err
+			}
+			ctx.popInternalResolveValue()
+			parameters = append(parameters, reflect.ValueOf(pv))
+		}
+
+		// Call it
+		rv := ctx.getInternalResolveValue().Call(parameters)
+
+		// Return the function call value
+		//return rv[0].Interface().(*Value), nil
+		ctx.setInternalResolveValue(rv[0].Interface().(*Value).v)
+		// fmt.Printf("=> %+v %+T\n\n", current, current)
+	}
+
+	if vr.resolver == nil {
+		v := ctx.getInternalResolveValue()
+		ctx.emptyInternalResolveValue()
+		return &Value{v}, nil
+	}
+	return vr.resolver.Evaluate(ctx)
 }
 
-// IDENT | IDENT.(IDENT|NUMBER)...
-func (p *Parser) parseVariableOrLiteral() (IEvaluator, error) {
+func (p *Parser) parseLiteral() (IEvaluator, error) {
 	t := p.Current()
 
 	if t == nil {
 		return nil, p.Error("Expected a number, string, keyword or identifier.", nil)
 	}
 
-	// Is first part a number or a string, there's nothing to resolve (because there's only to return the value then)
+	// Literals (Number [integer], String, Keyword [true/false])
 	switch t.Typ {
 	case TokenNumber:
 		p.Consume()
@@ -281,130 +238,101 @@ func (p *Parser) parseVariableOrLiteral() (IEvaluator, error) {
 		}
 	}
 
-	resolver := &variableResolver{
-		location_token: t,
-	}
-
-	// First part of a variable MUST be an identifier
-	if t.Typ != TokenIdentifier {
-		return nil, p.Error(fmt.Sprintf("Variable (1st part, '%s') must be an identifier", t.Val), t)
-	}
-
-	resolver.parts = append(resolver.parts, &variablePart{
-		typ: varTypeIdent,
-		s:   t.Val,
-	})
-
-	p.Consume() // we consumed the first identifier of the variable name
-
-variableLoop:
-	for p.Remaining() > 0 {
-		t = p.Current()
-
-		if p.Match(TokenSymbol, ".") != nil {
-			// Next variable part (can be either NUMBER or IDENT)
-			t2 := p.Current()
-			if t2 != nil {
-				switch t2.Typ {
-				case TokenIdentifier:
-					resolver.parts = append(resolver.parts, &variablePart{
-						typ: varTypeIdent,
-						s:   t2.Val,
-					})
-					p.Consume() // consume: IDENT
-					continue variableLoop
-				case TokenNumber:
-					i, err := strconv.Atoi(t2.Val)
-					if err != nil {
-						return nil, p.Error(err.Error(), t2)
-					}
-					resolver.parts = append(resolver.parts, &variablePart{
-						typ: varTypeInt,
-						i:   i,
-					})
-					p.Consume() // consume: NUMBER
-					continue variableLoop
-				default:
-					return nil, p.Error("This token is not allowed within a variable name.", t2)
-				}
-			} else {
-				// EOF
-				return nil, p.Error("Unexpected EOF, expected either IDENTIFIER or NUMBER after DOT.", t)
-			}
-		} else if p.Match(TokenSymbol, "(") != nil {
-			// Function call
-			// FunctionName '(' Comma-separated list of expressions ')'
-			part := resolver.parts[len(resolver.parts)-1]
-			part.is_function_call = true
-		argumentLoop:
-			for {
-				if p.Remaining() == 0 {
-					return nil, p.Error("Unexpected EOF, expected function call argument list.", nil)
-				}
-
-				if p.Peek(TokenSymbol, ")") == nil {
-					// No closing bracket, so we're parsing an expression
-					expr_arg, err := p.ParseExpression()
-					if err != nil {
-						return nil, err
-					}
-					part.calling_args = append(part.calling_args, expr_arg)
-
-					if p.Match(TokenSymbol, ")") != nil {
-						// If there's a closing bracket after an expression, we will stop parsing the arguments
-						break argumentLoop
-					} else {
-						// If there's NO closing bracket, there MUST be an comma
-						if p.Match(TokenSymbol, ",") == nil {
-							return nil, p.Error("Missing comma or closing bracket after argument.", nil)
-						}
-					}
-				} else {
-					// We got a closing bracket, so stop parsing arguments
-					p.Consume()
-					break argumentLoop
-				}
-
-			}
-			// We're done parsing the function call, next variable part
-			continue variableLoop
-		}
-
-		// No dot or function call? Then we're done with the variable parsing
-		break
-	}
-
-	return resolver, nil
+	return nil, p.Error("Unrecognized literal.", nil)
 }
 
-func (p *Parser) parseVariableOrLiteralWithFilter() (*nodeVariable, error) {
-	v := &nodeVariable{
+// $expr '.' $expr
+func (p *Parser) parseResolver() (IEvaluator, error) {
+
+	if p.PeekType(TokenNumber) != nil || p.PeekType(TokenString) != nil ||
+		p.PeekType(TokenKeyword) != nil {
+		// parse literal
+		return p.parseLiteral()
+	}
+
+	nr := &nodeResolver{
 		location_token: p.Current(),
 	}
 
-	// Parse the variable name
-	resolver, err := p.parseVariableOrLiteral()
-	if err != nil {
-		return nil, err
+	if ident_token := p.MatchType(TokenIdentifier); ident_token != nil {
+		ir := identResolver(ident_token.Val)
+		nr.expr = &ir
+	} else {
+		// Otherwise we're parsing an expression
+		if p.Match(TokenSymbol, "(") != nil {
+			br_expr, err := p.ParseExpression()
+			if err != nil {
+				return nil, err
+			}
+			if p.Match(TokenSymbol, ")") == nil {
+				return nil, p.Error("Closing bracket expected after expression", nil)
+			}
+			/*filter_expr, err := p.parseFilter(br_expr)
+			if err != nil {
+				return nil, err
+			}*/
+			nr.expr = br_expr
+		} else {
+			expr, err := p.ParseExpression()
+			if err != nil {
+				return nil, err
+			}
+			nr.expr = expr
+		}
 	}
-	v.resolver = resolver
 
-	// Parse all the filters
-filterLoop:
-	for p.Match(TokenSymbol, "|") != nil {
-		// Parse one single filter
-		filter, err := p.parseFilter()
+	// Is there anything to resolve?
+	if p.Match(TokenSymbol, ".") != nil {
+		resolver, err := p.ParseExpression()
 		if err != nil {
 			return nil, err
 		}
-		v.filterChain = append(v.filterChain, filter)
+		nr.resolver = resolver
+	} else if p.Match(TokenSymbol, "(") != nil {
+		// Function call
+		// FunctionName '(' Comma-separated list of expressions ')'
 
-		continue filterLoop
+	argumentLoop:
+		for {
+			if p.Remaining() == 0 {
+				return nil, p.Error("Unexpected EOF, expected function call argument list.", nil)
+			}
 
-		return nil, p.Error("This token is not allowed within a variable.", nil)
+			if p.Peek(TokenSymbol, ")") == nil {
+				// No closing bracket, so we're parsing an expression
+				expr_arg, err := p.ParseExpression()
+				if err != nil {
+					return nil, err
+				}
+				nr.args = append(nr.args, expr_arg)
+
+				if p.Match(TokenSymbol, ")") != nil {
+					// If there's a closing bracket after an expression, we will stop parsing the arguments
+					break argumentLoop
+				} else {
+					// If there's NO closing bracket, there MUST be an comma
+					if p.Match(TokenSymbol, ",") == nil {
+						return nil, p.Error("Missing comma or closing bracket after argument.", nil)
+					}
+				}
+			} else {
+				// We got a closing bracket, so stop parsing arguments
+				p.Consume()
+				break argumentLoop
+			}
+		}
 	}
 
-	return v, nil
+	return p.parseFilter(nr)
+}
+
+func (p *Parser) parseLiteralWithFilter() (IEvaluator, error) {
+	val, err := p.parseResolver()
+	if err != nil {
+		return nil, err
+	}
+
+	return p.parseFilter(val)
 }
 
 func (p *Parser) parseVariableElement() (INode, error) {
