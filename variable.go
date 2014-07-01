@@ -92,11 +92,6 @@ func (vr *variableResolver) resolve(ctx *ExecutionContext) (*Value, error) {
 			}
 
 			if !is_func {
-				// Check whether this is an interface
-				if current.Kind() == reflect.Interface {
-					current = reflect.ValueOf(current.Interface())
-				}
-
 				// If current a pointer, resolve it
 				if current.Kind() == reflect.Ptr {
 					current = current.Elem()
@@ -118,6 +113,8 @@ func (vr *variableResolver) resolve(ctx *ExecutionContext) (*Value, error) {
 						return nil, errors.New(fmt.Sprintf("Can't access an index on type %s (variable %s)", current.Kind().String(), vr.String()))
 					}
 				case varTypeIdent:
+					// debugging:
+					fmt.Printf("now = %s (kind: %s)\n", part.s, current.Kind().String())
 					// Calling a field or key
 					switch current.Kind() {
 					case reflect.Struct:
@@ -143,6 +140,11 @@ func (vr *variableResolver) resolve(ctx *ExecutionContext) (*Value, error) {
 		// into the execution context (e.g. in a for-loop)
 		if current.Type() == reflect.TypeOf(&Value{}) {
 			current = current.Interface().(*Value).v
+		}
+
+		// Check whether this is an interface and resolve it where required
+		if current.Kind() == reflect.Interface {
+			current = reflect.ValueOf(current.Interface())
 		}
 
 		// Check if the part is a function call
