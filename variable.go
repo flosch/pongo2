@@ -248,6 +248,10 @@ func (v *NodeVariable) Evaluate(ctx *ExecutionContext) (*Value, error) {
 func (p *Parser) parseVariableOrLiteral() (IEvaluator, error) {
 	t := p.Current()
 
+	if t == nil {
+		return nil, p.Error("Expected a number, string, keyword or identifier.", nil)
+	}
+
 	// Is first part a number or a string, there's nothing to resolve (because there's only to return the value then)
 	switch t.Typ {
 	case TokenNumber:
