@@ -1,6 +1,7 @@
 package pongo2
 
 import (
+	"errors"
 	"path/filepath"
 )
 
@@ -40,6 +41,11 @@ func (node *tagIncludeNode) Execute(ctx *ExecutionContext) (string, error) {
 		if err != nil {
 			return "", err
 		}
+
+		if filename.String() == "" {
+			return "", errors.New("Filename for 'include'-tag evaluated to an empty string.")
+		}
+
 		// Get include-filename relative to the including-template directory
 		including_dir := filepath.Dir(ctx.template.name)
 		included_filename := filepath.Join(including_dir, filename.String())
