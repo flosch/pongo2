@@ -83,3 +83,10 @@ linebreaksbr
 this is a text&lt;br /&gt;with a new line in it
 
 hallo
+
+length_is
+True
+False
+True
+False
+False

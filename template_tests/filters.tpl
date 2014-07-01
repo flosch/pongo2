@@ -83,3 +83,10 @@ linebreaksbr
 {{ simple.newline_text|linebreaksbr }}
 {{ ""|linebreaksbr }}
 {{ "hallo"|linebreaksbr }}
+
+length_is
+{{ simple.name|length_is:6 }}
+{{ simple.name|length_is:7 }}
+{{ simple.name|length_is:"6" }}
+{{ simple.name|length_is:"7" }}
+{{ 5|length_is:1 }}

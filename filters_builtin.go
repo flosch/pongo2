@@ -24,6 +24,7 @@ func init() {
 	RegisterFilter("first", filterFirst)
 	RegisterFilter("last", filterLast)
 	RegisterFilter("length", filterLength)
+	RegisterFilter("length_is", filterLengthis)
 	RegisterFilter("linebreaksbr", filterLinebreaksbr)
 	RegisterFilter("lower", filterLower)
 	RegisterFilter("pluralize", filterPluralize)
@@ -52,7 +53,6 @@ func init() {
 	   get_digit
 	   iriencode
 	   join
-	   length_is
 	   linebreaks
 	   linenumbers
 	   ljust
@@ -124,6 +124,10 @@ func filterCut(in *Value, param *Value) (*Value, error) {
 
 func filterLength(in *Value, param *Value) (*Value, error) {
 	return AsValue(in.Len()), nil
+}
+
+func filterLengthis(in *Value, param *Value) (*Value, error) {
+	return AsValue(in.Len() == param.Integer()), nil
 }
 
 func filterDefault(in *Value, param *Value) (*Value, error) {
