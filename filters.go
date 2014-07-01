@@ -86,7 +86,7 @@ func (p *Parser) parseFilter() (*filterCall, error) {
 		}
 
 		// Get filter argument expression
-		v, err := p.ParseExpression()
+		v, err := p.parseVariableOrLiteral()
 		if err != nil {
 			return nil, err
 		}

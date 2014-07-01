@@ -96,7 +96,7 @@ func (vr *variableResolver) resolve(ctx *ExecutionContext) (*Value, error) {
 				if current.Kind() == reflect.Ptr {
 					current = current.Elem()
 					if !current.IsValid() {
-						// Value is not valid (anymore), so we're returning the default value (empty string)
+						// Value is not valid (anymore)
 						return AsValue(nil), nil
 					}
 				}
@@ -132,7 +132,7 @@ func (vr *variableResolver) resolve(ctx *ExecutionContext) (*Value, error) {
 		}
 
 		if !current.IsValid() {
-			// Value is not valid (anymore), so we're returning the default value (empty string)
+			// Value is not valid (anymore)
 			return AsValue(nil), nil
 		}
 
@@ -200,8 +200,8 @@ func (vr *variableResolver) resolve(ctx *ExecutionContext) (*Value, error) {
 	}
 
 	if !current.IsValid() {
-		// No value is not valid (e. g. NIL value), then return the empty string (as django does)
-		return AsValue(""), nil
+		// Value is not valid (e. g. NIL value)
+		return AsValue(nil), nil
 	}
 
 	return &Value{current}, nil

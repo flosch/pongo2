@@ -13,6 +13,7 @@ Helloworld
 default
 n/a
 42
+42
 5
 
 default_if_none
@@ -32,9 +33,20 @@ True
 True
 True
 False
+False
+True
 
 striptags
 Hello!
 
 removetags
 <strong>Hello!</strong>
+
+yesno
+yes
+no
+maybe
+maybe
+ja
+nein
+maybe

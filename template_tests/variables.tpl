@@ -1,7 +1,7 @@
 {{ true }}
 {{ false }}
-{{ uint }}
-{{ nil }}
-{{ str }}
-{{ bool_false }}
-{{ bool_true }}
+{{ simple.uint }}
+{{ simple.nil }}
+{{ simple.str }}
+{{ simple.bool_false }}
+{{ simple.bool_true }}
