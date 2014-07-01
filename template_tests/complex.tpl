@@ -15,7 +15,7 @@
 	<h1>Comments</h1>
 
 	{% for comment in complex.comments %}
-		<h2>{{ forloop.Counter }}. Comment</h2>
+		<h2>{{ forloop.Counter }}. Comment ({{ forloop.Revcounter}} comment{{ forloop.Revcounter|pluralize:"s" }} left)</h2>
 		<p>From: {{ comment.Author.Name }} ({{ comment.Author.Validated|yesno:"validated,not validated,unknown validation status" }})</p>
 
 		{% if complex.is_admin(comment.Author) %}

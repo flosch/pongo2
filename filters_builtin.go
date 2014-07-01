@@ -22,6 +22,7 @@ func init() {
 	RegisterFilter("divisibleby", filterDivisibleby)
 	RegisterFilter("length", filterLength)
 	RegisterFilter("lower", filterLower)
+	RegisterFilter("pluralize", filterPluralize)
 	RegisterFilter("removetags", filterRemovetags)
 	RegisterFilter("upper", filterUpper)
 	RegisterFilter("striptags", filterStriptags)
@@ -56,7 +57,6 @@ func init() {
 	   ljust
 	   make_list
 	   phone2numeric
-	   pluralize
 	   pprint
 	   random
 	   removetags
@@ -192,6 +192,39 @@ func filterStriptags(in *Value, param *Value) (*Value, error) {
 	s = re_striptags.ReplaceAllString(s, "")
 
 	return AsValue(strings.TrimSpace(s)), nil
+}
+
+func filterPluralize(in *Value, param *Value) (*Value, error) {
+	if in.IsNumber() {
+		// Works only on numbers
+		if param.Len() > 0 {
+			endings := strings.Split(param.String(), ",")
+			if len(endings) > 2 {
+				return nil, errors.New("You cannot pass more than 2 arguments to filter 'pluralize'.")
+			}
+			if len(endings) == 1 {
+				// 1 argument
+				if in.Integer() != 1 {
+					return AsValue(endings[0]), nil
+				}
+			} else {
+				if in.Integer() != 1 {
+					// 2 arguments
+					return AsValue(endings[1]), nil
+				}
+				return AsValue(endings[0]), nil
+			}
+		} else {
+			if in.Integer() != 1 {
+				// return default 's'
+				return AsValue("s"), nil
+			}
+		}
+
+		return AsValue(""), nil
+	} else {
+		return nil, errors.New("Filter 'pluralize' does only work on numbers.")
+	}
 }
 
 func filterRemovetags(in *Value, param *Value) (*Value, error) {
