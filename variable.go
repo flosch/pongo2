@@ -92,6 +92,11 @@ func (vr *variableResolver) resolve(ctx *ExecutionContext) (*Value, error) {
 			}
 
 			if !is_func {
+				// Check whether this is an interface
+				if current.Kind() == reflect.Interface {
+					current = reflect.ValueOf(current.Interface())
+				}
+
 				// If current a pointer, resolve it
 				if current.Kind() == reflect.Ptr {
 					current = current.Elem()
