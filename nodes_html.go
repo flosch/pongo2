@@ -1,9 +1,9 @@
 package pongo2
 
-type NodeHTML struct {
+type nodeHTML struct {
 	token *Token
 }
 
-func (n *NodeHTML) Execute(ctx *ExecutionContext) (string, error) {
+func (n *nodeHTML) Execute(ctx *ExecutionContext) (string, error) {
 	return n.token.Val, nil
 }

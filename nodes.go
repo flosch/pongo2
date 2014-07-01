@@ -5,11 +5,11 @@ import (
 )
 
 // The root document
-type NodeDocument struct {
+type nodeDocument struct {
 	Nodes []INode
 }
 
-func (doc *NodeDocument) Execute(ctx *ExecutionContext) (string, error) {
+func (doc *nodeDocument) Execute(ctx *ExecutionContext) (string, error) {
 	collection := make([]string, 0, len(doc.Nodes))
 	for _, n := range doc.Nodes {
 		buf, err := n.Execute(ctx)

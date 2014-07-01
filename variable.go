@@ -36,7 +36,7 @@ type variableResolver struct {
 	parts []*variablePart
 }
 
-type NodeVariable struct {
+type nodeVariable struct {
 	location_token *Token // TODO: Use it in Evaluate()/Execute() for proper in-execution error messages
 
 	resolver    IEvaluator
@@ -217,7 +217,7 @@ func (vr *variableResolver) Evaluate(ctx *ExecutionContext) (*Value, error) {
 }
 
 // Is being used within a function call to get the argument
-func (v *NodeVariable) Evaluate(ctx *ExecutionContext) (*Value, error) {
+func (v *nodeVariable) Evaluate(ctx *ExecutionContext) (*Value, error) {
 	value, err := v.resolver.Evaluate(ctx)
 	if err != nil {
 		return nil, err
@@ -377,8 +377,8 @@ variableLoop:
 	return resolver, nil
 }
 
-func (p *Parser) parseVariableOrLiteralWithFilter() (*NodeVariable, error) {
-	v := &NodeVariable{
+func (p *Parser) parseVariableOrLiteralWithFilter() (*nodeVariable, error) {
+	v := &nodeVariable{
 		location_token: p.Current(),
 	}
 

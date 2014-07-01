@@ -7,7 +7,7 @@ func (p *Parser) parseDocElement() (INode, error) {
 	switch t.Typ {
 	case TokenHTML:
 		p.Consume() // consume HTML element
-		return &NodeHTML{token: t}, nil
+		return &nodeHTML{token: t}, nil
 	case TokenSymbol:
 		switch t.Val {
 		case "{{":
@@ -39,8 +39,8 @@ func (tpl *Template) parse() error {
 	return nil
 }
 
-func (p *Parser) parseDocument() (*NodeDocument, error) {
-	doc := &NodeDocument{}
+func (p *Parser) parseDocument() (*nodeDocument, error) {
+	doc := &nodeDocument{}
 
 	for p.Remaining() > 0 {
 		node, err := p.parseDocElement()

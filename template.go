@@ -20,7 +20,7 @@ type Template struct {
 	blocks map[string]*NodeWrapper
 
 	// Output
-	root *NodeDocument
+	root *nodeDocument
 }
 
 func newTemplateString(tpl string) (*Template, error) {
