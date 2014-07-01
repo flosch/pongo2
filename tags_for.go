@@ -93,7 +93,9 @@ func (node *tagForNode) Execute(ctx *ExecutionContext) (s string, forError error
 
 	// Restore forloop and parentloop
 	(*ctx.Public)[node.key] = backup_key
-	(*ctx.Public)[node.value] = backup_value
+	if backup_value != nil {
+		(*ctx.Public)[node.value] = backup_value
+	}
 	(*ctx.Public)["forloop"] = parentloop
 
 	// Return the rendered template
@@ -106,6 +108,10 @@ func tagForParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, error
 	// Arguments parsing
 	var value_token *Token
 	key_token := arguments.MatchType(TokenIdentifier)
+	if key_token == nil {
+		return nil, arguments.Error("Expected an key identifier as first argument for 'for'-tag", nil)
+	}
+
 	if arguments.Match(TokenSymbol, ",") != nil {
 		// Value name is provided
 		value_token = arguments.MatchType(TokenIdentifier)
