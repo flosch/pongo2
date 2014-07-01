@@ -57,6 +57,10 @@ func (v *Value) IsNil() bool {
 }
 
 func (v *Value) String() string {
+	if v.IsNil() {
+		return ""
+	}
+
 	switch v.getResolvedValue().Kind() {
 	case reflect.String:
 		return v.getResolvedValue().String()
@@ -78,9 +82,6 @@ func (v *Value) String() string {
 		}
 	}
 
-	if v.IsNil() {
-		return ""
-	}
 	logf("Value.String() not implemented for type: %s\n", v.getResolvedValue().Kind().String())
 	return v.getResolvedValue().String()
 }

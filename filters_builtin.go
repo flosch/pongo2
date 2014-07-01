@@ -213,13 +213,14 @@ func filterYesno(in *Value, param *Value) (*Value, error) {
 		1: "no",
 		2: "maybe",
 	}
-	custom_choices := strings.Split(param.String(), ",")
-	if len(custom_choices) > 0 {
+	param_string := param.String()
+	custom_choices := strings.Split(param_string, ",")
+	if len(param_string) > 0 {
 		if len(custom_choices) > 3 {
 			return nil, errors.New("You cannot pass more than 3 options to the 'yesno'-filter.")
 		}
 		if len(custom_choices) < 2 {
-			return nil, errors.New("You must pass either no or at least 2 arguments to the 'yesno'-filter.")
+			return nil, errors.New(fmt.Sprintf("You must pass either no or at least 2 arguments to the 'yesno'-filter (got: %s).", param_string))
 		}
 
 		// Map to the options now
