@@ -92,6 +92,8 @@ The benchmarks have been run on the my machine (`Intel(R) Core(TM) i7-2600 CPU @
 
     go test -bench . -cpu 1,2,4,8
 
+All benchmarks are compiling (depends on the benchmark) and executing the `template_tests/complex.tpl` template.
+
 The results are:
 
 	BenchmarkExecuteComplex                    50000             66720 ns/op
