@@ -23,6 +23,12 @@ type user struct {
 	Validated bool
 }
 
+type comment struct {
+	Author *user
+	Date   time.Time
+	Text   string
+}
+
 func is_admin(in *Value) *Value {
 	u, worked := in.Interface().(*user)
 	if !worked {
@@ -40,10 +46,8 @@ func (u *user) Is_admin() *Value {
 	return is_admin(AsValue(u))
 }
 
-type comment struct {
-	Author *user
-	Date   time.Time
-	Text   string
+func (p *post) String() string {
+	return ":-)"
 }
 
 var tplContext = &Context{
@@ -187,6 +191,10 @@ with a new line in it`,
 					"is_admin": is_admin,
 					"post": post{
 						Text:    "<h2>Hello!</h2><p>Welcome to my new blog page. I'm using pongo2 which supports {{ variables }} and {% tags %}.</p>",
+						Created: time2,
+					},
+					"post2": &post{
+						Text:    "<h2>Hello!</h2><p>This is my 2nd blog post.</p>",
 						Created: time2,
 					},
 					"comments": []*comment{

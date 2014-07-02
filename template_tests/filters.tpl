@@ -90,3 +90,20 @@ length_is
 {{ simple.name|length_is:"6" }}
 {{ simple.name|length_is:"7" }}
 {{ 5|length_is:1 }}
+
+integer
+{{ "foobar"|integer }}
+{{ nothing|integer }}
+{{ "5.4"|float|integer }}
+{{ "5.5"|float|integer }}
+{{ "5.6"|float|integer }}
+{{ 6|float|integer }}
+{{ -100|integer }}
+
+float
+{{ "foobar"|float }}
+{{ nil|float }}
+{{ "5.5"|float }}
+{{ 5|float }}
+{{ "5.6"|integer|float }}
+{{ -100|float }}

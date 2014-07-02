@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net/url"
 	"regexp"
-	"strconv"
 	"strings"
 	"time"
 )
@@ -186,19 +185,11 @@ func filterDate(in *Value, param *Value) (*Value, error) {
 }
 
 func filterFloat(in *Value, param *Value) (*Value, error) {
-	f, err := strconv.ParseFloat(in.String(), 64)
-	if err != nil {
-		return nil, err
-	}
-	return AsValue(f), nil
+	return AsValue(in.Float()), nil
 }
 
 func filterInteger(in *Value, param *Value) (*Value, error) {
-	i, err := strconv.Atoi(in.String())
-	if err != nil {
-		return nil, err
-	}
-	return AsValue(i), nil
+	return AsValue(in.Integer()), nil
 }
 
 func filterLinebreaksbr(in *Value, param *Value) (*Value, error) {

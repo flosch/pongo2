@@ -96,11 +96,11 @@ func (v *Value) Integer() int {
 		return int(v.getResolvedValue().Float())
 	case reflect.String:
 		// Try to convert from string to int (base 10)
-		i, err := strconv.Atoi(v.getResolvedValue().String())
+		f, err := strconv.ParseFloat(v.getResolvedValue().String(), 64)
 		if err != nil {
 			return 0
 		}
-		return i
+		return int(f)
 	default:
 		logf("Value.Integer() not available for type: %s\n", v.getResolvedValue().Kind().String())
 		return 0
@@ -162,6 +162,12 @@ func (v *Value) Negate() *Value {
 			return AsValue(0)
 		} else {
 			return AsValue(1)
+		}
+	case reflect.Float32, reflect.Float64:
+		if v.Float() != 0.0 {
+			return AsValue(float64(0.0))
+		} else {
+			return AsValue(float64(1.1))
 		}
 	case reflect.Array, reflect.Chan, reflect.Map, reflect.Slice, reflect.String:
 		return AsValue(v.getResolvedValue().Len() == 0)

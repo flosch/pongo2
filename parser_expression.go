@@ -131,8 +131,21 @@ func (expr *simpleExpression) Evaluate(ctx *ExecutionContext) (*Value, error) {
 	}
 	result := t1
 
-	if expr.negate || expr.negative_sign {
+	if expr.negate {
 		result = result.Negate()
+	}
+
+	if expr.negative_sign {
+		if result.IsNumber() {
+			switch {
+			case result.IsFloat():
+				result = AsValue(-1 * result.Float())
+			case result.IsInteger():
+				result = AsValue(-1 * result.Integer())
+			default:
+				panic("not possible")
+			}
+		}
 	}
 
 	if expr.term2 != nil {

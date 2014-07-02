@@ -1,3 +1,6 @@
+{{ 1 }}
+{{ -5 }}
+{{ "hallo" }}
 {{ true }}
 {{ false }}
 {{ simple.uint }}
