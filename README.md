@@ -37,10 +37,13 @@ I still have to improve the pongo2-specific documentation over time. It will be 
 A tiny example (template string)
 --------------------------------
 
+	// Compile the template first (i. e. creating the AST)
 	tpl, err := pongo2.FromString("Hello {{ name|capfirst }}!")
 	if err != nil {
 		panic(err)
 	}
+	// Now you can render the template with the given 
+	// *pongo2.Context how often you want to.
 	out, err := tpl.Execute(&pongo2.Context{"name": "florian"})
 	if err != nil {
 		panic(err)
@@ -57,9 +60,15 @@ Example server-usage (template file)
 		"net/http"
 	)
 	
+	// Pre-compiling the templates at application startup using the
+	// little Must()-helper function (Must() will panic if FromFile()
+	// or FromString() will return with an error - that's it).
+	// It's faster to pre-compile it anywhere at startup and only
+	// execute the template later.
 	var tplExample = pongo2.Must(pongo2.FromFile("example.html"))
 	
 	func examplePage(w http.ResponseWriter, r *http.Request) {
+		// Execute the template per HTTP request
 		err := tplExample.ExecuteRW(w, &pongo2.Context{"query": r.FormValue("query")})
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
