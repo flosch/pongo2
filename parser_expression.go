@@ -18,11 +18,12 @@ type relationalExpression struct {
 }
 
 type simpleExpression struct {
-	negate        bool
-	negative_sign bool
-	term1         IEvaluator
-	term2         IEvaluator
-	op_token      *Token
+	location_token *Token
+	negate         bool
+	negative_sign  bool
+	term1          IEvaluator
+	term2          IEvaluator
+	op_token       *Token
 }
 
 type term struct {
@@ -145,6 +146,8 @@ func (expr *simpleExpression) Evaluate(ctx *ExecutionContext) (*Value, error) {
 			default:
 				panic("not possible")
 			}
+		} else {
+			return nil, ctx.Error("Negative sign on a non-number expression", expr.location_token)
 		}
 	}
 
@@ -244,7 +247,7 @@ func (p *Parser) parseTerm() (IEvaluator, error) {
 	if p.PeekOne(TokenSymbol, "*", "/") != nil {
 		op := p.Current()
 		p.Consume()
-		factor2, err := p.parsePower()
+		factor2, err := p.parseTerm()
 		if err != nil {
 			return nil, err
 		}
@@ -265,7 +268,7 @@ func (p *Parser) parsePower() (IEvaluator, error) {
 	pw.power1 = power1
 
 	if p.Match(TokenSymbol, "^") != nil {
-		power2, err := p.parseFactor()
+		power2, err := p.parsePower()
 		if err != nil {
 			return nil, err
 		}
@@ -277,6 +280,7 @@ func (p *Parser) parsePower() (IEvaluator, error) {
 
 func (p *Parser) parseSimpleExpression() (IEvaluator, error) {
 	expr := new(simpleExpression)
+	expr.location_token = p.Current()
 
 	if sign := p.MatchOne(TokenSymbol, "+", "-"); sign != nil {
 		if sign.Val == "-" {
@@ -297,7 +301,7 @@ func (p *Parser) parseSimpleExpression() (IEvaluator, error) {
 	if p.PeekOne(TokenSymbol, "+", "-") != nil {
 		op := p.Current()
 		p.Consume()
-		term2, err := p.parseTerm()
+		term2, err := p.parseSimpleExpression()
 		if err != nil {
 			return nil, err
 		}
