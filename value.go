@@ -160,7 +160,7 @@ func (v *Value) Float() float64 {
 
 // Returns the underlying value as bool. If the value is not bool, false
 // will always be returned. If you're looking for true/false-evaluation of the
-// underlying value, have a look on the `IsTrue()`-function.
+// underlying value, have a look on the IsTrue()-function.
 func (v *Value) Bool() bool {
 	switch v.getResolvedValue().Kind() {
 	case reflect.Bool:

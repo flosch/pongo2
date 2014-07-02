@@ -19,6 +19,17 @@ func (c *Context) checkForValidIdentifiers() error {
 	return nil
 }
 
+// If you're writing a custom tag, your tag's Execute()-function will
+// have access to the ExecutionContext. This struct stores anything
+// about the current rendering process's Context including
+// the Context provided by the user (field Public).
+// You can safely use the Private context and StringStore to exchange
+// data between two tags etc.
+// Please be careful when modifying/accessing the Public data.
+// It could lead to erroneous behavious within pongo2 (e. g.
+// if you're corrupting forloop-information). Make sure you're
+// leaving the Public context as it was before when you're done
+// with executing/rendering your tag.
 type ExecutionContext struct {
 	template    *Template
 	Public      *Context

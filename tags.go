@@ -32,11 +32,11 @@ type INodeTag interface {
 	INode
 }
 
-type tagParser func(doc *Parser, start *Token, arguments *Parser) (INodeTag, error)
+type TagParser func(doc *Parser, start *Token, arguments *Parser) (INodeTag, error)
 
 type tag struct {
 	name   string
-	parser tagParser
+	parser TagParser
 }
 
 var tags map[string]*tag
@@ -45,7 +45,14 @@ func init() {
 	tags = make(map[string]*tag)
 }
 
-func RegisterTag(name string, parserFn tagParser) {
+// Registers a new tag. If there's already a tag with the same
+// name, RegisterTag will panic. You usually want to call this
+// function in the tag's init() function:
+// http://golang.org/doc/effective_go.html#init
+//
+// See http://www.florian-schlachter.de/post/pongo2/ for more about
+// writing filters and tags.
+func RegisterTag(name string, parserFn TagParser) {
 	_, existing := tags[name]
 	if existing {
 		panic(fmt.Sprintf("Tag with name '%s' is already registered.", name))

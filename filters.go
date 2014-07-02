@@ -12,6 +12,13 @@ func init() {
 	filters = make(map[string]FilterFunction)
 }
 
+// Registers a new filter. If there's already a filter with the same
+// name, RegisterFilter will panic. You usually want to call this
+// function in the filter's init() function:
+// http://golang.org/doc/effective_go.html#init
+//
+// See http://www.florian-schlachter.de/post/pongo2/ for more about
+// writing filters and tags.
 func RegisterFilter(name string, fn FilterFunction) {
 	_, existing := filters[name]
 	if existing {
