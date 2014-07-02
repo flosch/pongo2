@@ -12,6 +12,12 @@ type Value struct {
 	v reflect.Value
 }
 
+// Converts any given value to a pongo2.Value
+// Usually being used within own functions passed to a template
+// through a Context or within filter functions.
+//
+// Example:
+//     AsValue("my string")
 func AsValue(i interface{}) *Value {
 	return &Value{
 		v: reflect.ValueOf(i),
@@ -25,15 +31,18 @@ func (v *Value) getResolvedValue() reflect.Value {
 	return v.v
 }
 
+// Checks whether the underlying value is a string
 func (v *Value) IsString() bool {
 	return v.getResolvedValue().Kind() == reflect.String
 }
 
+// Checks whether the underlying value is a float
 func (v *Value) IsFloat() bool {
 	return v.getResolvedValue().Kind() == reflect.Float32 ||
 		v.getResolvedValue().Kind() == reflect.Float64
 }
 
+// Checks whether the underlying value is an integer
 func (v *Value) IsInteger() bool {
 	return v.getResolvedValue().Kind() == reflect.Int ||
 		v.getResolvedValue().Kind() == reflect.Int8 ||
@@ -47,15 +56,30 @@ func (v *Value) IsInteger() bool {
 		v.getResolvedValue().Kind() == reflect.Uint64
 }
 
+// Checks whether the underlying value is either an integer
+// or a float.
 func (v *Value) IsNumber() bool {
 	return v.IsInteger() || v.IsFloat()
 }
 
+// Checks whether the underlying value is NIL
 func (v *Value) IsNil() bool {
 	//fmt.Printf("%+v\n", v.getResolvedValue().Type().String())
 	return !v.getResolvedValue().IsValid()
 }
 
+// Returns a string for the underlying value. If this value is not
+// of type string, pongo2 tries to convert it. Currently the following
+// types for underlying values are supported:
+//
+//     1. string
+//     2. int/uint (any size)
+//     3. float (any precision)
+//     4. bool
+//     5. time.Time
+//
+// NIL values will lead to an empty string. Unsupported types are leading
+// to their respective type name.
 func (v *Value) String() string {
 	if v.IsNil() {
 		return ""
@@ -86,6 +110,9 @@ func (v *Value) String() string {
 	return v.getResolvedValue().String()
 }
 
+// Returns the underlying value as an integer (converts the underlying
+// value, if necessary). If it's not possible to convert the underlying value,
+// it will return 0.
 func (v *Value) Integer() int {
 	switch v.getResolvedValue().Kind() {
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
@@ -107,6 +134,9 @@ func (v *Value) Integer() int {
 	}
 }
 
+// Returns the underlying value as a float (converts the underlying
+// value, if necessary). If it's not possible to convert the underlying value,
+// it will return 0.0.
 func (v *Value) Float() float64 {
 	switch v.getResolvedValue().Kind() {
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
@@ -128,6 +158,9 @@ func (v *Value) Float() float64 {
 	}
 }
 
+// Returns the underlying value as bool. If the value is not bool, false
+// will always be returned. If you're looking for true/false-evaluation of the
+// underlying value, have a look on the `IsTrue()`-function.
 func (v *Value) Bool() bool {
 	switch v.getResolvedValue().Kind() {
 	case reflect.Bool:
@@ -138,12 +171,25 @@ func (v *Value) Bool() bool {
 	}
 }
 
+// Tried to evaluate the underlying value the Pythonic-way:
+//
+// Returns TRUE in one the following cases:
+//
+//     * int != 0
+//     * uint != 0
+//     * float != 0.0
+//     * len(array/chan/map/slice/string) > 0
+//     * bool == true
+//
+// Otherwise returns always FALSE.
 func (v *Value) IsTrue() bool {
 	switch v.getResolvedValue().Kind() {
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 		return v.getResolvedValue().Int() != 0
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
 		return v.getResolvedValue().Uint() != 0
+	case reflect.Float32, reflect.Float64:
+		return v.getResolvedValue().Float() != 0
 	case reflect.Array, reflect.Chan, reflect.Map, reflect.Slice, reflect.String:
 		return v.getResolvedValue().Len() > 0
 	case reflect.Bool:
@@ -154,6 +200,12 @@ func (v *Value) IsTrue() bool {
 	}
 }
 
+// Tries to negate the underlying value. It's mainly used for
+// the NOT-operator and in conjunction with a call to
+// return_value.IsTrue() afterwards.
+//
+// Example:
+//     AsValue(1).Negate().IsTrue() == false
 func (v *Value) Negate() *Value {
 	switch v.getResolvedValue().Kind() {
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
@@ -179,6 +231,8 @@ func (v *Value) Negate() *Value {
 	}
 }
 
+// Returns the length for an array, chan, map, slice or string.
+// Otherwise it will return 0.
 func (v *Value) Len() int {
 	switch v.getResolvedValue().Kind() {
 	case reflect.Array, reflect.Chan, reflect.Map, reflect.Slice, reflect.String:
@@ -189,6 +243,8 @@ func (v *Value) Len() int {
 	}
 }
 
+// Slices an array, slice or string. Otherwise it will
+// return an empty []int.
 func (v *Value) Slice(i, j int) *Value {
 	switch v.getResolvedValue().Kind() {
 	case reflect.Array, reflect.Slice, reflect.String:
@@ -199,6 +255,12 @@ func (v *Value) Slice(i, j int) *Value {
 	}
 }
 
+// Checks whether the underlying value (which must be of type struct, map,
+// string, array or slice) contains of another Value (e. g. used to check
+// whether a struct contains of a specific field or a map contains a specific key).
+//
+// Example:
+//     AsValue("Hello, World!").Contains(AsValue("World")) == true
 func (v *Value) Contains(other *Value) bool {
 	switch v.getResolvedValue().Kind() {
 	case reflect.Struct:
@@ -228,6 +290,8 @@ func (v *Value) Contains(other *Value) bool {
 	}
 }
 
+// Checks whether the underlying value is of type array, slice or string.
+// You normally would use CanSlice() before using the Slice() operation.
 func (v *Value) CanSlice() bool {
 	switch v.getResolvedValue().Kind() {
 	case reflect.Array, reflect.Slice, reflect.String:
@@ -236,6 +300,16 @@ func (v *Value) CanSlice() bool {
 	return false
 }
 
+// Iterates over a map, array, slice or a string. It calls the
+// function's first argument for every value with the following arguments:
+//
+//     idx      current 0-index
+//     count    total amount of items
+//     key      *Value for the key or item
+//     value    *Value (only for maps, the respective value for a specific key)
+//
+// If the underlying value has no items or is not one of the types above,
+// the empty function (function's second argument) will be called.
 func (v *Value) Iterate(fn func(idx, count int, key, value *Value) bool, empty func()) {
 	switch v.getResolvedValue().Kind() {
 	case reflect.Map:
@@ -269,6 +343,7 @@ func (v *Value) Iterate(fn func(idx, count int, key, value *Value) bool, empty f
 	empty()
 }
 
+// Gives you access to the underlying value.
 func (v *Value) Interface() interface{} {
 	if v.v.IsValid() {
 		return v.v.Interface()
@@ -276,6 +351,7 @@ func (v *Value) Interface() interface{} {
 	return nil
 }
 
+// Checks whether two values are containing the same value or object.
 func (v *Value) EqualValueTo(other *Value) bool {
 	return v.Interface() == other.Interface()
 }
