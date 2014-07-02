@@ -1,5 +1,4 @@
-pongo2
-======
+# pongo2
 
 [![GoDoc](https://godoc.org/github.com/flosch/pongo2?status.png)](https://godoc.org/github.com/flosch/pongo2) [![Build Status](https://travis-ci.org/flosch/pongo2.svg?branch=master)](https://travis-ci.org/flosch/pongo2)
 
@@ -11,31 +10,39 @@ Please use the [issue tracker](https://github.com/flosch/pongo2/issues) if you'r
 
 pongo2 is **still in beta** and under heavy development.
 
-New in pongo2
--------------
+## New in pongo2
 
  * Entirely rewritten from the ground-up.
  * Easy API to create new filters and tags (including parsing arguments); take a look on an example and the differences between pongo1 and pongo2: [old](https://github.com/flosch/pongo/blob/master/filters.go#L65) and [new](https://github.com/flosch/pongo2/blob/master/filters_builtin.go#L72).
  * Advanced C-like expressions.
- * Function calls within expressions from wherever you like.
+ * Complex function calls within expressions.
 
-What's missing
---------------
+## What's missing
 
  * Several filters/tags (see `filters_builtin.go` and `tags.go` for a list of missing filters/tags). I try to implement the missing ones over time.
  * Tests
  * Documentation
  * Examples
 
-Documentation
--------------
+# Documentation
 
 For a documentation on how the templating language works you can [head over to the Django documentation](https://docs.djangoproject.com/en/dev/topics/templates/). pongo2 aims to be fully compatible with it.
 
 I still have to improve the pongo2-specific documentation over time. It will be available through [godoc](https://godoc.org/github.com/flosch/pongo2).
 
-A tiny example (template string)
---------------------------------
+## Caveats
+
+### General 
+
+ * **Parallelism**: Please make sure you're not sharing the Context-object you're passing to `Execute()` between several parallel `Execute()` function calls. You will have to create your own `pongo2.Context` per `Execute()` call.
+
+### Filters
+
+ * **date** / **time**: The `date` and `time` filter are taking the Golang specific time- and date-format (not Django's one) currently. [Take a look on the format here](http://golang.org/pkg/time/#Time.Format).
+
+# Examples
+
+## A tiny example (template string)
 
 	// Compile the template first (i. e. creating the AST)
 	tpl, err := pongo2.FromString("Hello {{ name|capfirst }}!")
@@ -50,8 +57,7 @@ A tiny example (template string)
 	}
 	fmt.Println(out) // Output: Hello Florian!
 
-Example server-usage (template file)
-------------------------------------
+## Example server-usage (template file)
 
 	package main
 	
@@ -79,3 +85,24 @@ Example server-usage (template file)
 		http.HandleFunc("/", examplePage)
 		http.ListenAndServe(":8080", nil)
 	}
+
+# Benchmark
+
+The benchmarks have been run on the my machine (`Intel(R) Core(TM) i7-2600 CPU @ 3.40GHz`) using the command:
+
+    go test -bench . -cpu 1,2,4,8
+
+The results are:
+
+	BenchmarkExecuteComplex                    50000             66720 ns/op
+	BenchmarkExecuteComplex-2                  50000             67013 ns/op
+	BenchmarkExecuteComplex-4                  50000             67807 ns/op
+	BenchmarkExecuteComplex-8                  50000             68147 ns/op
+	BenchmarkCompileAndExecuteComplex          10000            153411 ns/op
+	BenchmarkCompileAndExecuteComplex-2        10000            145334 ns/op
+	BenchmarkCompileAndExecuteComplex-4        10000            156475 ns/op
+	BenchmarkCompileAndExecuteComplex-8        10000            162995 ns/op
+	BenchmarkParallelExecuteComplex            50000             65041 ns/op
+	BenchmarkParallelExecuteComplex-2          50000             35034 ns/op
+	BenchmarkParallelExecuteComplex-4         100000             25046 ns/op
+	BenchmarkParallelExecuteComplex-8         100000             22447 ns/op

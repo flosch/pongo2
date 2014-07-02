@@ -46,57 +46,57 @@ type comment struct {
 	Text   string
 }
 
+var tplContext = &Context{
+	"number": 11,
+	"simple": map[string]interface{}{
+		"number":        42,
+		"name":          "flosch",
+		"included_file": "INCLUDES.helper",
+		"nil":           nil,
+		"uint":          uint(8),
+		"str":           "string",
+		"bool_true":     true,
+		"bool_false":    false,
+		"newline_text": `this is a text
+with a new line in it`,
+	},
+	"complex": map[string]interface{}{
+		"is_admin": is_admin,
+		"post": post{
+			Text:    "<h2>Hello!</h2><p>Welcome to my new blog page. I'm using pongo2 which supports {{ variables }} and {% tags %}.</p>",
+			Created: time2,
+		},
+		"comments": []*comment{
+			&comment{
+				Author: &user{
+					Name:      "user1",
+					Validated: true,
+				},
+				Date: time1,
+				Text: "\"pongo2 is nice!\"",
+			},
+			&comment{
+				Author: &user{
+					Name:      "user2",
+					Validated: true,
+				},
+				Date: time2,
+				Text: "comment2 with <script>unsafe</script> tags in it",
+			},
+			&comment{
+				Author: &user{
+					Name:      "user3",
+					Validated: false,
+				},
+				Date: time1,
+				Text: "<b>hello!</b> there",
+			},
+		},
+	},
+}
+
 func TestRun(t *testing.T) {
 	SetDebug(true) // activate pongo2's debugging output
-
-	tplContext := &Context{
-		"number": 11,
-		"simple": map[string]interface{}{
-			"number":        42,
-			"name":          "flosch",
-			"included_file": "INCLUDES.helper",
-			"nil":           nil,
-			"uint":          uint(8),
-			"str":           "string",
-			"bool_true":     true,
-			"bool_false":    false,
-			"newline_text": `this is a text
-with a new line in it`,
-		},
-		"complex": map[string]interface{}{
-			"is_admin": is_admin,
-			"post": post{
-				Text:    "<h2>Hello!</h2><p>Welcome to my new blog page. I'm using pongo2 which supports {{ variables }} and {% tags %}.</p>",
-				Created: time2,
-			},
-			"comments": []*comment{
-				&comment{
-					Author: &user{
-						Name:      "user1",
-						Validated: true,
-					},
-					Date: time1,
-					Text: "\"pongo2 is nice!\"",
-				},
-				&comment{
-					Author: &user{
-						Name:      "user2",
-						Validated: true,
-					},
-					Date: time2,
-					Text: "comment2 with <script>unsafe</script> tags in it",
-				},
-				&comment{
-					Author: &user{
-						Name:      "user3",
-						Validated: false,
-					},
-					Date: time1,
-					Text: "<b>hello!</b> there",
-				},
-			},
-		},
-	}
 
 	matches, err := filepath.Glob("./template_tests/*.tpl")
 	if err != nil {
@@ -125,4 +125,101 @@ with a new line in it`,
 			t.Fatalf("Failed: test_out != tpl_out for %s", match)
 		}
 	}
+}
+
+func BenchmarkExecuteComplex(b *testing.B) {
+	tpl, err := FromFile("template_tests/complex.tpl")
+	if err != nil {
+		b.Fatal(err)
+	}
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_, err = tpl.Execute(tplContext)
+		if err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
+func BenchmarkCompileAndExecuteComplex(b *testing.B) {
+	buf, err := ioutil.ReadFile("template_tests/complex.tpl")
+	if err != nil {
+		b.Fatal(err)
+	}
+	preloadedTpl := string(buf)
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		tpl, err := FromString(preloadedTpl)
+		if err != nil {
+			b.Fatal(err)
+		}
+
+		_, err = tpl.Execute(tplContext)
+		if err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
+func BenchmarkParallelExecuteComplex(b *testing.B) {
+	tpl, err := FromFile("template_tests/complex.tpl")
+	if err != nil {
+		b.Fatal(err)
+	}
+	b.ResetTimer()
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			_, err = tpl.Execute(&Context{
+				"number": 11,
+				"simple": map[string]interface{}{
+					"number":        42,
+					"name":          "flosch",
+					"included_file": "INCLUDES.helper",
+					"nil":           nil,
+					"uint":          uint(8),
+					"str":           "string",
+					"bool_true":     true,
+					"bool_false":    false,
+					"newline_text": `this is a text
+with a new line in it`,
+				},
+				"complex": map[string]interface{}{
+					"is_admin": is_admin,
+					"post": post{
+						Text:    "<h2>Hello!</h2><p>Welcome to my new blog page. I'm using pongo2 which supports {{ variables }} and {% tags %}.</p>",
+						Created: time2,
+					},
+					"comments": []*comment{
+						&comment{
+							Author: &user{
+								Name:      "user1",
+								Validated: true,
+							},
+							Date: time1,
+							Text: "\"pongo2 is nice!\"",
+						},
+						&comment{
+							Author: &user{
+								Name:      "user2",
+								Validated: true,
+							},
+							Date: time2,
+							Text: "comment2 with <script>unsafe</script> tags in it",
+						},
+						&comment{
+							Author: &user{
+								Name:      "user3",
+								Validated: false,
+							},
+							Date: time1,
+							Text: "<b>hello!</b> there",
+						},
+					},
+				},
+			})
+			if err != nil {
+				b.Fatal(err)
+			}
+		}
+	})
 }
