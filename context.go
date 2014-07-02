@@ -24,7 +24,7 @@ func (c *Context) checkForValidIdentifiers() error {
 // about the current rendering process's Context including
 // the Context provided by the user (field Public).
 // You can safely use the Private context and StringStore to exchange
-// data between two tags etc. It is good practice to add a prefix all your keys.
+// data between two tags etc. It is good practice to add a prefix to all your keys.
 // Please be careful when modifying/accessing the Public data.
 // Changes could lead to erroneous behaviour within pongo2 (e. g.
 // if you're corrupting forloop-information). Make sure you're
