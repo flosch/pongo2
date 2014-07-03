@@ -54,7 +54,7 @@ var tplContext = &Context{
 	"number": 11,
 	"simple": map[string]interface{}{
 		"number":        42,
-		"name":          "flosch",
+		"name":          "john doe",
 		"included_file": "INCLUDES.helper",
 		"nil":           nil,
 		"uint":          uint(8),
@@ -177,7 +177,7 @@ func BenchmarkParallelExecuteComplex(b *testing.B) {
 				"number": 11,
 				"simple": map[string]interface{}{
 					"number":        42,
-					"name":          "flosch",
+					"name":          "john doe",
 					"included_file": "INCLUDES.helper",
 					"nil":           nil,
 					"uint":          uint(8),

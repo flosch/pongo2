@@ -3,7 +3,7 @@ add
 {{ 5|add:simple.number }}
 {{ 5|add:nothing }}
 {{ 5|add:"test" }}
-{{ "hello "|add:"flosch" }}
+{{ "hello "|add:"john doe" }}
 {{ "hello "|add:simple.name }}
 
 cut
@@ -85,10 +85,10 @@ linebreaksbr
 {{ "hallo"|linebreaksbr }}
 
 length_is
-{{ simple.name|length_is:6 }}
-{{ simple.name|length_is:7 }}
-{{ simple.name|length_is:"6" }}
-{{ simple.name|length_is:"7" }}
+{{ simple.name|length_is:8 }}
+{{ simple.name|length_is:10 }}
+{{ simple.name|length_is:"8" }}
+{{ simple.name|length_is:"10" }}
 {{ 5|length_is:1 }}
 
 integer
