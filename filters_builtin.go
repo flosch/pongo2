@@ -167,7 +167,7 @@ func filterFirst(in *Value, param *Value) (*Value, error) {
 func filterFloatformat(in *Value, param *Value) (*Value, error) {
 	val := in.Float()
 
-	decimals := 1
+	decimals := -1
 	if !param.IsNil() {
 		// Any argument provided?
 		decimals = param.Integer()
