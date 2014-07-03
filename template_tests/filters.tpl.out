@@ -28,6 +28,11 @@ safe
 escape
 &lt;script&gt;
 
+truncatechars
+Joel i...
+Joel is a ...
+Joel is a slug
+
 divisibleby
 True
 True

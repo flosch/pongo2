@@ -86,10 +86,16 @@ func init() {
 }
 
 func filterTruncatechars(in *Value, param *Value) (*Value, error) {
-	if !in.CanSlice() {
-		return nil, errors.New("")
+	s := in.String()
+	newLen := param.Integer()
+	if newLen < len(s) {
+		if newLen >= 3 {
+			return AsValue(fmt.Sprintf("%s...", s[:newLen-3])), nil
+		}
+		// Not enough space for the ellipsis
+		return AsValue(s[:newLen]), nil
 	}
-	return in.Slice(0, param.Integer()), nil
+	return in, nil
 }
 
 func filterEscape(in *Value, param *Value) (*Value, error) {

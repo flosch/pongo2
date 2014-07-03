@@ -28,6 +28,11 @@ safe
 escape
 {{ "<script>"|safe|escape }}
 
+truncatechars
+{{ "Joel is a slug"|truncatechars:9 }}
+{{ "Joel is a slug"|truncatechars:13 }}
+{{ "Joel is a slug"|truncatechars:14 }}
+
 divisibleby
 {{ 21|divisibleby:3 }}
 {{ 21|divisibleby:"3" }}
