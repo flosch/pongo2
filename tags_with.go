@@ -46,8 +46,8 @@ func tagWithParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, erro
 		return nil, arguments.Error("Tag 'with' requires at least one argument.", nil)
 	}
 
-	// Scannen through all arguments to see which style the user uses
-	// If we find any "as" keyword we will enforce old style; otherwise new style
+	// Scan through all arguments to see which style the user uses (old or new style).
+	// If we find any "as" keyword we will enforce old style; otherwise we will use new style.
 	old_style := false // by default we're using the new_style
 	for i := 0; i < arguments.Count(); i++ {
 		if arguments.PeekN(i, TokenKeyword, "as") != nil {
