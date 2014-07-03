@@ -27,7 +27,8 @@ type functionCallArgument interface {
 }
 
 type stringResolver string
-type numberResolver int
+type intResolver int
+type floatResolver float64
 type boolResolver bool
 
 type variableResolver struct {
@@ -47,8 +48,12 @@ func (s *stringResolver) Evaluate(ctx *ExecutionContext) (*Value, error) {
 	return AsValue(string(*s)), nil
 }
 
-func (n *numberResolver) Evaluate(ctx *ExecutionContext) (*Value, error) {
-	return AsValue(int(*n)), nil
+func (i *intResolver) Evaluate(ctx *ExecutionContext) (*Value, error) {
+	return AsValue(int(*i)), nil
+}
+
+func (f *floatResolver) Evaluate(ctx *ExecutionContext) (*Value, error) {
+	return AsValue(float64(*f)), nil
 }
 
 func (b *boolResolver) Evaluate(ctx *ExecutionContext) (*Value, error) {
@@ -257,12 +262,32 @@ func (p *Parser) parseVariableOrLiteral() (IEvaluator, error) {
 	switch t.Typ {
 	case TokenNumber:
 		p.Consume()
-		i, err := strconv.Atoi(t.Val)
-		if err != nil {
-			return nil, err
+
+		// One exception to the rule that we don't have float64 literals is at the beginning
+		// of an expression (or a variable name). Since we know we started with an integer
+		// which can't obviously be a variable name, we can check whether the first number
+		// is followed by dot (and then a number again). If so we're converting it to a float64.
+
+		if p.Match(TokenSymbol, ".") != nil {
+			// float64
+			t2 := p.MatchType(TokenNumber)
+			if t2 == nil {
+				return nil, p.Error("Expected a number after the '.'.", nil)
+			}
+			f, err := strconv.ParseFloat(fmt.Sprintf("%s.%s", t.Val, t2.Val), 64)
+			if err != nil {
+				return nil, err
+			}
+			fr := floatResolver(f)
+			return &fr, nil
+		} else {
+			i, err := strconv.Atoi(t.Val)
+			if err != nil {
+				return nil, err
+			}
+			nr := intResolver(i)
+			return &nr, nil
 		}
-		nr := numberResolver(i)
-		return &nr, nil
 	case TokenString:
 		p.Consume()
 		sr := stringResolver(t.Val)
