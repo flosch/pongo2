@@ -28,3 +28,4 @@ pongo2_internal_test.go
 tpl-error.out
 /count.out
 /cover.out
+*.swp

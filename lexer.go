@@ -33,7 +33,7 @@ var (
 		// 1-Char symbol
 		"(", ")", "+", "-", "*", "<", ">", "/", "^", ",", ".", "!", "|", ":", "=",
 	}
-	tokenKeywords = []string{"in", "and", "or", "not", "true", "false"}
+	tokenKeywords = []string{"in", "and", "or", "not", "true", "false", "as"}
 )
 
 type TokenType int
