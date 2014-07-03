@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/url"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -21,6 +22,7 @@ func init() {
 	RegisterFilter("default_if_none", filterDefaultIfNone)
 	RegisterFilter("divisibleby", filterDivisibleby)
 	RegisterFilter("first", filterFirst)
+	RegisterFilter("floatformat", filterFloatformat)
 	RegisterFilter("last", filterLast)
 	RegisterFilter("length", filterLength)
 	RegisterFilter("length_is", filterLengthis)
@@ -47,7 +49,6 @@ func init() {
 	   escape
 	   escapejs
 	   filesizeformat
-	   floatformat
 	   force_escape
 	   get_digit
 	   iriencode
@@ -155,6 +156,36 @@ func filterFirst(in *Value, param *Value) (*Value, error) {
 		return in.Slice(0, 1), nil
 	}
 	return AsValue(""), nil
+}
+
+func filterFloatformat(in *Value, param *Value) (*Value, error) {
+	val := in.Float()
+
+	decimals := 1
+	if !param.IsNil() {
+		// Any argument provided?
+		decimals = param.Integer()
+	}
+
+	// if the argument is not a number (e. g. empty), the default
+	// behaviour is trim the result
+	trim := !param.IsNumber()
+
+	if decimals <= 0 {
+		// argument is negative or zero, so we
+		// want the output being trimmed
+		decimals = -decimals
+		trim = true
+	}
+
+	if trim {
+		// Remove zeroes
+		if float64(int(val)) == val {
+			return AsValue(in.Integer()), nil
+		}
+	}
+
+	return AsValue(strconv.FormatFloat(val, 'f', decimals, 64)), nil
 }
 
 func filterLast(in *Value, param *Value) (*Value, error) {

@@ -1,8 +1,7 @@
 // A Django-syntax like template-engine
 //
-// Current caveats
-//  - Parallelism: Please make sure you're not sharing the Context-object you're passing to Execute() between several parallel Execute() function calls. You will have to create your own pongo2.Context per Execute() call.
-//  - date/time-filter: The date and time filter are taking the Golang specific time- and date-format (not Django's one) currently. Take a look on the format here.
+// Introduction on what's new and a migration tutorial on:
+// http://www.florian-schlachter.de/post/pongo2/
 //
 // A tiny example with template strings:
 //
