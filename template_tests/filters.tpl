@@ -101,12 +101,16 @@ integer
 {{ -100|integer }}
 
 float
+{{ 5.5 }}
+{{ 5.172841 }}
 {{ "foobar"|float }}
 {{ nil|float }}
 {{ "5.5"|float }}
 {{ 5|float }}
 {{ "5.6"|integer|float }}
 {{ -100|float }}
+{% if 5.5 == 5.500000 %}5.5 is 5.500000{% endif %}
+{% if 5.5 != 5.500001 %}5.5 is not 5.500001{% endif %}
 
 floatformat
 {{ 34.23234|floatformat }}
