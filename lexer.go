@@ -24,7 +24,9 @@ var (
 	tokenSpaceChars      = " \n\r\t"
 	tokenIdentifierChars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_"
 	tokenDigits          = "0123456789"
-	tokenSymbols         = []string{
+
+	// Available symbols in pongo2 (within filters/tag)
+	TokenSymbols = []string{
 		// 3-Char symbols
 
 		// 2-Char symbols
@@ -33,7 +35,9 @@ var (
 		// 1-Char symbol
 		"(", ")", "+", "-", "*", "<", ">", "/", "^", ",", ".", "!", "|", ":", "=",
 	}
-	tokenKeywords = []string{"in", "and", "or", "not", "true", "false", "as"}
+
+	// Available keywords in pongo2
+	TokenKeywords = []string{"in", "and", "or", "not", "true", "false", "as"}
 )
 
 type TokenType int
@@ -276,7 +280,7 @@ outer_loop:
 		}
 
 		// Check for symbol
-		for _, sym := range tokenSymbols {
+		for _, sym := range TokenSymbols {
 			if strings.HasPrefix(l.input[l.start:], sym) {
 				l.pos += len(sym)
 				l.col += l.length()
@@ -305,7 +309,7 @@ outer_loop:
 func (l *lexer) stateIdentifier() lexerStateFn {
 	l.acceptRun(tokenIdentifierChars)
 	l.acceptRun(tokenDigits)
-	for _, kw := range tokenKeywords {
+	for _, kw := range TokenKeywords {
 		if kw == l.value() {
 			l.emit(TokenKeyword)
 			return l.stateCode
