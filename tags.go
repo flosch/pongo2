@@ -31,6 +31,19 @@ type INodeTag interface {
 	INode
 }
 
+// This is the function signature of the tag's parser you will have
+// to implement in order to create a new tag.
+//
+// 'doc' is providing access to the whole document while 'arguments'
+// is providing access to the user's arguments to the tag:
+//
+//     {% your_tag_name some "arguments" 123 %}
+//
+// start_token will be the *Token with the tag's name in it (here: your_tag_name).
+//
+// Please see the Parser documentation on how to use the parser.
+// See RegisterTag()'s documentation for more information about
+// writing a tag as well.
 type TagParser func(doc *Parser, start *Token, arguments *Parser) (INodeTag, error)
 
 type tag struct {

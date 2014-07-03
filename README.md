@@ -21,14 +21,14 @@ pongo2 is **still in beta** and under heavy development.
 
  * Several filters/tags (see `filters_builtin.go` and `tags.go` for a list of missing filters/tags). I try to implement the missing ones over time.
  * Tests
- * Documentation
  * Examples
+ * Documentation
 
 # Documentation
 
 For a documentation on how the templating language works you can [head over to the Django documentation](https://docs.djangoproject.com/en/dev/topics/templates/). pongo2 aims to be fully compatible with it.
 
-I still have to improve the pongo2-specific documentation over time. It will be available through [godoc](https://godoc.org/github.com/flosch/pongo2).
+You can access pongo2's documentation on [godoc](https://godoc.org/github.com/flosch/pongo2).
 
 ## Caveats
 
