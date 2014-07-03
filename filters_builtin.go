@@ -46,7 +46,6 @@ func init() {
 	   center
 	   dictsort
 	   dictsortreversed
-	   escape
 	   escapejs
 	   filesizeformat
 	   force_escape
