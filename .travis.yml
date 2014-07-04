@@ -6,6 +6,7 @@ go:
 install:
   - go get code.google.com/p/go.tools/cmd/cover
   - go get github.com/mattn/goveralls
+  - get get gopkg.in/check.v1
 script:
   - go test -v -covermode=count -coverprofile=coverage.out
   - $HOME/gopath/bin/goveralls -coverprofile=coverage.out -service=travis-ci -repotoken $COVERALLS_TOKEN
