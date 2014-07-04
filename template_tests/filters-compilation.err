@@ -1,0 +1,4 @@
+{{ }}
+{{ 1|float: }}
+{{ "test"|non_existent_filter }}
+{{ "test"|"test" }}
