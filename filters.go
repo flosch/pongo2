@@ -86,9 +86,7 @@ func (p *Parser) parseFilter() (*filterCall, error) {
 
 	// Check for filter-argument (2 tokens needed: ':' ARG)
 	if p.Match(TokenSymbol, ":") != nil {
-		param_token := p.Current()
-
-		if param_token == nil {
+		if p.Peek(TokenSymbol, "}}") != nil {
 			return nil, p.Error("Filter parameter required after ':'.", nil)
 		}
 
