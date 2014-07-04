@@ -28,6 +28,11 @@ pongo2 is **still in beta** and under heavy development.
  * Examples
  * Documentation
 
+## How you can help
+
+ * Write filters / tags (see [tutorial](http://www.florian-schlachter.de/post/pongo2/)) by forking pongo2 and sending pull requests
+ * Write tests (use the following command to see what tests are missing: `go test -v -cover -covermode=count -coverprofile=cover.out && go tool cover -html=cover.out`)
+
 # Documentation
 
 For a documentation on how the templating language works you can [head over to the Django documentation](https://docs.djangoproject.com/en/dev/topics/templates/). pongo2 aims to be fully compatible with it.
