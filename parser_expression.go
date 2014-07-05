@@ -81,36 +81,28 @@ func (expr *relationalExpression) Evaluate(ctx *ExecutionContext) (*Value, error
 		switch expr.op_token.Val {
 		case "<=":
 			if v1.IsFloat() || v2.IsFloat() {
-				// Result will be a float
 				return AsValue(v1.Float() <= v2.Float()), nil
 			} else {
-				// Result will be an integer
 				return AsValue(v1.Integer() <= v2.Integer()), nil
 			}
 		case ">=":
 			if v1.IsFloat() || v2.IsFloat() {
-				// Result will be a float
 				return AsValue(v1.Float() >= v2.Float()), nil
 			} else {
-				// Result will be an integer
 				return AsValue(v1.Integer() >= v2.Integer()), nil
 			}
 		case "==":
 			return AsValue(v1.EqualValueTo(v2)), nil
 		case ">":
 			if v1.IsFloat() || v2.IsFloat() {
-				// Result will be a float
 				return AsValue(v1.Float() > v2.Float()), nil
 			} else {
-				// Result will be an integer
 				return AsValue(v1.Integer() > v2.Integer()), nil
 			}
 		case "<":
 			if v1.IsFloat() || v2.IsFloat() {
-				// Result will be a float
 				return AsValue(v1.Float() < v2.Float()), nil
 			} else {
-				// Result will be an integer
 				return AsValue(v1.Integer() < v2.Integer()), nil
 			}
 		case "!=", "<>":
