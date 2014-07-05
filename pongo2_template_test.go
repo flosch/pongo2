@@ -60,11 +60,15 @@ var tplContext = Context{
 		"included_file": "INCLUDES.helper",
 		"nil":           nil,
 		"uint":          uint(8),
+		"float":         float64(3.1415),
 		"str":           "string",
 		"bool_true":     true,
 		"bool_false":    false,
 		"newline_text": `this is a text
 with a new line in it`,
+		"intmap": map[int]string{
+			5: "five",
+		},
 	},
 	"complex": map[string]interface{}{
 		"is_admin": is_admin,
@@ -177,9 +181,9 @@ func TestExecutionErrors(t *testing.T) {
 					match, idx+1, tests[idx])
 			}
 			re := regexp.MustCompile(fmt.Sprintf("^%s$", checks[idx]))
-			if !re.MatchString(test) {
-				t.Fatalf("[%s Line %d] Error for '%s' does not match the (regexp-)check: %s",
-					match, idx+1, test, checks[idx])
+			if !re.MatchString(err.Error()) {
+				t.Fatalf("[%s Line %d] Error for '%s' (err = '%s') does not match the (regexp-)check: %s",
+					match, idx+1, test, err.Error(), checks[idx])
 			}
 		}
 	}
