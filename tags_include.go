@@ -20,7 +20,7 @@ func (node *tagIncludeNode) Execute(ctx *ExecutionContext) (string, error) {
 
 	// Fill the context with all data from the parent
 	if !node.only {
-		for key, value := range *ctx.Public {
+		for key, value := range ctx.Public {
 			include_ctx[key] = value
 		}
 	}
@@ -54,10 +54,10 @@ func (node *tagIncludeNode) Execute(ctx *ExecutionContext) (string, error) {
 		if err != nil {
 			return "", err
 		}
-		return included_tpl.Execute(&include_ctx)
+		return included_tpl.Execute(include_ctx)
 	} else {
 		// Template is already parsed with static filename
-		return node.tpl.Execute(&include_ctx)
+		return node.tpl.Execute(include_ctx)
 	}
 }
 

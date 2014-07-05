@@ -32,8 +32,8 @@ func (c *Context) checkForValidIdentifiers() error {
 // with executing/rendering your tag.
 type ExecutionContext struct {
 	template    *Template
-	Public      *Context
-	Private     *Context
+	Public      Context
+	Private     Context
 	StringStore map[string]string
 }
 

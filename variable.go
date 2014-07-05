@@ -81,7 +81,7 @@ func (vr *variableResolver) resolve(ctx *ExecutionContext) (*Value, error) {
 	for idx, part := range vr.parts {
 		if idx == 0 {
 			// First part, get it from public context
-			current = reflect.ValueOf((*ctx.Public)[vr.parts[0].s]) // Get the initial value
+			current = reflect.ValueOf(ctx.Public[vr.parts[0].s]) // Get the initial value
 		} else {
 			// Next parts, resolve it from current
 

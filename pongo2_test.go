@@ -16,7 +16,7 @@ type TestSuite struct {
 
 var _ = Suite(&TestSuite{})
 
-func parseTemplate(s string, c *Context) string {
+func parseTemplate(s string, c Context) string {
 	t, err := FromString(s)
 	if err != nil {
 		panic(err)
@@ -28,7 +28,7 @@ func parseTemplate(s string, c *Context) string {
 	return out
 }
 
-func parseTemplateFn(s string, c *Context) func() {
+func parseTemplateFn(s string, c Context) func() {
 	return func() {
 		parseTemplate(s, c)
 	}
@@ -36,7 +36,7 @@ func parseTemplateFn(s string, c *Context) func() {
 
 func (s *TestSuite) TestMisc(c *C) {
 	// Context
-	c.Check(parseTemplateFn("", &Context{"'illegal": nil}), PanicMatches, ".*not a valid identifier.*")
+	c.Check(parseTemplateFn("", Context{"'illegal": nil}), PanicMatches, ".*not a valid identifier.*")
 
 	// Registers
 	c.Check(func() { RegisterFilter("escape", nil) }, PanicMatches, ".*is already registered.*")

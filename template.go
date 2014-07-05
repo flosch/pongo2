@@ -56,7 +56,7 @@ func newTemplate(name, tpl string) (*Template, error) {
 	return t, nil
 }
 
-func (tpl *Template) Execute(context *Context) (string, error) {
+func (tpl *Template) Execute(context Context) (string, error) {
 	// Determine the parent to be executed (for template inheritance)
 	parent := tpl
 	for parent.parent != nil {
@@ -65,7 +65,7 @@ func (tpl *Template) Execute(context *Context) (string, error) {
 
 	// Create context if none is given
 	if context == nil {
-		context = &Context{}
+		context = make(Context)
 	} else {
 		err := context.checkForValidIdentifiers()
 		if err != nil {
@@ -77,7 +77,7 @@ func (tpl *Template) Execute(context *Context) (string, error) {
 	ctx := &ExecutionContext{
 		template:    parent,
 		Public:      context,
-		Private:     &Context{},
+		Private:     make(Context),
 		StringStore: make(map[string]string),
 	}
 
@@ -88,7 +88,7 @@ func (tpl *Template) Execute(context *Context) (string, error) {
 // Executes the template with the given context and writes to http.ResponseWriter
 // on success. Context can be nil. Nothing is written on error; instead the error
 // is being returned.
-func (tpl *Template) ExecuteRW(w http.ResponseWriter, context *Context) error {
+func (tpl *Template) ExecuteRW(w http.ResponseWriter, context Context) error {
 	s, err := tpl.Execute(context)
 	if err != nil {
 		return err

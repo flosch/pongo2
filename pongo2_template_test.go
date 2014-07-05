@@ -52,7 +52,7 @@ func (p *post) String() string {
 	return ":-)"
 }
 
-var tplContext = &Context{
+var tplContext = Context{
 	"number": 11,
 	"simple": map[string]interface{}{
 		"number":        42,
@@ -273,7 +273,7 @@ func BenchmarkParallelExecuteComplex(b *testing.B) {
 	b.ResetTimer()
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
-			_, err = tpl.Execute(&Context{
+			_, err = tpl.Execute(Context{
 				"number": 11,
 				"simple": map[string]interface{}{
 					"number":        42,

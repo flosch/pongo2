@@ -58,8 +58,8 @@ You can access pongo2's documentation on [godoc](https://godoc.org/github.com/fl
 		panic(err)
 	}
 	// Now you can render the template with the given 
-	// *pongo2.Context how often you want to.
-	out, err := tpl.Execute(&pongo2.Context{"name": "florian"})
+	// pongo2.Context how often you want to.
+	out, err := tpl.Execute(pongo2.Context{"name": "florian"})
 	if err != nil {
 		panic(err)
 	}
@@ -83,7 +83,7 @@ You can access pongo2's documentation on [godoc](https://godoc.org/github.com/fl
 	
 	func examplePage(w http.ResponseWriter, r *http.Request) {
 		// Execute the template per HTTP request
-		err := tplExample.ExecuteRW(w, &pongo2.Context{"query": r.FormValue("query")})
+		err := tplExample.ExecuteRW(w, pongo2.Context{"query": r.FormValue("query")})
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}

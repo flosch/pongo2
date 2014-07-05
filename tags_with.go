@@ -11,7 +11,7 @@ func (node *tagWithNode) Execute(ctx *ExecutionContext) (string, error) {
 	//new context for block
 	myctx := new(ExecutionContext)
 	// Fill the context with all data from the parent
-	for key, value := range *ctx.Public {
+	for key, value := range ctx.Public {
 		include_ctx[key] = value
 	}
 
@@ -24,7 +24,7 @@ func (node *tagWithNode) Execute(ctx *ExecutionContext) (string, error) {
 		include_ctx[key] = val
 	}
 
-	myctx.Public = &include_ctx
+	myctx.Public = include_ctx
 	myctx.Private = ctx.Private
 	myctx.StringStore = ctx.StringStore
 
