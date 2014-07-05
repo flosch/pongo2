@@ -3,7 +3,7 @@ package pongo2
 import (
 	"errors"
 	"fmt"
-	//"strings"
+	"strings"
 )
 
 type IEvaluator interface {
@@ -205,7 +205,6 @@ func (p *Parser) Error(msg string, token *Token) error {
 func (p *Parser) WrapUntilTag(names ...string) (*NodeWrapper, error) {
 	wrapper := &NodeWrapper{}
 
-wrappingLoop:
 	for p.Remaining() > 0 {
 		// New tag, check whether we have to stop wrapping here
 		if p.Peek(TokenSymbol, "{%") != nil {
@@ -231,7 +230,7 @@ wrappingLoop:
 						wrapper.Endtag = tag_ident.Val
 
 						p.ConsumeN(3)
-						break wrappingLoop
+						return wrapper, nil
 					} else {
 						// Arguments provided, which is not allowed
 						return nil, p.Error(fmt.Sprintf("No arguments allowed for tag '%s'", name), tag_ident)
@@ -257,5 +256,5 @@ wrappingLoop:
 		wrapper.nodes = append(wrapper.nodes, node)
 	}
 
-	return wrapper, nil
+	return nil, p.Error(fmt.Sprintf("Unexpected EOF, expected tag %s.", strings.Join(names, " or ")), nil)
 }
