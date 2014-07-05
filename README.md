@@ -48,6 +48,12 @@ You can access pongo2's documentation on [godoc](https://godoc.org/github.com/fl
 
  * **date** / **time**: The `date` and `time` filter are taking the Golang specific time- and date-format (not Django's one) currently. [Take a look on the format here](http://golang.org/pkg/time/#Time.Format).
 
+# 3rd-party add-ons, libraries and helpers
+
+ * [beego-pongo2](https://github.com/oal/beego-pongo2) - A tiny little helper for using Pongo2 with Beego.
+
+Please add your project to this list and send me a pull request when you've developed something nice for pongo2.
+
 # Examples
 
 ## A tiny example (template string)
