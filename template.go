@@ -75,10 +75,9 @@ func (tpl *Template) Execute(context Context) (string, error) {
 
 	// Create operational context
 	ctx := &ExecutionContext{
-		template:    parent,
-		Public:      context,
-		Private:     make(Context),
-		StringStore: make(map[string]string),
+		template: parent,
+		Public:   context,
+		Private:  make(Context),
 	}
 
 	// Run the selected document

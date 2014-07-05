@@ -23,16 +23,36 @@ func (c *Context) checkForValidIdentifiers() error {
 // have access to the ExecutionContext. This struct stores anything
 // about the current rendering process's Context including
 // the Context provided by the user (field Public).
-// You can safely use the Private context and StringStore to exchange
-// data between two tags or to provide data to the user's template (like a
-// 'forloop'-information).
+// You can safely use the Private context to provide data to the user's
+// template (like a 'forloop'-information). The Shared-context is used
+// to share data between tags. All ExecutionContexts share this context.
+//
 // Please be careful when accessing the Public data.
 // PLEASE DO NOT MODIFY THE PUBLIC CONTEXT (read-only).
+//
+// To create your own execution context within tags, use the
+// NewExecutionContext(parent) function.
 type ExecutionContext struct {
-	template    *Template
-	Public      Context
-	Private     Context
-	StringStore map[string]string
+	template *Template
+	Public   Context
+	Private  Context
+	Shared   Context
+}
+
+func NewExecutionContext(parent *ExecutionContext) *ExecutionContext {
+	newctx := &ExecutionContext{
+		template: parent.template,
+		Public:   parent.Public,
+		Private:  make(Context),
+	}
+	newctx.Shared = parent.Shared
+
+	// Copy all existing private items
+	for key, value := range parent.Private {
+		newctx.Private[key] = value
+	}
+
+	return newctx
 }
 
 func (ctx *ExecutionContext) Error(msg string, token *Token) error {

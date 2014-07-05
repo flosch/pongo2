@@ -6,16 +6,8 @@ type tagWithNode struct {
 }
 
 func (node *tagWithNode) Execute(ctx *ExecutionContext) (string, error) {
-	// Building the context for the template
-	include_ctx := make(Context)
-
 	//new context for block
-	myctx := new(ExecutionContext)
-
-	// Fill the context with all data from the parent
-	for key, value := range ctx.Public {
-		include_ctx[key] = value
-	}
+	withctx := NewExecutionContext(ctx)
 
 	// Put all custom with-pairs into the context
 	for key, value := range node.with_pairs {
@@ -23,14 +15,10 @@ func (node *tagWithNode) Execute(ctx *ExecutionContext) (string, error) {
 		if err != nil {
 			return "", err
 		}
-		include_ctx[key] = val
+		withctx.Private[key] = val
 	}
 
-	myctx.Public = include_ctx
-	myctx.Private = ctx.Private
-	myctx.StringStore = ctx.StringStore
-
-	return node.wrapper.Execute(myctx)
+	return node.wrapper.Execute(withctx)
 }
 
 func tagWithParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, error) {
