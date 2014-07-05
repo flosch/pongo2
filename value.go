@@ -342,11 +342,23 @@ func (v *Value) Iterate(fn func(idx, count int, key, value *Value) bool, empty f
 			empty()
 		}
 		return // done
-	case reflect.Array, reflect.Slice, reflect.String:
+	case reflect.Array, reflect.Slice:
 		itemCount := v.getResolvedValue().Len()
 		if itemCount > 0 {
 			for i := 0; i < itemCount; i++ {
 				if !fn(i, itemCount, &Value{v.getResolvedValue().Index(i)}, nil) {
+					return
+				}
+			}
+		} else {
+			empty()
+		}
+		return // done
+	case reflect.String:
+		runeCount := v.getResolvedValue().Len()
+		if runeCount > 0 {
+			for i := 0; i < runeCount; i++ {
+				if !fn(i, runeCount, &Value{v.getResolvedValue().Slice(i, i+1)}, nil) {
 					return
 				}
 			}
