@@ -6,10 +6,6 @@ import (
 	"strings"
 )
 
-type IFilteredEvaluator interface {
-	IEvaluator
-}
-
 type IEvaluator interface {
 	Evaluate(*ExecutionContext) (*Value, error)
 	FilterApplied(name string) bool
