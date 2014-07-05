@@ -25,9 +25,8 @@ type tagForLoopInformation struct {
 
 func (node *tagForNode) Execute(ctx *ExecutionContext) (s string, forError error) {
 	// Backup forloop (as parentloop in public context), key-name and value-name
-	parentloop := ctx.Private["forloop"]
-	backup_key := ctx.Private[node.key]
-	backup_value := ctx.Private[node.value]
+	forCtx := NewExecutionContext(ctx)
+	parentloop := forCtx.Private["forloop"]
 
 	// Create loop struct
 	loopInfo := &tagForLoopInformation{
@@ -40,11 +39,11 @@ func (node *tagForNode) Execute(ctx *ExecutionContext) (s string, forError error
 	}
 
 	// Register loopInfo in public context
-	ctx.Private["forloop"] = loopInfo
+	forCtx.Private["forloop"] = loopInfo
 
 	container := make([]string, 0)
 
-	obj, err := node.object_evaluator.Evaluate(ctx)
+	obj, err := node.object_evaluator.Evaluate(forCtx)
 	if err != nil {
 		return "", err
 	}
@@ -53,9 +52,9 @@ func (node *tagForNode) Execute(ctx *ExecutionContext) (s string, forError error
 		// There's something to iterate over (correct type and at least 1 item)
 
 		// Update loop infos and public context
-		ctx.Private[node.key] = key
+		forCtx.Private[node.key] = key
 		if value != nil {
-			ctx.Private[node.value] = value
+			forCtx.Private[node.value] = value
 		}
 		loopInfo.Counter = idx + 1
 		loopInfo.Counter0 = idx
@@ -69,7 +68,7 @@ func (node *tagForNode) Execute(ctx *ExecutionContext) (s string, forError error
 		loopInfo.Revcounter0 = count - (idx + 1) // TODO: Not sure about this, have to look it up
 
 		// Render elements with updated context
-		s, err := node.bodyWrapper.Execute(ctx)
+		s, err := node.bodyWrapper.Execute(forCtx)
 		if err != nil {
 			forError = err
 			return false
@@ -79,7 +78,7 @@ func (node *tagForNode) Execute(ctx *ExecutionContext) (s string, forError error
 	}, func() {
 		// Nothing to iterate over (maybe wrong type or no items)
 		if node.emptyWrapper != nil {
-			s, err := node.emptyWrapper.Execute(ctx)
+			s, err := node.emptyWrapper.Execute(forCtx)
 			if err != nil {
 				forError = err
 			}
@@ -90,13 +89,6 @@ func (node *tagForNode) Execute(ctx *ExecutionContext) (s string, forError error
 	if forError != nil {
 		return
 	}
-
-	// Restore forloop and parentloop
-	ctx.Private[node.key] = backup_key
-	if backup_value != nil {
-		ctx.Private[node.value] = backup_value
-	}
-	ctx.Private["forloop"] = parentloop
 
 	// Return the rendered template
 	return strings.Join(container, ""), nil
