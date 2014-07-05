@@ -262,7 +262,7 @@ func (p *Parser) parseVariableOrLiteral() (IEvaluator, error) {
 	t := p.Current()
 
 	if t == nil {
-		return nil, p.Error("Expected a number, string, keyword or identifier.", nil)
+		return nil, p.Error("Unexpected EOF, expected a number, string, keyword or identifier.", nil)
 	}
 
 	// Is first part a number or a string, there's nothing to resolve (because there's only to return the value then)
@@ -319,7 +319,7 @@ func (p *Parser) parseVariableOrLiteral() (IEvaluator, error) {
 
 	// First part of a variable MUST be an identifier
 	if t.Typ != TokenIdentifier {
-		return nil, p.Error(fmt.Sprintf("Variable (1st part, '%s') must be an identifier", t.Val), t)
+		return nil, p.Error("Expected either a number, string, keyword or identifier.", t)
 	}
 
 	resolver.parts = append(resolver.parts, &variablePart{

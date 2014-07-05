@@ -1,4 +1,7 @@
 {{ }}
+{{ (1 - 1 }}
 {{ 1|float: }}
 {{ "test"|non_existent_filter }}
 {{ "test"|"test" }}
+{% if true %}
+{% if (1) . %}{% endif %}

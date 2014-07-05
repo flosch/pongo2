@@ -106,8 +106,6 @@ integer
 {{ -100|integer }}
 
 float
-{{ 5.5 }}
-{{ 5.172841 }}
 {{ "foobar"|float }}
 {{ nil|float }}
 {{ "5.5"|float }}
