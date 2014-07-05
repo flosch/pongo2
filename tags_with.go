@@ -8,8 +8,10 @@ type tagWithNode struct {
 func (node *tagWithNode) Execute(ctx *ExecutionContext) (string, error) {
 	// Building the context for the template
 	include_ctx := make(Context)
+
 	//new context for block
 	myctx := new(ExecutionContext)
+
 	// Fill the context with all data from the parent
 	for key, value := range ctx.Public {
 		include_ctx[key] = value

@@ -40,10 +40,6 @@ You can access pongo2's documentation on [godoc](https://godoc.org/github.com/fl
 
 ## Caveats
 
-### General 
-
- * **Parallelism**: Please make sure you're not sharing the Context-object you're passing to `Execute()` between several parallel `Execute()` function calls. You will have to create your own `pongo2.Context` per `Execute()` call.
-
 ### Filters
 
  * **date** / **time**: The `date` and `time` filter are taking the Golang specific time- and date-format (not Django's one) currently. [Take a look on the format here](http://golang.org/pkg/time/#Time.Format).

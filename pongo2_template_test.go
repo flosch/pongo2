@@ -273,58 +273,7 @@ func BenchmarkParallelExecuteComplex(b *testing.B) {
 	b.ResetTimer()
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
-			_, err = tpl.Execute(Context{
-				"number": 11,
-				"simple": map[string]interface{}{
-					"number":        42,
-					"name":          "john doe",
-					"included_file": "INCLUDES.helper",
-					"nil":           nil,
-					"uint":          uint(8),
-					"str":           "string",
-					"bool_true":     true,
-					"bool_false":    false,
-					"newline_text": `this is a text
-with a new line in it`,
-				},
-				"complex": map[string]interface{}{
-					"is_admin": is_admin,
-					"post": post{
-						Text:    "<h2>Hello!</h2><p>Welcome to my new blog page. I'm using pongo2 which supports {{ variables }} and {% tags %}.</p>",
-						Created: time2,
-					},
-					"post2": &post{
-						Text:    "<h2>Hello!</h2><p>This is my 2nd blog post.</p>",
-						Created: time2,
-					},
-					"comments": []*comment{
-						&comment{
-							Author: &user{
-								Name:      "user1",
-								Validated: true,
-							},
-							Date: time1,
-							Text: "\"pongo2 is nice!\"",
-						},
-						&comment{
-							Author: &user{
-								Name:      "user2",
-								Validated: true,
-							},
-							Date: time2,
-							Text: "comment2 with <script>unsafe</script> tags in it",
-						},
-						&comment{
-							Author: &user{
-								Name:      "user3",
-								Validated: false,
-							},
-							Date: time1,
-							Text: "<b>hello!</b> there",
-						},
-					},
-				},
-			})
+			_, err = tpl.Execute(tplContext)
 			if err != nil {
 				b.Fatal(err)
 			}

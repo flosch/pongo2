@@ -25,9 +25,9 @@ type tagForLoopInformation struct {
 
 func (node *tagForNode) Execute(ctx *ExecutionContext) (s string, forError error) {
 	// Backup forloop (as parentloop in public context), key-name and value-name
-	parentloop := ctx.Public["forloop"]
-	backup_key := ctx.Public[node.key]
-	backup_value := ctx.Public[node.value]
+	parentloop := ctx.Private["forloop"]
+	backup_key := ctx.Private[node.key]
+	backup_value := ctx.Private[node.value]
 
 	// Create loop struct
 	loopInfo := &tagForLoopInformation{
@@ -40,7 +40,7 @@ func (node *tagForNode) Execute(ctx *ExecutionContext) (s string, forError error
 	}
 
 	// Register loopInfo in public context
-	ctx.Public["forloop"] = loopInfo
+	ctx.Private["forloop"] = loopInfo
 
 	container := make([]string, 0)
 
@@ -53,9 +53,9 @@ func (node *tagForNode) Execute(ctx *ExecutionContext) (s string, forError error
 		// There's something to iterate over (correct type and at least 1 item)
 
 		// Update loop infos and public context
-		ctx.Public[node.key] = key
+		ctx.Private[node.key] = key
 		if value != nil {
-			ctx.Public[node.value] = value
+			ctx.Private[node.value] = value
 		}
 		loopInfo.Counter = idx + 1
 		loopInfo.Counter0 = idx
@@ -92,11 +92,11 @@ func (node *tagForNode) Execute(ctx *ExecutionContext) (s string, forError error
 	}
 
 	// Restore forloop and parentloop
-	ctx.Public[node.key] = backup_key
+	ctx.Private[node.key] = backup_key
 	if backup_value != nil {
-		ctx.Public[node.value] = backup_value
+		ctx.Private[node.value] = backup_value
 	}
-	ctx.Public["forloop"] = parentloop
+	ctx.Private["forloop"] = parentloop
 
 	// Return the rendered template
 	return strings.Join(container, ""), nil

@@ -80,8 +80,15 @@ func (vr *variableResolver) resolve(ctx *ExecutionContext) (*Value, error) {
 
 	for idx, part := range vr.parts {
 		if idx == 0 {
-			// First part, get it from public context
-			current = reflect.ValueOf(ctx.Public[vr.parts[0].s]) // Get the initial value
+			// We're looking up the first part of the variable.
+			// First we're having a look in our private
+			// context (e. g. information provided by tags, like the forloop)
+			val, in_private := ctx.Private[vr.parts[0].s]
+			if !in_private {
+				// Nothing found? Then have a final lookup in the public context
+				val = ctx.Public[vr.parts[0].s]
+			}
+			current = reflect.ValueOf(val) // Get the initial value
 		} else {
 			// Next parts, resolve it from current
 
