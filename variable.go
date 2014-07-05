@@ -37,11 +37,16 @@ type variableResolver struct {
 	parts []*variablePart
 }
 
-type nodeVariable struct {
+type nodeFilteredVariable struct {
 	location_token *Token // TODO: Use it in Evaluate()/Execute() for proper in-execution error messages
 
 	resolver    IEvaluator
 	filterChain []*filterCall
+}
+
+type nodeVariable struct {
+	location_token *Token // TODO: Use it in Evaluate()/Execute() for proper in-execution error messages
+	expr           IEvaluator
 }
 
 func (s *stringResolver) Evaluate(ctx *ExecutionContext) (*Value, error) {
@@ -58,6 +63,47 @@ func (f *floatResolver) Evaluate(ctx *ExecutionContext) (*Value, error) {
 
 func (b *boolResolver) Evaluate(ctx *ExecutionContext) (*Value, error) {
 	return AsValue(bool(*b)), nil
+}
+
+func (s *stringResolver) FilterApplied(name string) bool {
+	return false
+}
+
+func (i *intResolver) FilterApplied(name string) bool {
+	return false
+}
+
+func (f *floatResolver) FilterApplied(name string) bool {
+	return false
+}
+
+func (b *boolResolver) FilterApplied(name string) bool {
+	return false
+}
+
+func (nv *nodeVariable) FilterApplied(name string) bool {
+	return nv.expr.FilterApplied(name)
+}
+
+func (nv *nodeVariable) Execute(ctx *ExecutionContext) (string, error) {
+	value, err := nv.expr.Evaluate(ctx)
+	if err != nil {
+		return "", err
+	}
+
+	if !nv.expr.FilterApplied("safe") && value.IsString() {
+		// apply escape filter
+		value, err = filters["escape"](value, nil)
+		if err != nil {
+			return "", err
+		}
+	}
+
+	return value.String(), nil
+}
+
+func (vr *variableResolver) FilterApplied(name string) bool {
+	return false
 }
 
 func (vr *variableResolver) String() string {
@@ -219,7 +265,6 @@ func (vr *variableResolver) resolve(ctx *ExecutionContext) (*Value, error) {
 	return &Value{current}, nil
 }
 
-// Is being used within a function call to get the argument
 func (vr *variableResolver) Evaluate(ctx *ExecutionContext) (*Value, error) {
 	value, err := vr.resolve(ctx)
 	if err != nil {
@@ -228,27 +273,23 @@ func (vr *variableResolver) Evaluate(ctx *ExecutionContext) (*Value, error) {
 	return value, nil
 }
 
-// Is being used within a function call to get the argument
-func (v *nodeVariable) Evaluate(ctx *ExecutionContext) (*Value, error) {
+func (v *nodeFilteredVariable) FilterApplied(name string) bool {
+	for _, filter := range v.filterChain {
+		if filter.name == name {
+			return true
+		}
+	}
+	return false
+}
+
+func (v *nodeFilteredVariable) Evaluate(ctx *ExecutionContext) (*Value, error) {
 	value, err := v.resolver.Evaluate(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	safe := false
 	for _, filter := range v.filterChain {
-		if filter.name == "safe" {
-			safe = true
-		}
 		value, err = filter.Execute(value, ctx)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	if !safe && value.IsString() {
-		// apply escape filter
-		value, err = filters["escape"](value, nil)
 		if err != nil {
 			return nil, err
 		}
@@ -409,8 +450,8 @@ variableLoop:
 	return resolver, nil
 }
 
-func (p *Parser) parseVariableOrLiteralWithFilter() (*nodeVariable, error) {
-	v := &nodeVariable{
+func (p *Parser) parseVariableOrLiteralWithFilter() (*nodeFilteredVariable, error) {
+	v := &nodeFilteredVariable{
 		location_token: p.Current(),
 	}
 
@@ -440,16 +481,21 @@ filterLoop:
 }
 
 func (p *Parser) parseVariableElement() (INode, error) {
+	node := &nodeVariable{
+		location_token: p.Current(),
+	}
+
 	p.Consume() // consume '{{'
 
 	expr, err := p.ParseExpression()
 	if err != nil {
 		return nil, err
 	}
+	node.expr = expr
 
 	if p.Match(TokenSymbol, "}}") == nil {
 		return nil, p.Error("'}}' expected", nil)
 	}
 
-	return expr, nil
+	return node, nil
 }

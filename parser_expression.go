@@ -37,6 +37,31 @@ type power struct {
 	power2 IEvaluator
 }
 
+func (expr *Expression) FilterApplied(name string) bool {
+	return expr.expr1.FilterApplied(name) && (expr.expr2 == nil ||
+		(expr.expr2 != nil && expr.expr2.FilterApplied(name)))
+}
+
+func (expr *relationalExpression) FilterApplied(name string) bool {
+	return expr.expr1.FilterApplied(name) && (expr.expr2 == nil ||
+		(expr.expr2 != nil && expr.expr2.FilterApplied(name)))
+}
+
+func (expr *simpleExpression) FilterApplied(name string) bool {
+	return expr.term1.FilterApplied(name) && (expr.term2 == nil ||
+		(expr.term2 != nil && expr.term2.FilterApplied(name)))
+}
+
+func (t *term) FilterApplied(name string) bool {
+	return t.factor1.FilterApplied(name) && (t.factor2 == nil ||
+		(t.factor2 != nil && t.factor2.FilterApplied(name)))
+}
+
+func (p *power) FilterApplied(name string) bool {
+	return p.power1.FilterApplied(name) && (p.power2 == nil ||
+		(p.power2 != nil && p.power2.FilterApplied(name)))
+}
+
 func (expr *Expression) Execute(ctx *ExecutionContext) (string, error) {
 	value, err := expr.Evaluate(ctx)
 	if err != nil {
