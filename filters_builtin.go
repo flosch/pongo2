@@ -157,8 +157,8 @@ func filterDivisibleby(in *Value, param *Value) (*Value, error) {
 }
 
 func filterFirst(in *Value, param *Value) (*Value, error) {
-	if in.CanSlice() {
-		return in.Slice(0, 1), nil
+	if in.CanSlice() && in.Len() > 0 {
+		return in.Index(0), nil
 	}
 	return AsValue(""), nil
 }
@@ -194,8 +194,8 @@ func filterFloatformat(in *Value, param *Value) (*Value, error) {
 }
 
 func filterLast(in *Value, param *Value) (*Value, error) {
-	if in.CanSlice() {
-		return in.Slice(in.Len()-1, in.Len()), nil
+	if in.CanSlice() && in.Len() > 0 {
+		return in.Index(in.Len() - 1), nil
 	}
 	return AsValue(""), nil
 }

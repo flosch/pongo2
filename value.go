@@ -255,6 +255,23 @@ func (v *Value) Slice(i, j int) *Value {
 	}
 }
 
+// Get the i-th item of an array, slice or string. Otherwise
+// it will return NIL.
+func (v *Value) Index(i int) *Value {
+	switch v.getResolvedValue().Kind() {
+	case reflect.Array, reflect.Slice:
+		if i >= v.Len() {
+			return AsValue(nil)
+		}
+		return AsValue(v.getResolvedValue().Index(i).Interface())
+	case reflect.String:
+		return AsValue(v.getResolvedValue().Slice(i, i+1).Interface())
+	default:
+		logf("Value.Slice() not available for type: %s\n", v.getResolvedValue().Kind().String())
+		return AsValue([]int{})
+	}
+}
+
 // Checks whether the underlying value (which must be of type struct, map,
 // string, array or slice) contains of another Value (e. g. used to check
 // whether a struct contains of a specific field or a map contains a specific key).
