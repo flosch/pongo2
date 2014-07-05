@@ -24,9 +24,9 @@ func (c *Context) checkForValidIdentifiers() error {
 // about the current rendering process's Context including
 // the Context provided by the user (field Public).
 // You can safely use the Private context and StringStore to exchange
-// data between two tags or to provide data the user's template (like the
+// data between two tags or to provide data to the user's template (like a
 // 'forloop'-information).
-// Please be careful when modifying/accessing the Public data.
+// Please be careful when accessing the Public data.
 // PLEASE DO NOT MODIFY THE PUBLIC CONTEXT (read-only).
 type ExecutionContext struct {
 	template    *Template
