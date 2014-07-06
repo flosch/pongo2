@@ -44,10 +44,7 @@ func (node *tagBlockNode) Execute(ctx *ExecutionContext) (string, error) {
 }
 
 func tagBlockParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, error) {
-	if doc.template.level > 1 {
-		return nil, arguments.Error("The 'block' tag can only defined on root level (especially no nesting).", start)
-	}
-
+	// TODO: Add {% endblock <blockname> %}-support since Django supports this for better readability
 	wrapper, err := doc.WrapUntilTag("endblock")
 	if err != nil {
 		return nil, err
@@ -74,7 +71,7 @@ func tagBlockParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, err
 	if !has_block {
 		tpl.blocks[name_token.Val] = wrapper
 	} else {
-		return nil, arguments.Error("Block already defined", nil)
+		return nil, arguments.Error(fmt.Sprintf("Block named '%s' already defined", name_token.Val), nil)
 	}
 
 	return &tagBlockNode{name: name_token.Val}, nil
