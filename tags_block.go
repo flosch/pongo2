@@ -61,13 +61,16 @@ func tagBlockParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, err
 	if err != nil {
 		return nil, err
 	}
-	for endtagargs.Remaining() > 0 {
-		if endtagname_token := endtagargs.MatchType(TokenIdentifier); endtagname_token != nil {
+	if endtagargs.Remaining() > 0 {
+		endtagname_token := endtagargs.MatchType(TokenIdentifier)
+		if endtagname_token != nil {
 			if endtagname_token.Val != name_token.Val {
 				return nil, endtagargs.Error(fmt.Sprintf("Name for 'endblock' must equal to 'block'-tag's name ('%s' != '%s').",
 					name_token.Val, endtagname_token.Val), nil)
 			}
-		} else {
+		}
+
+		if endtagname_token == nil || endtagargs.Remaining() > 0 {
 			return nil, endtagargs.Error("Either no or only one argument (identifier) allowed for 'endblock'.", nil)
 		}
 	}
