@@ -5,3 +5,4 @@
 .*Filter name must be an identifier\.
 .*Unexpected EOF, expected tag else or endif.
 .*If-condition is malformed.
+.*Block named 'test' already defined.*

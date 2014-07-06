@@ -5,3 +5,4 @@
 {{ "test"|"test" }}
 {% if true %}
 {% if (1) . %}{% endif %}
+{% block test %}{% block test %}{% endblock %}{% endblock %}
