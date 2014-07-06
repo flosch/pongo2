@@ -202,9 +202,12 @@ func (p *Parser) Error(msg string, token *Token) error {
 }
 
 // Wraps all nodes between starting tag and "{% endtag %}" and provides
-// one simple interface to execute the wrapped nodes
-func (p *Parser) WrapUntilTag(names ...string) (*NodeWrapper, error) {
+// one simple interface to execute the wrapped nodes.
+// It returns a parser to process provided arguments to the tag.
+func (p *Parser) WrapUntilTag(names ...string) (*NodeWrapper, *Parser, error) {
 	wrapper := &NodeWrapper{}
+
+	tagArgs := make([]*Token, 0)
 
 	for p.Remaining() > 0 {
 		// New tag, check whether we have to stop wrapping here
@@ -215,10 +218,8 @@ func (p *Parser) WrapUntilTag(names ...string) (*NodeWrapper, error) {
 				// We've found a (!) end-tag
 
 				found := false
-				name := ""
 				for _, n := range names {
 					if tag_ident.Val == n {
-						name = n
 						found = true
 						break
 					}
@@ -226,36 +227,35 @@ func (p *Parser) WrapUntilTag(names ...string) (*NodeWrapper, error) {
 
 				// We only process the tag if we've found an end tag
 				if found {
-					if p.PeekN(2, TokenSymbol, "%}") != nil {
-						// Okay, end the wrapping here
-						wrapper.Endtag = tag_ident.Val
+					// Okay, endtag found.
+					p.ConsumeN(2) // '{%' tagname
 
-						p.ConsumeN(3)
-						return wrapper, nil
-					} else {
-						// Arguments provided, which is not allowed
-						return nil, p.Error(fmt.Sprintf("No arguments allowed for tag '%s'", name), tag_ident)
+					for {
+						if p.Match(TokenSymbol, "%}") != nil {
+							// Okay, end the wrapping here
+							wrapper.Endtag = tag_ident.Val
+							return wrapper, newParser(p.template.name, tagArgs, p.template), nil
+						} else {
+							t := p.Current()
+							p.Consume()
+							if t == nil {
+								return nil, nil, p.Error("Unexpected EOF.", nil)
+							}
+							tagArgs = append(tagArgs, t)
+						}
 					}
 				}
-				/* else {
-					// unexpected EOF
-					return nil, p.Error(fmt.Sprintf("Unexpected EOF, tag '%s' not closed", name), tpl.tokens[tpl.parser_idx+1])
-				}*/
 			}
 
 		}
-		/*else {
-			// unexpected EOF
-			return nil, p.Error(fmt.Sprintf("Unexpected EOF (expected end-tags '%s')", strings.Join(names, ", ")), t)
-		}*/
 
 		// Otherwise process next element to be wrapped
 		node, err := p.parseDocElement()
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 		wrapper.nodes = append(wrapper.nodes, node)
 	}
 
-	return nil, p.Error(fmt.Sprintf("Unexpected EOF, expected tag %s.", strings.Join(names, " or ")), nil)
+	return nil, nil, p.Error(fmt.Sprintf("Unexpected EOF, expected tag %s.", strings.Join(names, " or ")), nil)
 }

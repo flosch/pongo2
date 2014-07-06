@@ -44,12 +44,6 @@ func (node *tagBlockNode) Execute(ctx *ExecutionContext) (string, error) {
 }
 
 func tagBlockParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, error) {
-	// TODO: Add {% endblock <blockname> %}-support since Django supports this for better readability
-	wrapper, err := doc.WrapUntilTag("endblock")
-	if err != nil {
-		return nil, err
-	}
-
 	if arguments.Count() == 0 {
 		return nil, arguments.Error("Tag 'block' requires an identifier.", nil)
 	}
@@ -61,6 +55,21 @@ func tagBlockParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, err
 
 	if arguments.Remaining() != 0 {
 		return nil, arguments.Error("Tag 'block' takes exactly 1 argument (an identifier).", nil)
+	}
+
+	wrapper, endtagargs, err := doc.WrapUntilTag("endblock")
+	if err != nil {
+		return nil, err
+	}
+	for endtagargs.Remaining() > 0 {
+		if endtagname_token := endtagargs.MatchType(TokenIdentifier); endtagname_token != nil {
+			if endtagname_token.Val != name_token.Val {
+				return nil, endtagargs.Error(fmt.Sprintf("Name for 'endblock' must equal to 'block'-tag's name ('%s' != '%s').",
+					name_token.Val, endtagname_token.Val), nil)
+			}
+		} else {
+			return nil, endtagargs.Error("Either no or only one argument (identifier) allowed for 'endblock'.", nil)
+		}
 	}
 
 	tpl := doc.template

@@ -131,20 +131,27 @@ func tagForParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, error
 	}
 
 	// Body wrapping
-	wrapper, err := doc.WrapUntilTag("empty", "endfor")
+	wrapper, endargs, err := doc.WrapUntilTag("empty", "endfor")
 	if err != nil {
 		return nil, err
 	}
 	for_node.bodyWrapper = wrapper
 
+	if endargs.Count() > 0 {
+		return nil, endargs.Error("Arguments not allowed here.", nil)
+	}
+
 	if wrapper.Endtag == "empty" {
 		// if there's an else in the if-statement, we need the else-Block as well
-		wrapper, err = doc.WrapUntilTag("endfor")
+		wrapper, endargs, err = doc.WrapUntilTag("endfor")
 		if err != nil {
 			return nil, err
 		}
-
 		for_node.emptyWrapper = wrapper
+
+		if endargs.Count() > 0 {
+			return nil, endargs.Error("Arguments not allowed here.", nil)
+		}
 	}
 
 	return for_node, nil

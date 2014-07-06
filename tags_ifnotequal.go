@@ -50,20 +50,27 @@ func tagIfNotEqualParser(doc *Parser, start *Token, arguments *Parser) (INodeTag
 	}
 
 	// Wrap then/else-blocks
-	wrapper, err := doc.WrapUntilTag("else", "endifequal")
+	wrapper, endargs, err := doc.WrapUntilTag("else", "endifequal")
 	if err != nil {
 		return nil, err
 	}
 	ifnotequal_node.thenWrapper = wrapper
 
+	if endargs.Count() > 0 {
+		return nil, endargs.Error("Arguments not allowed here.", nil)
+	}
+
 	if wrapper.Endtag == "else" {
 		// if there's an else in the if-statement, we need the else-Block as well
-		wrapper, err = doc.WrapUntilTag("endifequal")
+		wrapper, endargs, err = doc.WrapUntilTag("endifequal")
 		if err != nil {
 			return nil, err
 		}
-
 		ifnotequal_node.elseWrapper = wrapper
+
+		if endargs.Count() > 0 {
+			return nil, endargs.Error("Arguments not allowed here.", nil)
+		}
 	}
 
 	return ifnotequal_node, nil

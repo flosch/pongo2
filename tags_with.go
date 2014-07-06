@@ -26,14 +26,18 @@ func tagWithParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, erro
 		with_pairs: make(map[string]IEvaluator),
 	}
 
-	wrapper, err := doc.WrapUntilTag("endwith")
+	if arguments.Count() == 0 {
+		return nil, arguments.Error("Tag 'with' requires at least one argument.", nil)
+	}
+
+	wrapper, endargs, err := doc.WrapUntilTag("endwith")
 	if err != nil {
 		return nil, err
 	}
 	include_node.wrapper = wrapper
 
-	if arguments.Count() == 0 {
-		return nil, arguments.Error("Tag 'with' requires at least one argument.", nil)
+	if endargs.Count() > 0 {
+		return nil, endargs.Error("Arguments not allowed here.", nil)
 	}
 
 	// Scan through all arguments to see which style the user uses (old or new style).

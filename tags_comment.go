@@ -9,7 +9,8 @@ func (node *tagCommentNode) Execute(ctx *ExecutionContext) (string, error) {
 func tagCommentParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, error) {
 	comment_node := &tagCommentNode{}
 
-	_, err := doc.WrapUntilTag("endcomment")
+	// TODO: Process the endtag's arguments (see django 'comment'-tag documentation)
+	_, _, err := doc.WrapUntilTag("endcomment")
 	if err != nil {
 		return nil, err
 	}
