@@ -31,11 +31,7 @@ type comment struct {
 	Text   string
 }
 
-func is_admin(in *Value) bool {
-	u, worked := in.Interface().(*user)
-	if !worked {
-		return false
-	}
+func is_admin(u *user) bool {
 	for _, a := range admin_list {
 		if a == u.Name {
 			return true
@@ -45,11 +41,11 @@ func is_admin(in *Value) bool {
 }
 
 func (u *user) Is_admin() *Value {
-	return AsValue(is_admin(AsValue(u)))
+	return AsValue(is_admin(u))
 }
 
 func (u *user) Is_admin2() bool {
-	return is_admin(AsValue(u))
+	return is_admin(u)
 }
 
 func (p *post) String() string {
