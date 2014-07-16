@@ -6,6 +6,7 @@
 # Folders
 _obj
 _test
+.idea
 
 # Architecture specific extensions/prefixes
 *.[568vq]
@@ -29,3 +30,4 @@ tpl-error.out
 /count.out
 /cover.out
 *.swp
+*.iml
