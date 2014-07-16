@@ -6,6 +6,10 @@ add
 hello john doe
 hello john doe
 
+addslashes
+plain text
+This is \\a Test. \"Yep\". \'Yep\'.
+
 cut
 1
 Helloworld

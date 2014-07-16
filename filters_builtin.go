@@ -15,6 +15,7 @@ func init() {
 	RegisterFilter("safe", filterSafe)
 
 	RegisterFilter("add", filterAdd)
+	RegisterFilter("addslashes", filterAddslashes)
 	RegisterFilter("capfirst", filterCapfirst)
 	RegisterFilter("cut", filterCut)
 	RegisterFilter("date", filterDate)
@@ -42,7 +43,6 @@ func init() {
 
 	/* Missing filters:
 
-	   addslashes
 	   center
 	   dictsort
 	   dictsortreversed
@@ -121,6 +121,13 @@ func filterAdd(in *Value, param *Value) (*Value, error) {
 	// If in/param is not a number, we're relying on the
 	// Value's String() convertion and just add them both together
 	return AsValue(in.String() + param.String()), nil
+}
+
+func filterAddslashes(in *Value, param *Value) (*Value, error) {
+	output := strings.Replace(in.String(), "\\", "\\\\", -1)
+	output = strings.Replace(output, "\"", "\\\"", -1)
+	output = strings.Replace(output, "'", "\\'", -1)
+	return AsValue(output), nil
 }
 
 func filterCut(in *Value, param *Value) (*Value, error) {

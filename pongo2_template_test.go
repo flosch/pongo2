@@ -66,6 +66,7 @@ var tplContext = Context{
 		"bool_false":    false,
 		"newline_text": `this is a text
 with a new line in it`,
+		"escape_text": "This is \\a Test. \"Yep\". 'Yep'.",
 		"intmap": map[int]string{
 			1: "one",
 			2: "two",

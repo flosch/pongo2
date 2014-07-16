@@ -6,6 +6,10 @@ add
 {{ "hello "|add:"john doe" }}
 {{ "hello "|add:simple.name }}
 
+addslashes
+{{ "plain text"|addslashes|safe }}
+{{ simple.escape_text|addslashes|safe }}
+
 cut
 {{ 15|cut:"5" }}
 {{ "Hello world"|cut: " " }}
