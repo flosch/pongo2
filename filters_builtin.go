@@ -24,6 +24,7 @@ func init() {
 	RegisterFilter("divisibleby", filterDivisibleby)
 	RegisterFilter("first", filterFirst)
 	RegisterFilter("floatformat", filterFloatformat)
+	RegisterFilter("get_digit", filterGetdigit)
 	RegisterFilter("last", filterLast)
 	RegisterFilter("length", filterLength)
 	RegisterFilter("length_is", filterLengthis)
@@ -49,7 +50,6 @@ func init() {
 	   escapejs
 	   filesizeformat
 	   force_escape
-	   get_digit
 	   iriencode
 	   join
 	   linebreaks
@@ -198,6 +198,15 @@ func filterFloatformat(in *Value, param *Value) (*Value, error) {
 	}
 
 	return AsValue(strconv.FormatFloat(val, 'f', decimals, 64)), nil
+}
+
+func filterGetdigit(in *Value, param *Value) (*Value, error) {
+	i := param.Integer()
+	l := len(in.String())
+	if i <= 0 || i > l {
+		return in, nil
+	}
+	return AsValue(in.String()[l-i]-48), nil
 }
 
 func filterLast(in *Value, param *Value) (*Value, error) {

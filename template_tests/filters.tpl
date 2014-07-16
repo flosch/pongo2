@@ -25,6 +25,14 @@ default_if_none
 {{ ""|default_if_none:"n/a" }}
 {{ nil|default_if_none:"n/a" }}
 
+get_digit
+{{ 1234567890|get_digit:0 }}
+{{ 1234567890|get_digit }}
+{{ 1234567890|get_digit:2 }}
+{{ 1234567890|get_digit:"4" }}
+{{ 1234567890|get_digit:10 }}
+{{ 1234567890|get_digit:15 }}
+
 safe
 {{ "<script>" }}
 {{ "<script>"|safe }}
