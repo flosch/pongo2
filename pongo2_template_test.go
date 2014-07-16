@@ -31,20 +31,24 @@ type comment struct {
 	Text   string
 }
 
-func is_admin(in *Value) *Value {
+func is_admin(in *Value) bool {
 	u, worked := in.Interface().(*user)
 	if !worked {
-		return AsValue(false)
+		return false
 	}
 	for _, a := range admin_list {
 		if a == u.Name {
-			return AsValue(true)
+			return true
 		}
 	}
-	return AsValue(false)
+	return false
 }
 
 func (u *user) Is_admin() *Value {
+	return AsValue(is_admin(AsValue(u)))
+}
+
+func (u *user) Is_admin2() bool {
 	return is_admin(AsValue(u))
 }
 
@@ -67,7 +71,12 @@ var tplContext = Context{
 		"newline_text": `this is a text
 with a new line in it`,
 		"intmap": map[int]string{
+			1: "one",
+			2: "two",
 			5: "five",
+		},
+		"func_add": func(a, b *Value) int {
+			return a.Integer() + b.Integer()
 		},
 	},
 	"complex": map[string]interface{}{

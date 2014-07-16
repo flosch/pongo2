@@ -1,0 +1,1 @@
+{{ simple.func_add(simple.func_add(5, 15), simple.number) + 17 }}

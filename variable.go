@@ -233,9 +233,6 @@ func (vr *variableResolver) resolve(ctx *ExecutionContext) (*Value, error) {
 			if t.NumOut() != 1 {
 				return nil, errors.New(fmt.Sprintf("'%s' must have exactly 1 output argument.", vr.String()))
 			}
-			if t.Out(0) != reflect.TypeOf(new(Value)) {
-				return nil, errors.New(fmt.Sprintf("Function return type of '%s' must be of type *Value.", vr.String()))
-			}
 
 			// Evaluate all parameters
 			parameters := make([]reflect.Value, 0)
@@ -247,13 +244,15 @@ func (vr *variableResolver) resolve(ctx *ExecutionContext) (*Value, error) {
 				parameters = append(parameters, reflect.ValueOf(pv))
 			}
 
-			// Call it
-			rv := current.Call(parameters)
+			// Call it and get first return parameter back
+			rv := current.Call(parameters)[0]
 
-			// Return the function call value
-			//return rv[0].Interface().(*Value), nil
-			current = rv[0].Interface().(*Value).v
-			// fmt.Printf("=> %+v %+T\n\n", current, current)
+			if rv.Type() != reflect.TypeOf(new(Value)) {
+				current = reflect.ValueOf(rv.Interface())
+			} else {
+				// Return the function call value
+				current = rv.Interface().(*Value).v
+			}
 		}
 	}
 
