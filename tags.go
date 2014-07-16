@@ -8,7 +8,6 @@ Missing built-in tags:
     debug
     filter
     firstof
-    Boolean operators
     not in operator
     ifchanged
     load
@@ -20,7 +19,7 @@ Missing built-in tags:
     widthratio
 
 Following built-in tags wont be added:
-	url
+    url
 */
 
 import (
