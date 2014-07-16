@@ -32,6 +32,7 @@ func init() {
 	RegisterFilter("lower", filterLower)
 	RegisterFilter("pluralize", filterPluralize)
 	RegisterFilter("removetags", filterRemovetags)
+	RegisterFilter("title", filterTitle)
 	RegisterFilter("upper", filterUpper)
 	RegisterFilter("urlencode", filterUrlencode)
 	RegisterFilter("striptags", filterStriptags)
@@ -67,7 +68,6 @@ func init() {
 	   stringformat
 	   timesince
 	   timeuntil
-	   title
 	   truncatechars_html
 	   truncatewords
 	   truncatewords_html
@@ -225,7 +225,11 @@ func filterLower(in *Value, param *Value) (*Value, error) {
 }
 
 func filterCapfirst(in *Value, param *Value) (*Value, error) {
-	return AsValue(strings.Title(in.String())), nil
+	if in.Len() <= 0 {
+		return AsValue(""), nil
+	}
+	t := in.String()
+	return AsValue(strings.ToUpper(string(t[0])) + t[1:]), nil
 }
 
 func filterDate(in *Value, param *Value) (*Value, error) {
@@ -307,6 +311,13 @@ func filterRemovetags(in *Value, param *Value) (*Value, error) {
 	}
 
 	return AsValue(strings.TrimSpace(s)), nil
+}
+
+func filterTitle(in *Value, param *Value) (*Value, error) {
+	if !in.IsString() {
+		return AsValue(""), nil
+	}
+	return AsValue(strings.Title(strings.ToLower(in.String()))), nil
 }
 
 func filterYesno(in *Value, param *Value) (*Value, error) {

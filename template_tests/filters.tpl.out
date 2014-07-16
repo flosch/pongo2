@@ -10,6 +10,12 @@ addslashes
 plain text
 This is \\a Test. \"Yep\". \'Yep\'.
 
+capfirst
+
+
+H
+Hello there!
+
 cut
 1
 Helloworld
@@ -39,6 +45,14 @@ safe
 
 escape
 &lt;script&gt;
+
+title
+
+
+H
+Hello There!
+Hello There!
+Hello There!
 
 truncatechars
 Joel i...

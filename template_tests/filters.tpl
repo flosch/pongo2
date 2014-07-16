@@ -10,6 +10,12 @@ addslashes
 {{ "plain text"|addslashes|safe }}
 {{ simple.escape_text|addslashes|safe }}
 
+capfirst
+{{ ""|capfirst }}
+{{ 5|capfirst }}
+{{ "h"|capfirst }}
+{{ "hello there!"|capfirst }}
+
 cut
 {{ 15|cut:"5" }}
 {{ "Hello world"|cut: " " }}
@@ -39,6 +45,14 @@ safe
 
 escape
 {{ "<script>"|safe|escape }}
+
+title
+{{ ""|title }}
+{{ 5|title }}
+{{ "h"|title }}
+{{ "hello there!"|title }}
+{{ "HELLO THERE!"|title }}
+{{ "hELLO tHERE!"|title }}
 
 truncatechars
 {{ "Joel is a slug"|truncatechars:9 }}
