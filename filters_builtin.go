@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
+	"math/rand"
 	"regexp"
 	"strconv"
 	"strings"
@@ -11,6 +12,8 @@ import (
 )
 
 func init() {
+	rand.Seed(time.Now().Unix())
+
 	RegisterFilter("escape", filterEscape)
 	RegisterFilter("safe", filterSafe)
 
@@ -31,6 +34,7 @@ func init() {
 	RegisterFilter("linebreaksbr", filterLinebreaksbr)
 	RegisterFilter("lower", filterLower)
 	RegisterFilter("pluralize", filterPluralize)
+	RegisterFilter("random", filterRandom)
 	RegisterFilter("removetags", filterRemovetags)
 	RegisterFilter("title", filterTitle)
 	RegisterFilter("upper", filterUpper)
@@ -59,8 +63,6 @@ func init() {
 	   make_list
 	   phone2numeric
 	   pprint
-	   random
-	   removetags
 	   rjust
 	   safeseq
 	   slice
@@ -298,6 +300,14 @@ func filterPluralize(in *Value, param *Value) (*Value, error) {
 	} else {
 		return nil, errors.New("Filter 'pluralize' does only work on numbers.")
 	}
+}
+
+func filterRandom(in *Value, param *Value) (*Value, error) {
+	if !in.CanSlice() || in.Len() <= 0 {
+		return in, nil
+	}
+	i := rand.Intn(in.Len())
+	return in.Index(i), nil
 }
 
 func filterRemovetags(in *Value, param *Value) (*Value, error) {

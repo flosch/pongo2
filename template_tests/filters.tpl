@@ -93,6 +93,12 @@ walrus{{ 0|pluralize:"es" }}
 walrus{{ 1|pluralize:"es" }}
 walrus{{ simple.number|pluralize:"es" }}
 
+random
+{{ 5|random }}
+{{ ""|random }}
+{{ "h"|random }}
+{{ simple.one_item_list|random }}
+
 first
 {{ "Test"|first }}
 {{ complex.comments|first }}
