@@ -1,1 +1,2 @@
 {{ -(true || false) }}
+{{ simple.func_add("test", 5) }}

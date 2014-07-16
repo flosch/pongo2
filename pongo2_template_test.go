@@ -75,8 +75,8 @@ with a new line in it`,
 			2: "two",
 			5: "five",
 		},
-		"func_add": func(a, b *Value) int {
-			return a.Integer() + b.Integer()
+		"func_add": func(a, b int) int {
+			return a + b
 		},
 	},
 	"complex": map[string]interface{}{

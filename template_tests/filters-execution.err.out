@@ -1,1 +1,2 @@
 .*Execution Error.*Negative sign on a non\-number expression
+.*Function input argument 0 of 'simple.func_add' must be of type int.

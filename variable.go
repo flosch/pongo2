@@ -218,11 +218,6 @@ func (vr *variableResolver) resolve(ctx *ExecutionContext) (*Value, error) {
 			t := current.Type()
 
 			// Input arguments
-			for i := 0; i < t.NumIn(); i++ {
-				if t.In(i) != reflect.TypeOf(new(Value)) {
-					return nil, errors.New(fmt.Sprintf("Function input argument %d of '%s' must be of type *Value.", i, vr.String()))
-				}
-			}
 			if len(part.calling_args) != t.NumIn() {
 				return nil,
 					errors.New(fmt.Sprintf("Function input argument count (%d) of '%s' must be equal to the calling argument count (%d).",
@@ -236,12 +231,25 @@ func (vr *variableResolver) resolve(ctx *ExecutionContext) (*Value, error) {
 
 			// Evaluate all parameters
 			parameters := make([]reflect.Value, 0)
-			for _, arg := range part.calling_args {
+			for idx, arg := range part.calling_args {
 				pv, err := arg.Evaluate(ctx)
 				if err != nil {
 					return nil, err
 				}
-				parameters = append(parameters, reflect.ValueOf(pv))
+
+				if t.In(idx) != reflect.TypeOf(new(Value)) {
+					// Function's argument is not a *pongo2.Value, then we have to check whether input argument is of the same type as the function's argument
+					if t.In(idx) != reflect.TypeOf(pv.Interface()) {
+						return nil, errors.New(fmt.Sprintf("Function input argument %d of '%s' must be of type %s.",
+							idx, vr.String(), t.In(idx).String()))
+					} else {
+						// Function's argument has another type, using the interface-value
+						parameters = append(parameters, reflect.ValueOf(pv.Interface()))
+					}
+				} else {
+					// Function's argument is a *pongo2.Value
+					parameters = append(parameters, reflect.ValueOf(pv))
+				}
 			}
 
 			// Call it and get first return parameter back
