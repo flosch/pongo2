@@ -16,9 +16,9 @@ pongo2 is **still in beta** and under heavy development.
 ## New in pongo2
 
  * Entirely rewritten from the ground-up.
- * Easy API to create new filters and tags (including parsing arguments); take a look on an example and the differences between pongo1 and pongo2: [old](https://github.com/flosch/pongo/blob/master/filters.go#L65) and [new](https://github.com/flosch/pongo2/blob/master/filters_builtin.go#L72).
- * Advanced C-like expressions.
- * Complex function calls within expressions.
+ * [Easy API to create new filters and tags](http://godoc.org/github.com/flosch/pongo2#RegisterFilter) ([including parsing arguments](http://godoc.org/github.com/flosch/pongo2#Parser)); take a look on an example and the differences between pongo1 and pongo2: [old](https://github.com/flosch/pongo/blob/master/filters.go#L65) and [new](https://github.com/flosch/pongo2/blob/master/filters_builtin.go#L72).
+ * [Advanced C-like expressions](https://github.com/flosch/pongo2/blob/master/template_tests/expressions.tpl).
+ * [Complex function calls within expressions](https://github.com/flosch/pongo2/blob/master/template_tests/function_calls_wrapper.tpl).
 
 ## What's missing
 
@@ -29,7 +29,7 @@ pongo2 is **still in beta** and under heavy development.
 
 ## How you can help
 
- * Write filters / tags (see [tutorial](http://www.florian-schlachter.de/post/pongo2/)) by forking pongo2 and sending pull requests
+ * Write [filters](https://github.com/flosch/pongo2/blob/master/filters_builtin.go#L3) / [tags](https://github.com/flosch/pongo2/blob/master/tags.go#L4) (see [tutorial](http://www.florian-schlachter.de/post/pongo2/)) by forking pongo2 and sending pull requests
  * Write tests (use the following command to see what tests are missing: `go test -v -cover -covermode=count -coverprofile=cover.out && go tool cover -html=cover.out`)
 
 # Documentation
