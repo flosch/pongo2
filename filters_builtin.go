@@ -1,5 +1,43 @@
 package pongo2
 
+/* Missing filters:
+
+   center
+   dictsort
+   dictsortreversed
+   escapejs
+   filesizeformat
+   force_escape
+   iriencode
+   join
+   linebreaks
+   linenumbers
+   ljust
+   make_list
+   phone2numeric
+   pprint
+   rjust
+   safeseq
+   slice
+   slugify
+   stringformat
+   timesince
+   timeuntil
+   truncatechars_html
+   truncatewords
+   truncatewords_html
+   unordered_list
+   urlize
+   urlizetrunc
+   wordcount
+   wordwrap
+
+   Filters that won't be added:
+
+   static
+   get_static_prefix
+*/
+
 import (
 	"errors"
 	"fmt"
@@ -46,44 +84,6 @@ func init() {
 
 	RegisterFilter("float", filterFloat)     // pongo-specific
 	RegisterFilter("integer", filterInteger) // pongo-specific
-
-	/* Missing filters:
-
-	   center
-	   dictsort
-	   dictsortreversed
-	   escapejs
-	   filesizeformat
-	   force_escape
-	   iriencode
-	   join
-	   linebreaks
-	   linenumbers
-	   ljust
-	   make_list
-	   phone2numeric
-	   pprint
-	   rjust
-	   safeseq
-	   slice
-	   slugify
-	   stringformat
-	   timesince
-	   timeuntil
-	   truncatechars_html
-	   truncatewords
-	   truncatewords_html
-	   unordered_list
-	   urlize
-	   urlizetrunc
-	   wordcount
-	   wordwrap
-
-	   Filters that won't be added:
-
-	   static
-	   get_static_prefix
-	*/
 }
 
 func filterTruncatechars(in *Value, param *Value) (*Value, error) {
