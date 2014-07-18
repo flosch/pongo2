@@ -90,7 +90,7 @@ Please add your project to this list and send me a pull request when you've deve
 	
 	func examplePage(w http.ResponseWriter, r *http.Request) {
 		// Execute the template per HTTP request
-		err := tplExample.ExecuteRW(w, pongo2.Context{"query": r.FormValue("query")})
+		err := tplExample.ExecuteWriter(pongo2.Context{"query": r.FormValue("query")}, w)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}

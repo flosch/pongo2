@@ -31,3 +31,5 @@ tpl-error.out
 /cover.out
 *.swp
 *.iml
+/cpu.out
+/mem.out
