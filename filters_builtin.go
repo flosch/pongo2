@@ -41,8 +41,8 @@ package pongo2
 import (
 	"errors"
 	"fmt"
-	"net/url"
 	"math/rand"
+	"net/url"
 	"regexp"
 	"strconv"
 	"strings"
@@ -208,7 +208,7 @@ func filterGetdigit(in *Value, param *Value) (*Value, error) {
 	if i <= 0 || i > l {
 		return in, nil
 	}
-	return AsValue(in.String()[l-i]-48), nil
+	return AsValue(in.String()[l-i] - 48), nil
 }
 
 func filterLast(in *Value, param *Value) (*Value, error) {

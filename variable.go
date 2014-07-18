@@ -243,8 +243,8 @@ func (vr *variableResolver) resolve(ctx *ExecutionContext) (*Value, error) {
 				}
 
 				if is_variadic {
-					if idx >= t.NumIn() - 1 {
-						fn_arg = t.In(num_args-1).Elem()
+					if idx >= t.NumIn()-1 {
+						fn_arg = t.In(num_args - 1).Elem()
 					} else {
 						fn_arg = t.In(idx)
 					}
@@ -273,7 +273,7 @@ func (vr *variableResolver) resolve(ctx *ExecutionContext) (*Value, error) {
 					}
 				} else {
 					// Function's argument is a *pongo2.Value
-						parameters = append(parameters, reflect.ValueOf(pv))
+					parameters = append(parameters, reflect.ValueOf(pv))
 				}
 			}
 
