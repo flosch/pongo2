@@ -111,15 +111,15 @@ All benchmarks are compiling (depends on the benchmark) and executing the `templ
 
 The results are:
 
-	BenchmarkExecuteComplex                    50000             66720 ns/op
-	BenchmarkExecuteComplex-2                  50000             67013 ns/op
-	BenchmarkExecuteComplex-4                  50000             67807 ns/op
-	BenchmarkExecuteComplex-8                  50000             68147 ns/op
-	BenchmarkCompileAndExecuteComplex          10000            153411 ns/op
-	BenchmarkCompileAndExecuteComplex-2        10000            145334 ns/op
-	BenchmarkCompileAndExecuteComplex-4        10000            156475 ns/op
-	BenchmarkCompileAndExecuteComplex-8        10000            162995 ns/op
-	BenchmarkParallelExecuteComplex            50000             65041 ns/op
-	BenchmarkParallelExecuteComplex-2          50000             35034 ns/op
-	BenchmarkParallelExecuteComplex-4         100000             25046 ns/op
-	BenchmarkParallelExecuteComplex-8         100000             22447 ns/op
+	BenchmarkExecuteComplex                    50000             57419 ns/op
+	BenchmarkExecuteComplex-2                  50000             55087 ns/op
+	BenchmarkExecuteComplex-4                  50000             58348 ns/op
+	BenchmarkExecuteComplex-8                  50000             58805 ns/op
+	BenchmarkCompileAndExecuteComplex          10000            154818 ns/op
+	BenchmarkCompileAndExecuteComplex-2        10000            141209 ns/op
+	BenchmarkCompileAndExecuteComplex-4        10000            153821 ns/op
+	BenchmarkCompileAndExecuteComplex-8        10000            160542 ns/op
+	BenchmarkParallelExecuteComplex            50000             60640 ns/op
+	BenchmarkParallelExecuteComplex-2          50000             32646 ns/op
+	BenchmarkParallelExecuteComplex-4         100000             21752 ns/op
+	BenchmarkParallelExecuteComplex-8         100000             18713 ns/op
