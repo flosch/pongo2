@@ -1,6 +1,7 @@
 package pongo2
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"strings"
@@ -12,7 +13,7 @@ type IEvaluator interface {
 }
 
 type INode interface {
-	Execute(*ExecutionContext) (string, error)
+	Execute(*ExecutionContext, *bytes.Buffer) error
 }
 
 type INodeEvaluator interface {

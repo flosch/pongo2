@@ -1,6 +1,7 @@
 package pongo2
 
 import (
+	"bytes"
 	"io/ioutil"
 )
 
@@ -9,8 +10,9 @@ type tagSSINode struct {
 	content  string
 }
 
-func (node *tagSSINode) Execute(ctx *ExecutionContext) (string, error) {
-	return node.content, nil
+func (node *tagSSINode) Execute(ctx *ExecutionContext, buffer *bytes.Buffer) error {
+	buffer.WriteString(node.content)
+	return nil
 }
 
 func tagSSIParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, error) {

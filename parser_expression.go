@@ -1,6 +1,7 @@
 package pongo2
 
 import (
+	"bytes"
 	"fmt"
 	"math"
 )
@@ -62,12 +63,13 @@ func (p *power) FilterApplied(name string) bool {
 		(p.power2 != nil && p.power2.FilterApplied(name)))
 }
 
-func (expr *Expression) Execute(ctx *ExecutionContext) (string, error) {
+func (expr *Expression) Execute(ctx *ExecutionContext, buffer *bytes.Buffer) error {
 	value, err := expr.Evaluate(ctx)
 	if err != nil {
-		return "", err
+		return err
 	}
-	return value.String(), nil
+	buffer.WriteString(value.String())
+	return nil
 }
 
 func (expr *Expression) Evaluate(ctx *ExecutionContext) (*Value, error) {

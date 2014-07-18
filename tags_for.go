@@ -1,7 +1,7 @@
 package pongo2
 
 import (
-	"strings"
+	"bytes"
 )
 
 type tagForNode struct {
@@ -23,7 +23,7 @@ type tagForLoopInformation struct {
 	Parentloop  *tagForLoopInformation
 }
 
-func (node *tagForNode) Execute(ctx *ExecutionContext) (s string, forError error) {
+func (node *tagForNode) Execute(ctx *ExecutionContext, buffer *bytes.Buffer) (forError error) {
 	// Backup forloop (as parentloop in public context), key-name and value-name
 	forCtx := NewExecutionContext(ctx)
 	parentloop := forCtx.Private["forloop"]
@@ -41,11 +41,9 @@ func (node *tagForNode) Execute(ctx *ExecutionContext) (s string, forError error
 	// Register loopInfo in public context
 	forCtx.Private["forloop"] = loopInfo
 
-	container := make([]string, 0)
-
 	obj, err := node.object_evaluator.Evaluate(forCtx)
 	if err != nil {
-		return "", err
+		return err
 	}
 
 	obj.Iterate(func(idx, count int, key, value *Value) bool {
@@ -68,30 +66,23 @@ func (node *tagForNode) Execute(ctx *ExecutionContext) (s string, forError error
 		loopInfo.Revcounter0 = count - (idx + 1) // TODO: Not sure about this, have to look it up
 
 		// Render elements with updated context
-		s, err := node.bodyWrapper.Execute(forCtx)
+		err := node.bodyWrapper.Execute(forCtx, buffer)
 		if err != nil {
 			forError = err
 			return false
 		}
-		container = append(container, s)
 		return true
 	}, func() {
 		// Nothing to iterate over (maybe wrong type or no items)
 		if node.emptyWrapper != nil {
-			s, err := node.emptyWrapper.Execute(forCtx)
+			err := node.emptyWrapper.Execute(forCtx, buffer)
 			if err != nil {
 				forError = err
 			}
-			container = append(container, s)
 		}
 	})
 
-	if forError != nil {
-		return
-	}
-
-	// Return the rendered template
-	return strings.Join(container, ""), nil
+	return nil
 }
 
 func tagForParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, error) {

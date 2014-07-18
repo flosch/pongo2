@@ -1,7 +1,9 @@
 package pongo2
 
 import (
-	"net/http"
+	"bytes"
+	"fmt"
+	"io"
 )
 
 type Template struct {
@@ -56,7 +58,7 @@ func newTemplate(name, tpl string) (*Template, error) {
 	return t, nil
 }
 
-func (tpl *Template) Execute(context Context) (string, error) {
+func (tpl *Template) execute(context Context, buffer *bytes.Buffer) error {
 	// Determine the parent to be executed (for template inheritance)
 	parent := tpl
 	for parent.parent != nil {
@@ -69,7 +71,7 @@ func (tpl *Template) Execute(context Context) (string, error) {
 	} else {
 		err := context.checkForValidIdentifiers()
 		if err != nil {
-			return "", err
+			return err
 		}
 	}
 
@@ -81,20 +83,44 @@ func (tpl *Template) Execute(context Context) (string, error) {
 	}
 
 	// Run the selected document
-	return parent.root.Execute(ctx)
-}
-
-// Executes the template with the given context and writes to http.ResponseWriter
-// on success. Context can be nil. Nothing is written on error; instead the error
-// is being returned.
-func (tpl *Template) ExecuteRW(w http.ResponseWriter, context Context) error {
-	s, err := tpl.Execute(context)
-	if err != nil {
-		return err
-	}
-	_, err = w.Write([]byte(s))
+	err := parent.root.Execute(ctx, buffer)
 	if err != nil {
 		return err
 	}
 	return nil
+}
+
+// Executes the template with the given context and writes to writer (io.Writer)
+// on success. Context can be nil. Nothing is written on error; instead the error
+// is being returned.
+func (tpl *Template) ExecuteWriter(context Context, writer io.Writer) error {
+	var buffer bytes.Buffer
+	err := tpl.execute(context, &buffer)
+	if err != nil {
+		return err
+	}
+	l := buffer.Len()
+	n, err := buffer.WriteTo(writer)
+	if int(n) != l {
+		panic(fmt.Sprintf("error on writing template: n(%d) != buffer.Len(%d)", n, l))
+	}
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// Executes the template and returns the rendered template as a string
+func (tpl *Template) Execute(context Context) (string, error) {
+	// Create output buffer
+	var buffer bytes.Buffer
+
+	// Execute template
+	err := tpl.execute(context, &buffer)
+	if err != nil {
+		return "", err
+	}
+
+	return buffer.String(), nil
+
 }

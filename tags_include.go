@@ -1,7 +1,7 @@
 package pongo2
 
 import (
-	"errors"
+	"bytes"
 	"path/filepath"
 )
 
@@ -14,7 +14,7 @@ type tagIncludeNode struct {
 	with_pairs         map[string]IEvaluator
 }
 
-func (node *tagIncludeNode) Execute(ctx *ExecutionContext) (string, error) {
+func (node *tagIncludeNode) Execute(ctx *ExecutionContext, buffer *bytes.Buffer) error {
 	// Building the context for the template
 	include_ctx := make(Context)
 
@@ -29,7 +29,7 @@ func (node *tagIncludeNode) Execute(ctx *ExecutionContext) (string, error) {
 	for key, value := range node.with_pairs {
 		val, err := value.Evaluate(ctx)
 		if err != nil {
-			return "", err
+			return err
 		}
 		include_ctx[key] = val
 	}
@@ -39,11 +39,11 @@ func (node *tagIncludeNode) Execute(ctx *ExecutionContext) (string, error) {
 		// Evaluate the filename
 		filename, err := node.filename_evaluator.Evaluate(ctx)
 		if err != nil {
-			return "", err
+			return err
 		}
 
 		if filename.String() == "" {
-			return "", errors.New("Filename for 'include'-tag evaluated to an empty string.")
+			return ctx.Error("Filename for 'include'-tag evaluated to an empty string.", nil)
 		}
 
 		// Get include-filename relative to the including-template directory
@@ -52,12 +52,12 @@ func (node *tagIncludeNode) Execute(ctx *ExecutionContext) (string, error) {
 
 		included_tpl, err := FromFile(included_filename)
 		if err != nil {
-			return "", err
+			return err
 		}
-		return included_tpl.Execute(include_ctx)
+		return included_tpl.ExecuteWriter(include_ctx, buffer)
 	} else {
 		// Template is already parsed with static filename
-		return node.tpl.Execute(include_ctx)
+		return node.tpl.ExecuteWriter(include_ctx, buffer)
 	}
 }
 

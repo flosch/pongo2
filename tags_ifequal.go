@@ -1,6 +1,8 @@
 package pongo2
 
-//import "fmt"
+import (
+	"bytes"
+)
 
 type tagIfEqualNode struct {
 	var1, var2  IEvaluator
@@ -8,26 +10,26 @@ type tagIfEqualNode struct {
 	elseWrapper *NodeWrapper
 }
 
-func (node *tagIfEqualNode) Execute(ctx *ExecutionContext) (string, error) {
+func (node *tagIfEqualNode) Execute(ctx *ExecutionContext, buffer *bytes.Buffer) error {
 	r1, err := node.var1.Evaluate(ctx)
 	if err != nil {
-		return "", err
+		return err
 	}
 	r2, err := node.var2.Evaluate(ctx)
 	if err != nil {
-		return "", err
+		return err
 	}
 
 	result := r1.EqualValueTo(r2)
 
 	if result {
-		return node.thenWrapper.Execute(ctx)
+		return node.thenWrapper.Execute(ctx, buffer)
 	} else {
 		if node.elseWrapper != nil {
-			return node.elseWrapper.Execute(ctx)
+			return node.elseWrapper.Execute(ctx, buffer)
 		}
 	}
-	return "", nil
+	return nil
 }
 
 func tagIfEqualParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, error) {

@@ -1,6 +1,7 @@
 package pongo2
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"reflect"
@@ -85,21 +86,22 @@ func (nv *nodeVariable) FilterApplied(name string) bool {
 	return nv.expr.FilterApplied(name)
 }
 
-func (nv *nodeVariable) Execute(ctx *ExecutionContext) (string, error) {
+func (nv *nodeVariable) Execute(ctx *ExecutionContext, buffer *bytes.Buffer) error {
 	value, err := nv.expr.Evaluate(ctx)
 	if err != nil {
-		return "", err
+		return err
 	}
 
 	if !nv.expr.FilterApplied("safe") && value.IsString() {
 		// apply escape filter
 		value, err = filters["escape"](value, nil)
 		if err != nil {
-			return "", err
+			return err
 		}
 	}
 
-	return value.String(), nil
+	buffer.WriteString(value.String())
+	return nil
 }
 
 func (vr *variableResolver) FilterApplied(name string) bool {

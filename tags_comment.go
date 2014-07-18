@@ -1,9 +1,13 @@
 package pongo2
 
+import (
+	"bytes"
+)
+
 type tagCommentNode struct{}
 
-func (node *tagCommentNode) Execute(ctx *ExecutionContext) (string, error) {
-	return "", nil
+func (node *tagCommentNode) Execute(ctx *ExecutionContext, buffer *bytes.Buffer) error {
+	return nil
 }
 
 func tagCommentParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, error) {

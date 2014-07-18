@@ -1,6 +1,7 @@
 package pongo2
 
 import (
+	"bytes"
 	"fmt"
 )
 
@@ -21,7 +22,7 @@ func (node *tagBlockNode) getBlockWrapperByName(tpl *Template) *NodeWrapper {
 	return t
 }
 
-func (node *tagBlockNode) Execute(ctx *ExecutionContext) (string, error) {
+func (node *tagBlockNode) Execute(ctx *ExecutionContext, buffer *bytes.Buffer) error {
 	tpl := ctx.template
 	if tpl == nil {
 		panic("internal error: tpl == nil")
@@ -30,16 +31,16 @@ func (node *tagBlockNode) Execute(ctx *ExecutionContext) (string, error) {
 	block_wrapper := node.getBlockWrapperByName(tpl)
 	if block_wrapper == nil {
 		// fmt.Printf("could not find: %s\n", node.name)
-		return "", ctx.Error("internal error: block_wrapper == nil in tagBlockNode.Execute()", nil)
+		return ctx.Error("internal error: block_wrapper == nil in tagBlockNode.Execute()", nil)
 	}
-	rv, err := block_wrapper.Execute(ctx)
+	err := block_wrapper.Execute(ctx, buffer)
 	if err != nil {
-		return "", err
+		return err
 	}
 
 	// TODO: Add support for {{ block.super }}
 
-	return rv, nil
+	return nil
 }
 
 func tagBlockParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, error) {

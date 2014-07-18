@@ -1,25 +1,29 @@
 package pongo2
 
+import (
+	"bytes"
+)
+
 type tagIfNode struct {
 	condition   IEvaluator
 	thenWrapper *NodeWrapper
 	elseWrapper *NodeWrapper
 }
 
-func (node *tagIfNode) Execute(ctx *ExecutionContext) (string, error) {
+func (node *tagIfNode) Execute(ctx *ExecutionContext, buffer *bytes.Buffer) error {
 	result, err := node.condition.Evaluate(ctx)
 	if err != nil {
-		return "", err
+		return err
 	}
 
 	if result.IsTrue() {
-		return node.thenWrapper.Execute(ctx)
+		return node.thenWrapper.Execute(ctx, buffer)
 	} else {
 		if node.elseWrapper != nil {
-			return node.elseWrapper.Execute(ctx)
+			return node.elseWrapper.Execute(ctx, buffer)
 		}
 	}
-	return "", nil
+	return nil
 }
 
 func tagIfParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, error) {

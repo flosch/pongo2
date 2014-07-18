@@ -1,7 +1,7 @@
 package pongo2
 
 import (
-	"strings"
+	"bytes"
 )
 
 // The root document
@@ -9,14 +9,12 @@ type nodeDocument struct {
 	Nodes []INode
 }
 
-func (doc *nodeDocument) Execute(ctx *ExecutionContext) (string, error) {
-	collection := make([]string, 0, len(doc.Nodes))
+func (doc *nodeDocument) Execute(ctx *ExecutionContext, buffer *bytes.Buffer) error {
 	for _, n := range doc.Nodes {
-		buf, err := n.Execute(ctx)
+		err := n.Execute(ctx, buffer)
 		if err != nil {
-			return "", err
+			return err
 		}
-		collection = append(collection, buf)
 	}
-	return strings.Join(collection, ""), nil
+	return nil
 }

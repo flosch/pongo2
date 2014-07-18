@@ -1,7 +1,7 @@
 package pongo2
 
 import (
-	"strings"
+	"bytes"
 )
 
 type NodeWrapper struct {
@@ -9,14 +9,12 @@ type NodeWrapper struct {
 	nodes  []INode
 }
 
-func (wrapper *NodeWrapper) Execute(ctx *ExecutionContext) (string, error) {
-	container := make([]string, 0, len(wrapper.nodes))
+func (wrapper *NodeWrapper) Execute(ctx *ExecutionContext, buffer *bytes.Buffer) error {
 	for _, n := range wrapper.nodes {
-		buf, err := n.Execute(ctx)
+		err := n.Execute(ctx, buffer)
 		if err != nil {
-			return "", err
+			return err
 		}
-		container = append(container, buf)
 	}
-	return strings.Join(container, ""), nil
+	return nil
 }

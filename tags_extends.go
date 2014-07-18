@@ -1,6 +1,7 @@
 package pongo2
 
 import (
+	"bytes"
 	"path/filepath"
 )
 
@@ -8,8 +9,8 @@ type tagExtendsNode struct {
 	filename string
 }
 
-func (node *tagExtendsNode) Execute(ctx *ExecutionContext) (string, error) {
-	return "", nil
+func (node *tagExtendsNode) Execute(ctx *ExecutionContext, buffer *bytes.Buffer) error {
+	return nil
 }
 
 func tagExtendsParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, error) {

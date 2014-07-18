@@ -1,11 +1,15 @@
 package pongo2
 
+import (
+	"bytes"
+)
+
 type tagWithNode struct {
 	with_pairs map[string]IEvaluator
 	wrapper    *NodeWrapper
 }
 
-func (node *tagWithNode) Execute(ctx *ExecutionContext) (string, error) {
+func (node *tagWithNode) Execute(ctx *ExecutionContext, buffer *bytes.Buffer) error {
 	//new context for block
 	withctx := NewExecutionContext(ctx)
 
@@ -13,12 +17,12 @@ func (node *tagWithNode) Execute(ctx *ExecutionContext) (string, error) {
 	for key, value := range node.with_pairs {
 		val, err := value.Evaluate(ctx)
 		if err != nil {
-			return "", err
+			return err
 		}
 		withctx.Private[key] = val
 	}
 
-	return node.wrapper.Execute(withctx)
+	return node.wrapper.Execute(withctx, buffer)
 }
 
 func tagWithParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, error) {
