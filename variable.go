@@ -239,7 +239,7 @@ func (vr *variableResolver) resolve(ctx *ExecutionContext) (*Value, error) {
 
 				if t.In(idx) != reflect.TypeOf(new(Value)) {
 					// Function's argument is not a *pongo2.Value, then we have to check whether input argument is of the same type as the function's argument
-					if t.In(idx) != reflect.TypeOf(pv.Interface()) {
+					if t.In(idx) != reflect.TypeOf(pv.Interface()) && t.In(idx).Kind() != reflect.Interface {
 						return nil, errors.New(fmt.Sprintf("Function input argument %d of '%s' must be of type %s or *pongo2.Value.",
 							idx, vr.String(), t.In(idx).String()))
 					} else {

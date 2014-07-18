@@ -76,6 +76,9 @@ with a new line in it`,
 		"func_add": func(a, b int) int {
 			return a + b
 		},
+		"func_add_iface": func(a, b interface{}) interface{} {
+			return a.(int) + b.(int)
+		},
 	},
 	"complex": map[string]interface{}{
 		"is_admin": is_admin,
