@@ -244,7 +244,7 @@ func (vr *variableResolver) resolve(ctx *ExecutionContext) (*Value, error) {
 
 				if is_variadic {
 					if idx >= t.NumIn() - 1 {
-						fn_arg = t.In(num_args-1)
+						fn_arg = t.In(num_args-1).Elem()
 					} else {
 						fn_arg = t.In(idx)
 					}
@@ -254,13 +254,22 @@ func (vr *variableResolver) resolve(ctx *ExecutionContext) (*Value, error) {
 
 				if fn_arg != reflect.TypeOf(new(Value)) {
 					// Function's argument is not a *pongo2.Value, then we have to check whether input argument is of the same type as the function's argument
-					// TODO: Remove "!is_variadic" here and replace it with a proper type checking (still searching for an equivalent for reflect.SliceOf()).
-					if fn_arg != reflect.TypeOf(pv.Interface()) && fn_arg.Kind() != reflect.Interface && !is_variadic {
-						return nil, errors.New(fmt.Sprintf("Function input argument %d of '%s' must be of type %s or *pongo2.Value (not %T).",
-							idx, vr.String(), fn_arg.String(), pv.Interface()))
+					if !is_variadic {
+						if fn_arg != reflect.TypeOf(pv.Interface()) && fn_arg.Kind() != reflect.Interface {
+							return nil, errors.New(fmt.Sprintf("Function input argument %d of '%s' must be of type %s or *pongo2.Value (not %T).",
+								idx, vr.String(), fn_arg.String(), pv.Interface()))
+						} else {
+							// Function's argument has another type, using the interface-value
+							parameters = append(parameters, reflect.ValueOf(pv.Interface()))
+						}
 					} else {
-						// Function's argument has another type, using the interface-value
-						parameters = append(parameters, reflect.ValueOf(pv.Interface()))
+						if fn_arg != reflect.TypeOf(pv.Interface()) && fn_arg.Kind() != reflect.Interface {
+							return nil, errors.New(fmt.Sprintf("Function variadic input argument of '%s' must be of type %s or *pongo2.Value (not %T).",
+								vr.String(), fn_arg.String(), pv.Interface()))
+						} else {
+							// Function's argument has another type, using the interface-value
+							parameters = append(parameters, reflect.ValueOf(pv.Interface()))
+						}
 					}
 				} else {
 					// Function's argument is a *pongo2.Value

@@ -82,6 +82,22 @@ with a new line in it`,
 		"func_variadic": func(msg string, args ...interface{}) string {
 			return fmt.Sprintf(msg, args...)
 		},
+		"func_variadic_sum_int": func(args ...int) int {
+			// Create a sum
+			s := 0
+			for _, i := range args {
+				s += i
+			}
+			return s
+		},
+		"func_variadic_sum_int2": func(args ...*Value) *Value {
+			// Create a sum
+			s := 0
+			for _, i := range args {
+				s += i.Integer()
+			}
+			return AsValue(s)
+		},
 	},
 	"complex": map[string]interface{}{
 		"is_admin": is_admin,
