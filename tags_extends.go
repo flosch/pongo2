@@ -1,7 +1,6 @@
 package pongo2
 
 import (
-	"fmt"
 	"path/filepath"
 )
 
@@ -47,7 +46,6 @@ func tagExtendsParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, e
 	}
 
 	if arguments.Remaining() > 0 {
-		fmt.Printf("%+v\n", arguments.tokens)
 		return nil, arguments.Error("Tag 'extends' does only take 1 argument.", nil)
 	}
 

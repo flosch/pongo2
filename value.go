@@ -291,7 +291,7 @@ func (v *Value) Contains(other *Value) bool {
 		case string:
 			map_value = v.getResolvedValue().MapIndex(other.getResolvedValue())
 		default:
-			fmt.Printf("Value.Contains() does not support lookup type '%s'\n", other.getResolvedValue().Kind().String())
+			logf("Value.Contains() does not support lookup type '%s'\n", other.getResolvedValue().Kind().String())
 			return false
 		}
 

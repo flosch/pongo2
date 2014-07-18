@@ -1,7 +1,6 @@
 package pongo2
 
 import (
-	"errors"
 	"fmt"
 )
 
@@ -30,8 +29,8 @@ func (node *tagBlockNode) Execute(ctx *ExecutionContext) (string, error) {
 	// Determine the block to execute
 	block_wrapper := node.getBlockWrapperByName(tpl)
 	if block_wrapper == nil {
-		fmt.Printf("could not find: %s\n", node.name)
-		return "", errors.New("boo")
+		// fmt.Printf("could not find: %s\n", node.name)
+		return "", ctx.Error("internal error: block_wrapper == nil in tagBlockNode.Execute()", nil)
 	}
 	rv, err := block_wrapper.Execute(ctx)
 	if err != nil {
