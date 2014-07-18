@@ -10,6 +10,7 @@ type Template struct {
 	// Input
 	name string
 	tpl  string
+	size int
 
 	// Calculation
 	tokens []*Token
@@ -34,6 +35,7 @@ func newTemplate(name, tpl string) (*Template, error) {
 	t := &Template{
 		name:   name,
 		tpl:    tpl,
+		size:   len(tpl),
 		blocks: make(map[string]*NodeWrapper),
 	}
 
@@ -94,8 +96,11 @@ func (tpl *Template) execute(context Context, buffer *bytes.Buffer) error {
 // on success. Context can be nil. Nothing is written on error; instead the error
 // is being returned.
 func (tpl *Template) ExecuteWriter(context Context, writer io.Writer) error {
-	var buffer bytes.Buffer
-	err := tpl.execute(context, &buffer)
+	// Create output buffer
+	// We assume that the rendered template will be 30% larger
+	buffer := bytes.NewBuffer(make([]byte, 0, int(float64(tpl.size)*1.3)))
+
+	err := tpl.execute(context, buffer)
 	if err != nil {
 		return err
 	}
@@ -113,10 +118,11 @@ func (tpl *Template) ExecuteWriter(context Context, writer io.Writer) error {
 // Executes the template and returns the rendered template as a string
 func (tpl *Template) Execute(context Context) (string, error) {
 	// Create output buffer
-	var buffer bytes.Buffer
+	// We assume that the rendered template will be 30% larger
+	buffer := bytes.NewBuffer(make([]byte, 0, int(float64(tpl.size)*1.3)))
 
 	// Execute template
-	err := tpl.execute(context, &buffer)
+	err := tpl.execute(context, buffer)
 	if err != nil {
 		return "", err
 	}
