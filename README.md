@@ -51,6 +51,7 @@ You can access pongo2's documentation on [godoc](https://godoc.org/github.com/fl
 # 3rd-party add-ons, libraries and helpers
 
  * [beego-pongo2](https://github.com/oal/beego-pongo2) - A tiny little helper for using Pongo2 with Beego.
+ * [macaron-pongo2](https://github.com/macaron-contrib/pongo2) - pongo2 support for [Macaron](https://github.com/Unknwon/macaron), a modular web framework.
 
 Please add your project to this list and send me a pull request when you've developed something nice for pongo2.
 
