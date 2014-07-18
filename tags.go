@@ -15,7 +15,7 @@ Missing built-in tags:
     regroup
     Grouping on other properties
     spaceless
-    verbatim
+    verbatim (only the "name" argument is missing for verbatim)
     widthratio
 
 Following built-in tags wont be added:

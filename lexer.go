@@ -61,6 +61,9 @@ type lexer struct {
 	startcol  int
 	line      int
 	col       int
+
+	in_verbatim        bool
+	verbatim_name      string
 }
 
 func (t *Token) String() string {
@@ -196,62 +199,97 @@ func (l *lexer) eof() bool {
 
 func (l *lexer) run() {
 	for {
-		// Ignore single-line comments {# ... #}
-		if strings.HasPrefix(l.input[l.pos:], "{#") {
+		// TODO: Support verbatim tag names
+		// https://docs.djangoproject.com/en/dev/ref/templates/builtins/#verbatim
+		if l.in_verbatim {
+			name := l.verbatim_name
+			if name != "" {
+				name += " "
+			}
+			if strings.HasPrefix(l.input[l.pos:], fmt.Sprintf("{%% endverbatim %s%%}", name)) { // end verbatim
+				if l.pos > l.start {
+					l.emit(TokenHTML)
+				}
+				w := len("{% endverbatim %}")
+				l.pos += w
+				l.col += w
+				l.ignore()
+				l.in_verbatim = false
+			}
+		} else if strings.HasPrefix(l.input[l.pos:], "{% verbatim %}") { // tag
 			if l.pos > l.start {
 				l.emit(TokenHTML)
 			}
-
-			l.pos += 2 // pass '{#'
-			l.col += 2
-
-			for {
-				switch l.peek() {
-				case EOF:
-					l.errorf("Single-line comment not closed.")
-					return
-				case '\n':
-					l.errorf("Newline not permitted in a single-line comment.")
-					return
-				}
-
-				if strings.HasPrefix(l.input[l.pos:], "#}") {
-					l.pos += 2 // pass '#}'
-					l.col += 2
-					break
-				}
-
-				l.next()
-			}
-			l.ignore() // ignore whole comment
-
-			// Comment skipped
-			continue // next token
+			l.in_verbatim = true
+			w := len("{% verbatim %}")
+			l.pos += w
+			l.col += w
+			l.ignore()
 		}
 
-		if strings.HasPrefix(l.input[l.pos:], "{{") || // variable
-			strings.HasPrefix(l.input[l.pos:], "{%") { // tag
-			if l.pos > l.start {
-				l.emit(TokenHTML)
+		if !l.in_verbatim {
+			// Ignore single-line comments {# ... #}
+			if strings.HasPrefix(l.input[l.pos:], "{#") {
+				if l.pos > l.start {
+					l.emit(TokenHTML)
+				}
+
+				l.pos += 2 // pass '{#'
+				l.col += 2
+
+				for {
+					switch l.peek() {
+					case EOF:
+						l.errorf("Single-line comment not closed.")
+						return
+					case '\n':
+						l.errorf("Newline not permitted in a single-line comment.")
+						return
+					}
+
+					if strings.HasPrefix(l.input[l.pos:], "#}") {
+						l.pos += 2 // pass '#}'
+						l.col += 2
+						break
+					}
+
+					l.next()
+				}
+				l.ignore() // ignore whole comment
+
+				// Comment skipped
+				continue // next token
 			}
-			l.tokenize()
-			if l.errored {
-				return
+
+			if strings.HasPrefix(l.input[l.pos:], "{{") || // variable
+				strings.HasPrefix(l.input[l.pos:], "{%") { // tag
+				if l.pos > l.start {
+					l.emit(TokenHTML)
+				}
+				l.tokenize()
+				if l.errored {
+					return
+				}
+				continue
 			}
-		} else {
-			switch l.peek() {
-			case '\n':
-				l.line++
-				l.col = 0
-			}
-			if l.next() == EOF {
-				break
-			}
+		}
+
+		switch l.peek() {
+		case '\n':
+			l.line++
+			l.col = 0
+		}
+		if l.next() == EOF {
+			break
 		}
 	}
 
 	if l.pos > l.start {
 		l.emit(TokenHTML)
+	}
+
+	if l.in_verbatim {
+		l.errorf("verbatim-tag not closed, got EOF.")
 	}
 }
 
