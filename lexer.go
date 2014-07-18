@@ -62,8 +62,8 @@ type lexer struct {
 	line      int
 	col       int
 
-	in_verbatim        bool
-	verbatim_name      string
+	in_verbatim   bool
+	verbatim_name string
 }
 
 func (t *Token) String() string {
