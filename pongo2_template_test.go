@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"path/filepath"
 	"regexp"
+	"bytes"
 	"strings"
 	"testing"
 	"time"
@@ -152,11 +153,11 @@ func TestTemplates(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Error on ReadFile('%s'): %s", test_filename, err.Error())
 		}
-		tpl_out, err := tpl.Execute(tplContext)
+		tpl_out, err := tpl.ExecuteBytes(tplContext)
 		if err != nil {
 			t.Fatalf("Error on Execute('%s'): %s", match, err.Error())
 		}
-		if string(test_out) != tpl_out {
+		if bytes.Compare(test_out, tpl_out) != 0 {
 			t.Logf("Template (rendered) '%s': '%s'", match, tpl_out)
 			err_filename := "tpl-error.out"
 			ioutil.WriteFile(err_filename, []byte(tpl_out), 0700)
@@ -204,7 +205,7 @@ func TestExecutionErrors(t *testing.T) {
 				t.Fatalf("Error on FromString('%s'): %s", test, err.Error())
 			}
 
-			_, err = tpl.Execute(tplContext)
+			_, err = tpl.ExecuteBytes(tplContext)
 			if err == nil {
 				t.Fatalf("[%s Line %d] Expected error for (got none): %s",
 					match, idx+1, tests[idx])
@@ -271,7 +272,7 @@ func BenchmarkExecuteComplex(b *testing.B) {
 	}
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_, err = tpl.Execute(tplContext)
+		_, err = tpl.ExecuteBytes(tplContext)
 		if err != nil {
 			b.Fatal(err)
 		}
@@ -291,7 +292,7 @@ func BenchmarkCompileAndExecuteComplex(b *testing.B) {
 			b.Fatal(err)
 		}
 
-		_, err = tpl.Execute(tplContext)
+		_, err = tpl.ExecuteBytes(tplContext)
 		if err != nil {
 			b.Fatal(err)
 		}
@@ -306,7 +307,7 @@ func BenchmarkParallelExecuteComplex(b *testing.B) {
 	b.ResetTimer()
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
-			_, err = tpl.Execute(tplContext)
+			_, err = tpl.ExecuteBytes(tplContext)
 			if err != nil {
 				b.Fatal(err)
 			}

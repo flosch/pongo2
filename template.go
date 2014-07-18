@@ -60,7 +60,11 @@ func newTemplate(name, tpl string) (*Template, error) {
 	return t, nil
 }
 
-func (tpl *Template) execute(context Context, buffer *bytes.Buffer) error {
+func (tpl *Template) execute(context Context) (*bytes.Buffer, error) {
+	// Create output buffer
+	// We assume that the rendered template will be 30% larger
+	buffer := bytes.NewBuffer(make([]byte, 0, int(float64(tpl.size)*1.3)))
+
 	// Determine the parent to be executed (for template inheritance)
 	parent := tpl
 	for parent.parent != nil {
@@ -73,7 +77,7 @@ func (tpl *Template) execute(context Context, buffer *bytes.Buffer) error {
 	} else {
 		err := context.checkForValidIdentifiers()
 		if err != nil {
-			return err
+			return nil, err
 		}
 	}
 
@@ -87,23 +91,20 @@ func (tpl *Template) execute(context Context, buffer *bytes.Buffer) error {
 	// Run the selected document
 	err := parent.root.Execute(ctx, buffer)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	return nil
+	return buffer, nil
 }
 
 // Executes the template with the given context and writes to writer (io.Writer)
 // on success. Context can be nil. Nothing is written on error; instead the error
 // is being returned.
 func (tpl *Template) ExecuteWriter(context Context, writer io.Writer) error {
-	// Create output buffer
-	// We assume that the rendered template will be 30% larger
-	buffer := bytes.NewBuffer(make([]byte, 0, int(float64(tpl.size)*1.3)))
-
-	err := tpl.execute(context, buffer)
+	buffer, err := tpl.execute(context)
 	if err != nil {
 		return err
 	}
+
 	l := buffer.Len()
 	n, err := buffer.WriteTo(writer)
 	if int(n) != l {
@@ -115,14 +116,20 @@ func (tpl *Template) ExecuteWriter(context Context, writer io.Writer) error {
 	return nil
 }
 
+// Executes the template and returns the rendered template as a []byte
+func (tpl *Template) ExecuteBytes(context Context) ([]byte, error) {
+	// Execute template
+	buffer, err := tpl.execute(context)
+	if err != nil {
+		return nil, err
+	}
+	return buffer.Bytes(), nil
+}
+
 // Executes the template and returns the rendered template as a string
 func (tpl *Template) Execute(context Context) (string, error) {
-	// Create output buffer
-	// We assume that the rendered template will be 30% larger
-	buffer := bytes.NewBuffer(make([]byte, 0, int(float64(tpl.size)*1.3)))
-
 	// Execute template
-	err := tpl.execute(context, buffer)
+	buffer, err := tpl.execute(context)
 	if err != nil {
 		return "", err
 	}
