@@ -218,7 +218,7 @@ func (vr *variableResolver) resolve(ctx *ExecutionContext) (*Value, error) {
 			t := current.Type()
 
 			// Input arguments
-			if len(part.calling_args) != t.NumIn() {
+			if len(part.calling_args) != t.NumIn() && !(len(part.calling_args) >= t.NumIn()-1 && t.IsVariadic()) {
 				return nil,
 					errors.New(fmt.Sprintf("Function input argument count (%d) of '%s' must be equal to the calling argument count (%d).",
 						t.NumIn(), vr.String(), len(part.calling_args)))
@@ -231,24 +231,40 @@ func (vr *variableResolver) resolve(ctx *ExecutionContext) (*Value, error) {
 
 			// Evaluate all parameters
 			parameters := make([]reflect.Value, 0)
+
+			num_args := t.NumIn()
+			is_variadic := t.IsVariadic()
+			var fn_arg reflect.Type
+
 			for idx, arg := range part.calling_args {
 				pv, err := arg.Evaluate(ctx)
 				if err != nil {
 					return nil, err
 				}
 
-				if t.In(idx) != reflect.TypeOf(new(Value)) {
+				if is_variadic {
+					if idx >= t.NumIn() - 1 {
+						fn_arg = t.In(num_args-1)
+					} else {
+						fn_arg = t.In(idx)
+					}
+				} else {
+					fn_arg = t.In(idx)
+				}
+
+				if fn_arg != reflect.TypeOf(new(Value)) {
 					// Function's argument is not a *pongo2.Value, then we have to check whether input argument is of the same type as the function's argument
-					if t.In(idx) != reflect.TypeOf(pv.Interface()) && t.In(idx).Kind() != reflect.Interface {
-						return nil, errors.New(fmt.Sprintf("Function input argument %d of '%s' must be of type %s or *pongo2.Value.",
-							idx, vr.String(), t.In(idx).String()))
+					// TODO: Remove "!is_variadic" here and replace it with a proper type checking (still searching for an equivalent for reflect.SliceOf()).
+					if fn_arg != reflect.TypeOf(pv.Interface()) && fn_arg.Kind() != reflect.Interface && !is_variadic {
+						return nil, errors.New(fmt.Sprintf("Function input argument %d of '%s' must be of type %s or *pongo2.Value (not %T).",
+							idx, vr.String(), fn_arg.String(), pv.Interface()))
 					} else {
 						// Function's argument has another type, using the interface-value
 						parameters = append(parameters, reflect.ValueOf(pv.Interface()))
 					}
 				} else {
 					// Function's argument is a *pongo2.Value
-					parameters = append(parameters, reflect.ValueOf(pv))
+						parameters = append(parameters, reflect.ValueOf(pv))
 				}
 			}
 

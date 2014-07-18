@@ -79,6 +79,9 @@ with a new line in it`,
 		"func_add_iface": func(a, b interface{}) interface{} {
 			return a.(int) + b.(int)
 		},
+		"func_variadic": func(msg string, args ...interface{}) string {
+			return fmt.Sprintf(msg, args...)
+		},
 	},
 	"complex": map[string]interface{}{
 		"is_admin": is_admin,
