@@ -35,6 +35,10 @@ func parseTemplateFn(s string, c Context) func() {
 }
 
 func (s *TestSuite) TestMisc(c *C) {
+	// Must
+	// TODO: Add better error message (see issue #18)
+	c.Check(func() { Must(FromFile("template_tests/inheritance/base2.tpl")) }, PanicMatches, "open template_tests/inheritance/doesnotexist.tpl: no such file or directory")
+
 	// Context
 	c.Check(parseTemplateFn("", Context{"'illegal": nil}), PanicMatches, ".*not a valid identifier.*")
 
