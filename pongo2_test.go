@@ -41,4 +41,12 @@ func (s *TestSuite) TestMisc(c *C) {
 	// Registers
 	c.Check(func() { RegisterFilter("escape", nil) }, PanicMatches, ".*is already registered.*")
 	c.Check(func() { RegisterTag("for", nil) }, PanicMatches, ".*is already registered.*")
+
+	// ApplyFilter
+	v, err := ApplyFilter("title", AsValue("this is a title"), nil)
+	if err != nil {
+		c.Fatal(err)
+	}
+	c.Check(v.String(), Equals, "This Is A Title")
+	c.Check(func() {  ApplyFilter("doesnotexist", nil, nil) }, PanicMatches, "Filter with name 'doesnotexist' not found.")
 }

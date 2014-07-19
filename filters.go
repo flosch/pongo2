@@ -27,11 +27,14 @@ func RegisterFilter(name string, fn FilterFunction) {
 	filters[name] = fn
 }
 
-const (
-	filterParamTypeIdx = iota
-	filterParamTypeString
-	filterParamTypeVariable
-)
+// Applies a filter to a given value using the given parameters. Returns a *pongo2.Value.
+func ApplyFilter(name string, value *Value, param *Value) (*Value, error) {
+	fn, existing := filters[name]
+	if !existing {
+		panic(fmt.Sprintf("Filter with name '%s' not found.", name))
+	}
+	return fn(value, param)
+}
 
 type filterCall struct {
 	token *Token
