@@ -48,7 +48,13 @@ You can access pongo2's documentation on [godoc](https://godoc.org/github.com/fl
 
  * **for**: All the `forloop` fields (like `forloop.counter`) are written with a capital letter at the beginning. For example, the `counter` can be accessed by `forloop.Counter` and the parentloop by `forloop.Parentloop`.
 
-# 3rd-party add-ons, libraries and helpers
+# Add-ons, libraries and helpers
+
+## Official
+
+ * [pongo2-addons](https://github.com/flosch/pongo2-addons) - Official additional filters/tags for pongo2 (for example a **markdown**-filter). They are in their own repository because they're relying on 3rd-party-libraries.
+
+## 3rd-party
 
  * [beego-pongo2](https://github.com/oal/beego-pongo2) - A tiny little helper for using Pongo2 with Beego.
  * [macaron-pongo2](https://github.com/macaron-contrib/pongo2) - pongo2 support for [Macaron](https://github.com/Unknwon/macaron), a modular web framework.
