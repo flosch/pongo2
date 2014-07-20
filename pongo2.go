@@ -42,3 +42,14 @@ func RenderTemplateString(s string, ctx Context) string {
 	}
 	return result
 }
+
+// Shortcut; renders a template file directly. Panics when providing a
+// malformed template or an error occurs during execution.
+func RenderTemplateFile(fn string, ctx Context) string {
+	tpl := Must(FromFile(fn))
+	result, err := tpl.Execute(ctx)
+	if err != nil {
+		panic(err)
+	}
+	return result
+}
