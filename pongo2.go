@@ -31,3 +31,14 @@ func FromFile(filename string) (*Template, error) {
 	t, err := newTemplate(filename, string(buf))
 	return t, err
 }
+
+// Shortcut; renders a template string directly. Panics when providing a
+// malformed template or an error occurs during execution.
+func RenderTemplateString(s string, ctx Context) string {
+	tpl := Must(FromString(s))
+	result, err := tpl.Execute(ctx)
+	if err != nil {
+		panic(err)
+	}
+	return result
+}
