@@ -10,13 +10,20 @@ var reIdentifiers = regexp.MustCompile("^[a-zA-Z0-9_]+$")
 
 type Context map[string]interface{}
 
-func (c *Context) checkForValidIdentifiers() error {
-	for k, v := range *c {
+func (c Context) checkForValidIdentifiers() error {
+	for k, v := range c {
 		if !reIdentifiers.MatchString(k) {
 			return errors.New(fmt.Sprintf("Context-key '%s' (value: '%+v') is not a valid identifier.", k, v))
 		}
 	}
 	return nil
+}
+
+func (c Context) Update(other Context) Context {
+	for k, v := range other {
+		c[k] = v
+	}
+	return c
 }
 
 // If you're writing a custom tag, your tag's Execute()-function will
