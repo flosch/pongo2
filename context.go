@@ -64,14 +64,16 @@ func NewExecutionContext(parent *ExecutionContext) *ExecutionContext {
 
 func (ctx *ExecutionContext) Error(msg string, token *Token) error {
 	pos := ""
+	filename := ctx.template.name
 	if token != nil {
 		// No tokens available
 		// TODO: Add location (from where?)
+		filename = token.Filename
 		pos = fmt.Sprintf(" | Line %d Col %d (%s)",
 			token.Line, token.Col, token.String())
 	}
 	return errors.New(
 		fmt.Sprintf("[Execution Error in %s%s] %s",
-			ctx.template.name, pos, msg,
+			filename, pos, msg,
 		))
 }

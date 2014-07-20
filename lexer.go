@@ -42,6 +42,7 @@ var (
 
 type TokenType int
 type Token struct {
+	Filename string
 	Typ  TokenType
 	Val  string
 	Line int
@@ -125,6 +126,7 @@ func (l *lexer) length() int {
 
 func (l *lexer) emit(t TokenType) {
 	tok := &Token{
+		Filename: l.name,
 		Typ:  t,
 		Val:  l.value(),
 		Line: l.startline,
@@ -181,6 +183,7 @@ func (l *lexer) acceptRun(what string) {
 
 func (l *lexer) errorf(format string, args ...interface{}) lexerStateFn {
 	t := &Token{
+		Filename: l.name,
 		Typ:  TokenError,
 		Val:  fmt.Sprintf(format, args...),
 		Line: l.startline,
