@@ -16,4 +16,10 @@ Greetings to john from michelle. Howdy, anonymous guest!
 Greetings to john from michelle. Howdy, johann!
 
 (pongo2 error: macro called with too many arguments [see debug mode])
+
+
+
+map[0] = one
+map[1] = two
+map[2] = five
 End

@@ -8,4 +8,8 @@ Greetings to {{ to }} from {{ from }}. Howdy, {% if name2 == "guest" %}anonymous
 {{ greetings("john", "michelle") }}
 {{ greetings("john", "michelle", "johann") }}
 {{ greetings("john", "michelle", "johann", "foobar") }}
+
+{% macro test2(loop, value) %}map[{{ loop.Counter0 }}] = {{ value }}{% endmacro %}
+{% for key, value in simple.intmap %}
+{{ test2(forloop, value) }}{% endfor %}
 End
