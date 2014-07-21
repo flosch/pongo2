@@ -43,10 +43,10 @@ var (
 type TokenType int
 type Token struct {
 	Filename string
-	Typ  TokenType
-	Val  string
-	Line int
-	Col  int
+	Typ      TokenType
+	Val      string
+	Line     int
+	Col      int
 }
 
 type lexerStateFn func() lexerStateFn
@@ -127,10 +127,10 @@ func (l *lexer) length() int {
 func (l *lexer) emit(t TokenType) {
 	tok := &Token{
 		Filename: l.name,
-		Typ:  t,
-		Val:  l.value(),
-		Line: l.startline,
-		Col:  l.startcol,
+		Typ:      t,
+		Val:      l.value(),
+		Line:     l.startline,
+		Col:      l.startcol,
 	}
 	l.tokens = append(l.tokens, tok)
 	l.start = l.pos
@@ -184,10 +184,10 @@ func (l *lexer) acceptRun(what string) {
 func (l *lexer) errorf(format string, args ...interface{}) lexerStateFn {
 	t := &Token{
 		Filename: l.name,
-		Typ:  TokenError,
-		Val:  fmt.Sprintf(format, args...),
-		Line: l.startline,
-		Col:  l.startcol,
+		Typ:      TokenError,
+		Val:      fmt.Sprintf(format, args...),
+		Line:     l.startline,
+		Col:      l.startcol,
 	}
 	l.tokens = append(l.tokens, t)
 	l.errored = true

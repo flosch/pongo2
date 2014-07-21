@@ -1,11 +1,11 @@
 package pongo2
 
 import (
+	"bytes"
 	"fmt"
 	"io/ioutil"
 	"path/filepath"
 	"regexp"
-	"bytes"
 	"strings"
 	"testing"
 	"time"
