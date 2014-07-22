@@ -22,6 +22,14 @@ pongo2 is **still in beta** and under heavy development.
  * Additional features
    * Macros (see [template_tests/macro.tpl](https://github.com/flosch/pongo2/blob/master/template_tests/macro.tpl))
 
+## Recent API changes within pongo2
+
+If you're using pongo2, you might be interested in this section. Since pongo2 is still in beta, there could be (backwards-incompatible) API changes over time. To keep track of these and therefore make it painless for you to adapt your codebase, I'll list them here.
+
+ * Two new helper functions: [`RenderTemplateFile()`](https://godoc.org/github.com/flosch/pongo2#RenderTemplateFile) and [`RenderTemplateString()`](https://godoc.org/github.com/flosch/pongo2#RenderTemplateString).
+ * `Template.ExecuteRW()` is now [`Template.ExecuteWriter()`](https://godoc.org/github.com/flosch/pongo2#Template.ExecuteWriter)
+ * `Template.Execute*()` functions do now take a `pongo2.Context` directly (no pointer anymore).
+
 ## What's missing
 
  * Several filters/tags (see `filters_builtin.go` and `tags.go` for a list of missing filters/tags). I try to implement the missing ones over time.
