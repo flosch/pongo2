@@ -11,7 +11,7 @@ pongo2 is the successor of [pongo](https://github.com/flosch/pongo), a Django-sy
 
 Please use the [issue tracker](https://github.com/flosch/pongo2/issues) if you're encountering any problems with pongo2 or if you need help with implementing tags or filters ([create a ticket!](https://github.com/flosch/pongo2/issues/new)).
 
-pongo2 is **still in beta** and under heavy development.
+pongo2 is **still in beta** and under heavy development ([see all open issues for first stable milestone](https://github.com/flosch/pongo2/issues?milestone=1&state=open)).
 
 ## New in pongo2
 
@@ -29,13 +29,6 @@ If you're using pongo2, you might be interested in this section. Since pongo2 is
  * Two new helper functions: [`RenderTemplateFile()`](https://godoc.org/github.com/flosch/pongo2#RenderTemplateFile) and [`RenderTemplateString()`](https://godoc.org/github.com/flosch/pongo2#RenderTemplateString).
  * `Template.ExecuteRW()` is now [`Template.ExecuteWriter()`](https://godoc.org/github.com/flosch/pongo2#Template.ExecuteWriter)
  * `Template.Execute*()` functions do now take a `pongo2.Context` directly (no pointer anymore).
-
-## What's missing
-
- * Several filters/tags (see `filters_builtin.go` and `tags.go` for a list of missing filters/tags). I try to implement the missing ones over time.
- * Tests
- * Examples
- * Documentation
 
 ## How you can help
 
