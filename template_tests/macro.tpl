@@ -10,6 +10,6 @@ Greetings to {{ to }} from {{ from }}. Howdy, {% if name2 == "guest" %}anonymous
 {{ greetings("john", "michelle", "johann", "foobar") }}
 
 {% macro test2(loop, value) %}map[{{ loop.Counter0 }}] = {{ value }}{% endmacro %}
-{% for key, value in simple.intmap %}
-{{ test2(forloop, value) }}{% endfor %}
+{% for item in simple.misc_list %}
+{{ test2(forloop, item) }}{% endfor %}
 End

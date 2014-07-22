@@ -19,7 +19,8 @@ Greetings to john from michelle. Howdy, johann!
 
 
 
-map[0] = one
-map[1] = two
-map[2] = five
+map[0] = Hello
+map[1] = 99
+map[2] = 3.140000
+map[3] = good
 End
