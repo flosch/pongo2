@@ -9,7 +9,6 @@ package pongo2
    filesizeformat
    force_escape
    iriencode
-   join
    linebreaks
    linenumbers
    ljust
@@ -66,6 +65,7 @@ func init() {
 	RegisterFilter("first", filterFirst)
 	RegisterFilter("floatformat", filterFloatformat)
 	RegisterFilter("get_digit", filterGetdigit)
+	RegisterFilter("join", filterJoin)
 	RegisterFilter("last", filterLast)
 	RegisterFilter("length", filterLength)
 	RegisterFilter("length_is", filterLengthis)
@@ -209,6 +209,18 @@ func filterGetdigit(in *Value, param *Value) (*Value, error) {
 		return in, nil
 	}
 	return AsValue(in.String()[l-i] - 48), nil
+}
+
+func filterJoin(in *Value, param *Value) (*Value, error) {
+	if !in.CanSlice() {
+		return in, nil
+	}
+	sep := param.String()
+	sl := make([]string, 0, in.Len())
+	for i := 0; i < in.Len(); i++ {
+		sl = append(sl, in.Index(i).String())
+	}
+	return AsValue(strings.Join(sl, sep)), nil
 }
 
 func filterLast(in *Value, param *Value) (*Value, error) {

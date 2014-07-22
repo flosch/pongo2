@@ -163,3 +163,6 @@ floatformat
 {{ 34.23234|floatformat:"-3" }}
 {{ 34.00000|floatformat:"-3" }}
 {{ 34.26000|floatformat:"-3" }}
+
+join
+{{ simple.misc_list|join:", " }}
