@@ -166,3 +166,7 @@ floatformat
 
 join
 {{ simple.misc_list|join:", " }}
+
+stringformat
+{{ simple.float|stringformat:"%.2f" }}
+{{ simple.uint|stringformat:"Test: %d" }}

@@ -53,6 +53,7 @@ You can access pongo2's documentation on [godoc](https://godoc.org/github.com/fl
 ### Filters
 
  * **date** / **time**: The `date` and `time` filter are taking the Golang specific time- and date-format (not Django's one) currently. [Take a look on the format here](http://golang.org/pkg/time/#Time.Format).
+ * **stringformat**: `stringformat` does **not** take Python's string syntax as a parameter, instead it takes Go's. Essentially `{{ 3.14|stringformat:"pi is %.2f" }}` is `fmt.Sprintf("pi is %.2f", 3.14)`. 
 
 ### Tags
 

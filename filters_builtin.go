@@ -19,7 +19,6 @@ package pongo2
    safeseq
    slice
    slugify
-   stringformat
    timesince
    timeuntil
    truncatechars_html
@@ -77,6 +76,7 @@ func init() {
 	RegisterFilter("title", filterTitle)
 	RegisterFilter("upper", filterUpper)
 	RegisterFilter("urlencode", filterUrlencode)
+	RegisterFilter("stringformat", filterStringformat)
 	RegisterFilter("striptags", filterStriptags)
 	RegisterFilter("time", filterDate) // time uses filterDate (same golang-format)
 	RegisterFilter("truncatechars", filterTruncatechars)
@@ -268,6 +268,10 @@ func filterLinebreaksbr(in *Value, param *Value) (*Value, error) {
 
 func filterUrlencode(in *Value, param *Value) (*Value, error) {
 	return AsValue(url.QueryEscape(in.String())), nil
+}
+
+func filterStringformat(in *Value, param *Value) (*Value, error) {
+	return AsValue(fmt.Sprintf(param.String(), in.Interface())), nil
 }
 
 var re_striptags = regexp.MustCompile("<[^>]*?>")
