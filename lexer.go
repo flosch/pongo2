@@ -21,9 +21,10 @@ const (
 )
 
 var (
-	tokenSpaceChars      = " \n\r\t"
-	tokenIdentifierChars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_"
-	tokenDigits          = "0123456789"
+	tokenSpaceChars                = " \n\r\t"
+	tokenIdentifierChars           = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_"
+	tokenIdentifierCharsWithDigits = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_0123456789"
+	tokenDigits                    = "0123456789"
 
 	// Available symbols in pongo2 (within filters/tag)
 	TokenSymbols = []string{
@@ -349,7 +350,7 @@ outer_loop:
 
 func (l *lexer) stateIdentifier() lexerStateFn {
 	l.acceptRun(tokenIdentifierChars)
-	l.acceptRun(tokenDigits)
+	l.acceptRun(tokenIdentifierCharsWithDigits)
 	for _, kw := range TokenKeywords {
 		if kw == l.value() {
 			l.emit(TokenKeyword)
