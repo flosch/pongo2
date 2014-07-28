@@ -10,7 +10,6 @@ Missing built-in tags:
     firstof
     not in operator
     ifchanged
-    load
     now
     regroup
     Grouping on other properties
@@ -19,7 +18,8 @@ Missing built-in tags:
     widthratio
 
 Following built-in tags wont be added:
-    url
+    url (reason: web-framework specific)
+    load (reason: python-specific)
 */
 
 import (
