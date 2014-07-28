@@ -16,7 +16,6 @@ package pongo2
    unordered_list
    urlize
    urlizetrunc
-   wordcount
    wordwrap
 
    Filters that won't be added:
@@ -86,6 +85,7 @@ func init() {
 	RegisterFilter("striptags", filterStriptags)
 	RegisterFilter("time", filterDate) // time uses filterDate (same golang-format)
 	RegisterFilter("truncatechars", filterTruncatechars)
+	RegisterFilter("wordcount", filterWordcount)
 	RegisterFilter("yesno", filterYesno)
 
 	RegisterFilter("float", filterFloat)     // pongo-specific
@@ -386,6 +386,10 @@ func filterTitle(in *Value, param *Value) (*Value, error) {
 		return AsValue(""), nil
 	}
 	return AsValue(strings.Title(strings.ToLower(in.String()))), nil
+}
+
+func filterWordcount(in *Value, param *Value) (*Value, error) {
+	return AsValue(len(strings.Fields(in.String()))), nil
 }
 
 func filterYesno(in *Value, param *Value) (*Value, error) {

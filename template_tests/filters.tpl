@@ -193,3 +193,7 @@ rjust
 '{{ "test"|rjust:"2" }}'
 '{{ "test"|rjust:"20" }}'
 {{ "test"|rjust:"20"|length }}
+
+wordcount
+{{ ""|wordcount }}
+{% filter wordcount %}{% lorem 25 w %}{% endfilter %}
