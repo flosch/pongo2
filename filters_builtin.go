@@ -13,7 +13,6 @@ package pongo2
    ljust
    make_list
    phone2numeric
-   pprint
    rjust
    safeseq
    slice
@@ -29,6 +28,7 @@ package pongo2
    Filters that won't be added:
 
    get_static_prefix
+   pprint
    static
    
    Filters that are provided through github.com/flosch/pongo2-addons:
