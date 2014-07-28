@@ -6,7 +6,6 @@ package pongo2
    dictsort
    dictsortreversed
    escapejs
-   filesizeformat
    force_escape
    iriencode
    linebreaks
@@ -14,12 +13,9 @@ package pongo2
    ljust
    make_list
    phone2numeric
-   pprint
    rjust
    safeseq
    slice
-   timesince
-   timeuntil
    truncatechars_html
    truncatewords
    truncatewords_html
@@ -32,8 +28,15 @@ package pongo2
    Filters that won't be added:
 
    get_static_prefix
+   pprint
    static
-   slugify (is provided by github.com/flosch/pongo2-addons)
+   
+   Filters that are provided through github.com/flosch/pongo2-addons:
+   
+   filesizeformat
+   slugify
+   timesince
+   timeuntil
 */
 
 import (
