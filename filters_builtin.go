@@ -30,9 +30,9 @@ package pongo2
    get_static_prefix
    pprint
    static
-   
+
    Filters that are provided through github.com/flosch/pongo2-addons:
-   
+
    filesizeformat
    slugify
    timesince

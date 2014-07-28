@@ -6,9 +6,9 @@ import (
 )
 
 type tagNowNode struct {
-	position    *Token
-	format string
-	fake bool
+	position *Token
+	format   string
+	fake     bool
 }
 
 func (node *tagNowNode) Execute(ctx *ExecutionContext, buffer *bytes.Buffer) error {
