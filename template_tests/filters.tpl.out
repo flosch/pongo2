@@ -170,3 +170,7 @@ Hello, 99, 3.140000, good
 stringformat
 3.14
 Test: 8
+
+make_list
+j, o, h, n,  , d, o, e
+john doe

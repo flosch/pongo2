@@ -170,3 +170,7 @@ join
 stringformat
 {{ simple.float|stringformat:"%.2f" }}
 {{ simple.uint|stringformat:"Test: %d" }}
+
+make_list
+{{ simple.name|make_list|join:", " }}
+{% for char in simple.name|make_list %}{{ char }}{% endfor %}

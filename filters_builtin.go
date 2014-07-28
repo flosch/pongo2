@@ -3,15 +3,12 @@ package pongo2
 /* Missing filters:
 
    center
-   dictsort
-   dictsortreversed
    escapejs
    force_escape
    iriencode
    linebreaks
    linenumbers
    ljust
-   make_list
    phone2numeric
    rjust
    safeseq
@@ -27,9 +24,14 @@ package pongo2
 
    Filters that won't be added:
 
-   get_static_prefix
-   pprint
-   static
+   get_static_prefix (reason: web-framework specific)
+   pprint (reason: python-specific)
+   static (reason: web-framework specific)
+
+   Rethink:
+
+   dictsort (python-specific; maybe one could add a filter to sort a list of structs by a specific field name)
+   dictsortreversed (see dictsort)
 
    Filters that are provided through github.com/flosch/pongo2-addons:
 
@@ -73,6 +75,7 @@ func init() {
 	RegisterFilter("length_is", filterLengthis)
 	RegisterFilter("linebreaksbr", filterLinebreaksbr)
 	RegisterFilter("lower", filterLower)
+	RegisterFilter("make_list", filterMakelist)
 	RegisterFilter("pluralize", filterPluralize)
 	RegisterFilter("random", filterRandom)
 	RegisterFilter("removetags", filterRemovetags)
@@ -239,6 +242,15 @@ func filterUpper(in *Value, param *Value) (*Value, error) {
 
 func filterLower(in *Value, param *Value) (*Value, error) {
 	return AsValue(strings.ToLower(in.String())), nil
+}
+
+func filterMakelist(in *Value, param *Value) (*Value, error) {
+	s := in.String()
+	result := make([]string, 0, len(s))
+	for _, c := range s {
+		result = append(result, string(c))
+	}
+	return AsValue(result), nil
 }
 
 func filterCapfirst(in *Value, param *Value) (*Value, error) {
