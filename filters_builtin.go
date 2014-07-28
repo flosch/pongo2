@@ -2,15 +2,12 @@ package pongo2
 
 /* Missing filters:
 
-   center
    escapejs
    force_escape
    iriencode
    linebreaks
    linenumbers
-   ljust
    phone2numeric
-   rjust
    safeseq
    slice
    truncatechars_html
@@ -61,6 +58,7 @@ func init() {
 	RegisterFilter("add", filterAdd)
 	RegisterFilter("addslashes", filterAddslashes)
 	RegisterFilter("capfirst", filterCapfirst)
+	RegisterFilter("center", filterCenter)
 	RegisterFilter("cut", filterCut)
 	RegisterFilter("date", filterDate)
 	RegisterFilter("default", filterDefault)
@@ -74,11 +72,13 @@ func init() {
 	RegisterFilter("length", filterLength)
 	RegisterFilter("length_is", filterLengthis)
 	RegisterFilter("linebreaksbr", filterLinebreaksbr)
+	RegisterFilter("ljust", filterLjust)
 	RegisterFilter("lower", filterLower)
 	RegisterFilter("make_list", filterMakelist)
 	RegisterFilter("pluralize", filterPluralize)
 	RegisterFilter("random", filterRandom)
 	RegisterFilter("removetags", filterRemovetags)
+	RegisterFilter("rjust", filterRjust)
 	RegisterFilter("title", filterTitle)
 	RegisterFilter("upper", filterUpper)
 	RegisterFilter("urlencode", filterUrlencode)
@@ -210,7 +210,7 @@ func filterFloatformat(in *Value, param *Value) (*Value, error) {
 
 func filterGetdigit(in *Value, param *Value) (*Value, error) {
 	i := param.Integer()
-	l := len(in.String())
+	l := len(in.String()) // do NOT use in.Len() here!
 	if i <= 0 || i > l {
 		return in, nil
 	}
@@ -261,6 +261,21 @@ func filterCapfirst(in *Value, param *Value) (*Value, error) {
 	return AsValue(strings.ToUpper(string(t[0])) + t[1:]), nil
 }
 
+func filterCenter(in *Value, param *Value) (*Value, error) {
+	width := param.Integer()
+	slen := in.Len()
+	if width <= slen {
+		return in, nil
+	}
+
+	spaces := width - slen
+	left := spaces/2 + spaces%2
+	right := spaces / 2
+
+	return AsValue(fmt.Sprintf("%s%s%s", strings.Repeat(" ", left),
+		in.String(), strings.Repeat(" ", right))), nil
+}
+
 func filterDate(in *Value, param *Value) (*Value, error) {
 	t, is_time := in.Interface().(time.Time)
 	if !is_time {
@@ -279,6 +294,14 @@ func filterInteger(in *Value, param *Value) (*Value, error) {
 
 func filterLinebreaksbr(in *Value, param *Value) (*Value, error) {
 	return AsValue(strings.Replace(in.String(), "\n", "<br />", -1)), nil
+}
+
+func filterLjust(in *Value, param *Value) (*Value, error) {
+	times := param.Integer() - in.Len()
+	if times < 0 {
+		times = 0
+	}
+	return AsValue(fmt.Sprintf("%s%s", in.String(), strings.Repeat(" ", times))), nil
 }
 
 func filterUrlencode(in *Value, param *Value) (*Value, error) {
@@ -352,6 +375,10 @@ func filterRemovetags(in *Value, param *Value) (*Value, error) {
 	}
 
 	return AsValue(strings.TrimSpace(s)), nil
+}
+
+func filterRjust(in *Value, param *Value) (*Value, error) {
+	return AsValue(fmt.Sprintf(fmt.Sprintf("%%%ds", param.Integer()), in.String())), nil
 }
 
 func filterTitle(in *Value, param *Value) (*Value, error) {

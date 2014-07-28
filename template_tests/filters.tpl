@@ -174,3 +174,22 @@ stringformat
 make_list
 {{ simple.name|make_list|join:", " }}
 {% for char in simple.name|make_list %}{{ char }}{% endfor %}
+
+center
+'{{ "test"|center:3 }}'
+'{{ "test"|center:19 }}'
+'{{ "test"|center:20 }}'
+{{ "test"|center:20|length }}
+'{{ "test2"|center:19 }}'
+'{{ "test2"|center:20 }}'
+{{ "test2"|center:20|length }}
+
+ljust
+'{{ "test"|ljust:"2" }}'
+'{{ "test"|ljust:"20" }}'
+{{ "test"|ljust:"20"|length }}
+
+rjust
+'{{ "test"|rjust:"2" }}'
+'{{ "test"|rjust:"20" }}'
+{{ "test"|rjust:"20"|length }}
