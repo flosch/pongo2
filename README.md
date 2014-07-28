@@ -7,11 +7,9 @@
 
 pongo2 is the successor of [pongo](https://github.com/flosch/pongo), a Django-syntax like templating-language.
 
-[See my blog post announcement about pongo2 and for a migration- and a "how to write tags/filters"-tutorial.](http://www.florian-schlachter.de/post/pongo2/)
-
 Please use the [issue tracker](https://github.com/flosch/pongo2/issues) if you're encountering any problems with pongo2 or if you need help with implementing tags or filters ([create a ticket!](https://github.com/flosch/pongo2/issues/new)).
 
-pongo2 is **still in beta** and under heavy development ([see all open issues for first stable milestone](https://github.com/flosch/pongo2/issues?milestone=1&state=open)).
+pongo2 is **still in beta** (but on a good path) and under heavy development ([see all open issues for first stable milestone](https://github.com/flosch/pongo2/issues?milestone=1&state=open)).
 
 ## New in pongo2
 
@@ -38,6 +36,8 @@ If you're using pongo2, you might be interested in this section. Since pongo2 is
 # Documentation
 
 For a documentation on how the templating language works you can [head over to the Django documentation](https://docs.djangoproject.com/en/dev/topics/templates/). pongo2 aims to be fully compatible with it.
+
+[See my blog post announcement about pongo2 and for a migration- and a "how to write tags/filters"-tutorial.](http://www.florian-schlachter.de/post/pongo2/)
 
 You can access pongo2's documentation on [godoc](https://godoc.org/github.com/flosch/pongo2).
 
