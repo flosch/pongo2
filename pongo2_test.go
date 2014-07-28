@@ -52,5 +52,10 @@ func (s *TestSuite) TestMisc(c *C) {
 		c.Fatal(err)
 	}
 	c.Check(v.String(), Equals, "This Is A Title")
-	c.Check(func() { ApplyFilter("doesnotexist", nil, nil) }, PanicMatches, "Filter with name 'doesnotexist' not found.")
+	c.Check(func() {
+		_, err := ApplyFilter("doesnotexist", nil, nil)
+		if err != nil {
+			panic(err)
+		}
+	}, PanicMatches, "Filter with name 'doesnotexist' not found.")
 }
