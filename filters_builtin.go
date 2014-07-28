@@ -28,6 +28,7 @@ package pongo2
 */
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"math/rand"
@@ -56,6 +57,7 @@ func init() {
 	RegisterFilter("first", filterFirst)
 	RegisterFilter("floatformat", filterFloatformat)
 	RegisterFilter("get_digit", filterGetdigit)
+	RegisterFilter("iriencode", filterIriencode)
 	RegisterFilter("join", filterJoin)
 	RegisterFilter("last", filterLast)
 	RegisterFilter("length", filterLength)
@@ -206,6 +208,23 @@ func filterGetdigit(in *Value, param *Value) (*Value, error) {
 		return in, nil
 	}
 	return AsValue(in.String()[l-i] - 48), nil
+}
+
+const filterIRIChars = "/#%[]=:;$&()+,!?*@'~"
+
+func filterIriencode(in *Value, param *Value) (*Value, error) {
+	var b bytes.Buffer
+
+	sin := in.String()
+	for _, r := range sin {
+		if strings.IndexRune(filterIRIChars, r) >= 0 {
+			b.WriteRune(r)
+		} else {
+			b.WriteString(url.QueryEscape(string(r)))
+		}
+	}
+
+	return AsValue(b.String()), nil
 }
 
 func filterJoin(in *Value, param *Value) (*Value, error) {

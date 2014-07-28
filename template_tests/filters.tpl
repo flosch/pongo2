@@ -201,3 +201,6 @@ wordcount
 wordwrap
 {{ ""|wordwrap:2 }}
 {% filter wordwrap:5 %}{% lorem 26 w %}{% endfilter %}
+
+iriencode
+{{ "?foo=123&bar=yes"|iriencode }}
