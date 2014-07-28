@@ -204,3 +204,9 @@ wordwrap
 
 iriencode
 {{ "?foo=123&bar=yes"|iriencode }}
+
+linebreaks
+{{ ""|linebreaks|safe }}
+{{ simple.newline_text|linebreaks|safe }}
+{{ simple.long_text|linebreaks|safe }}
+{{ simple.name|linebreaks|safe }}

@@ -62,6 +62,7 @@ func init() {
 	RegisterFilter("last", filterLast)
 	RegisterFilter("length", filterLength)
 	RegisterFilter("length_is", filterLengthis)
+	RegisterFilter("linebreaks", filterLinebreaks)
 	RegisterFilter("linebreaksbr", filterLinebreaksbr)
 	RegisterFilter("ljust", filterLjust)
 	RegisterFilter("lower", filterLower)
@@ -300,6 +301,50 @@ func filterFloat(in *Value, param *Value) (*Value, error) {
 
 func filterInteger(in *Value, param *Value) (*Value, error) {
 	return AsValue(in.Integer()), nil
+}
+
+func filterLinebreaks(in *Value, param *Value) (*Value, error) {
+	if in.Len() == 0 {
+		return in, nil
+	}
+
+	var b bytes.Buffer
+
+	// Newline = <br />
+	// Double newline = <p>...</p>
+	lines := strings.Split(in.String(), "\n")
+	lenlines := len(lines)
+
+	opened := false
+
+	for idx, line := range lines {
+
+		if !opened {
+			b.WriteString("<p>")
+			opened = true
+		}
+
+		b.WriteString(line)
+
+		if idx < lenlines-1 && strings.TrimSpace(lines[idx]) != "" {
+			// We've not reached the end
+			if strings.TrimSpace(lines[idx+1]) == "" {
+				// Next line is empty
+				if opened {
+					b.WriteString("</p>")
+					opened = false
+				}
+			} else {
+				b.WriteString("<br />")
+			}
+		}
+	}
+
+	if opened {
+		b.WriteString("</p>")
+	}
+
+	return AsValue(b.String()), nil
 }
 
 func filterLinebreaksbr(in *Value, param *Value) (*Value, error) {
