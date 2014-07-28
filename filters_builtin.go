@@ -4,19 +4,8 @@ package pongo2
 
    escapejs
    force_escape
-   iriencode
-   linebreaks
-   linenumbers
-   phone2numeric
    safeseq
    slice
-   truncatechars_html
-   truncatewords
-   truncatewords_html
-   unordered_list
-   urlize
-   urlizetrunc
-   wordwrap
 
    Filters that won't be added:
 
@@ -26,6 +15,7 @@ package pongo2
 
    Rethink:
 
+   unordered_list (python-specific; not sure whether needed or not)
    dictsort (python-specific; maybe one could add a filter to sort a list of structs by a specific field name)
    dictsortreversed (see dictsort)
 
@@ -86,6 +76,7 @@ func init() {
 	RegisterFilter("time", filterDate) // time uses filterDate (same golang-format)
 	RegisterFilter("truncatechars", filterTruncatechars)
 	RegisterFilter("wordcount", filterWordcount)
+	RegisterFilter("wordwrap", filterWordwrap)
 	RegisterFilter("yesno", filterYesno)
 
 	RegisterFilter("float", filterFloat)     // pongo-specific
@@ -390,6 +381,22 @@ func filterTitle(in *Value, param *Value) (*Value, error) {
 
 func filterWordcount(in *Value, param *Value) (*Value, error) {
 	return AsValue(len(strings.Fields(in.String()))), nil
+}
+
+func filterWordwrap(in *Value, param *Value) (*Value, error) {
+	words := strings.Fields(in.String())
+	words_len := len(words)
+	wrap_at := param.Integer()
+	if wrap_at <= 0 {
+		return in, nil
+	}
+
+	linecount := words_len/wrap_at + words_len%wrap_at
+	lines := make([]string, 0, linecount)
+	for i := 0; i < linecount; i++ {
+		lines = append(lines, strings.Join(words[wrap_at*i:min(wrap_at*(i+1), words_len)], " "))
+	}
+	return AsValue(strings.Join(lines, "\n")), nil
 }
 
 func filterYesno(in *Value, param *Value) (*Value, error) {

@@ -197,3 +197,7 @@ rjust
 wordcount
 {{ ""|wordcount }}
 {% filter wordcount %}{% lorem 25 w %}{% endfilter %}
+
+wordwrap
+{{ ""|wordwrap:2 }}
+{% filter wordwrap:5 %}{% lorem 26 w %}{% endfilter %}
