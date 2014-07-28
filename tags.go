@@ -4,7 +4,6 @@ package pongo2
 Missing built-in tags:
     autoescape
     cycle
-    filter
     firstof
     not in operator
     ifchanged
