@@ -212,9 +212,22 @@ func (t *term) Evaluate(ctx *ExecutionContext) (*Value, error) {
 		}
 		switch t.op_token.Val {
 		case "*":
+			if f1.IsFloat() || f2.IsFloat() {
+				// Result will be float
+				return AsValue(f1.Float() * f2.Float()), nil
+			}
+			// Result will be int
 			return AsValue(f1.Integer() * f2.Integer()), nil
 		case "/":
-			panic("unimplemented")
+			if f1.IsFloat() || f2.IsFloat() {
+				// Result will be float
+				return AsValue(f1.Float() / f2.Float()), nil
+			}
+			// Result will be int
+			return AsValue(f1.Integer() / f2.Integer()), nil
+		case "%":
+			// Result will be int
+			return AsValue(f1.Integer() % f2.Integer()), nil
 		default:
 			panic("unimplemented")
 		}
@@ -263,7 +276,7 @@ func (p *Parser) parseTerm() (IEvaluator, error) {
 	}
 	term.factor1 = factor1
 
-	if p.PeekOne(TokenSymbol, "*", "/") != nil {
+	if p.PeekOne(TokenSymbol, "*", "/", "%") != nil {
 		op := p.Current()
 		p.Consume()
 		factor2, err := p.parseTerm()

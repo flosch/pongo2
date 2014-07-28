@@ -25,3 +25,8 @@ float comparison
 {{ 5.5 < 5.5 }}
 {{ 5.5 > 5.5 }}
 {{ 5.5 >= 5.5 }}
+
+remainders
+{{ (simple.number+7)%7 }}
+{{ (simple.number+7)%7 == 0 }}
+{{ (simple.number+7)%6 }}

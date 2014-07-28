@@ -3,7 +3,7 @@ integers and complex expressions
 90
 -90
 90
-531440999967
+531440999967.000000
 
 floats
 5.500000
@@ -25,3 +25,8 @@ True
 False
 False
 True
+
+remainders
+0
+True
+1
