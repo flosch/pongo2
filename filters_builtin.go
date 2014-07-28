@@ -68,6 +68,7 @@ func init() {
 	RegisterFilter("ljust", filterLjust)
 	RegisterFilter("lower", filterLower)
 	RegisterFilter("make_list", filterMakelist)
+	RegisterFilter("phone2numeric", filterPhone2numeric)
 	RegisterFilter("pluralize", filterPluralize)
 	RegisterFilter("random", filterRandom)
 	RegisterFilter("removetags", filterRemovetags)
@@ -386,6 +387,22 @@ func filterStriptags(in *Value, param *Value) (*Value, error) {
 	s = re_striptags.ReplaceAllString(s, "")
 
 	return AsValue(strings.TrimSpace(s)), nil
+}
+
+// https://en.wikipedia.org/wiki/Phoneword
+var filterPhone2numericMap = map[string]string{
+	"a": "2", "b": "2", "c": "2", "d": "3", "e": "3", "f": "3", "g": "4", "h": "4", "i": "4", "j": "5", "k": "5",
+	"l": "5", "m": "6", "n": "6", "o": "6", "p": "7", "q": "7", "r": "7", "s": "7", "t": "8", "u": "8", "v": "8",
+	"w": "9", "x": "9", "y": "9", "z": "9",
+}
+
+func filterPhone2numeric(in *Value, param *Value) (*Value, error) {
+	sin := in.String()
+	for k, v := range filterPhone2numericMap {
+		sin = strings.Replace(sin, k, v, -1)
+		sin = strings.Replace(sin, strings.ToUpper(k), v, -1)
+	}
+	return AsValue(sin), nil
 }
 
 func filterPluralize(in *Value, param *Value) (*Value, error) {

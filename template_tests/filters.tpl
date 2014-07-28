@@ -213,3 +213,6 @@ linebreaks
 
 linenumbers
 {% filter linenumbers %}{% lorem 10 %}{% endfilter %}
+
+phone2numeric
+{{ "999-PONGO2"|phone2numeric }}
