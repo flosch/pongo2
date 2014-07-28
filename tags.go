@@ -8,7 +8,6 @@ Missing built-in tags:
     firstof
     not in operator
     ifchanged
-    now
     regroup
     Grouping on other properties
     spaceless

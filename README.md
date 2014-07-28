@@ -51,6 +51,7 @@ You can access pongo2's documentation on [godoc](https://godoc.org/github.com/fl
 ### Tags
 
  * **for**: All the `forloop` fields (like `forloop.counter`) are written with a capital letter at the beginning. For example, the `counter` can be accessed by `forloop.Counter` and the parentloop by `forloop.Parentloop`.
+ * **now**: takes Go's time format (see **date** and **time**-filter)
 
 # Add-ons, libraries and helpers
 
