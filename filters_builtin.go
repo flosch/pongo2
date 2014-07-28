@@ -6,7 +6,6 @@ package pongo2
    dictsort
    dictsortreversed
    escapejs
-   filesizeformat
    force_escape
    iriencode
    linebreaks
