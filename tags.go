@@ -3,9 +3,7 @@ package pongo2
 /*
 Missing built-in tags:
     autoescape
-    csrf_token
     cycle
-    debug
     filter
     firstof
     not in operator
@@ -18,8 +16,10 @@ Missing built-in tags:
     widthratio
 
 Following built-in tags wont be added:
-    url (reason: web-framework specific)
+    debug (maybe later)
+    csrf_token (reason: web-framework specific)
     load (reason: python-specific)
+    url (reason: web-framework specific)
 */
 
 import (
