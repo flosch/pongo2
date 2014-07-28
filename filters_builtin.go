@@ -64,6 +64,7 @@ func init() {
 	RegisterFilter("length_is", filterLengthis)
 	RegisterFilter("linebreaks", filterLinebreaks)
 	RegisterFilter("linebreaksbr", filterLinebreaksbr)
+	RegisterFilter("linenumbers", filterLinenumbers)
 	RegisterFilter("ljust", filterLjust)
 	RegisterFilter("lower", filterLower)
 	RegisterFilter("make_list", filterMakelist)
@@ -349,6 +350,15 @@ func filterLinebreaks(in *Value, param *Value) (*Value, error) {
 
 func filterLinebreaksbr(in *Value, param *Value) (*Value, error) {
 	return AsValue(strings.Replace(in.String(), "\n", "<br />", -1)), nil
+}
+
+func filterLinenumbers(in *Value, param *Value) (*Value, error) {
+	lines := strings.Split(in.String(), "\n")
+	output := make([]string, 0, len(lines))
+	for idx, line := range lines {
+		output = append(output, fmt.Sprintf("%d. %s", idx+1, line))
+	}
+	return AsValue(strings.Join(output, "\n")), nil
 }
 
 func filterLjust(in *Value, param *Value) (*Value, error) {

@@ -210,3 +210,6 @@ linebreaks
 {{ simple.newline_text|linebreaks|safe }}
 {{ simple.long_text|linebreaks|safe }}
 {{ simple.name|linebreaks|safe }}
+
+linenumbers
+{% filter linenumbers %}{% lorem 10 %}{% endfilter %}
