@@ -32,6 +32,7 @@ If you're using pongo2, you might be interested in this section. Since pongo2 is
 
  * Write [filters](https://github.com/flosch/pongo2/blob/master/filters_builtin.go#L3) / [tags](https://github.com/flosch/pongo2/blob/master/tags.go#L4) (see [tutorial](http://www.florian-schlachter.de/post/pongo2/)) by forking pongo2 and sending pull requests
  * Write tests (use the following command to see what tests are missing: `go test -v -cover -covermode=count -coverprofile=cover.out && go tool cover -html=cover.out`)
+ * Write middleware, libraries and websites using pongo2. :-)
 
 # Documentation
 
@@ -41,9 +42,12 @@ For a documentation on how the templating language works you can [head over to t
 
 You can access pongo2's documentation on [godoc](https://godoc.org/github.com/flosch/pongo2).
 
-## Caveats
+## Caveats 
 
 ### Filters
+
+In general, if any **filter** is outputting unsafe characters (e. g. HTML tags in filter `linebreaks`), you will have to apply the "safe" filter on it afterwards currently.
+It is *not* done automatically. 
 
  * **date** / **time**: The `date` and `time` filter are taking the Golang specific time- and date-format (not Django's one) currently. [Take a look on the format here](http://golang.org/pkg/time/#Time.Format).
  * **stringformat**: `stringformat` does **not** take Python's string format syntax as a parameter, instead it takes Go's. Essentially `{{ 3.14|stringformat:"pi is %.2f" }}` is `fmt.Sprintf("pi is %.2f", 3.14)`. 
