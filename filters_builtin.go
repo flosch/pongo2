@@ -73,13 +73,14 @@ func init() {
 	RegisterFilter("random", filterRandom)
 	RegisterFilter("removetags", filterRemovetags)
 	RegisterFilter("rjust", filterRjust)
-	RegisterFilter("title", filterTitle)
-	RegisterFilter("upper", filterUpper)
-	RegisterFilter("urlencode", filterUrlencode)
 	RegisterFilter("stringformat", filterStringformat)
 	RegisterFilter("striptags", filterStriptags)
 	RegisterFilter("time", filterDate) // time uses filterDate (same golang-format)
+	RegisterFilter("title", filterTitle)
 	RegisterFilter("truncatechars", filterTruncatechars)
+	RegisterFilter("truncatewords", filterTruncatewords)
+	RegisterFilter("upper", filterUpper)
+	RegisterFilter("urlencode", filterUrlencode)
 	RegisterFilter("wordcount", filterWordcount)
 	RegisterFilter("wordwrap", filterWordwrap)
 	RegisterFilter("yesno", filterYesno)
@@ -99,6 +100,25 @@ func filterTruncatechars(in *Value, param *Value) (*Value, error) {
 		return AsValue(s[:newLen]), nil
 	}
 	return in, nil
+}
+
+func filterTruncatewords(in *Value, param *Value) (*Value, error) {
+	words := strings.Fields(in.String())
+	n := param.Integer()
+	if n <= 0 {
+		return AsValue(""), nil
+	}
+	nlen := min(len(words), n)
+	out := make([]string, 0, nlen)
+	for i := 0; i < nlen; i++ {
+		out = append(out, words[i])
+	}
+
+	if n < len(words) {
+		out = append(out, "...")
+	}
+
+	return AsValue(strings.Join(out, " ")), nil
 }
 
 func filterEscape(in *Value, param *Value) (*Value, error) {

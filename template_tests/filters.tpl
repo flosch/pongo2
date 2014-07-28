@@ -216,3 +216,7 @@ linenumbers
 
 phone2numeric
 {{ "999-PONGO2"|phone2numeric }}
+
+truncatewords
+{% filter truncatewords:9 %}{% lorem 25 w %}{% endfilter %}
+{% filter wordcount %}{% filter truncatewords:9 %}{% lorem 25 w %}{% endfilter %}{% endfilter %}

@@ -230,3 +230,7 @@ linenumbers
 
 phone2numeric
 999-766462
+
+truncatewords
+Lorem ipsum dolor sit amet, consectetur adipisici elit, sed ...
+10
