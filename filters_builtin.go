@@ -18,8 +18,6 @@ package pongo2
    rjust
    safeseq
    slice
-   timesince
-   timeuntil
    truncatechars_html
    truncatewords
    truncatewords_html
@@ -33,7 +31,13 @@ package pongo2
 
    get_static_prefix
    static
-   slugify (is provided by github.com/flosch/pongo2-addons)
+   
+   Filters that are provided through github.com/flosch/pongo2-addons:
+   
+   filesizeformat
+   slugify
+   timesince
+   timeuntil
 */
 
 import (
