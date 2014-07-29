@@ -11,7 +11,7 @@ Please use the [issue tracker](https://github.com/flosch/pongo2/issues) if you'r
 
 ## Development status
 
-**Current status/version**: beta ([Open issues to first stable release](https://github.com/flosch/pongo2/issues?milestone=1&state=open))
+**Current status/version**: beta ([open issues to first stable release](https://github.com/flosch/pongo2/issues?milestone=1&state=open))
 
 | Topic                        | Status                                                                 |
 | -----------------------------| ---------------------------------------------------------------------- |
@@ -19,7 +19,7 @@ Please use the [issue tracker](https://github.com/flosch/pongo2/issues) if you'r
 | *Missing* **filters**:         | none*                                                                  |
 | *Missing* **tags**:            | autoescape, cycle, firstof, ifchanged, regroup, spaceless, widthratio  |
 
-* Please see the hints [here](https://github.com/flosch/pongo2/blob/master/filters_builtin.go#L3) and [here](https://github.com/flosch/pongo2#tags).
+\* Please see the hints [here](https://github.com/flosch/pongo2/blob/master/filters_builtin.go#L3) and [here](https://github.com/flosch/pongo2#tags).
 
 ## New in pongo2
 
