@@ -36,7 +36,7 @@ If you're using pongo2, you might be interested in this section. Since pongo2 is
 
 # Documentation
 
-For a documentation on how the templating language works you can [head over to the Django documentation](https://docs.djangoproject.com/en/dev/topics/templates/). pongo2 aims to be fully compatible with it.
+For a documentation on how the templating language works you can [head over to the Django documentation](https://docs.djangoproject.com/en/dev/topics/templates/). pongo2 aims to be compatible with it.
 
 [See my blog post announcement about pongo2 and for a migration- and a "how to write tags/filters"-tutorial.](http://www.florian-schlachter.de/post/pongo2/)
 

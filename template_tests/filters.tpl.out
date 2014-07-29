@@ -234,3 +234,23 @@ phone2numeric
 truncatewords
 Lorem ipsum dolor sit amet, consectetur adipisici elit, sed ...
 10
+
+urlize
+
+Please mail me at demo@example.com or visit mit on:
+- lorem ipsum <a href="http://github.com/flosch/pongo2" rel="nofollow">github.com/flosch/pongo2</a> lorem ipsum
+- lorem ipsum <a href="http://www.florian-schlachter.de" rel="nofollow">http://www.florian-schlachter.de</a> lorem ipsum
+- lorem ipsum <a href="https://www.florian-schlachter.de" rel="nofollow">https://www.florian-schlachter.de</a> lorem ipsum
+- lorem ipsum <a href="https://www.florian-schlachter.de" rel="nofollow">https://www.florian-schlachter.de</a> lorem ipsum
+- lorem ipsum <a href="http://www.florian-schlachter.de" rel="nofollow">www.florian-schlachter.de</a> lorem ipsum
+- lorem ipsum <a href="http://www.florian-schlachter.de/test=%22test%22" rel="nofollow">www.florian-schlachter.de/test=&quot;test&quot;</a> lorem ipsum
+
+--
+
+Please mail me at demo@example.com or visit mit on:
+- lorem ipsum <a href="http://github.com/flosch/pongo2" rel="nofollow">github.com/flosch/pongo2</a> lorem ipsum
+- lorem ipsum <a href="http://www.florian-schlachter.de" rel="nofollow">http://www.florian-schlachter.de</a> lorem ipsum
+- lorem ipsum <a href="https://www.florian-schlachter.de" rel="nofollow">https://www.florian-schlachter.de</a> lorem ipsum
+- lorem ipsum <a href="https://www.florian-schlachter.de" rel="nofollow">https://www.florian-schlachter.de</a> lorem ipsum
+- lorem ipsum <a href="http://www.florian-schlachter.de" rel="nofollow">www.florian-schlachter.de</a> lorem ipsum
+- lorem ipsum <a href="http://www.florian-schlachter.de/test=%22test%22" rel="nofollow">www.florian-schlachter.de/test="test"</a> lorem ipsum

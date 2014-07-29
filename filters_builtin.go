@@ -6,6 +6,8 @@ package pongo2
    force_escape
    safeseq
    slice
+   truncatechars_html
+   truncatewords_html
 
    Filters that won't be added:
 
@@ -81,6 +83,7 @@ func init() {
 	RegisterFilter("truncatewords", filterTruncatewords)
 	RegisterFilter("upper", filterUpper)
 	RegisterFilter("urlencode", filterUrlencode)
+	RegisterFilter("urlize", filterUrlize)
 	RegisterFilter("wordcount", filterWordcount)
 	RegisterFilter("wordwrap", filterWordwrap)
 	RegisterFilter("yesno", filterYesno)
@@ -392,6 +395,46 @@ func filterLjust(in *Value, param *Value) (*Value, error) {
 
 func filterUrlencode(in *Value, param *Value) (*Value, error) {
 	return AsValue(url.QueryEscape(in.String())), nil
+}
+
+// TODO: This regexp could do some work
+var filterUrlizeURLRegexp = regexp.MustCompile(`((((http|https)://)|www\.|\w+(\.com|\.net|\.org|\.info|\.biz|\.de)/))(?U:.*)[ ]`)
+
+func filterUrlize(in *Value, param *Value) (*Value, error) {
+	autoescape := true
+	if param.IsBool() {
+		autoescape = param.Bool()
+	}
+
+	sin := in.String()
+
+	sin = filterUrlizeURLRegexp.ReplaceAllStringFunc(sin, func(in string) string {
+		in = strings.TrimSpace(in)
+
+		t, err := ApplyFilter("iriencode", AsValue(in), nil)
+		if err != nil {
+			panic(err)
+		}
+		url := t.String()
+
+		if !strings.HasPrefix(url, "http") {
+			url = fmt.Sprintf("http://%s", url)
+		}
+
+		title := in
+
+		if autoescape {
+			t, err := ApplyFilter("escape", AsValue(in), nil)
+			if err != nil {
+				panic(err)
+			}
+			title = t.String()
+		}
+
+		return fmt.Sprintf(`<a href="%s" rel="nofollow">%s</a> `, url, title)
+	})
+
+	return AsValue(sin), nil
 }
 
 func filterStringformat(in *Value, param *Value) (*Value, error) {
