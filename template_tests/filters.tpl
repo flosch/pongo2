@@ -252,3 +252,6 @@ Please mail me at demo@example.com or visit mit on:
 - lorem ipsum www.florian-schlachter.de lorem ipsum
 - lorem ipsum www.florian-schlachter.de/test="test" lorem ipsum
 {% endfilter %}
+
+escapejs
+{{ simple.escape_js_test|escapejs|safe }}

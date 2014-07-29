@@ -73,6 +73,7 @@ This too, as a paragraph.
 Right?
 
 Yep!`,
+		"escape_js_test": `escape sequences \r\n\' special chars "?!=$<>`,
 		"one_item_list": []int{99},
 		"misc_list":     []interface{}{"Hello", 99, 3.14, "good"},
 		"escape_text":   "This is \\a Test. \"Yep\". 'Yep'.",

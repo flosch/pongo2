@@ -2,8 +2,6 @@ package pongo2
 
 /* Missing filters:
 
-   escapejs
-   force_escape
    safeseq
    slice
    truncatechars_html
@@ -17,6 +15,7 @@ package pongo2
 
    Rethink:
 
+   force_escape (reason: not yet needed since this is the behaviour of pongo2's escape filter)
    unordered_list (python-specific; not sure whether needed or not)
    dictsort (python-specific; maybe one could add a filter to sort a list of structs by a specific field name)
    dictsortreversed (see dictsort)
@@ -46,6 +45,7 @@ func init() {
 
 	RegisterFilter("escape", filterEscape)
 	RegisterFilter("safe", filterSafe)
+	RegisterFilter("escapejs", filterEscapejs)
 
 	RegisterFilter("add", filterAdd)
 	RegisterFilter("addslashes", filterAddslashes)
@@ -136,6 +136,47 @@ func filterEscape(in *Value, param *Value) (*Value, error) {
 
 func filterSafe(in *Value, param *Value) (*Value, error) {
 	return in, nil // nothing to do here, just to keep track of the safe application
+}
+
+func filterEscapejs(in *Value, param *Value) (*Value, error) {
+	sin := in.String()
+	l := len(sin)
+
+	var b bytes.Buffer
+
+	idx := 0
+	for idx < l {
+		c := rune(sin[idx])
+
+		if c == '\\' {
+			// Escape seq?
+			if idx + 1 < l {
+				switch sin[idx+1] {
+				case 'r':
+					b.WriteString(fmt.Sprintf(`\\u%04X`, '\r'))
+					idx += 2
+					continue
+				case 'n':
+					b.WriteString(fmt.Sprintf(`\\u%04X`, '\n'))
+					idx += 2
+					continue
+				case '\'':
+					b.WriteString(fmt.Sprintf(`\\u%04X`, '\''))
+					idx += 2
+					continue
+				}
+			}
+		}
+
+		if (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == ' ' || c == '/' {
+			b.WriteRune(c)
+		} else {
+			b.WriteString(fmt.Sprintf(`\\u%04X`, c))
+		}
+		idx++
+	}
+
+	return AsValue(b.String()), nil
 }
 
 func filterAdd(in *Value, param *Value) (*Value, error) {
