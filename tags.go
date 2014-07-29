@@ -1,23 +1,15 @@
 package pongo2
 
-/*
-   Missing built-in tags:
-   ----------------------
-
-   not in operator
-   ifchanged
-   Grouping on other properties
-
-   Incomplete:
+/* Incomplete:
    -----------
 
    verbatim (only the "name" argument is missing for verbatim)
 
-   Rethink:
-   --------
+   Reconsideration:
+   ----------------
 
    debug (reason: not sure what to output yet)
-   regroup (reason: maybe too python-specific; not sure how useful this would be in Go)
+   regroup / Grouping on other properties (reason: maybe too python-specific; not sure how useful this would be in Go)
 
    Following built-in tags wont be added:
    --------------------------------------

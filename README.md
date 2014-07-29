@@ -13,11 +13,11 @@ Please use the [issue tracker](https://github.com/flosch/pongo2/issues) if you'r
 
 **Current status/version**: beta ([open issues to first stable release](https://github.com/flosch/pongo2/issues?milestone=1&state=open))
 
-| Topic                        | Status                                                                                 |
-| -----------------------------| -------------------------------------------------------------------------------------- |       
-| Django version compatiblity: | [1.7](https://docs.djangoproject.com/en/1.7/ref/templates/builtins/)                   |
-| *Missing* **filters**:       | none ([hints](https://github.com/flosch/pongo2/blob/master/filters_builtin.go#L3))     | 
-| *Missing* **tags**:          | ifchanged, regroup ([hints](https://github.com/flosch/pongo2/blob/master/tags.go#L4))  |
+| Topic                                | Status                                                                                 |
+| ------------------------------------ | -------------------------------------------------------------------------------------- |       
+| Django version compatiblity:         | [1.7](https://docs.djangoproject.com/en/1.7/ref/templates/builtins/)                   |
+| *Missing* (planned) **filters**:     | none ([hints](https://github.com/flosch/pongo2/blob/master/filters_builtin.go#L3))     | 
+| *Missing* (planned) **tags**:        | none ([hints](https://github.com/flosch/pongo2/blob/master/tags.go#L4))                |
 
 Please also have a look on the [caveats](https://github.com/flosch/pongo2#caveats) and on the [official add-ons](https://github.com/flosch/pongo2#official).
 
@@ -67,7 +67,12 @@ It is *not* done automatically.
 ### Tags
 
  * **for**: All the `forloop` fields (like `forloop.counter`) are written with a capital letter at the beginning. For example, the `counter` can be accessed by `forloop.Counter` and the parentloop by `forloop.Parentloop`.
- * **now**: takes Go's time format (see **date** and **time**-filter)
+ * **now**: takes Go's time format (see **date** and **time**-filter).
+
+### Misc
+
+ * **not in-operator**: You can check whether a map/struct/string contains a key/field/substring by using the in-operator (or the negation of it):
+    `{% if key in map %}Key is in map{% else %}Key not in map{% endif %}` or `{% if !(key in map) %}Key is NOT in map{% else %}Key is in map{% endif %}`.
 
 # Add-ons, libraries and helpers
 

@@ -39,3 +39,10 @@ remainders
 {{ (simple.number+7)%7 }}
 {{ (simple.number+7)%7 == 0 }}
 {{ (simple.number+7)%6 }}
+
+in/not in
+{{ 5 in simple.intmap }}
+{{ 2 in simple.intmap }}
+{{ 7 in simple.intmap }}
+{{ !(5 in simple.intmap) }}
+{{ not(7 in simple.intmap) }}

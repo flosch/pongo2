@@ -15,8 +15,8 @@ package pongo2
    pprint (reason: python-specific)
    static (reason: web-framework specific)
 
-   Rethink (not implemented yet):
-   ------------------------------
+   Reconsideration (not implemented yet):
+   --------------------------------------
 
    force_escape (reason: not yet needed since this is the behaviour of pongo2's escape filter)
    safeseq (reason: same reason as `force_escape`)
