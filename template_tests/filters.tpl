@@ -255,3 +255,13 @@ Please mail me at demo@example.com or visit mit on:
 
 escapejs
 {{ simple.escape_js_test|escapejs|safe }}
+
+slice
+{{ simple.multiple_item_list|slice:":99"|join:"," }}
+{{ simple.multiple_item_list|slice:"99:"|join:"," }}
+{{ simple.multiple_item_list|slice:":3"|join:"," }}
+{{ simple.multiple_item_list|slice:"3:5"|join:"," }}
+{{ simple.multiple_item_list|slice:"2:"|join:"," }}
+{{ simple.multiple_item_list|slice:"2:3"|join:"," }}
+{{ simple.multiple_item_list|slice:"2:1"|join:"," }}
+{{ "Test"|slice:"1:3" }}

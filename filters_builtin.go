@@ -3,7 +3,6 @@ package pongo2
 /* Missing filters:
 
    safeseq
-   slice
    truncatechars_html
    truncatewords_html
 
@@ -75,6 +74,7 @@ func init() {
 	RegisterFilter("random", filterRandom)
 	RegisterFilter("removetags", filterRemovetags)
 	RegisterFilter("rjust", filterRjust)
+	RegisterFilter("slice", filterSlice)
 	RegisterFilter("stringformat", filterStringformat)
 	RegisterFilter("striptags", filterStriptags)
 	RegisterFilter("time", filterDate) // time uses filterDate (same golang-format)
@@ -588,6 +588,31 @@ func filterRemovetags(in *Value, param *Value) (*Value, error) {
 
 func filterRjust(in *Value, param *Value) (*Value, error) {
 	return AsValue(fmt.Sprintf(fmt.Sprintf("%%%ds", param.Integer()), in.String())), nil
+}
+
+func filterSlice(in *Value, param *Value) (*Value, error) {
+	comp := strings.Split(param.String(), ":")
+	if len(comp) != 2 {
+		return nil, errors.New("Slice string must have the format 'from:to' [from/to can be omitted, but the ':' is required]")
+	}
+
+	if !in.CanSlice() {
+		return in, nil
+	}
+
+	from := AsValue(comp[0]).Integer()
+	to := in.Len()
+
+	if from > to {
+		from = to
+	}
+
+	vto := AsValue(comp[1]).Integer()
+	if vto >= from && vto <= in.Len() {
+		to = vto
+	}
+
+	return in.Slice(from, to), nil
 }
 
 func filterTitle(in *Value, param *Value) (*Value, error) {
