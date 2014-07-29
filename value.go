@@ -36,6 +36,11 @@ func (v *Value) IsString() bool {
 	return v.getResolvedValue().Kind() == reflect.String
 }
 
+// Checks whether the underlying value is a bool
+func (v *Value) IsBool() bool {
+	return v.getResolvedValue().Kind() == reflect.Bool
+}
+
 // Checks whether the underlying value is a float
 func (v *Value) IsFloat() bool {
 	return v.getResolvedValue().Kind() == reflect.Float32 ||
