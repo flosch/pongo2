@@ -13,11 +13,11 @@ Please use the [issue tracker](https://github.com/flosch/pongo2/issues) if you'r
 
 **Current status/version**: beta ([open issues to first stable release](https://github.com/flosch/pongo2/issues?milestone=1&state=open))
 
-| Topic                        | Status                                                                                                                        |
-| -----------------------------| ----------------------------------------------------------------------------------------------------------------------------- |       
-| Django version compatiblity: | [1.7](https://docs.djangoproject.com/en/1.7/ref/templates/builtins/)                                                          |
-| *Missing* **filters**:       | none ([hints](https://github.com/flosch/pongo2/blob/master/filters_builtin.go#L3))                                            | 
-| *Missing* **tags**:          | cycle, firstof, ifchanged, regroup, spaceless, widthratio ([hints](https://github.com/flosch/pongo2/blob/master/tags.go#L4))  |
+| Topic                        | Status                                                                                                                 |
+| -----------------------------| ---------------------------------------------------------------------------------------------------------------------- |       
+| Django version compatiblity: | [1.7](https://docs.djangoproject.com/en/1.7/ref/templates/builtins/)                                                   |
+| *Missing* **filters**:       | none ([hints](https://github.com/flosch/pongo2/blob/master/filters_builtin.go#L3))                                     | 
+| *Missing* **tags**:          | firstof, ifchanged, regroup, spaceless, widthratio ([hints](https://github.com/flosch/pongo2/blob/master/tags.go#L4))  |
 
 Please also have a look on the [caveats](https://github.com/flosch/pongo2#caveats) and on the [official add-ons](https://github.com/flosch/pongo2#official).
 
@@ -51,7 +51,7 @@ For a documentation on how the templating language works you can [head over to t
 
 [See my blog post announcement about pongo2 and for a migration- and a "how to write tags/filters"-tutorial.](http://www.florian-schlachter.de/post/pongo2/)
 
-You can access pongo2's documentation on [godoc](https://godoc.org/github.com/flosch/pongo2).
+You can access pongo2's API documentation on [godoc](https://godoc.org/github.com/flosch/pongo2).
 
 ## Caveats 
 

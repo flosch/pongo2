@@ -4,7 +4,6 @@ package pongo2
    Missing built-in tags:
    ----------------------
 
-   cycle
    firstof
    not in operator
    ifchanged
