@@ -7,9 +7,11 @@ package pongo2
    not in operator
    ifchanged
    Grouping on other properties
-   spaceless
+
+   Incomplete:
+   -----------
+
    verbatim (only the "name" argument is missing for verbatim)
-   widthratio
 
    Rethink:
    --------

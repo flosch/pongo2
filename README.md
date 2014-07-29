@@ -13,11 +13,11 @@ Please use the [issue tracker](https://github.com/flosch/pongo2/issues) if you'r
 
 **Current status/version**: beta ([open issues to first stable release](https://github.com/flosch/pongo2/issues?milestone=1&state=open))
 
-| Topic                        | Status                                                                                            |
-| -----------------------------| ------------------------------------------------------------------------------------------------- |       
-| Django version compatiblity: | [1.7](https://docs.djangoproject.com/en/1.7/ref/templates/builtins/)                              |
-| *Missing* **filters**:       | none ([hints](https://github.com/flosch/pongo2/blob/master/filters_builtin.go#L3))                | 
-| *Missing* **tags**:          | ifchanged, regroup, spaceless ([hints](https://github.com/flosch/pongo2/blob/master/tags.go#L4))  |
+| Topic                        | Status                                                                                 |
+| -----------------------------| -------------------------------------------------------------------------------------- |       
+| Django version compatiblity: | [1.7](https://docs.djangoproject.com/en/1.7/ref/templates/builtins/)                   |
+| *Missing* **filters**:       | none ([hints](https://github.com/flosch/pongo2/blob/master/filters_builtin.go#L3))     | 
+| *Missing* **tags**:          | ifchanged, regroup ([hints](https://github.com/flosch/pongo2/blob/master/tags.go#L4))  |
 
 Please also have a look on the [caveats](https://github.com/flosch/pongo2#caveats) and on the [official add-ons](https://github.com/flosch/pongo2#official).
 
