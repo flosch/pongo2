@@ -109,6 +109,9 @@ func (v *Value) String() string {
 		if v.getResolvedValue().Type() == reflect.TypeOf(time.Time{}) {
 			return v.getResolvedValue().Interface().(time.Time).String()
 		}
+		if t, ok := v.Interface().(fmt.Stringer); ok {
+			return t.String()
+		}
 	}
 
 	logf("Value.String() not implemented for type: %s\n", v.getResolvedValue().Kind().String())
