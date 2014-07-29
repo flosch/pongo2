@@ -25,7 +25,7 @@ type tagForLoopInformation struct {
 
 func (node *tagForNode) Execute(ctx *ExecutionContext, buffer *bytes.Buffer) (forError error) {
 	// Backup forloop (as parentloop in public context), key-name and value-name
-	forCtx := NewExecutionContext(ctx)
+	forCtx := NewChildExecutionContext(ctx)
 	parentloop := forCtx.Private["forloop"]
 
 	// Create loop struct

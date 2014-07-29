@@ -42,7 +42,7 @@ func (node *tagMacroNode) Execute(ctx *ExecutionContext, buffer *bytes.Buffer) e
 		}
 
 		// Make a context for the macro execution
-		macroCtx := NewExecutionContext(ctx)
+		macroCtx := NewChildExecutionContext(ctx)
 
 		// Register all arguments in the private context
 		macroCtx.Private.Update(args_ctx)

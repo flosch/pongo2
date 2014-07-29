@@ -82,11 +82,7 @@ func (tpl *Template) execute(context Context) (*bytes.Buffer, error) {
 	}
 
 	// Create operational context
-	ctx := &ExecutionContext{
-		template: parent,
-		Public:   context,
-		Private:  make(Context),
-	}
+	ctx := newExecutionContext(parent, context)
 
 	// Run the selected document
 	err := parent.root.Execute(ctx, buffer)

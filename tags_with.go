@@ -11,7 +11,7 @@ type tagWithNode struct {
 
 func (node *tagWithNode) Execute(ctx *ExecutionContext, buffer *bytes.Buffer) error {
 	//new context for block
-	withctx := NewExecutionContext(ctx)
+	withctx := NewChildExecutionContext(ctx)
 
 	// Put all custom with-pairs into the context
 	for key, value := range node.with_pairs {

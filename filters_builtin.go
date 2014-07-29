@@ -112,7 +112,7 @@ func filterTruncatechars(in *Value, param *Value) (*Value, error) {
 
 func filterTruncatecharsHtml(in *Value, param *Value) (*Value, error) {
 	value := in.String()
-	newLen := max(param.Integer() - 3, 0)
+	newLen := max(param.Integer()-3, 0)
 	vLen := len(value)
 
 	new_output := bytes.NewBuffer(nil)
@@ -126,7 +126,7 @@ func filterTruncatecharsHtml(in *Value, param *Value) (*Value, error) {
 		c := rune(value[idx])
 		if c == '<' {
 			new_output.WriteRune(c)
-			if idx + 1 < vLen {
+			if idx+1 < vLen {
 				if value[idx+1] == '/' {
 					// Close tag
 
@@ -145,7 +145,7 @@ func filterTruncatecharsHtml(in *Value, param *Value) (*Value, error) {
 					if len(tag_stack) > 0 {
 						// Ideally, the close tag is TOP of tag stack
 						// In malformed HTML, it must not be, so iterate through the stack and remove the tag
-						for i := len(tag_stack) -1; i >= 0; i-- {
+						for i := len(tag_stack) - 1; i >= 0; i-- {
 							if tag_stack[i] == tag {
 								// Found the tag
 								tag_stack[i] = tag_stack[len(tag_stack)-1]
@@ -243,7 +243,7 @@ func filterTruncatewordsHtml(in *Value, param *Value) (*Value, error) {
 		c := rune(value[idx])
 		if c == '<' {
 			new_output.WriteRune(c)
-			if idx + 1 < vLen {
+			if idx+1 < vLen {
 				if value[idx+1] == '/' {
 					// Close tag
 
@@ -262,7 +262,7 @@ func filterTruncatewordsHtml(in *Value, param *Value) (*Value, error) {
 					if len(tag_stack) > 0 {
 						// Ideally, the close tag is TOP of tag stack
 						// In malformed HTML, it must not be, so iterate through the stack and remove the tag
-						for i := len(tag_stack) -1; i >= 0; i-- {
+						for i := len(tag_stack) - 1; i >= 0; i-- {
 							if tag_stack[i] == tag {
 								// Found the tag
 								tag_stack[i] = tag_stack[len(tag_stack)-1]

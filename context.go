@@ -40,17 +40,28 @@ func (c Context) Update(other Context) Context {
 // To create your own execution context within tags, use the
 // NewExecutionContext(parent) function.
 type ExecutionContext struct {
-	template *Template
-	Public   Context
-	Private  Context
-	Shared   Context
+	template   *Template
+	Autoescape bool
+	Public     Context
+	Private    Context
+	Shared     Context
 }
 
-func NewExecutionContext(parent *ExecutionContext) *ExecutionContext {
+func newExecutionContext(tpl *Template, ctx Context) *ExecutionContext {
+	return &ExecutionContext{
+		template:   tpl,
+		Public:     ctx,
+		Private:    make(Context),
+		Autoescape: true,
+	}
+}
+
+func NewChildExecutionContext(parent *ExecutionContext) *ExecutionContext {
 	newctx := &ExecutionContext{
-		template: parent.template,
-		Public:   parent.Public,
-		Private:  make(Context),
+		template:   parent.template,
+		Public:     parent.Public,
+		Private:    make(Context),
+		Autoescape: parent.Autoescape,
 	}
 	newctx.Shared = parent.Shared
 

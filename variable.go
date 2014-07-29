@@ -92,7 +92,7 @@ func (nv *nodeVariable) Execute(ctx *ExecutionContext, buffer *bytes.Buffer) err
 		return err
 	}
 
-	if !nv.expr.FilterApplied("safe") && value.IsString() {
+	if !nv.expr.FilterApplied("safe") && value.IsString() && ctx.Autoescape {
 		// apply escape filter
 		value, err = filters["escape"](value, nil)
 		if err != nil {
