@@ -279,3 +279,10 @@ slice
 2
 2,3,5,8,13,21,34,55
 es
+
+truncatechars_html
+This is a long test wh...
+<p>This is a long test wh...</p>
+<a><p>This </a>is a long test wh...</p>
+<p>This </a>is a long test wh...</p>
+<p>This...</p>

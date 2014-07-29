@@ -73,12 +73,12 @@ This too, as a paragraph.
 Right?
 
 Yep!`,
-		"escape_js_test": `escape sequences \r\n\' special chars "?!=$<>`,
-		"one_item_list": []int{99},
-		"multiple_item_list": []int{1,1,2,3,5,8,13,21,34,55},
-		"misc_list":     []interface{}{"Hello", 99, 3.14, "good"},
-		"escape_text":   "This is \\a Test. \"Yep\". 'Yep'.",
-		"xss":           "<script>alert(\"uh oh\");</script>",
+		"escape_js_test":     `escape sequences \r\n\' special chars "?!=$<>`,
+		"one_item_list":      []int{99},
+		"multiple_item_list": []int{1, 1, 2, 3, 5, 8, 13, 21, 34, 55},
+		"misc_list":          []interface{}{"Hello", 99, 3.14, "good"},
+		"escape_text":        "This is \\a Test. \"Yep\". 'Yep'.",
+		"xss":                "<script>alert(\"uh oh\");</script>",
 		"intmap": map[int]string{
 			1: "one",
 			2: "two",

@@ -265,3 +265,10 @@ slice
 {{ simple.multiple_item_list|slice:"2:3"|join:"," }}
 {{ simple.multiple_item_list|slice:"2:1"|join:"," }}
 {{ "Test"|slice:"1:3" }}
+
+truncatechars_html
+{{ "This is a long test which will be cutted after some chars."|truncatechars_html:25|safe }}
+{{ "<p>This is a long test which will be cutted after some chars.</p>"|truncatechars_html:25|safe }}
+{{ "<a><p>This </a>is a long test which will be cutted after some chars.</p>"|truncatechars_html:25|safe }}
+{{ "<p>This </a>is a long test which will be cutted after some chars.</p>"|truncatechars_html:25|safe }}
+{{ "<p>This is a long test which will be cutted after some chars.</p>"|truncatechars_html:7|safe }}

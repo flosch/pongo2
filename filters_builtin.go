@@ -2,8 +2,6 @@ package pongo2
 
 /* Missing filters:
 
-   safeseq
-   truncatechars_html
    truncatewords_html
 
    Filters that won't be added:
@@ -15,6 +13,7 @@ package pongo2
    Rethink:
 
    force_escape (reason: not yet needed since this is the behaviour of pongo2's escape filter)
+   safeseq (reason: same reason as `force_escape`)
    unordered_list (python-specific; not sure whether needed or not)
    dictsort (python-specific; maybe one could add a filter to sort a list of structs by a specific field name)
    dictsortreversed (see dictsort)
@@ -80,6 +79,7 @@ func init() {
 	RegisterFilter("time", filterDate) // time uses filterDate (same golang-format)
 	RegisterFilter("title", filterTitle)
 	RegisterFilter("truncatechars", filterTruncatechars)
+	RegisterFilter("truncatechars_html", filterTruncatecharsHtml)
 	RegisterFilter("truncatewords", filterTruncatewords)
 	RegisterFilter("upper", filterUpper)
 	RegisterFilter("urlencode", filterUrlencode)
@@ -93,17 +93,113 @@ func init() {
 	RegisterFilter("integer", filterInteger) // pongo-specific
 }
 
+func filterTruncatecharsHelper(s string, newLen int) string {
+	if newLen < len(s) {
+		if newLen >= 3 {
+			return fmt.Sprintf("%s...", s[:newLen-3])
+		}
+		// Not enough space for the ellipsis
+		return s[:newLen]
+	}
+	return s
+}
+
 func filterTruncatechars(in *Value, param *Value) (*Value, error) {
 	s := in.String()
 	newLen := param.Integer()
-	if newLen < len(s) {
-		if newLen >= 3 {
-			return AsValue(fmt.Sprintf("%s...", s[:newLen-3])), nil
+	return AsValue(filterTruncatecharsHelper(s, newLen)), nil
+}
+
+func filterTruncatecharsHtml(in *Value, param *Value) (*Value, error) {
+	value := in.String()
+	newLen := max(param.Integer() - 3, 0)
+	vLen := len(value)
+
+	new_output := bytes.NewBuffer(nil)
+
+	tag_stack := make([]string, 0)
+	to_close := make([]string, 0)
+
+	textcounter := 0
+	idx := 0
+	for idx < vLen && textcounter < newLen {
+		c := rune(value[idx])
+		if c == '<' {
+			new_output.WriteRune(c)
+			if idx + 1 < vLen {
+				if value[idx+1] == '/' {
+					// Close tag
+
+					new_output.WriteString("/")
+
+					tag := ""
+					idx += 2
+					for idx < vLen {
+						c = rune(value[idx])
+						if c == '>' {
+							break
+						}
+						tag += string(c)
+						idx++
+					}
+					if len(tag_stack) > 0 {
+						// Ideally, the close tag is TOP of tag stack
+						// In malformed HTML, it must not be, so iterate through the stack and remove the tag
+						for i := len(tag_stack) -1; i >= 0; i-- {
+							if tag_stack[i] == tag {
+								// Found the tag
+								tag_stack[i] = tag_stack[len(tag_stack)-1]
+								tag_stack = tag_stack[:len(tag_stack)-1]
+								break
+							}
+						}
+					} else {
+						// Found a close tag without an open tag, put in into to_close
+						to_close = append(to_close, tag)
+					}
+
+					new_output.WriteString(tag)
+					new_output.WriteString(">")
+				} else {
+					// Open tag
+					tag := ""
+					idx += 1
+					for idx < vLen {
+						c = rune(value[idx])
+						if c == '>' {
+							break
+						}
+						tag += string(c)
+						idx++
+					}
+					tag_stack = append(tag_stack, tag)
+					new_output.WriteString(tag)
+					new_output.WriteString(">")
+				}
+			}
+		} else {
+			textcounter++
+			new_output.WriteRune(c)
 		}
-		// Not enough space for the ellipsis
-		return AsValue(s[:newLen]), nil
+
+		idx++
 	}
-	return in, nil
+
+	if textcounter >= newLen && textcounter < vLen {
+		new_output.WriteString("...")
+	}
+
+	for _, tag := range tag_stack {
+		// Close everything from the regular tag stack
+		new_output.WriteString(fmt.Sprintf("</%s>", tag))
+	}
+
+	for _, tag := range to_close {
+		// Write everyting that was discovered unusually
+		new_output.WriteString(fmt.Sprintf("</%s>", tag))
+	}
+
+	return AsValue(new_output.String()), nil
 }
 
 func filterTruncatewords(in *Value, param *Value) (*Value, error) {
@@ -150,7 +246,7 @@ func filterEscapejs(in *Value, param *Value) (*Value, error) {
 
 		if c == '\\' {
 			// Escape seq?
-			if idx + 1 < l {
+			if idx+1 < l {
 				switch sin[idx+1] {
 				case 'r':
 					b.WriteString(fmt.Sprintf(`\\u%04X`, '\r'))
