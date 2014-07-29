@@ -6,7 +6,6 @@ package pongo2
 
    not in operator
    ifchanged
-   regroup
    Grouping on other properties
    spaceless
    verbatim (only the "name" argument is missing for verbatim)
@@ -15,7 +14,8 @@ package pongo2
    Rethink:
    --------
 
-   debug (maybe later)
+   debug (reason: not sure what to output yet)
+   regroup (reason: maybe too python-specific; not sure how useful this would be in Go)
 
    Following built-in tags wont be added:
    --------------------------------------
