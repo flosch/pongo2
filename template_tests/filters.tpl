@@ -241,3 +241,14 @@ Please mail me at demo@example.com or visit mit on:
 - lorem ipsum www.florian-schlachter.de lorem ipsum
 - lorem ipsum www.florian-schlachter.de/test="test" lorem ipsum
 {% endfilter %}
+
+urlizetrunc
+{% filter urlizetrunc:15|safe %}
+Please mail me at demo@example.com or visit mit on:
+- lorem ipsum github.com/flosch/pongo2 lorem ipsum
+- lorem ipsum http://www.florian-schlachter.de lorem ipsum
+- lorem ipsum https://www.florian-schlachter.de lorem ipsum
+- lorem ipsum https://www.florian-schlachter.de lorem ipsum
+- lorem ipsum www.florian-schlachter.de lorem ipsum
+- lorem ipsum www.florian-schlachter.de/test="test" lorem ipsum
+{% endfilter %}

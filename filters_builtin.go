@@ -84,6 +84,7 @@ func init() {
 	RegisterFilter("upper", filterUpper)
 	RegisterFilter("urlencode", filterUrlencode)
 	RegisterFilter("urlize", filterUrlize)
+	RegisterFilter("urlizetrunc", filterUrlizetrunc)
 	RegisterFilter("wordcount", filterWordcount)
 	RegisterFilter("wordwrap", filterWordwrap)
 	RegisterFilter("yesno", filterYesno)
@@ -399,19 +400,13 @@ func filterUrlencode(in *Value, param *Value) (*Value, error) {
 
 // TODO: This regexp could do some work
 var filterUrlizeURLRegexp = regexp.MustCompile(`((((http|https)://)|www\.|\w+(\.com|\.net|\.org|\.info|\.biz|\.de)/))(?U:.*)[ ]`)
+var filterUrlizeEmailRegexp = regexp.MustCompile(`(\w+@\w+\.\w{2,4})`)
 
-func filterUrlize(in *Value, param *Value) (*Value, error) {
-	autoescape := true
-	if param.IsBool() {
-		autoescape = param.Bool()
-	}
+func filterUrlizeHelper(input string, autoescape bool, trunc int) string {
+	sout := filterUrlizeURLRegexp.ReplaceAllStringFunc(input, func(raw_url string) string {
+		raw_url = strings.TrimSpace(raw_url)
 
-	sin := in.String()
-
-	sin = filterUrlizeURLRegexp.ReplaceAllStringFunc(sin, func(in string) string {
-		in = strings.TrimSpace(in)
-
-		t, err := ApplyFilter("iriencode", AsValue(in), nil)
+		t, err := ApplyFilter("iriencode", AsValue(raw_url), nil)
 		if err != nil {
 			panic(err)
 		}
@@ -421,10 +416,14 @@ func filterUrlize(in *Value, param *Value) (*Value, error) {
 			url = fmt.Sprintf("http://%s", url)
 		}
 
-		title := in
+		title := raw_url
+
+		if trunc > 3 && len(title) > trunc {
+			title = fmt.Sprintf("%s...", title[:trunc-3])
+		}
 
 		if autoescape {
-			t, err := ApplyFilter("escape", AsValue(in), nil)
+			t, err := ApplyFilter("escape", AsValue(title), nil)
 			if err != nil {
 				panic(err)
 			}
@@ -434,7 +433,31 @@ func filterUrlize(in *Value, param *Value) (*Value, error) {
 		return fmt.Sprintf(`<a href="%s" rel="nofollow">%s</a> `, url, title)
 	})
 
-	return AsValue(sin), nil
+	sout = filterUrlizeEmailRegexp.ReplaceAllStringFunc(sout, func(mail string) string {
+
+		title := mail
+
+		if trunc > 3 && len(title) > trunc {
+			title = fmt.Sprintf("%s...", title[:trunc-3])
+		}
+
+		return fmt.Sprintf(`<a href="mailto:%s">%s</a>`, mail, title)
+	})
+
+	return sout
+}
+
+func filterUrlize(in *Value, param *Value) (*Value, error) {
+	autoescape := true
+	if param.IsBool() {
+		autoescape = param.Bool()
+	}
+
+	return AsValue(filterUrlizeHelper(in.String(), autoescape, -1)), nil
+}
+
+func filterUrlizetrunc(in *Value, param *Value) (*Value, error) {
+	return AsValue(filterUrlizeHelper(in.String(), true, param.Integer())), nil
 }
 
 func filterStringformat(in *Value, param *Value) (*Value, error) {
