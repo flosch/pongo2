@@ -1,29 +1,28 @@
 package pongo2
 
-/* Missing filters:
+/* Filters that are provided through github.com/flosch/pongo2-addons:
+   ------------------------------------------------------------------
 
-   truncatewords_html
+   filesizeformat
+   slugify
+   timesince
+   timeuntil
 
    Filters that won't be added:
+   ----------------------------
 
    get_static_prefix (reason: web-framework specific)
    pprint (reason: python-specific)
    static (reason: web-framework specific)
 
-   Rethink:
+   Rethink (not implemented yet):
+   ------------------------------
 
    force_escape (reason: not yet needed since this is the behaviour of pongo2's escape filter)
    safeseq (reason: same reason as `force_escape`)
    unordered_list (python-specific; not sure whether needed or not)
    dictsort (python-specific; maybe one could add a filter to sort a list of structs by a specific field name)
    dictsortreversed (see dictsort)
-
-   Filters that are provided through github.com/flosch/pongo2-addons:
-
-   filesizeformat
-   slugify
-   timesince
-   timeuntil
 */
 
 import (
@@ -81,6 +80,7 @@ func init() {
 	RegisterFilter("truncatechars", filterTruncatechars)
 	RegisterFilter("truncatechars_html", filterTruncatecharsHtml)
 	RegisterFilter("truncatewords", filterTruncatewords)
+	RegisterFilter("truncatewords_html", filterTruncatewordsHtml)
 	RegisterFilter("upper", filterUpper)
 	RegisterFilter("urlencode", filterUrlencode)
 	RegisterFilter("urlize", filterUrlize)
@@ -164,17 +164,23 @@ func filterTruncatecharsHtml(in *Value, param *Value) (*Value, error) {
 					// Open tag
 					tag := ""
 					idx += 1
+					params := false
 					for idx < vLen {
 						c = rune(value[idx])
+						new_output.WriteRune(c)
 						if c == '>' {
 							break
 						}
-						tag += string(c)
+						if !params {
+							if c == ' ' {
+								params = true
+							} else {
+								tag += string(c)
+							}
+						}
 						idx++
 					}
 					tag_stack = append(tag_stack, tag)
-					new_output.WriteString(tag)
-					new_output.WriteString(">")
 				}
 			}
 		} else {
@@ -219,6 +225,126 @@ func filterTruncatewords(in *Value, param *Value) (*Value, error) {
 	}
 
 	return AsValue(strings.Join(out, " ")), nil
+}
+
+func filterTruncatewordsHtml(in *Value, param *Value) (*Value, error) {
+	value := in.String()
+	newLen := max(param.Integer(), 0)
+	vLen := len(value)
+
+	new_output := bytes.NewBuffer(nil)
+
+	tag_stack := make([]string, 0)
+	to_close := make([]string, 0)
+
+	wordcounter := 0
+	idx := 0
+	for idx < vLen && wordcounter < newLen {
+		c := rune(value[idx])
+		if c == '<' {
+			new_output.WriteRune(c)
+			if idx + 1 < vLen {
+				if value[idx+1] == '/' {
+					// Close tag
+
+					new_output.WriteString("/")
+
+					tag := ""
+					idx += 2
+					for idx < vLen {
+						c = rune(value[idx])
+						if c == '>' {
+							break
+						}
+						tag += string(c)
+						idx++
+					}
+					if len(tag_stack) > 0 {
+						// Ideally, the close tag is TOP of tag stack
+						// In malformed HTML, it must not be, so iterate through the stack and remove the tag
+						for i := len(tag_stack) -1; i >= 0; i-- {
+							if tag_stack[i] == tag {
+								// Found the tag
+								tag_stack[i] = tag_stack[len(tag_stack)-1]
+								tag_stack = tag_stack[:len(tag_stack)-1]
+								break
+							}
+						}
+					} else {
+						// Found a close tag without an open tag, put in into to_close
+						to_close = append(to_close, tag)
+					}
+
+					new_output.WriteString(tag)
+					new_output.WriteString(">")
+				} else {
+					// Open tag
+					tag := ""
+					idx += 1
+					params := false
+					for idx < vLen {
+						c = rune(value[idx])
+						new_output.WriteRune(c)
+						if c == '>' {
+							break
+						}
+						if !params {
+							if c == ' ' {
+								params = true
+							} else {
+								tag += string(c)
+							}
+						}
+						idx++
+					}
+					tag_stack = append(tag_stack, tag)
+				}
+			}
+		} else {
+			// Get next word
+			word := ""
+			word_found := false
+			for idx < vLen {
+				c := rune(value[idx])
+				if c == '<' {
+					// HTML tag start, don't consume it
+					break
+				}
+
+				word += string(c)
+				if c == ' ' || c == '.' || c == ',' || c == ';' {
+					break
+				} else {
+					word_found = true
+					idx++
+				}
+			}
+
+			if word_found {
+				wordcounter++
+			}
+
+			new_output.WriteString(word)
+		}
+
+		idx++
+	}
+
+	if wordcounter >= newLen {
+		new_output.WriteString("...")
+	}
+
+	for _, tag := range tag_stack {
+		// Close everything from the regular tag stack
+		new_output.WriteString(fmt.Sprintf("</%s>", tag))
+	}
+
+	for _, tag := range to_close {
+		// Write everyting that was discovered unusually
+		new_output.WriteString(fmt.Sprintf("</%s>", tag))
+	}
+
+	return AsValue(new_output.String()), nil
 }
 
 func filterEscape(in *Value, param *Value) (*Value, error) {

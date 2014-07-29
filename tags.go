@@ -1,8 +1,8 @@
 package pongo2
 
 /*
-	Missing built-in tags:
-	----------------------
+    Missing built-in tags:
+    ----------------------
 
     autoescape
     cycle
@@ -20,8 +20,8 @@ package pongo2
 
     debug (maybe later)
 
-	Following built-in tags wont be added:
-	--------------------------------------
+    Following built-in tags wont be added:
+    --------------------------------------
 
     csrf_token (reason: web-framework specific)
     load (reason: python-specific)
