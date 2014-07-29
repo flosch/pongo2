@@ -9,7 +9,17 @@ pongo2 is the successor of [pongo](https://github.com/flosch/pongo), a Django-sy
 
 Please use the [issue tracker](https://github.com/flosch/pongo2/issues) if you're encountering any problems with pongo2 or if you need help with implementing tags or filters ([create a ticket!](https://github.com/flosch/pongo2/issues/new)).
 
-pongo2 is **still in beta** (but on a good path) and under heavy development ([see all open issues for first stable milestone](https://github.com/flosch/pongo2/issues?milestone=1&state=open)).
+## Development status
+
+**Current status/version**: beta ([Open issues to first stable release](https://github.com/flosch/pongo2/issues?milestone=1&state=open))
+
+| Topic                        | Status                                                                 |
+| -----------------------------| ---------------------------------------------------------------------- |
+| Django version compatiblity: | [1.7](https://docs.djangoproject.com/en/1.7/ref/templates/builtins/)   |
+| *Missing* **filters**:         | none*                                                                  |
+| *Missing* **tags**:            | autoescape, cycle, firstof, ifchanged, regroup, spaceless, widthratio  |
+
+* Please see the hints [here](https://github.com/flosch/pongo2/blob/master/filters_builtin.go#L3) and [here](https://github.com/flosch/pongo2#tags).
 
 ## New in pongo2
 
@@ -31,7 +41,8 @@ If you're using pongo2, you might be interested in this section. Since pongo2 is
 ## How you can help
 
  * Write [filters](https://github.com/flosch/pongo2/blob/master/filters_builtin.go#L3) / [tags](https://github.com/flosch/pongo2/blob/master/tags.go#L4) (see [tutorial](http://www.florian-schlachter.de/post/pongo2/)) by forking pongo2 and sending pull requests
- * Write tests (use the following command to see what tests are missing: `go test -v -cover -covermode=count -coverprofile=cover.out && go tool cover -html=cover.out`)
+ * Write/improve code tests (use the following command to see what tests are missing: `go test -v -cover -covermode=count -coverprofile=cover.out && go tool cover -html=cover.out`)
+ * Write/improve template tests (see the `template_tests/` directory)
  * Write middleware, libraries and websites using pongo2. :-)
 
 # Documentation
