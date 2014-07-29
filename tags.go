@@ -1,7 +1,9 @@
 package pongo2
 
 /*
-Missing built-in tags:
+	Missing built-in tags:
+	----------------------
+
     autoescape
     cycle
     firstof
@@ -13,8 +15,14 @@ Missing built-in tags:
     verbatim (only the "name" argument is missing for verbatim)
     widthratio
 
-Following built-in tags wont be added:
+    Rethink:
+    --------
+
     debug (maybe later)
+
+	Following built-in tags wont be added:
+	--------------------------------------
+
     csrf_token (reason: web-framework specific)
     load (reason: python-specific)
     url (reason: web-framework specific)
