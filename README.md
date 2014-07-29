@@ -21,14 +21,14 @@ Please use the [issue tracker](https://github.com/flosch/pongo2/issues) if you'r
 
 Please also have a look on the [caveats](https://github.com/flosch/pongo2#caveats) and on the [official add-ons](https://github.com/flosch/pongo2#official).
 
-## New in pongo2
+## Features (and new in pongo2)
 
  * Entirely rewritten from the ground-up.
- * [Easy API to create new filters and tags](http://godoc.org/github.com/flosch/pongo2#RegisterFilter) ([including parsing arguments](http://godoc.org/github.com/flosch/pongo2#Parser)); take a look on an example and the differences between pongo1 and pongo2: [old](https://github.com/flosch/pongo/blob/master/filters.go#L65) and [new](https://github.com/flosch/pongo2/blob/master/filters_builtin.go#L72).
  * [Advanced C-like expressions](https://github.com/flosch/pongo2/blob/master/template_tests/expressions.tpl).
  * [Complex function calls within expressions](https://github.com/flosch/pongo2/blob/master/template_tests/function_calls_wrapper.tpl).
- * Additional features
-   * Macros (see [template_tests/macro.tpl](https://github.com/flosch/pongo2/blob/master/template_tests/macro.tpl))
+ * [Easy API to create new filters and tags](http://godoc.org/github.com/flosch/pongo2#RegisterFilter) ([including parsing arguments](http://godoc.org/github.com/flosch/pongo2#Parser))
+ * Additional features:
+    * Macros (see [template_tests/macro.tpl](https://github.com/flosch/pongo2/blob/master/template_tests/macro.tpl))
 
 ## Recent API changes within pongo2
 

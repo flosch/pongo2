@@ -6,7 +6,7 @@ import (
 )
 
 type tagSpacelessNode struct {
-	wrapper    *NodeWrapper
+	wrapper *NodeWrapper
 }
 
 var tagSpacelessRegexp = regexp.MustCompile(`(?U:(<.*>))([\t\n\v\f\r ]+)(?U:(<.*>))`)

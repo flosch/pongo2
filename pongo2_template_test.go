@@ -142,6 +142,32 @@ Yep!`,
 				Text: "<b>hello!</b> there",
 			},
 		},
+		"comments2": []*comment{
+			&comment{
+				Author: &user{
+					Name:      "user1",
+					Validated: true,
+				},
+				Date: time2,
+				Text: "\"pongo2 is nice!\"",
+			},
+			&comment{
+				Author: &user{
+					Name:      "user1",
+					Validated: true,
+				},
+				Date: time1,
+				Text: "comment2 with <script>unsafe</script> tags in it",
+			},
+			&comment{
+				Author: &user{
+					Name:      "user3",
+					Validated: false,
+				},
+				Date: time1,
+				Text: "<b>hello!</b> there",
+			},
+		},
 	},
 }
 
