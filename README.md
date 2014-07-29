@@ -19,7 +19,7 @@ Please use the [issue tracker](https://github.com/flosch/pongo2/issues) if you'r
 | *Missing* **filters**:       | none ([hints](https://github.com/flosch/pongo2/blob/master/filters_builtin.go#L3))                                            | 
 | *Missing* **tags**:          | cycle, firstof, ifchanged, regroup, spaceless, widthratio ([hints](https://github.com/flosch/pongo2/blob/master/tags.go#L4))  |
 
-Please also have a look on the [caveats](https://github.com/flosch/pongo2#caveats).
+Please also have a look on the [caveats](https://github.com/flosch/pongo2#caveats) and on the [official add-ons](https://github.com/flosch/pongo2#official).
 
 ## New in pongo2
 
