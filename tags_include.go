@@ -20,9 +20,8 @@ func (node *tagIncludeNode) Execute(ctx *ExecutionContext, buffer *bytes.Buffer)
 
 	// Fill the context with all data from the parent
 	if !node.only {
-		for key, value := range ctx.Public {
-			include_ctx[key] = value
-		}
+		include_ctx.Update(ctx.Public)
+		include_ctx.Update(ctx.Private)
 	}
 
 	// Put all custom with-pairs into the context
