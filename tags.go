@@ -4,7 +4,6 @@ package pongo2
    Missing built-in tags:
    ----------------------
 
-   firstof
    not in operator
    ifchanged
    regroup
