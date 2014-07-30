@@ -28,12 +28,27 @@ func RegisterFilter(name string, fn FilterFunction) {
 	filters[name] = fn
 }
 
+// Like ApplyFilter, but panics on an error
+func MustApplyFilter(name string, value *Value, param *Value) *Value {
+	val, err := ApplyFilter(name, value, param)
+	if err != nil {
+		panic(err)
+	}
+	return val
+}
+
 // Applies a filter to a given value using the given parameters. Returns a *pongo2.Value.
 func ApplyFilter(name string, value *Value, param *Value) (*Value, error) {
 	fn, existing := filters[name]
 	if !existing {
 		return nil, errors.New(fmt.Sprintf("Filter with name '%s' not found.", name))
 	}
+
+	// Make sure param is a *Value
+	if param == nil {
+		param = AsValue(nil)
+	}
+
 	return fn(value, param)
 }
 
