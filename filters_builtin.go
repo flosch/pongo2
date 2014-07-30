@@ -375,15 +375,15 @@ func filterEscapejs(in *Value, param *Value) (*Value, error) {
 			if idx+1 < l {
 				switch sin[idx+1] {
 				case 'r':
-					b.WriteString(fmt.Sprintf(`\\u%04X`, '\r'))
+					b.WriteString(fmt.Sprintf(`\u%04X`, '\r'))
 					idx += 2
 					continue
 				case 'n':
-					b.WriteString(fmt.Sprintf(`\\u%04X`, '\n'))
+					b.WriteString(fmt.Sprintf(`\u%04X`, '\n'))
 					idx += 2
 					continue
 				case '\'':
-					b.WriteString(fmt.Sprintf(`\\u%04X`, '\''))
+					b.WriteString(fmt.Sprintf(`\u%04X`, '\''))
 					idx += 2
 					continue
 				}
@@ -393,7 +393,7 @@ func filterEscapejs(in *Value, param *Value) (*Value, error) {
 		if (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == ' ' || c == '/' {
 			b.WriteRune(c)
 		} else {
-			b.WriteString(fmt.Sprintf(`\\u%04X`, c))
+			b.WriteString(fmt.Sprintf(`\u%04X`, c))
 		}
 		idx++
 	}
