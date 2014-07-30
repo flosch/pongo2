@@ -268,7 +268,7 @@ Please mail me at <a href="mailto:demo@example.com">demo@example...</a> or visit
 
 
 escapejs
-escape sequences \u000D\u000A\u0027 special chars \u0022\u003F\u0021\u003D\u0024\u003C\u003E
+escape sequences \u000D\u000A\u0027\u0022 special chars \u0022\u003F\u0021\u003D\u0024\u003C\u003E
 
 slice
 1,1,2,3,5,8,13,21,34,55

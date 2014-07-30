@@ -73,7 +73,7 @@ This too, as a paragraph.
 Right?
 
 Yep!`,
-		"escape_js_test":     `escape sequences \r\n\' special chars "?!=$<>`,
+		"escape_js_test":     `escape sequences \r\n\'\" special chars "?!=$<>`,
 		"one_item_list":      []int{99},
 		"multiple_item_list": []int{1, 1, 2, 3, 5, 8, 13, 21, 34, 55},
 		"misc_list":          []interface{}{"Hello", 99, 3.14, "good"},
@@ -195,10 +195,13 @@ func TestTemplates(t *testing.T) {
 		}
 		if bytes.Compare(test_out, tpl_out) != 0 {
 			t.Logf("Template (rendered) '%s': '%s'", match, tpl_out)
-			err_filename := "tpl-error.out"
-			ioutil.WriteFile(err_filename, []byte(tpl_out), 0700)
+			err_filename := filepath.Base(fmt.Sprintf("%s.error", match))
+			err := ioutil.WriteFile(err_filename, []byte(tpl_out), 0600)
+			if err != nil {
+				t.Fatalf(err.Error())
+			}
 			t.Logf("get a complete diff with command: 'diff -ya %s %s'", test_filename, err_filename)
-			t.Fatalf("Failed: test_out != tpl_out for %s", match)
+			t.Errorf("Failed: test_out != tpl_out for %s", match)
 		}
 	}
 }
