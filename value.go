@@ -363,10 +363,11 @@ func (v *Value) Iterate(fn func(idx, count int, key, value *Value) bool, empty f
 		}
 		return // done
 	case reflect.String:
-		runeCount := v.getResolvedValue().Len()
-		if runeCount > 0 {
-			for i := 0; i < runeCount; i++ {
-				if !fn(i, runeCount, &Value{v.getResolvedValue().Slice(i, i+1)}, nil) {
+		// TODO: Not utf8-compatible (utf8-decoding neccessary)
+		charCount := v.getResolvedValue().Len()
+		if charCount > 0 {
+			for i := 0; i < charCount; i++ {
+				if !fn(i, charCount, &Value{v.getResolvedValue().Slice(i, i+1)}, nil) {
 					return
 				}
 			}
