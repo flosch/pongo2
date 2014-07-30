@@ -8,6 +8,17 @@ import (
 
 var reIdentifiers = regexp.MustCompile("^[a-zA-Z0-9_]+$")
 
+// Use this Context type to provide constants, variables, instances or functions to your template.
+//
+// pongo2 automatically provides meta-information or functions through the "pongo2"-key.
+// Currently, context["pongo2"] contains the following keys:
+//  1. version: returns the version string
+//
+// Template examples for accessing items from your context:
+//     {{ myconstant }}
+//     {{ myfunc("test", 42) }}
+//     {{ user.name }}
+//     {{ pongo2.version }}
 type Context map[string]interface{}
 
 func (c Context) checkForValidIdentifiers() error {
@@ -48,10 +59,17 @@ type ExecutionContext struct {
 }
 
 func newExecutionContext(tpl *Template, ctx Context) *ExecutionContext {
+	privateCtx := make(Context)
+
+	// Make the pongo2-related funcs/vars available to the context
+	privateCtx["pongo2"] = Context{
+		"version": Version,
+	}
+
 	return &ExecutionContext{
 		template:   tpl,
 		Public:     ctx,
-		Private:    make(Context),
+		Private:    privateCtx,
 		Autoescape: true,
 	}
 }
