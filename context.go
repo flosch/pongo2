@@ -66,9 +66,7 @@ func NewChildExecutionContext(parent *ExecutionContext) *ExecutionContext {
 	newctx.Shared = parent.Shared
 
 	// Copy all existing private items
-	for key, value := range parent.Private {
-		newctx.Private[key] = value
-	}
+	newctx.Private.Update(parent.Private)
 
 	return newctx
 }
