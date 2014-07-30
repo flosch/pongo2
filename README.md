@@ -11,7 +11,7 @@ Please use the [issue tracker](https://github.com/flosch/pongo2/issues) if you'r
 
 ## Development status
 
-**Current status/version**: release candidate 1 for first stable *version 1.0* (**pongo2 1.0-rc1**).
+**Current status/version**: release candidate 1 for first stable *version 1.0* (**pongo2 1.0-rc1**) ([see the announcement](http://www.florian-schlachter.de/post/pongo2-10-rc1/)).
 
 | Topic                                | Status                                                                                 |
 | ------------------------------------ | -------------------------------------------------------------------------------------- |       
