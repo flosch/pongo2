@@ -37,7 +37,7 @@ func MustApplyFilter(name string, value *Value, param *Value) *Value {
 	return val
 }
 
-// Applies a filter to a given value using the given parameters. Returns a *pongo2.Value.
+// Applies a filter to a given value using the given parameters. Returns a *pongo2.Value or an error.
 func ApplyFilter(name string, value *Value, param *Value) (*Value, error) {
 	fn, existing := filters[name]
 	if !existing {

@@ -35,6 +35,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"unicode/utf8"
 )
 
 func init() {
@@ -123,7 +124,12 @@ func filterTruncatecharsHtml(in *Value, param *Value) (*Value, error) {
 	textcounter := 0
 	idx := 0
 	for idx < vLen && textcounter < newLen {
-		c := rune(value[idx])
+		c, size := utf8.DecodeRuneInString(value[idx:])
+		if c == utf8.RuneError {
+			idx += size
+			continue
+		}
+
 		if c == '<' {
 			new_output.WriteRune(c)
 			if idx+1 < vLen {
@@ -135,12 +141,17 @@ func filterTruncatecharsHtml(in *Value, param *Value) (*Value, error) {
 					tag := ""
 					idx += 2
 					for idx < vLen {
-						c = rune(value[idx])
-						if c == '>' {
+						c2, size2 := utf8.DecodeRuneInString(value[idx:])
+						if c2 == utf8.RuneError {
+							idx += size
+							continue
+						}
+
+						if c2 == '>' {
 							break
 						}
-						tag += string(c)
-						idx++
+						tag += string(c2)
+						idx += size2
 					}
 					if len(tag_stack) > 0 {
 						// Ideally, the close tag is TOP of tag stack
@@ -166,19 +177,25 @@ func filterTruncatecharsHtml(in *Value, param *Value) (*Value, error) {
 					idx += 1
 					params := false
 					for idx < vLen {
-						c = rune(value[idx])
-						new_output.WriteRune(c)
-						if c == '>' {
+						c2, size2 := utf8.DecodeRuneInString(value[idx:])
+						if c2 == utf8.RuneError {
+							idx += size
+							continue
+						}
+
+						new_output.WriteRune(c2)
+						if c2 == '>' {
 							break
 						}
 						if !params {
-							if c == ' ' {
+							if c2 == ' ' {
 								params = true
 							} else {
-								tag += string(c)
+								tag += string(c2)
 							}
 						}
-						idx++
+
+						idx += size2
 					}
 					tag_stack = append(tag_stack, tag)
 				}
@@ -188,7 +205,7 @@ func filterTruncatecharsHtml(in *Value, param *Value) (*Value, error) {
 			new_output.WriteRune(c)
 		}
 
-		idx++
+		idx += size
 	}
 
 	if textcounter >= newLen && textcounter < vLen {
@@ -240,7 +257,12 @@ func filterTruncatewordsHtml(in *Value, param *Value) (*Value, error) {
 	wordcounter := 0
 	idx := 0
 	for idx < vLen && wordcounter < newLen {
-		c := rune(value[idx])
+		c, size := utf8.DecodeRuneInString(value[idx:])
+		if c == utf8.RuneError {
+			idx += size
+			continue
+		}
+
 		if c == '<' {
 			new_output.WriteRune(c)
 			if idx+1 < vLen {
@@ -252,12 +274,17 @@ func filterTruncatewordsHtml(in *Value, param *Value) (*Value, error) {
 					tag := ""
 					idx += 2
 					for idx < vLen {
-						c = rune(value[idx])
-						if c == '>' {
+						c2, size2 := utf8.DecodeRuneInString(value[idx:])
+						if c2 == utf8.RuneError {
+							idx += size
+							continue
+						}
+
+						if c2 == '>' {
 							break
 						}
-						tag += string(c)
-						idx++
+						tag += string(c2)
+						idx += size2
 					}
 					if len(tag_stack) > 0 {
 						// Ideally, the close tag is TOP of tag stack
@@ -283,19 +310,25 @@ func filterTruncatewordsHtml(in *Value, param *Value) (*Value, error) {
 					idx += 1
 					params := false
 					for idx < vLen {
-						c = rune(value[idx])
-						new_output.WriteRune(c)
-						if c == '>' {
+						c2, size2 := utf8.DecodeRuneInString(value[idx:])
+						if c2 == utf8.RuneError {
+							idx += size
+							continue
+						}
+
+						new_output.WriteRune(c2)
+						if c2 == '>' {
 							break
 						}
 						if !params {
-							if c == ' ' {
+							if c2 == ' ' {
 								params = true
 							} else {
-								tag += string(c)
+								tag += string(c2)
 							}
 						}
-						idx++
+
+						idx += size2
 					}
 					tag_stack = append(tag_stack, tag)
 				}
@@ -305,18 +338,23 @@ func filterTruncatewordsHtml(in *Value, param *Value) (*Value, error) {
 			word := ""
 			word_found := false
 			for idx < vLen {
-				c := rune(value[idx])
-				if c == '<' {
+				c2, size2 := utf8.DecodeRuneInString(value[idx:])
+				if c2 == utf8.RuneError {
+					idx += size
+					continue
+				}
+
+				if c2 == '<' {
 					// HTML tag start, don't consume it
 					break
 				}
 
-				word += string(c)
-				if c == ' ' || c == '.' || c == ',' || c == ';' {
+				word += string(c2)
+				if c2 == ' ' || c2 == '.' || c2 == ',' || c2 == ';' {
 					break
 				} else {
 					word_found = true
-					idx++
+					idx += size2
 				}
 			}
 
@@ -327,7 +365,7 @@ func filterTruncatewordsHtml(in *Value, param *Value) (*Value, error) {
 			new_output.WriteString(word)
 		}
 
-		idx++
+		idx += size
 	}
 
 	if wordcounter >= newLen {
@@ -362,17 +400,20 @@ func filterSafe(in *Value, param *Value) (*Value, error) {
 
 func filterEscapejs(in *Value, param *Value) (*Value, error) {
 	sin := in.String()
-	l := len(sin)
 
 	var b bytes.Buffer
 
 	idx := 0
-	for idx < l {
-		c := rune(sin[idx])
+	for idx < len(sin) {
+		c, size := utf8.DecodeRuneInString(sin[idx:])
+		if c == utf8.RuneError {
+			idx += size
+			continue
+		}
 
 		if c == '\\' {
 			// Escape seq?
-			if idx+1 < l {
+			if idx+1 < len(sin) {
 				switch sin[idx+1] {
 				case 'r':
 					b.WriteString(fmt.Sprintf(`\u%04X`, '\r'))
@@ -399,7 +440,8 @@ func filterEscapejs(in *Value, param *Value) (*Value, error) {
 		} else {
 			b.WriteString(fmt.Sprintf(`\u%04X`, c))
 		}
-		idx++
+
+		idx += size
 	}
 
 	return AsValue(b.String()), nil
