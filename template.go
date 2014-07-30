@@ -75,9 +75,11 @@ func (tpl *Template) execute(context Context) (*bytes.Buffer, error) {
 	if context == nil {
 		context = make(Context)
 	} else {
-		err := context.checkForValidIdentifiers()
-		if err != nil {
-			return nil, err
+		if len(context) > 0 {
+			err := context.checkForValidIdentifiers()
+			if err != nil {
+				return nil, err
+			}
 		}
 	}
 
