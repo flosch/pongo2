@@ -9,9 +9,43 @@ pongo2 is the successor of [pongo](https://github.com/flosch/pongo), a Django-sy
 
 Please use the [issue tracker](https://github.com/flosch/pongo2/issues) if you're encountering any problems with pongo2 or if you need help with implementing tags or filters ([create a ticket!](https://github.com/flosch/pongo2/issues/new)).
 
+## First impression
+
+```HTML+Django
+<html><head><title>Our users</title></head>
+{# This is a short example to give you a quick overview of pongo2's syntax. #}
+
+{% macro user_details(user, is_admin=false) %}
+	<div class="user_item">
+		<!-- Will call user.String() automatically -->
+		<h2>{{ user }}</h2>
+		
+		<p>The user's biography:</p>
+		<!-- Let's allow the users to write down their biography using markdown;
+			we will only show the first 15 words as a preview with a following ellipsis -->
+		<p>{{ user.biography|markdown|truncatewords_html:15|safe }}
+			<a href="/user/{{ user.id }}/">read more</a></p>
+		
+		{% if is_admin %}
+		<p>This user is an admin!</p>
+		{% endif %}
+	</div>
+{% endmacro %}
+
+<body>
+	<h1>Our users</h1>
+	{% for user in userlist %}
+		{# The user with user# == 0 is admin by definition #}
+		{{ user_details(user, user.id == 0) }}
+	{% endfor %}
+</body>
+</html>
+```
+
 ## Development status
 
-**Current status/version**: release candidate 1 for first stable *version 1.0* (**pongo2 1.0-rc1**) ([see the announcement](http://www.florian-schlachter.de/post/pongo2-10-rc1/)).
+**Current status/version**: release candidate 1 for first stable *version 1.0* (**pongo2 1.0-rc1**).
+See the [announcement for 1.0-rc1](http://www.florian-schlachter.de/post/pongo2-10-rc1/).
 
 | Topic                                | Status                                                                                 |
 | ------------------------------------ | -------------------------------------------------------------------------------------- |       
@@ -49,9 +83,12 @@ If you're using pongo2, you might be interested in this section. Since pongo2 is
 
 For a documentation on how the templating language works you can [head over to the Django documentation](https://docs.djangoproject.com/en/dev/topics/templates/). pongo2 aims to be compatible with it.
 
-[See my blog post announcement about pongo2 and for a migration- and a "how to write tags/filters"-tutorial.](http://www.florian-schlachter.de/post/pongo2/)
-
 You can access pongo2's API documentation on [godoc](https://godoc.org/github.com/flosch/pongo2).
+
+## Blog post series
+
+ * [Release of pongo2 1.0-rc1 + pongo2-addons](http://www.florian-schlachter.de/post/pongo2-10-rc1/) [July 30th 2014]
+ * [Introduction to pongo2 + migration- and "how to write tags/filters"-tutorial.](http://www.florian-schlachter.de/post/pongo2/) [June 29th 2014]
 
 ## Caveats 
 
@@ -89,51 +126,57 @@ It is *not* done automatically.
 
 Please add your project to this list and send me a pull request when you've developed something nice for pongo2.
 
-# Examples
+# API-usage examples
+
+Please see the documentation for a full list of provided API methods.
 
 ## A tiny example (template string)
 
-	// Compile the template first (i. e. creating the AST)
-	tpl, err := pongo2.FromString("Hello {{ name|capfirst }}!")
-	if err != nil {
-		panic(err)
-	}
-	// Now you can render the template with the given 
-	// pongo2.Context how often you want to.
-	out, err := tpl.Execute(pongo2.Context{"name": "florian"})
-	if err != nil {
-		panic(err)
-	}
-	fmt.Println(out) // Output: Hello Florian!
+```Go
+// Compile the template first (i. e. creating the AST)
+tpl, err := pongo2.FromString("Hello {{ name|capfirst }}!")
+if err != nil {
+	panic(err)
+}
+// Now you can render the template with the given 
+// pongo2.Context how often you want to.
+out, err := tpl.Execute(pongo2.Context{"name": "florian"})
+if err != nil {
+	panic(err)
+}
+fmt.Println(out) // Output: Hello Florian!
+```
 
 ## Example server-usage (template file)
 
-	package main
-	
-	import (
-		"github.com/flosch/pongo2"
-		"net/http"
-	)
-	
-	// Pre-compiling the templates at application startup using the
-	// little Must()-helper function (Must() will panic if FromFile()
-	// or FromString() will return with an error - that's it).
-	// It's faster to pre-compile it anywhere at startup and only
-	// execute the template later.
-	var tplExample = pongo2.Must(pongo2.FromFile("example.html"))
-	
-	func examplePage(w http.ResponseWriter, r *http.Request) {
-		// Execute the template per HTTP request
-		err := tplExample.ExecuteWriter(pongo2.Context{"query": r.FormValue("query")}, w)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-		}
+```Go
+package main
+
+import (
+	"github.com/flosch/pongo2"
+	"net/http"
+)
+
+// Pre-compiling the templates at application startup using the
+// little Must()-helper function (Must() will panic if FromFile()
+// or FromString() will return with an error - that's it).
+// It's faster to pre-compile it anywhere at startup and only
+// execute the template later.
+var tplExample = pongo2.Must(pongo2.FromFile("example.html"))
+
+func examplePage(w http.ResponseWriter, r *http.Request) {
+	// Execute the template per HTTP request
+	err := tplExample.ExecuteWriter(pongo2.Context{"query": r.FormValue("query")}, w)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
-	
-	func main() {
-		http.HandleFunc("/", examplePage)
-		http.ListenAndServe(":8080", nil)
-	}
+}
+
+func main() {
+	http.HandleFunc("/", examplePage)
+	http.ListenAndServe(":8080", nil)
+}
+```
 
 # Benchmark
 
