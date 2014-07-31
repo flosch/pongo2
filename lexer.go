@@ -133,6 +133,13 @@ func (l *lexer) emit(t TokenType) {
 		Line:     l.startline,
 		Col:      l.startcol,
 	}
+
+	if t == TokenString {
+		// Escape sequence \" in strings
+		tok.Val = strings.Replace(tok.Val, `\"`, `"`, -1)
+		tok.Val = strings.Replace(tok.Val, `\\`, `\`, -1)
+	}
+
 	l.tokens = append(l.tokens, tok)
 	l.start = l.pos
 	l.startline = l.line
@@ -386,6 +393,14 @@ func (l *lexer) stateString() lexerStateFn {
 	l.startcol -= 1 // we're starting the position at the first "
 	for !l.accept(`"`) {
 		switch l.next() {
+		case '\\':
+			// escape sequence
+			switch l.peek() {
+			case '"', '\\':
+				l.next()
+			default:
+				return l.errorf("Unknown escape sequence: \\%c", l.peek())
+			}
 		case EOF:
 			return l.errorf("Unexpected EOF, string not closed.")
 		case '\n':
