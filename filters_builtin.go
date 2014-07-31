@@ -105,53 +105,47 @@ func filterTruncatecharsHelper(s string, newLen int) string {
 	return s
 }
 
-func filterTruncatechars(in *Value, param *Value) (*Value, error) {
-	s := in.String()
-	newLen := param.Integer()
-	return AsValue(filterTruncatecharsHelper(s, newLen)), nil
-}
-
-func filterTruncatecharsHtml(in *Value, param *Value) (*Value, error) {
-	value := in.String()
-	newLen := max(param.Integer()-3, 0)
+func filterTruncateHtmlHelper(value string, new_output *bytes.Buffer, cond func() bool, fn func(c rune, s int, idx int) int, finalize func()) {
 	vLen := len(value)
-
-	new_output := bytes.NewBuffer(nil)
-
 	tag_stack := make([]string, 0)
-
-	textcounter := 0
 	idx := 0
-	for idx < vLen && textcounter < newLen {
-		c, size := utf8.DecodeRuneInString(value[idx:])
+
+	for idx < vLen && !cond() {
+		c, s := utf8.DecodeRuneInString(value[idx:])
 		if c == utf8.RuneError {
-			idx += size
+			idx += s
 			continue
 		}
 
 		if c == '<' {
 			new_output.WriteRune(c)
+			idx += s // consume "<"
+
 			if idx+1 < vLen {
-				if value[idx+1] == '/' {
+				if value[idx] == '/' {
 					// Close tag
 
 					new_output.WriteString("/")
 
 					tag := ""
-					idx += 2
+					idx += 1 // consume "/"
+
 					for idx < vLen {
 						c2, size2 := utf8.DecodeRuneInString(value[idx:])
 						if c2 == utf8.RuneError {
-							idx += size
+							idx += size2
 							continue
 						}
 
+						// End of tag found
 						if c2 == '>' {
+							idx++ // consume ">"
 							break
 						}
 						tag += string(c2)
 						idx += size2
 					}
+
 					if len(tag_stack) > 0 {
 						// Ideally, the close tag is TOP of tag stack
 						// In malformed HTML, it must not be, so iterate through the stack and remove the tag
@@ -169,19 +163,22 @@ func filterTruncatecharsHtml(in *Value, param *Value) (*Value, error) {
 					new_output.WriteString(">")
 				} else {
 					// Open tag
-					tag := ""
-					idx += 1 // consume "<"
-					params := false
 
+					tag := ""
+
+					params := false
 					for idx < vLen {
 						c2, size2 := utf8.DecodeRuneInString(value[idx:])
 						if c2 == utf8.RuneError {
-							idx += size
+							idx += size2
 							continue
 						}
+
 						new_output.WriteRune(c2)
 
+						// End of tag found
 						if c2 == '>' {
+							idx++ // consume ">"
 							break
 						}
 
@@ -195,31 +192,51 @@ func filterTruncatecharsHtml(in *Value, param *Value) (*Value, error) {
 
 						idx += size2
 					}
+
+					// Add tag to stack
 					tag_stack = append(tag_stack, tag)
 				}
 			}
 		} else {
-			textcounter++
-			new_output.WriteRune(c)
+			idx = fn(c, s, idx)
 		}
-
-		idx += size
 	}
 
-	if textcounter >= newLen && textcounter < vLen {
-		new_output.WriteString("...")
-	}
+	finalize()
 
 	for i := len(tag_stack) - 1; i >= 0; i-- {
 		tag := tag_stack[i]
 		// Close everything from the regular tag stack
 		new_output.WriteString(fmt.Sprintf("</%s>", tag))
 	}
+}
 
-	/*for _, tag := range to_close {
-		// Write everyting that was discovered unusually
-		new_output.WriteString(fmt.Sprintf("</%s>", tag))
-	}*/
+func filterTruncatechars(in *Value, param *Value) (*Value, error) {
+	s := in.String()
+	newLen := param.Integer()
+	return AsValue(filterTruncatecharsHelper(s, newLen)), nil
+}
+
+func filterTruncatecharsHtml(in *Value, param *Value) (*Value, error) {
+	value := in.String()
+	newLen := max(param.Integer()-3, 0)
+
+	new_output := bytes.NewBuffer(nil)
+
+	textcounter := 0
+
+	filterTruncateHtmlHelper(value, new_output, func() bool {
+		return textcounter >= newLen
+	}, func(c rune, s int, idx int) int {
+		textcounter++
+		new_output.WriteRune(c)
+
+		return idx + s
+	}, func() {
+		if textcounter >= newLen && textcounter < len(value) {
+			new_output.WriteString("...")
+		}
+	})
 
 	return AsValue(new_output.String()), nil
 }
@@ -246,132 +263,50 @@ func filterTruncatewords(in *Value, param *Value) (*Value, error) {
 func filterTruncatewordsHtml(in *Value, param *Value) (*Value, error) {
 	value := in.String()
 	newLen := max(param.Integer(), 0)
-	vLen := len(value)
 
 	new_output := bytes.NewBuffer(nil)
 
-	tag_stack := make([]string, 0)
-
 	wordcounter := 0
-	idx := 0
-	for idx < vLen && wordcounter < newLen {
-		c, size := utf8.DecodeRuneInString(value[idx:])
-		if c == utf8.RuneError {
-			idx += size
-			continue
+
+	filterTruncateHtmlHelper(value, new_output, func() bool {
+		return wordcounter >= newLen
+	}, func(_ rune, _ int, idx int) int {
+		// Get next word
+		word_found := false
+
+		for idx < len(value) {
+			c2, size2 := utf8.DecodeRuneInString(value[idx:])
+			if c2 == utf8.RuneError {
+				idx += size2
+				continue
+			}
+
+			if c2 == '<' {
+				// HTML tag start, don't consume it
+				return idx
+			}
+
+			new_output.WriteRune(c2)
+			idx += size2
+
+			if c2 == ' ' || c2 == '.' || c2 == ',' || c2 == ';' {
+				// Word ends here, stop capturing it now
+				break
+			} else {
+				word_found = true
+			}
 		}
 
-		if c == '<' {
-			new_output.WriteRune(c)
-			if idx+1 < vLen {
-				if value[idx+1] == '/' {
-					// Close tag
-
-					new_output.WriteString("/")
-
-					tag := ""
-					idx += 2
-					for idx < vLen {
-						c2, size2 := utf8.DecodeRuneInString(value[idx:])
-						if c2 == utf8.RuneError {
-							idx += size
-							continue
-						}
-
-						if c2 == '>' {
-							break
-						}
-						tag += string(c2)
-						idx += size2
-					}
-					if len(tag_stack) > 0 {
-						// Ideally, the close tag is TOP of tag stack
-						// In malformed HTML, it must not be, so iterate through the stack and remove the tag
-						for i := len(tag_stack) - 1; i >= 0; i-- {
-							if tag_stack[i] == tag {
-								// Found the tag
-								tag_stack[i] = tag_stack[len(tag_stack)-1]
-								tag_stack = tag_stack[:len(tag_stack)-1]
-								break
-							}
-						}
-					}
-
-					new_output.WriteString(tag)
-					new_output.WriteString(">")
-				} else {
-					// Open tag
-					tag := ""
-					idx += 1
-					params := false
-					for idx < vLen {
-						c2, size2 := utf8.DecodeRuneInString(value[idx:])
-						if c2 == utf8.RuneError {
-							idx += size
-							continue
-						}
-
-						new_output.WriteRune(c2)
-						if c2 == '>' {
-							break
-						}
-						if !params {
-							if c2 == ' ' {
-								params = true
-							} else {
-								tag += string(c2)
-							}
-						}
-
-						idx += size2
-					}
-					tag_stack = append(tag_stack, tag)
-				}
-			}
-		} else {
-			// Get next word
-			word := ""
-			word_found := false
-			for idx < vLen {
-				c2, size2 := utf8.DecodeRuneInString(value[idx:])
-				if c2 == utf8.RuneError {
-					idx += size
-					continue
-				}
-
-				if c2 == '<' {
-					// HTML tag start, don't consume it
-					break
-				}
-
-				word += string(c2)
-				if c2 == ' ' || c2 == '.' || c2 == ',' || c2 == ';' {
-					break
-				} else {
-					word_found = true
-					idx += size2
-				}
-			}
-
-			if word_found {
-				wordcounter++
-			}
-
-			new_output.WriteString(word)
+		if word_found {
+			wordcounter++
 		}
 
-		idx += size
-	}
-
-	if wordcounter >= newLen {
-		new_output.WriteString("...")
-	}
-
-	for i := len(tag_stack) - 1; i >= 0; i-- {
-		tag := tag_stack[i]
-		// Close everything from the regular tag stack
-		new_output.WriteString(fmt.Sprintf("</%s>", tag))
-	}
+		return idx
+	}, func() {
+		if wordcounter >= newLen {
+			new_output.WriteString("...")
+		}
+	})
 
 	return AsValue(new_output.String()), nil
 }
