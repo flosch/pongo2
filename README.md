@@ -43,8 +43,8 @@ Please use the [issue tracker](https://github.com/flosch/pongo2/issues) if you'r
 	     since we want to use the same code for admins AND members -->
 	
 	<h1>Our admins</h1>
-	{% for user in userlist %}
-		{{ user_details(user, true) }}
+	{% for admin in adminlist %}
+		{{ user_details(admin, true) }}
 	{% endfor %}
 	
 	<h1>Our members</h1>
