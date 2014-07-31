@@ -52,13 +52,13 @@ Please use the [issue tracker](https://github.com/flosch/pongo2/issues) if you'r
 		{{ user_details(user) }}
 	{% endfor %}
 </body>
-</html>w
+</html>
 ```
 
 ## Development status
 
 **Current status/version**: release candidate 1 for first stable *version 1.0* (**pongo2 1.0-rc1**).
-See the [announcement for 1.0-rc1](http://www.florian-schlachter.de/post/pongo2-10-rc1/).
+[See the announcement for 1.0-rc1](http://www.florian-schlachter.de/post/pongo2-10-rc1/).
 
 | Topic                                | Status                                                                                 |
 | ------------------------------------ | -------------------------------------------------------------------------------------- |       
