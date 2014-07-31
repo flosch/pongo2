@@ -9,37 +9,50 @@ pongo2 is the successor of [pongo](https://github.com/flosch/pongo), a Django-sy
 
 Please use the [issue tracker](https://github.com/flosch/pongo2/issues) if you're encountering any problems with pongo2 or if you need help with implementing tags or filters ([create a ticket!](https://github.com/flosch/pongo2/issues/new)).
 
-## First impression
+## First impression of a template
 
 ```HTML+Django
-<html><head><title>Our users</title></head>
+<html><head><title>Our admins and users</title></head>
 {# This is a short example to give you a quick overview of pongo2's syntax. #}
 
 {% macro user_details(user, is_admin=false) %}
 	<div class="user_item">
-		<!-- Will call user.String() automatically -->
-		<h2>{{ user }}</h2>
+		<!-- Let's indicate a user's good karma;
+		     {{ user }} will call user.String() automatically if available -->
+		<h2 {% if (user.karma >= 40) || (user.karma > overall_average_karma()+5) %}
+			class="karma-good"{% endif %}>
+			{{ user }}
+		</h2>
+		{% endwith %}
+
+		<!-- Will print a human-readable time duration like "3 weeks ago" -->
+		<p>This user registered {{ user.register_date|naturaltime }}.</p>
 		
-		<p>The user's biography:</p>
 		<!-- Let's allow the users to write down their biography using markdown;
-			we will only show the first 15 words as a preview with a following ellipsis -->
+		     we will only show the first 15 words as a preview with a following ellipsis -->
+		<p>The user's biography:</p>
 		<p>{{ user.biography|markdown|truncatewords_html:15|safe }}
 			<a href="/user/{{ user.id }}/">read more</a></p>
 		
-		{% if is_admin %}
-		<p>This user is an admin!</p>
-		{% endif %}
+		{% if is_admin %}<p>This user is an admin!</p>{% endif %}
 	</div>
 {% endmacro %}
 
 <body>
-	<h1>Our users</h1>
+	<!-- Make use of the macro defined above to avoid repetitive HTML code
+	     since we want to use the same code for admins AND members -->
+	
+	<h1>Our admins</h1>
 	{% for user in userlist %}
-		{# The user with user# == 0 is admin by definition #}
-		{{ user_details(user, user.id == 0) }}
+		{{ user_details(user, true) }}
+	{% endfor %}
+	
+	<h1>Our members</h1>
+	{% for user in userlist %}
+		{{ user_details(user) }}
 	{% endfor %}
 </body>
-</html>
+</html>w
 ```
 
 ## Development status
