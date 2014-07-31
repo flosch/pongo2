@@ -282,6 +282,7 @@ es
 
 truncatechars_html
 This is a long test wh...
+<div class="foo"><ul class="foo"><li class="foo"><p class="foo">This is a long test wh...</p></li></ul></div>
 <p class='test' id='foo'>This is a long test wh...</p>
 <a name='link'><p>This </a>is a long test wh...</p>
 <p>This </a>is a long test wh...</p>
@@ -289,8 +290,9 @@ This is a long test wh...
 
 truncatewords_html
 This is a long test which will be cutted after some words.
+<div class="foo"><ul class="foo"><li class="foo"><p class="foo">This is a long test ...</p></li></ul></div>
 <p>This. is. a. long test. Test test, test....</p>
-<a><p>This </a>is a long test,...</p>
+<a name='link' href="https://...."><p class="foo">This </a>is a long test,...</p>
 <p>This </a>is a long test,...</p>
 <p>This is ...</p>
 ...

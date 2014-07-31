@@ -119,7 +119,6 @@ func filterTruncatecharsHtml(in *Value, param *Value) (*Value, error) {
 	new_output := bytes.NewBuffer(nil)
 
 	tag_stack := make([]string, 0)
-	to_close := make([]string, 0)
 
 	textcounter := 0
 	idx := 0
@@ -164,9 +163,6 @@ func filterTruncatecharsHtml(in *Value, param *Value) (*Value, error) {
 								break
 							}
 						}
-					} else {
-						// Found a close tag without an open tag, put in into to_close
-						to_close = append(to_close, tag)
 					}
 
 					new_output.WriteString(tag)
@@ -174,19 +170,21 @@ func filterTruncatecharsHtml(in *Value, param *Value) (*Value, error) {
 				} else {
 					// Open tag
 					tag := ""
-					idx += 1
+					idx += 1 // consume "<"
 					params := false
+
 					for idx < vLen {
 						c2, size2 := utf8.DecodeRuneInString(value[idx:])
 						if c2 == utf8.RuneError {
 							idx += size
 							continue
 						}
-
 						new_output.WriteRune(c2)
+
 						if c2 == '>' {
 							break
 						}
+
 						if !params {
 							if c2 == ' ' {
 								params = true
@@ -212,15 +210,16 @@ func filterTruncatecharsHtml(in *Value, param *Value) (*Value, error) {
 		new_output.WriteString("...")
 	}
 
-	for _, tag := range tag_stack {
+	for i := len(tag_stack) - 1; i >= 0; i-- {
+		tag := tag_stack[i]
 		// Close everything from the regular tag stack
 		new_output.WriteString(fmt.Sprintf("</%s>", tag))
 	}
 
-	for _, tag := range to_close {
+	/*for _, tag := range to_close {
 		// Write everyting that was discovered unusually
 		new_output.WriteString(fmt.Sprintf("</%s>", tag))
-	}
+	}*/
 
 	return AsValue(new_output.String()), nil
 }
@@ -252,7 +251,6 @@ func filterTruncatewordsHtml(in *Value, param *Value) (*Value, error) {
 	new_output := bytes.NewBuffer(nil)
 
 	tag_stack := make([]string, 0)
-	to_close := make([]string, 0)
 
 	wordcounter := 0
 	idx := 0
@@ -297,9 +295,6 @@ func filterTruncatewordsHtml(in *Value, param *Value) (*Value, error) {
 								break
 							}
 						}
-					} else {
-						// Found a close tag without an open tag, put in into to_close
-						to_close = append(to_close, tag)
 					}
 
 					new_output.WriteString(tag)
@@ -372,13 +367,9 @@ func filterTruncatewordsHtml(in *Value, param *Value) (*Value, error) {
 		new_output.WriteString("...")
 	}
 
-	for _, tag := range tag_stack {
+	for i := len(tag_stack) - 1; i >= 0; i-- {
+		tag := tag_stack[i]
 		// Close everything from the regular tag stack
-		new_output.WriteString(fmt.Sprintf("</%s>", tag))
-	}
-
-	for _, tag := range to_close {
-		// Write everyting that was discovered unusually
 		new_output.WriteString(fmt.Sprintf("</%s>", tag))
 	}
 
