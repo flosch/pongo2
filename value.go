@@ -202,6 +202,8 @@ func (v *Value) IsTrue() bool {
 		return v.getResolvedValue().Len() > 0
 	case reflect.Bool:
 		return v.getResolvedValue().Bool()
+	case reflect.Struct:
+		return true // struct instance is always true
 	default:
 		logf("Value.IsTrue() not available for type: %s\n", v.getResolvedValue().Kind().String())
 		return false
