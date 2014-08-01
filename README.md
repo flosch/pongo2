@@ -24,7 +24,6 @@ Please use the [issue tracker](https://github.com/flosch/pongo2/issues) if you'r
 		     	<!-- This will call user.String() automatically if available: -->
 			{{ user }}
 		</h2>
-		{% endwith %}
 
 		<!-- Will print a human-readable time duration like "3 weeks ago" -->
 		<p>This user registered {{ user.register_date|naturaltime }}.</p>
