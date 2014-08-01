@@ -349,14 +349,14 @@ func filterEscapejs(in *Value, param *Value) (*Value, error) {
 					b.WriteString(fmt.Sprintf(`\u%04X`, '\n'))
 					idx += 2
 					continue
-				case '\'':
+				/*case '\'':
 					b.WriteString(fmt.Sprintf(`\u%04X`, '\''))
 					idx += 2
 					continue
 				case '"':
 					b.WriteString(fmt.Sprintf(`\u%04X`, '"'))
 					idx += 2
-					continue
+					continue*/
 				}
 			}
 		}
