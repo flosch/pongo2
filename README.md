@@ -9,6 +9,8 @@ pongo2 is the successor of [pongo](https://github.com/flosch/pongo), a Django-sy
 
 Please use the [issue tracker](https://github.com/flosch/pongo2/issues) if you're encountering any problems with pongo2 or if you need help with implementing tags or filters ([create a ticket!](https://github.com/flosch/pongo2/issues/new)).
 
+**New**: [Try pongo2 out in the pongo2 playground.](http://www.florian-schlachter.de/pongo2/)
+
 ## First impression of a template
 
 ```HTML+Django
@@ -100,6 +102,7 @@ You can access pongo2's API documentation on [godoc](https://godoc.org/github.co
 
 ## Blog post series
 
+ * [pongo2 playground](http://www.florian-schlachter.de/post/pongo2-playground/)
  * [Release of pongo2 1.0-rc1 + pongo2-addons](http://www.florian-schlachter.de/post/pongo2-10-rc1/) [July 30th 2014]
  * [Introduction to pongo2 + migration- and "how to write tags/filters"-tutorial.](http://www.florian-schlachter.de/post/pongo2/) [June 29th 2014]
 
