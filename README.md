@@ -17,10 +17,11 @@ Please use the [issue tracker](https://github.com/flosch/pongo2/issues) if you'r
 
 {% macro user_details(user, is_admin=false) %}
 	<div class="user_item">
-		<!-- Let's indicate a user's good karma;
-		     {{ user }} will call user.String() automatically if available -->
-		<h2 {% if (user.karma >= 40) || (user.karma > overall_average_karma()+5) %}
+		<!-- Let's indicate a user's good karma -->
+		<h2 {% if (user.karma >= 40) || (user.karma > calc_avg_karma(userlist)+5) %}
 			class="karma-good"{% endif %}>
+			
+		     	<!-- This will call user.String() automatically if available: -->
 			{{ user }}
 		</h2>
 		{% endwith %}
@@ -29,7 +30,7 @@ Please use the [issue tracker](https://github.com/flosch/pongo2/issues) if you'r
 		<p>This user registered {{ user.register_date|naturaltime }}.</p>
 		
 		<!-- Let's allow the users to write down their biography using markdown;
-		     we will only show the first 15 words as a preview with a following ellipsis -->
+		     we will only show the first 15 words as a preview -->
 		<p>The user's biography:</p>
 		<p>{{ user.biography|markdown|truncatewords_html:15|safe }}
 			<a href="/user/{{ user.id }}/">read more</a></p>
