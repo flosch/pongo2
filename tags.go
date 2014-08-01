@@ -89,7 +89,7 @@ func (p *Parser) parseTagElement() (INodeTag, error) {
 	}
 
 	args_token := make([]*Token, 0)
-	for p.Peek(TokenSymbol, "%}") == nil {
+	for p.Peek(TokenSymbol, "%}") == nil && p.Remaining() > 0 {
 		// Add token to args
 		args_token = append(args_token, p.Current())
 		p.Consume() // next token

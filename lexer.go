@@ -111,7 +111,7 @@ func lex(name string, input string) ([]*Token, error) {
 	l.run()
 	if l.errored {
 		errtoken := l.tokens[len(l.tokens)-1]
-		return nil, errors.New(fmt.Sprintf("[Lexer Error in %s (Line %d Col %d)]: %s",
+		return nil, errors.New(fmt.Sprintf("[Lexer Error in %s (Line %d Col %d)] %s",
 			name, errtoken.Line, errtoken.Col, errtoken.Val))
 	}
 	return l.tokens, nil
