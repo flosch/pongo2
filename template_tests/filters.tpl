@@ -222,6 +222,9 @@ truncatewords
 {% filter wordcount %}{% filter truncatewords:9 %}{% lorem 25 w %}{% endfilter %}{% endfilter %}
 
 urlize
+{{ "http://www.florian-schlachter.de"|urlize|safe }}
+{{ "www.florian-schlachter.de"|urlize|safe }}
+{{ "florian-schlachter.de"|urlize|safe }}
 {% filter urlize:true|safe %}
 Please mail me at demo@example.com or visit mit on:
 - lorem ipsum github.com/flosch/pongo2 lorem ipsum

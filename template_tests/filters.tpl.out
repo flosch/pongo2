@@ -236,6 +236,9 @@ Lorem ipsum dolor sit amet, consectetur adipisici elit, sed ...
 10
 
 urlize
+<a href="http://www.florian-schlachter.de" rel="nofollow">http://www.florian-schlachter.de</a>
+<a href="http://www.florian-schlachter.de" rel="nofollow">www.florian-schlachter.de</a>
+<a href="http://florian-schlachter.de" rel="nofollow">florian-schlachter.de</a>
 
 Please mail me at <a href="mailto:demo@example.com">demo@example.com</a> or visit mit on:
 - lorem ipsum <a href="http://github.com/flosch/pongo2" rel="nofollow">github.com/flosch/pongo2</a> lorem ipsum

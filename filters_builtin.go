@@ -349,14 +349,14 @@ func filterEscapejs(in *Value, param *Value) (*Value, error) {
 					b.WriteString(fmt.Sprintf(`\u%04X`, '\n'))
 					idx += 2
 					continue
-				/*case '\'':
-					b.WriteString(fmt.Sprintf(`\u%04X`, '\''))
-					idx += 2
-					continue
-				case '"':
-					b.WriteString(fmt.Sprintf(`\u%04X`, '"'))
-					idx += 2
-					continue*/
+					/*case '\'':
+						b.WriteString(fmt.Sprintf(`\u%04X`, '\''))
+						idx += 2
+						continue
+					case '"':
+						b.WriteString(fmt.Sprintf(`\u%04X`, '"'))
+						idx += 2
+						continue*/
 				}
 			}
 		}
@@ -634,11 +634,20 @@ func filterUrlencode(in *Value, param *Value) (*Value, error) {
 }
 
 // TODO: This regexp could do some work
-var filterUrlizeURLRegexp = regexp.MustCompile(`((((http|https)://)|www\.|\w+(\.com|\.net|\.org|\.info|\.biz|\.de)/))(?U:.*)[ ]`)
+var filterUrlizeURLRegexp = regexp.MustCompile(`((((http|https)://)|www\.|((^|[ ])[0-9A-Za-z_\-]+(\.com|\.net|\.org|\.info|\.biz|\.de))))(?U:.*)([ ]+|$)`)
 var filterUrlizeEmailRegexp = regexp.MustCompile(`(\w+@\w+\.\w{2,4})`)
 
 func filterUrlizeHelper(input string, autoescape bool, trunc int) string {
 	sout := filterUrlizeURLRegexp.ReplaceAllStringFunc(input, func(raw_url string) string {
+		var prefix string
+		var suffix string
+		if strings.HasPrefix(raw_url, " ") {
+			prefix = " "
+		}
+		if strings.HasSuffix(raw_url, " ") {
+			suffix = " "
+		}
+
 		raw_url = strings.TrimSpace(raw_url)
 
 		t, err := ApplyFilter("iriencode", AsValue(raw_url), nil)
@@ -665,7 +674,7 @@ func filterUrlizeHelper(input string, autoescape bool, trunc int) string {
 			title = t.String()
 		}
 
-		return fmt.Sprintf(`<a href="%s" rel="nofollow">%s</a> `, url, title)
+		return fmt.Sprintf(`%s<a href="%s" rel="nofollow">%s</a>%s`, prefix, url, title, suffix)
 	})
 
 	sout = filterUrlizeEmailRegexp.ReplaceAllStringFunc(sout, func(mail string) string {
