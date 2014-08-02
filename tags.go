@@ -102,7 +102,13 @@ func (p *Parser) parseTagElement() (INodeTag, error) {
 
 	p.Match(TokenSymbol, "%}")
 
+	arg_parser := newParser(p.name, args_token, nil)
+	if len(args_token) == 0 {
+		// This is done to have nice EOF error messages
+		arg_parser.last_token = token_name
+	}
+
 	p.template.level++
 	defer func() { p.template.level-- }()
-	return tag.parser(p, token_name, newParser(p.name, args_token, nil))
+	return tag.parser(p, token_name, arg_parser)
 }
