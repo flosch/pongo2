@@ -240,7 +240,7 @@ func (p *Parser) WrapUntilTag(names ...string) (*NodeWrapper, *Parser, error) {
 							t := p.Current()
 							p.Consume()
 							if t == nil {
-								return nil, nil, p.Error("Unexpected EOF.", nil)
+								return nil, nil, p.Error("Unexpected EOF.", p.template.last_token)
 							}
 							tagArgs = append(tagArgs, t)
 						}
@@ -258,5 +258,6 @@ func (p *Parser) WrapUntilTag(names ...string) (*NodeWrapper, *Parser, error) {
 		wrapper.nodes = append(wrapper.nodes, node)
 	}
 
-	return nil, nil, p.Error(fmt.Sprintf("Unexpected EOF, expected tag %s.", strings.Join(names, " or ")), nil)
+	return nil, nil, p.Error(fmt.Sprintf("Unexpected EOF, expected tag %s.", strings.Join(names, " or ")),
+		p.template.last_token)
 }

@@ -15,6 +15,7 @@ type Template struct {
 	// Calculation
 	tokens []*Token
 	parser *Parser
+	last_token *Token
 
 	// first come, first serve (it's important to not override existing entries in here)
 	level  int
@@ -45,6 +46,10 @@ func newTemplate(name, tpl string) (*Template, error) {
 		return nil, err
 	}
 	t.tokens = tokens
+
+	if len(tokens) > 0 {
+		t.last_token = tokens[len(tokens)-1]
+	}
 
 	// For debugging purposes, show all tokens:
 	/*for i, t := range tokens {
