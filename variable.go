@@ -337,7 +337,7 @@ func (p *Parser) parseVariableOrLiteral() (IEvaluator, error) {
 	t := p.Current()
 
 	if t == nil {
-		return nil, p.Error("Unexpected EOF, expected a number, string, keyword or identifier.", p.template.last_token)
+		return nil, p.Error("Unexpected EOF, expected a number, string, keyword or identifier.", p.last_token)
 	}
 
 	// Is first part a number or a string, there's nothing to resolve (because there's only to return the value then)
@@ -437,7 +437,7 @@ variableLoop:
 			} else {
 				// EOF
 				return nil, p.Error("Unexpected EOF, expected either IDENTIFIER or NUMBER after DOT.",
-					p.template.last_token)
+					p.last_token)
 			}
 		} else if p.Match(TokenSymbol, "(") != nil {
 			// Function call
@@ -447,7 +447,7 @@ variableLoop:
 		argumentLoop:
 			for {
 				if p.Remaining() == 0 {
-					return nil, p.Error("Unexpected EOF, expected function call argument list.", p.template.last_token)
+					return nil, p.Error("Unexpected EOF, expected function call argument list.", p.last_token)
 				}
 
 				if p.Peek(TokenSymbol, ")") == nil {

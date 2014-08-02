@@ -97,7 +97,7 @@ func (p *Parser) parseTagElement() (INodeTag, error) {
 
 	// EOF?
 	if p.Remaining() == 0 {
-		return nil, p.Error("Unexpectedly reached EOF, no tag end found.", p.template.last_token)
+		return nil, p.Error("Unexpectedly reached EOF, no tag end found.", p.last_token)
 	}
 
 	p.Match(TokenSymbol, "%}")

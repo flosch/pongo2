@@ -34,6 +34,7 @@ type Parser struct {
 	name   string
 	idx    int
 	tokens []*Token
+	last_token *Token
 
 	// if the parser parses a template document, here will be
 	// a reference to it (needed to access the template through Tags)
@@ -44,11 +45,15 @@ type Parser struct {
 // Used inside pongo2 to parse documents and to provide an easy-to-use
 // parser for tag authors
 func newParser(name string, tokens []*Token, template *Template) *Parser {
-	return &Parser{
+	p := &Parser{
 		name:     name,
 		tokens:   tokens,
 		template: template,
 	}
+	if len(tokens) > 0 {
+		p.last_token = tokens[len(tokens)-1]
+	}
+	return p
 }
 
 // Consume one token. It will be gone forever.
@@ -240,7 +245,7 @@ func (p *Parser) WrapUntilTag(names ...string) (*NodeWrapper, *Parser, error) {
 							t := p.Current()
 							p.Consume()
 							if t == nil {
-								return nil, nil, p.Error("Unexpected EOF.", p.template.last_token)
+								return nil, nil, p.Error("Unexpected EOF.", p.last_token)
 							}
 							tagArgs = append(tagArgs, t)
 						}
@@ -259,5 +264,5 @@ func (p *Parser) WrapUntilTag(names ...string) (*NodeWrapper, *Parser, error) {
 	}
 
 	return nil, nil, p.Error(fmt.Sprintf("Unexpected EOF, expected tag %s.", strings.Join(names, " or ")),
-		p.template.last_token)
+		p.last_token)
 }
