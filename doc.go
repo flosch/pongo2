@@ -9,8 +9,6 @@
 // Try out pongo2 live in the pongo2 playground:
 // https://www.florian-schlachter.de/pongo2/
 //
-// .iframe https://www.florian-schlachter.de/pongo2/?embed=yes
-//
 // Make sure to read README.md in the repository as well.
 //
 // A tiny example with template strings:
