@@ -7,6 +7,11 @@
 
 pongo2 is the successor of [pongo](https://github.com/flosch/pongo), a Django-syntax like templating-language.
 
+Install/update using `go get` (no dependencies required by pongo2):
+```
+go get -u github.com/flosch/pongo2
+```
+
 Please use the [issue tracker](https://github.com/flosch/pongo2/issues) if you're encountering any problems with pongo2 or if you need help with implementing tags or filters ([create a ticket!](https://github.com/flosch/pongo2/issues/new)). If possible, please use [playground](https://www.florian-schlachter.de/pongo2/) to create a short test case on what's wrong and include the link to the snippet in your issue.
 
 **New**: [Try pongo2 out in the pongo2 playground.](https://www.florian-schlachter.de/pongo2/)
@@ -102,7 +107,7 @@ You can access pongo2's API documentation on [godoc](https://godoc.org/github.co
 
 ## Blog post series
 
- * [pongo2 playground](https://www.florian-schlachter.de/post/pongo2-playground/)
+ * [pongo2 playground](https://www.florian-schlachter.de/post/pongo2-playground/) [August 1st 2014]
  * [Release of pongo2 1.0-rc1 + pongo2-addons](https://www.florian-schlachter.de/post/pongo2-10-rc1/) [July 30th 2014]
  * [Introduction to pongo2 + migration- and "how to write tags/filters"-tutorial.](https://www.florian-schlachter.de/post/pongo2/) [June 29th 2014]
 
@@ -136,7 +141,7 @@ It is *not* done automatically.
 
 ## 3rd-party
 
- * [beego-pongo2](https://github.com/oal/beego-pongo2) - A tiny little helper for using Pongo2 with Beego.
+ * [beego-pongo2](https://github.com/oal/beego-pongo2) - A tiny little helper for using Pongo2 with [Beego](https://github.com/astaxie/beego).
  * [macaron-pongo2](https://github.com/macaron-contrib/pongo2) - pongo2 support for [Macaron](https://github.com/Unknwon/macaron), a modular web framework.
  * [ginpongo2](https://github.com/ngerakines/ginpongo2) - middleware for [gin](github.com/gin-gonic/gin) to use pongo2 templates
 
