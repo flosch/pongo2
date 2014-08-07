@@ -24,7 +24,7 @@ type Context map[string]interface{}
 func (c Context) checkForValidIdentifiers() error {
 	for k, v := range c {
 		if !reIdentifiers.MatchString(k) {
-			return errors.New(fmt.Sprintf("Context-key '%s' (value: '%+v') is not a valid identifier.", k, v))
+			return fmt.Errorf("Context-key '%s' (value: '%+v') is not a valid identifier.", k, v)
 		}
 	}
 	return nil

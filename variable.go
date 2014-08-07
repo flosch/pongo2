@@ -2,7 +2,6 @@ package pongo2
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 	"reflect"
 	"strconv"
@@ -170,7 +169,8 @@ func (vr *variableResolver) resolve(ctx *ExecutionContext) (*Value, error) {
 					case reflect.String, reflect.Array, reflect.Slice:
 						current = current.Index(part.i)
 					default:
-						return nil, errors.New(fmt.Sprintf("Can't access an index on type %s (variable %s)", current.Kind().String(), vr.String()))
+						return nil, fmt.Errorf("Can't access an index on type %s (variable %s)",
+							current.Kind().String(), vr.String())
 					}
 				case varTypeIdent:
 					// debugging:
@@ -183,7 +183,8 @@ func (vr *variableResolver) resolve(ctx *ExecutionContext) (*Value, error) {
 					case reflect.Map:
 						current = current.MapIndex(reflect.ValueOf(part.s))
 					default:
-						return nil, errors.New(fmt.Sprintf("Can't access a field by name on type %s (variable %s)", current.Kind().String(), vr.String()))
+						return nil, fmt.Errorf("Can't access a field by name on type %s (variable %s)",
+							current.Kind().String(), vr.String())
 					}
 				default:
 					panic("unimplemented")
@@ -212,7 +213,7 @@ func (vr *variableResolver) resolve(ctx *ExecutionContext) (*Value, error) {
 		if part.is_function_call || current.Kind() == reflect.Func {
 			// Check for callable
 			if current.Kind() != reflect.Func {
-				return nil, errors.New(fmt.Sprintf("'%s' is not a function (it is %s).", vr.String(), current.Kind().String()))
+				return nil, fmt.Errorf("'%s' is not a function (it is %s).", vr.String(), current.Kind().String())
 			}
 
 			// Check for correct function syntax and types
@@ -222,13 +223,13 @@ func (vr *variableResolver) resolve(ctx *ExecutionContext) (*Value, error) {
 			// Input arguments
 			if len(part.calling_args) != t.NumIn() && !(len(part.calling_args) >= t.NumIn()-1 && t.IsVariadic()) {
 				return nil,
-					errors.New(fmt.Sprintf("Function input argument count (%d) of '%s' must be equal to the calling argument count (%d).",
-						t.NumIn(), vr.String(), len(part.calling_args)))
+					fmt.Errorf("Function input argument count (%d) of '%s' must be equal to the calling argument count (%d).",
+						t.NumIn(), vr.String(), len(part.calling_args))
 			}
 
 			// Output arguments
 			if t.NumOut() != 1 {
-				return nil, errors.New(fmt.Sprintf("'%s' must have exactly 1 output argument.", vr.String()))
+				return nil, fmt.Errorf("'%s' must have exactly 1 output argument.", vr.String())
 			}
 
 			// Evaluate all parameters
@@ -258,16 +259,16 @@ func (vr *variableResolver) resolve(ctx *ExecutionContext) (*Value, error) {
 					// Function's argument is not a *pongo2.Value, then we have to check whether input argument is of the same type as the function's argument
 					if !is_variadic {
 						if fn_arg != reflect.TypeOf(pv.Interface()) && fn_arg.Kind() != reflect.Interface {
-							return nil, errors.New(fmt.Sprintf("Function input argument %d of '%s' must be of type %s or *pongo2.Value (not %T).",
-								idx, vr.String(), fn_arg.String(), pv.Interface()))
+							return nil, fmt.Errorf("Function input argument %d of '%s' must be of type %s or *pongo2.Value (not %T).",
+								idx, vr.String(), fn_arg.String(), pv.Interface())
 						} else {
 							// Function's argument has another type, using the interface-value
 							parameters = append(parameters, reflect.ValueOf(pv.Interface()))
 						}
 					} else {
 						if fn_arg != reflect.TypeOf(pv.Interface()) && fn_arg.Kind() != reflect.Interface {
-							return nil, errors.New(fmt.Sprintf("Function variadic input argument of '%s' must be of type %s or *pongo2.Value (not %T).",
-								vr.String(), fn_arg.String(), pv.Interface()))
+							return nil, fmt.Errorf("Function variadic input argument of '%s' must be of type %s or *pongo2.Value (not %T).",
+								vr.String(), fn_arg.String(), pv.Interface())
 						} else {
 							// Function's argument has another type, using the interface-value
 							parameters = append(parameters, reflect.ValueOf(pv.Interface()))

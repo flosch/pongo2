@@ -1,7 +1,6 @@
 package pongo2
 
 import (
-	"errors"
 	"fmt"
 )
 
@@ -41,7 +40,7 @@ func MustApplyFilter(name string, value *Value, param *Value) *Value {
 func ApplyFilter(name string, value *Value, param *Value) (*Value, error) {
 	fn, existing := filters[name]
 	if !existing {
-		return nil, errors.New(fmt.Sprintf("Filter with name '%s' not found.", name))
+		return nil, fmt.Errorf("Filter with name '%s' not found.", name)
 	}
 
 	// Make sure param is a *Value

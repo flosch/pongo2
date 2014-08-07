@@ -31,9 +31,9 @@ type INodeEvaluator interface {
 //
 // (See Token's documentation for more about tokens)
 type Parser struct {
-	name   string
-	idx    int
-	tokens []*Token
+	name       string
+	idx        int
+	tokens     []*Token
 	last_token *Token
 
 	// if the parser parses a template document, here will be
