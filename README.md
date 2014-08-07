@@ -7,6 +7,11 @@
 
 pongo2 is the successor of [pongo](https://github.com/flosch/pongo), a Django-syntax like templating-language.
 
+Install/update using `go get` (no dependencies required by pongo2):
+```
+go get -u github.com/flosch/pongo2
+```
+
 Please use the [issue tracker](https://github.com/flosch/pongo2/issues) if you're encountering any problems with pongo2 or if you need help with implementing tags or filters ([create a ticket!](https://github.com/flosch/pongo2/issues/new)). If possible, please use [playground](https://www.florian-schlachter.de/pongo2/) to create a short test case on what's wrong and include the link to the snippet in your issue.
 
 **New**: [Try pongo2 out in the pongo2 playground.](https://www.florian-schlachter.de/pongo2/)
