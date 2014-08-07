@@ -141,7 +141,7 @@ It is *not* done automatically.
 
 ## 3rd-party
 
- * [beego-pongo2](https://github.com/oal/beego-pongo2) - A tiny little helper for using Pongo2 with Beego.
+ * [beego-pongo2](https://github.com/oal/beego-pongo2) - A tiny little helper for using Pongo2 with [Beego](https://github.com/astaxie/beego).
  * [macaron-pongo2](https://github.com/macaron-contrib/pongo2) - pongo2 support for [Macaron](https://github.com/Unknwon/macaron), a modular web framework.
  * [ginpongo2](https://github.com/ngerakines/ginpongo2) - middleware for [gin](github.com/gin-gonic/gin) to use pongo2 templates
 
