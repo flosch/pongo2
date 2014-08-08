@@ -26,7 +26,7 @@ func (node *tagWithNode) Execute(ctx *ExecutionContext, buffer *bytes.Buffer) er
 }
 
 func tagWithParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, error) {
-	include_node := &tagWithNode{
+	with_node := &tagWithNode{
 		with_pairs: make(map[string]IEvaluator),
 	}
 
@@ -38,7 +38,7 @@ func tagWithParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, erro
 	if err != nil {
 		return nil, err
 	}
-	include_node.wrapper = wrapper
+	with_node.wrapper = wrapper
 
 	if endargs.Count() > 0 {
 		return nil, endargs.Error("Arguments not allowed here.", nil)
@@ -67,7 +67,7 @@ func tagWithParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, erro
 			if key_token == nil {
 				return nil, arguments.Error("Expected an identifier", nil)
 			}
-			include_node.with_pairs[key_token.Val] = value_expr
+			with_node.with_pairs[key_token.Val] = value_expr
 		} else {
 			key_token := arguments.MatchType(TokenIdentifier)
 			if key_token == nil {
@@ -80,11 +80,11 @@ func tagWithParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, erro
 			if err != nil {
 				return nil, err
 			}
-			include_node.with_pairs[key_token.Val] = value_expr
+			with_node.with_pairs[key_token.Val] = value_expr
 		}
 	}
 
-	return include_node, nil
+	return with_node, nil
 }
 
 func init() {
