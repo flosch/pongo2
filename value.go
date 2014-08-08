@@ -82,6 +82,7 @@ func (v *Value) IsNil() bool {
 //     3. float (any precision)
 //     4. bool
 //     5. time.Time
+//     6. String() will be called on the underlying value if provided
 //
 // NIL values will lead to an empty string. Unsupported types are leading
 // to their respective type name.
@@ -106,9 +107,6 @@ func (v *Value) String() string {
 			return "False"
 		}
 	case reflect.Struct:
-		if v.getResolvedValue().Type() == reflect.TypeOf(time.Time{}) {
-			return v.getResolvedValue().Interface().(time.Time).String()
-		}
 		if t, ok := v.Interface().(fmt.Stringer); ok {
 			return t.String()
 		}
@@ -179,7 +177,7 @@ func (v *Value) Bool() bool {
 	}
 }
 
-// Tried to evaluate the underlying value the Pythonic-way:
+// Tries to evaluate the underlying value the Pythonic-way:
 //
 // Returns TRUE in one the following cases:
 //
@@ -188,6 +186,7 @@ func (v *Value) Bool() bool {
 //     * float != 0.0
 //     * len(array/chan/map/slice/string) > 0
 //     * bool == true
+//     * underlying value is a struct
 //
 // Otherwise returns always FALSE.
 func (v *Value) IsTrue() bool {
