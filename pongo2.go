@@ -5,7 +5,7 @@ import (
 )
 
 // Version string
-const Version = "1.0-rc1"
+const Version = "dev"
 
 // Helper function which panics, if a Template couldn't
 // successfully parsed. This is how you would use it:
