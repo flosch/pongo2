@@ -32,20 +32,20 @@ type floatResolver float64
 type boolResolver bool
 
 type variableResolver struct {
-	location_token *Token // TODO: Use it in Evaluate()/Execute() for proper in-execution error messages
+	location_token *Token
 
 	parts []*variablePart
 }
 
 type nodeFilteredVariable struct {
-	location_token *Token // TODO: Use it in Evaluate()/Execute() for proper in-execution error messages
+	location_token *Token
 
 	resolver    IEvaluator
 	filterChain []*filterCall
 }
 
 type nodeVariable struct {
-	location_token *Token // TODO: Use it in Evaluate()/Execute() for proper in-execution error messages
+	location_token *Token
 	expr           IEvaluator
 }
 
