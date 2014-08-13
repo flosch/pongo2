@@ -117,8 +117,7 @@ You can access pongo2's API documentation on [godoc](https://godoc.org/github.co
 
 ### Filters
 
-In general, if any **filter** is outputting unsafe characters (e. g. HTML tags in filter `linebreaks`), you will have to apply the "safe" filter on it afterwards currently.
-It is *not* done automatically. 
+In general, if any **filter** is outputting unsafe characters and you want the characters/HTML tags being correctly interpreted by the browser (e. g. HTML tags in filter `linebreaks`), you will have to apply the `safe`-filter on your expression afterwards. Your output is *not* marked as being safe automatically.
 
  * **date** / **time**: The `date` and `time` filter are taking the Golang specific time- and date-format (not Django's one) currently. [Take a look on the format here](http://golang.org/pkg/time/#Time.Format).
  * **stringformat**: `stringformat` does **not** take Python's string format syntax as a parameter, instead it takes Go's. Essentially `{{ 3.14|stringformat:"pi is %.2f" }}` is `fmt.Sprintf("pi is %.2f", 3.14)`.
