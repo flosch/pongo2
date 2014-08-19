@@ -87,7 +87,7 @@ Please also have a look on the [caveats](https://github.com/flosch/pongo2#caveat
 
 ## Recent API changes within pongo2
 
-If you're using pongo2, you might be interested in this section. Since pongo2 is still in beta, there could be (backwards-incompatible) API changes over time. To keep track of these and therefore make it painless for you to adapt your codebase, I'll list them here.
+If you're using the `master`-branch of pongo2, you might be interested in this section. Since pongo2 is still in development (even though there is a first stable release!), there could be (backwards-incompatible) API changes over time. To keep track of these and therefore make it painless for you to adapt your codebase, I'll list them here.
 
  * Two new helper functions: [`RenderTemplateFile()`](https://godoc.org/github.com/flosch/pongo2#RenderTemplateFile) and [`RenderTemplateString()`](https://godoc.org/github.com/flosch/pongo2#RenderTemplateString).
  * `Template.ExecuteRW()` is now [`Template.ExecuteWriter()`](https://godoc.org/github.com/flosch/pongo2#Template.ExecuteWriter)
@@ -117,8 +117,7 @@ You can access pongo2's API documentation on [godoc](https://godoc.org/github.co
 
 ### Filters
 
-In general, if any **filter** is outputting unsafe characters (e. g. HTML tags in filter `linebreaks`), you will have to apply the "safe" filter on it afterwards currently.
-It is *not* done automatically. 
+In general, if any **filter** is outputting unsafe characters and you want the characters/HTML tags being correctly interpreted by the browser (e. g. HTML tags in filter `linebreaks`), you will have to apply the `safe`-filter on your expression afterwards. Your output is *not* marked as being safe automatically (instead, pongo2 would automatically escape any unsafe character by default).
 
  * **date** / **time**: The `date` and `time` filter are taking the Golang specific time- and date-format (not Django's one) currently. [Take a look on the format here](http://golang.org/pkg/time/#Time.Format).
  * **stringformat**: `stringformat` does **not** take Python's string format syntax as a parameter, instead it takes Go's. Essentially `{{ 3.14|stringformat:"pi is %.2f" }}` is `fmt.Sprintf("pi is %.2f", 3.14)`.
