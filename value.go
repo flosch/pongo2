@@ -336,8 +336,15 @@ func (v *Value) CanSlice() bool {
 // If the underlying value has no items or is not one of the types above,
 // the empty function (function's second argument) will be called.
 func (v *Value) Iterate(fn func(idx, count int, key, value *Value) bool, empty func()) {
+	v.IterateOrder(fn, empty, false)
+}
+
+// Like Value.Iterate, but can iterate through an array/slice/string in reverse. Does
+// not affect the iteration through a map because maps don't have any particular order.
+func (v *Value) IterateOrder(fn func(idx, count int, key, value *Value) bool, empty func(), reverse bool) {
 	switch v.getResolvedValue().Kind() {
 	case reflect.Map:
+		// Reverse not needed for maps, since they are not ordered
 		keys := v.getResolvedValue().MapKeys()
 		keyLen := len(keys)
 		for idx, key := range keys {
@@ -353,9 +360,17 @@ func (v *Value) Iterate(fn func(idx, count int, key, value *Value) bool, empty f
 	case reflect.Array, reflect.Slice:
 		itemCount := v.getResolvedValue().Len()
 		if itemCount > 0 {
-			for i := 0; i < itemCount; i++ {
-				if !fn(i, itemCount, &Value{v.getResolvedValue().Index(i)}, nil) {
-					return
+			if reverse {
+				for i := itemCount - 1; i >= 0; i-- {
+					if !fn(i, itemCount, &Value{v.getResolvedValue().Index(i)}, nil) {
+						return
+					}
+				}
+			} else {
+				for i := 0; i < itemCount; i++ {
+					if !fn(i, itemCount, &Value{v.getResolvedValue().Index(i)}, nil) {
+						return
+					}
 				}
 			}
 		} else {
@@ -366,9 +381,17 @@ func (v *Value) Iterate(fn func(idx, count int, key, value *Value) bool, empty f
 		// TODO: Not utf8-compatible (utf8-decoding neccessary)
 		charCount := v.getResolvedValue().Len()
 		if charCount > 0 {
-			for i := 0; i < charCount; i++ {
-				if !fn(i, charCount, &Value{v.getResolvedValue().Slice(i, i+1)}, nil) {
-					return
+			if reverse {
+				for i := charCount - 1; i >= 0; i-- {
+					if !fn(i, charCount, &Value{v.getResolvedValue().Slice(i, i+1)}, nil) {
+						return
+					}
+				}
+			} else {
+				for i := 0; i < charCount; i++ {
+					if !fn(i, charCount, &Value{v.getResolvedValue().Slice(i, i+1)}, nil) {
+						return
+					}
 				}
 			}
 		} else {

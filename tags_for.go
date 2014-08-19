@@ -8,6 +8,7 @@ type tagForNode struct {
 	key              string
 	value            string // only for maps: for key, value in map
 	object_evaluator INodeEvaluator
+	reversed         bool
 
 	bodyWrapper  *NodeWrapper
 	emptyWrapper *NodeWrapper
@@ -46,7 +47,7 @@ func (node *tagForNode) Execute(ctx *ExecutionContext, buffer *bytes.Buffer) (fo
 		return err
 	}
 
-	obj.Iterate(func(idx, count int, key, value *Value) bool {
+	obj.IterateOrder(func(idx, count int, key, value *Value) bool {
 		// There's something to iterate over (correct type and at least 1 item)
 
 		// Update loop infos and public context
@@ -80,7 +81,7 @@ func (node *tagForNode) Execute(ctx *ExecutionContext, buffer *bytes.Buffer) (fo
 				forError = err
 			}
 		}
-	})
+	}, node.reversed)
 
 	return nil
 }
@@ -115,6 +116,10 @@ func tagForParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, error
 	for_node.key = key_token.Val
 	if value_token != nil {
 		for_node.value = value_token.Val
+	}
+
+	if arguments.MatchOne(TokenIdentifier, "reversed") != nil {
+		for_node.reversed = true
 	}
 
 	if arguments.Remaining() > 0 {

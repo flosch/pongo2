@@ -4,3 +4,6 @@
 {% for char in comment.Text %}{{forloop.Parentloop.Counter0}}.{{forloop.Counter0}}:{{ char|safe }} {% endfor %}
 
 {% endfor %}
+
+reversed
+'{% for item in simple.multiple_item_list reversed %}{{ item }} {% endfor %}'
