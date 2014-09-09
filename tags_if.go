@@ -5,22 +5,24 @@ import (
 )
 
 type tagIfNode struct {
-	condition   IEvaluator
-	thenWrapper *NodeWrapper
-	elseWrapper *NodeWrapper
+	conditions	[]IEvaluator
+	wrappers	[]*NodeWrapper
 }
 
 func (node *tagIfNode) Execute(ctx *ExecutionContext, buffer *bytes.Buffer) error {
-	result, err := node.condition.Evaluate(ctx)
-	if err != nil {
-		return err
-	}
+	for i, condition := range node.conditions {
+		result, err := condition.Evaluate(ctx)
+		if err != nil {
+			return err
+		}
 
-	if result.IsTrue() {
-		return node.thenWrapper.Execute(ctx, buffer)
-	} else {
-		if node.elseWrapper != nil {
-			return node.elseWrapper.Execute(ctx, buffer)
+		if result.IsTrue() {
+			return node.wrappers[i].Execute(ctx, buffer)
+		} else {
+			// Last condition?
+			if len(node.conditions) == i + 1 && len(node.wrappers) > i + 1 {
+				return node.wrappers[i + 1].Execute(ctx, buffer)
+			}
 		}
 	}
 	return nil
@@ -29,38 +31,43 @@ func (node *tagIfNode) Execute(ctx *ExecutionContext, buffer *bytes.Buffer) erro
 func tagIfParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, error) {
 	if_node := &tagIfNode{}
 
-	// Parse condition
+	// Parse first and main IF condition
 	condition, err := arguments.ParseExpression()
 	if err != nil {
 		return nil, err
 	}
-	if_node.condition = condition
+	if_node.conditions = append(if_node.conditions, condition)
 
 	if arguments.Remaining() > 0 {
 		return nil, arguments.Error("If-condition is malformed.", nil)
 	}
 
-	// Wrap then/else-blocks
-	wrapper, endargs, err := doc.WrapUntilTag("else", "endif")
-	if err != nil {
-		return nil, err
-	}
-	if_node.thenWrapper = wrapper
-
-	if endargs.Count() > 0 {
-		return nil, endargs.Error("Arguments not allowed here.", nil)
-	}
-
-	if wrapper.Endtag == "else" {
-		// if there's an else in the if-statement, we need the else-Block as well
-		wrapper, endargs, err = doc.WrapUntilTag("endif")
+	// Check the rest
+	for {
+		wrapper, args, err := doc.WrapUntilTag("else", "elseif", "endif")
 		if err != nil {
 			return nil, err
 		}
-		if_node.elseWrapper = wrapper
+		if_node.wrappers = append(if_node.wrappers, wrapper)
 
-		if endargs.Count() > 0 {
-			return nil, endargs.Error("Arguments not allowed here.", nil)
+		if wrapper.Endtag == "elseif" {
+			// ELSEIF can has condition
+			condition, err := args.ParseExpression()
+			if err != nil {
+				return nil, err
+			}
+			if_node.conditions = append(if_node.conditions, condition)
+
+			if args.Remaining() > 0 {
+				return nil, args.Error("Elseif-condition is malformed.", nil)
+			}
+		} else if args.Count() > 0 {
+			// ELSE and ENDIF can not
+			return nil, args.Error("Arguments not allowed here.", nil)
+		}
+
+		if wrapper.Endtag == "endif" {
+			break
 		}
 	}
 

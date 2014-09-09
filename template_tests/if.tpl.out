@@ -9,3 +9,6 @@ text field in complex.post
 5 in simple.intmap
 !0.0
 !0
+true
+simple.float
+Elseif with no else

@@ -9,3 +9,6 @@
 {% if 5 in simple.intmap %}5 in simple.intmap{% endif %}
 {% if !0.0 %}!0.0{% endif %}
 {% if !0 %}!0{% endif %}
+{% if 0 %}!0{% elseif nothing %}nothing{% else %}true{% endif %}
+{% if 0 %}!0{% elseif simple.float %}simple.float{% else %}false{% endif %}
+{% if 0 %}!0{% elseif !simple.float %}false{% elseif "Text" in complex.post%}Elseif with no else{% endif %}
