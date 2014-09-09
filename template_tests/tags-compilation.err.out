@@ -1,4 +1,4 @@
-.*Unexpected EOF, expected tag else or elseif or endif.
+.*Unexpected EOF, expected tag else or elif or endif.
 .*If-condition is malformed.
 .*Block named 'test' already defined.*
 .*Name for 'endblock' must equal to 'block'\-tag's name \('test' != 'test2'\).
