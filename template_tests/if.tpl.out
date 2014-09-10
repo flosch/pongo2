@@ -9,6 +9,9 @@ text field in complex.post
 5 in simple.intmap
 !0.0
 !0
+42
+yes
+yes
 true
 simple.float
 Elseif with no else
