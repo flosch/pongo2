@@ -49,7 +49,7 @@ func (c Context) Update(other Context) Context {
 // PLEASE DO NOT MODIFY THE PUBLIC CONTEXT (read-only).
 //
 // To create your own execution context within tags, use the
-// NewExecutionContext(parent) function.
+// NewChildExecutionContext(parent) function.
 type ExecutionContext struct {
 	template   *Template
 	Autoescape bool

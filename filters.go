@@ -27,6 +27,16 @@ func RegisterFilter(name string, fn FilterFunction) {
 	filters[name] = fn
 }
 
+// Replaces an already registered filter with a new implementation. Use this
+// function with caution since it allows you to change existing filter behaviour.
+func ReplaceFilter(name string, fn FilterFunction) {
+	_, existing := filters[name]
+	if !existing {
+		panic(fmt.Sprintf("Filter with name '%s' does not exist (therefore cannot be overridden).", name))
+	}
+	filters[name] = fn
+}
+
 // Like ApplyFilter, but panics on an error
 func MustApplyFilter(name string, value *Value, param *Value) *Value {
 	val, err := ApplyFilter(name, value, param)

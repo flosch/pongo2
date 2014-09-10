@@ -5,8 +5,8 @@ import (
 )
 
 type tagIfNode struct {
-	conditions	[]IEvaluator
-	wrappers	[]*NodeWrapper
+	conditions []IEvaluator
+	wrappers   []*NodeWrapper
 }
 
 func (node *tagIfNode) Execute(ctx *ExecutionContext, buffer *bytes.Buffer) error {
@@ -20,8 +20,8 @@ func (node *tagIfNode) Execute(ctx *ExecutionContext, buffer *bytes.Buffer) erro
 			return node.wrappers[i].Execute(ctx, buffer)
 		} else {
 			// Last condition?
-			if len(node.conditions) == i + 1 && len(node.wrappers) > i + 1 {
-				return node.wrappers[i + 1].Execute(ctx, buffer)
+			if len(node.conditions) == i+1 && len(node.wrappers) > i+1 {
+				return node.wrappers[i+1].Execute(ctx, buffer)
 			}
 		}
 	}
@@ -44,26 +44,28 @@ func tagIfParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, error)
 
 	// Check the rest
 	for {
-		wrapper, args, err := doc.WrapUntilTag("else", "elif", "endif")
+		wrapper, tag_args, err := doc.WrapUntilTag("elif", "else", "endif")
 		if err != nil {
 			return nil, err
 		}
 		if_node.wrappers = append(if_node.wrappers, wrapper)
 
 		if wrapper.Endtag == "elif" {
-			// ELSEIF can has condition
-			condition, err := args.ParseExpression()
+			// elif can take a condition
+			condition, err := tag_args.ParseExpression()
 			if err != nil {
 				return nil, err
 			}
 			if_node.conditions = append(if_node.conditions, condition)
 
-			if args.Remaining() > 0 {
-				return nil, args.Error("Elif-condition is malformed.", nil)
+			if tag_args.Remaining() > 0 {
+				return nil, tag_args.Error("Elif-condition is malformed.", nil)
 			}
-		} else if args.Count() > 0 {
-			// ELSE and ENDIF can not
-			return nil, args.Error("Arguments not allowed here.", nil)
+		} else {
+			if tag_args.Count() > 0 {
+				// else/endif can't take any conditions
+				return nil, tag_args.Error("Arguments not allowed here.", nil)
+			}
 		}
 
 		if wrapper.Endtag == "endif" {
