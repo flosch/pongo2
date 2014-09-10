@@ -71,6 +71,19 @@ func RegisterTag(name string, parserFn TagParser) {
 	}
 }
 
+// Replaces an already registered tag with a new implementation. Use this
+// function with caution since it allows you to change existing tag behaviour.
+func ReplaceTag(name string, parserFn TagParser) {
+	_, existing := tags[name]
+	if !existing {
+		panic(fmt.Sprintf("Tag with name '%s' does not exist (therefore cannot be overridden).", name))
+	}
+	tags[name] = &tag{
+		name:   name,
+		parser: parserFn,
+	}
+}
+
 // Tag = "{%" IDENT ARGS "%}"
 func (p *Parser) parseTagElement() (INodeTag, error) {
 	p.Consume() // consume "{%"
