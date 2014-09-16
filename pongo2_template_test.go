@@ -293,7 +293,7 @@ func TestCompilationErrors(t *testing.T) {
 
 			_, err = FromString(test)
 			if err == nil {
-				t.Fatalf("[%s | Line %d] Expected error for (got none): %s", match, idx+1, tests[idx])
+				t.Fatalf("[%s | Line %d] Expected error for (got none): %q but got %v", match, idx+1, tests[idx], err)
 			}
 			re := regexp.MustCompile(fmt.Sprintf("^%s$", checks[idx]))
 			if !re.MatchString(err.Error()) {

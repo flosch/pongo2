@@ -81,12 +81,15 @@ yesno
 {{ simple.bool_true|yesno:"ja,nein,vielleicht" }}
 {{ simple.bool_false|yesno:"ja,nein,vielleicht" }}
 {{ simple.nothing|yesno:"ja,nein" }}
+{{ simple.bool_false|yesno:"да":"нет":"может быть" }}
+{{ simple.bool_false|yesno:"да"::"может быть" }}
 
 pluralize
 customer{{ 0|pluralize }}
 customer{{ 1|pluralize }}
 customer{{ 2|pluralize }}
 cherr{{ 0|pluralize:"y,ies" }}
+cherr{{ 0|pluralize:"y":"ies" }}
 cherr{{ 1|pluralize:"y,ies" }}
 cherr{{ 2|pluralize:"y,ies" }}
 walrus{{ 0|pluralize:"es" }}
@@ -268,6 +271,7 @@ slice
 {{ simple.multiple_item_list|slice:"2:3"|join:"," }}
 {{ simple.multiple_item_list|slice:"2:1"|join:"," }}
 {{ "Test"|slice:"1:3" }}
+{{ "Test"|slice:1:3 }}
 
 truncatechars_html
 {{ "This is a long test which will be cutted after some chars."|truncatechars_html:25|safe }}

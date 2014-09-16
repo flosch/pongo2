@@ -81,11 +81,14 @@ maybe
 ja
 nein
 maybe
+нет
+no
 
 pluralize
 customers
 customer
 customers
+cherries
 cherries
 cherry
 cherries
@@ -281,6 +284,7 @@ slice
 2,3,5,8,13,21,34,55
 2
 2,3,5,8,13,21,34,55
+es
 es
 
 truncatechars_html

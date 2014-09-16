@@ -4,7 +4,7 @@ import (
 	"fmt"
 )
 
-type FilterFunction func(in *Value, param *Value) (out *Value, err error)
+type FilterFunction func(in *Value, params ...*Value) (out *Value, err error)
 
 var filters map[string]FilterFunction
 
@@ -38,8 +38,8 @@ func ReplaceFilter(name string, fn FilterFunction) {
 }
 
 // Like ApplyFilter, but panics on an error
-func MustApplyFilter(name string, value *Value, param *Value) *Value {
-	val, err := ApplyFilter(name, value, param)
+func MustApplyFilter(name string, value *Value, params ...*Value) *Value {
+	val, err := ApplyFilter(name, value, params...)
 	if err != nil {
 		panic(err)
 	}
@@ -47,43 +47,37 @@ func MustApplyFilter(name string, value *Value, param *Value) *Value {
 }
 
 // Applies a filter to a given value using the given parameters. Returns a *pongo2.Value or an error.
-func ApplyFilter(name string, value *Value, param *Value) (*Value, error) {
+func ApplyFilter(name string, value *Value, params ...*Value) (*Value, error) {
 	fn, existing := filters[name]
 	if !existing {
 		return nil, fmt.Errorf("Filter with name '%s' not found.", name)
 	}
-
-	// Make sure param is a *Value
-	if param == nil {
-		param = AsValue(nil)
-	}
-
-	return fn(value, param)
+	return fn(value, params...)
 }
 
 type filterCall struct {
-	token *Token
+	token		*Token
 
-	name      string
-	parameter IEvaluator
+	name		string
+	parameters	[]IEvaluator
 
-	filterFunc FilterFunction
+	filterFunc	FilterFunction
 }
 
 func (fc *filterCall) Execute(v *Value, ctx *ExecutionContext) (*Value, error) {
-	var param *Value
-	var err error
+	var params[] *Value
 
-	if fc.parameter != nil {
-		param, err = fc.parameter.Evaluate(ctx)
-		if err != nil {
-			return nil, err
+	if len(fc.parameters) > 0 {
+		for _, paramEvo := range fc.parameters {
+			param, err := paramEvo.Evaluate(ctx)
+			if err != nil {
+				return nil, err
+			}
+			params = append(params, param)
 		}
-	} else {
-		param = AsValue(nil)
 	}
 
-	filtered_value, err := fc.filterFunc(v, param)
+	filtered_value, err := fc.filterFunc(v, params...)
 	if err != nil {
 		return nil, ctx.Error(fmt.Sprintf("Error executing filter '%s': %s", fc.name, err.Error()), fc.token)
 	}
@@ -112,18 +106,28 @@ func (p *Parser) parseFilter() (*filterCall, error) {
 
 	filter.filterFunc = filterFn
 
-	// Check for filter-argument (2 tokens needed: ':' ARG)
-	if p.Match(TokenSymbol, ":") != nil {
-		if p.Peek(TokenSymbol, "}}") != nil {
-			return nil, p.Error("Filter parameter required after ':'.", nil)
+	for {
+		// Start reading parameter
+		if p.Match(TokenSymbol, ":") == nil {
+			break
 		}
 
-		// Get filter argument expression
-		v, err := p.parseVariableOrLiteral()
-		if err != nil {
-			return nil, err
+		if token := p.PeekOne(TokenSymbol, "}}", "|", ":"); token != nil {
+			// Any way we got empty parameter
+			filter.parameters = append(filter.parameters, &nilVariable{})
+
+			// It is the end of tag, so lets break the loop
+			if token.Val != ":" {
+				break
+			}
+		} else {
+			// Get filter argument expression
+			v, err := p.parseVariableOrLiteral()
+			if err != nil {
+				return nil, err
+			}
+			filter.parameters = append(filter.parameters, v)
 		}
-		filter.parameter = v
 	}
 
 	return filter, nil

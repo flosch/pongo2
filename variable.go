@@ -535,3 +535,13 @@ func (p *Parser) parseVariableElement() (INode, error) {
 
 	return node, nil
 }
+
+type nilVariable struct {
+
+}
+func (self *nilVariable) Evaluate(ctx *ExecutionContext) (*Value, error) {
+	return AsValue(nil), nil
+}
+func (self *nilVariable) FilterApplied(name string) bool {
+	return true
+}
