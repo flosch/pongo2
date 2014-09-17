@@ -18,7 +18,7 @@ func (node *tagFirstofNode) Execute(ctx *ExecutionContext, buffer *bytes.Buffer)
 
 		if val.IsTrue() {
 			if ctx.Autoescape && !arg.FilterApplied("safe") {
-				val, err = ApplyFilter("escape", val, nil)
+				val, err = ApplyFilter("escape", val)
 				if err != nil {
 					return err
 				}

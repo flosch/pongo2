@@ -6,7 +6,7 @@ import (
 
 type nodeFilterCall struct {
 	name       string
-	param_expr IEvaluator
+	params []IEvaluator
 }
 
 type tagFilterNode struct {
@@ -26,16 +26,17 @@ func (node *tagFilterNode) Execute(ctx *ExecutionContext, buffer *bytes.Buffer) 
 	value := AsValue(temp.String())
 
 	for _, call := range node.filterChain {
-		var param *Value
-		if call.param_expr != nil {
-			param, err = call.param_expr.Evaluate(ctx)
-			if err != nil {
-				return err
+		var params []*Value
+		if len(call.params) > 0 {
+			for _, paramEvo := range call.params {
+				param, err := paramEvo.Evaluate(ctx)
+				if err != nil {
+					return err
+				}
+				params = append(params, param)
 			}
-		} else {
-			param = AsValue(nil)
 		}
-		value, err = ApplyFilter(call.name, value, param)
+		value, err = ApplyFilter(call.name, value, params...)
 		if err != nil {
 			return ctx.Error(err.Error(), node.position)
 		}
@@ -66,14 +67,17 @@ func tagFilterParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, er
 		}
 		filterCall.name = name_token.Val
 
-		if arguments.MatchOne(TokenSymbol, ":") != nil {
+		for {
+			if arguments.MatchOne(TokenSymbol, ":") == nil {
+				break
+			}
 			// Filter parameter
 			// NOTICE: we can't use ParseExpression() here, because it would parse the next filter "|..." as well in the argument list
 			expr, err := arguments.parseVariableOrLiteral()
 			if err != nil {
 				return nil, err
 			}
-			filterCall.param_expr = expr
+			filterCall.params = append(filterCall.params, expr)
 		}
 
 		filter_node.filterChain = append(filter_node.filterChain, filterCall)

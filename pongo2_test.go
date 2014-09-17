@@ -47,13 +47,13 @@ func (s *TestSuite) TestMisc(c *C) {
 	c.Check(func() { RegisterTag("for", nil) }, PanicMatches, ".*is already registered.*")
 
 	// ApplyFilter
-	v, err := ApplyFilter("title", AsValue("this is a title"), nil)
+	v, err := ApplyFilter("title", AsValue("this is a title"))
 	if err != nil {
 		c.Fatal(err)
 	}
 	c.Check(v.String(), Equals, "This Is A Title")
 	c.Check(func() {
-		_, err := ApplyFilter("doesnotexist", nil, nil)
+		_, err := ApplyFilter("doesnotexist", nil)
 		if err != nil {
 			panic(err)
 		}

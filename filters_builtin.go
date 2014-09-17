@@ -94,6 +94,13 @@ func init() {
 	RegisterFilter("integer", filterInteger) // pongo-specific
 }
 
+func paramsCountHelper(expected int, params []*Value) error {
+	if len(params) < expected {
+		return fmt.Errorf("expected at least %d parameters, but received only %d", expected, len(params))
+	}
+	return nil
+}
+
 func filterTruncatecharsHelper(s string, newLen int) string {
 	if newLen < len(s) {
 		if newLen >= 3 {
@@ -211,15 +218,23 @@ func filterTruncateHtmlHelper(value string, new_output *bytes.Buffer, cond func(
 	}
 }
 
-func filterTruncatechars(in *Value, param *Value) (*Value, error) {
+func filterTruncatechars(in *Value, params ...*Value) (*Value, error) {
+	if len(params) < 1 {
+		return in, nil
+	}
+
 	s := in.String()
-	newLen := param.Integer()
+	newLen := params[0].Integer()
 	return AsValue(filterTruncatecharsHelper(s, newLen)), nil
 }
 
-func filterTruncatecharsHtml(in *Value, param *Value) (*Value, error) {
+func filterTruncatecharsHtml(in *Value, params ...*Value) (*Value, error) {
+	if len(params) < 1 {
+		return in, nil
+	}
+
 	value := in.String()
-	newLen := max(param.Integer()-3, 0)
+	newLen := max(params[0].Integer()-3, 0)
 
 	new_output := bytes.NewBuffer(nil)
 
@@ -241,9 +256,13 @@ func filterTruncatecharsHtml(in *Value, param *Value) (*Value, error) {
 	return AsValue(new_output.String()), nil
 }
 
-func filterTruncatewords(in *Value, param *Value) (*Value, error) {
+func filterTruncatewords(in *Value, params ...*Value) (*Value, error) {
+	if len(params) < 1 {
+		return in, nil
+	}
+
 	words := strings.Fields(in.String())
-	n := param.Integer()
+	n := params[0].Integer()
 	if n <= 0 {
 		return AsValue(""), nil
 	}
@@ -260,9 +279,13 @@ func filterTruncatewords(in *Value, param *Value) (*Value, error) {
 	return AsValue(strings.Join(out, " ")), nil
 }
 
-func filterTruncatewordsHtml(in *Value, param *Value) (*Value, error) {
+func filterTruncatewordsHtml(in *Value, params ...*Value) (*Value, error) {
+	if len(params) < 1 {
+		return in, nil
+	}
+
 	value := in.String()
-	newLen := max(param.Integer(), 0)
+	newLen := max(params[0].Integer(), 0)
 
 	new_output := bytes.NewBuffer(nil)
 
@@ -311,7 +334,7 @@ func filterTruncatewordsHtml(in *Value, param *Value) (*Value, error) {
 	return AsValue(new_output.String()), nil
 }
 
-func filterEscape(in *Value, param *Value) (*Value, error) {
+func filterEscape(in *Value, params ...*Value) (*Value, error) {
 	output := strings.Replace(in.String(), "&", "&amp;", -1)
 	output = strings.Replace(output, ">", "&gt;", -1)
 	output = strings.Replace(output, "<", "&lt;", -1)
@@ -320,11 +343,11 @@ func filterEscape(in *Value, param *Value) (*Value, error) {
 	return AsValue(output), nil
 }
 
-func filterSafe(in *Value, param *Value) (*Value, error) {
+func filterSafe(in *Value, params ...*Value) (*Value, error) {
 	return in, nil // nothing to do here, just to keep track of the safe application
 }
 
-func filterEscapejs(in *Value, param *Value) (*Value, error) {
+func filterEscapejs(in *Value, params ...*Value) (*Value, error) {
 	sin := in.String()
 
 	var b bytes.Buffer
@@ -373,7 +396,12 @@ func filterEscapejs(in *Value, param *Value) (*Value, error) {
 	return AsValue(b.String()), nil
 }
 
-func filterAdd(in *Value, param *Value) (*Value, error) {
+func filterAdd(in *Value, params ...*Value) (*Value, error) {
+	if len(params) < 1 {
+		return in, nil
+	}
+
+	param := params[0]
 	if in.IsNumber() && param.IsNumber() {
 		if in.IsFloat() || param.IsFloat() {
 			return AsValue(in.Float() + param.Float()), nil
@@ -386,65 +414,77 @@ func filterAdd(in *Value, param *Value) (*Value, error) {
 	return AsValue(in.String() + param.String()), nil
 }
 
-func filterAddslashes(in *Value, param *Value) (*Value, error) {
+func filterAddslashes(in *Value, params ...*Value) (*Value, error) {
 	output := strings.Replace(in.String(), "\\", "\\\\", -1)
 	output = strings.Replace(output, "\"", "\\\"", -1)
 	output = strings.Replace(output, "'", "\\'", -1)
 	return AsValue(output), nil
 }
 
-func filterCut(in *Value, param *Value) (*Value, error) {
-	return AsValue(strings.Replace(in.String(), param.String(), "", -1)), nil
+func filterCut(in *Value, params ...*Value) (*Value, error) {
+	if len(params) < 1 {
+		return in, nil
+	}
+	return AsValue(strings.Replace(in.String(), params[0].String(), "", -1)), nil
 }
 
-func filterLength(in *Value, param *Value) (*Value, error) {
+func filterLength(in *Value, params ...*Value) (*Value, error) {
 	return AsValue(in.Len()), nil
 }
 
-func filterLengthis(in *Value, param *Value) (*Value, error) {
-	return AsValue(in.Len() == param.Integer()), nil
-}
-
-func filterDefault(in *Value, param *Value) (*Value, error) {
-	if !in.IsTrue() {
-		return param, nil
-	}
-	return in, nil
-}
-
-func filterDefaultIfNone(in *Value, param *Value) (*Value, error) {
-	if in.IsNil() {
-		return param, nil
-	}
-	return in, nil
-}
-
-func filterDivisibleby(in *Value, param *Value) (*Value, error) {
-	if param.Integer() == 0 {
+func filterLengthis(in *Value, params ...*Value) (*Value, error) {
+	if len(params) < 1 {
 		return AsValue(false), nil
 	}
-	return AsValue(in.Integer()%param.Integer() == 0), nil
+	return AsValue(in.Len() == params[0].Integer()), nil
 }
 
-func filterFirst(in *Value, param *Value) (*Value, error) {
+func filterDefault(in *Value, params ...*Value) (*Value, error) {
+	if !in.IsTrue() {
+		if len(params) < 1 {
+			return AsValue(""), nil
+		}
+		return params[0], nil
+	}
+	return in, nil
+}
+
+func filterDefaultIfNone(in *Value, params ...*Value) (*Value, error) {
+	if in.IsNil() {
+		if len(params) < 1 {
+			return AsValue(""), nil
+		}
+		return params[0], nil
+	}
+	return in, nil
+}
+
+func filterDivisibleby(in *Value, params ...*Value) (*Value, error) {
+	if len(params) < 1 || params[0].Integer() == 0 {
+		return AsValue(false), nil
+	}
+	return AsValue(in.Integer()%params[0].Integer() == 0), nil
+}
+
+func filterFirst(in *Value, params ...*Value) (*Value, error) {
 	if in.CanSlice() && in.Len() > 0 {
 		return in.Index(0), nil
 	}
 	return AsValue(""), nil
 }
 
-func filterFloatformat(in *Value, param *Value) (*Value, error) {
+func filterFloatformat(in *Value, params ...*Value) (*Value, error) {
 	val := in.Float()
 
 	decimals := -1
-	if !param.IsNil() {
+	if len(params) > 0 && !params[0].IsNil() {
 		// Any argument provided?
-		decimals = param.Integer()
+		decimals = params[0].Integer()
 	}
 
 	// if the argument is not a number (e. g. empty), the default
 	// behaviour is trim the result
-	trim := !param.IsNumber()
+	trim := len(params) > 0 && !params[0].IsNumber()
 
 	if decimals <= 0 {
 		// argument is negative or zero, so we
@@ -463,8 +503,11 @@ func filterFloatformat(in *Value, param *Value) (*Value, error) {
 	return AsValue(strconv.FormatFloat(val, 'f', decimals, 64)), nil
 }
 
-func filterGetdigit(in *Value, param *Value) (*Value, error) {
-	i := param.Integer()
+func filterGetdigit(in *Value, params ...*Value) (*Value, error) {
+	if len(params) < 1 {
+		return in, nil
+	}
+	i := params[0].Integer()
 	l := len(in.String()) // do NOT use in.Len() here!
 	if i <= 0 || i > l {
 		return in, nil
@@ -474,7 +517,7 @@ func filterGetdigit(in *Value, param *Value) (*Value, error) {
 
 const filterIRIChars = "/#%[]=:;$&()+,!?*@'~"
 
-func filterIriencode(in *Value, param *Value) (*Value, error) {
+func filterIriencode(in *Value, params ...*Value) (*Value, error) {
 	var b bytes.Buffer
 
 	sin := in.String()
@@ -489,34 +532,39 @@ func filterIriencode(in *Value, param *Value) (*Value, error) {
 	return AsValue(b.String()), nil
 }
 
-func filterJoin(in *Value, param *Value) (*Value, error) {
+func filterJoin(in *Value, params ...*Value) (*Value, error) {
 	if !in.CanSlice() {
 		return in, nil
 	}
-	sep := param.String()
+
 	sl := make([]string, 0, in.Len())
 	for i := 0; i < in.Len(); i++ {
 		sl = append(sl, in.Index(i).String())
 	}
-	return AsValue(strings.Join(sl, sep)), nil
+
+	if len(params) < 1 {
+		return AsValue(strings.Join(sl, "")), nil
+	}
+
+	return AsValue(strings.Join(sl, params[0].String())), nil
 }
 
-func filterLast(in *Value, param *Value) (*Value, error) {
+func filterLast(in *Value, params ...*Value) (*Value, error) {
 	if in.CanSlice() && in.Len() > 0 {
 		return in.Index(in.Len() - 1), nil
 	}
 	return AsValue(""), nil
 }
 
-func filterUpper(in *Value, param *Value) (*Value, error) {
+func filterUpper(in *Value, params ...*Value) (*Value, error) {
 	return AsValue(strings.ToUpper(in.String())), nil
 }
 
-func filterLower(in *Value, param *Value) (*Value, error) {
+func filterLower(in *Value, params ...*Value) (*Value, error) {
 	return AsValue(strings.ToLower(in.String())), nil
 }
 
-func filterMakelist(in *Value, param *Value) (*Value, error) {
+func filterMakelist(in *Value, params ...*Value) (*Value, error) {
 	s := in.String()
 	result := make([]string, 0, len(s))
 	for _, c := range s {
@@ -525,7 +573,7 @@ func filterMakelist(in *Value, param *Value) (*Value, error) {
 	return AsValue(result), nil
 }
 
-func filterCapfirst(in *Value, param *Value) (*Value, error) {
+func filterCapfirst(in *Value, params ...*Value) (*Value, error) {
 	if in.Len() <= 0 {
 		return AsValue(""), nil
 	}
@@ -533,8 +581,12 @@ func filterCapfirst(in *Value, param *Value) (*Value, error) {
 	return AsValue(strings.ToUpper(string(t[0])) + t[1:]), nil
 }
 
-func filterCenter(in *Value, param *Value) (*Value, error) {
-	width := param.Integer()
+func filterCenter(in *Value, params ...*Value) (*Value, error) {
+	if len(params) < 1 {
+		return in, nil
+	}
+
+	width := params[0].Integer()
 	slen := in.Len()
 	if width <= slen {
 		return in, nil
@@ -548,23 +600,28 @@ func filterCenter(in *Value, param *Value) (*Value, error) {
 		in.String(), strings.Repeat(" ", right))), nil
 }
 
-func filterDate(in *Value, param *Value) (*Value, error) {
+func filterDate(in *Value, params ...*Value) (*Value, error) {
 	t, is_time := in.Interface().(time.Time)
 	if !is_time {
 		return nil, errors.New("Filter input argument must be of type 'time.Time'.")
 	}
-	return AsValue(t.Format(param.String())), nil
+
+	if len(params) < 1 {
+		return AsValue(t.Format(time.RFC822)), nil
+	}
+
+	return AsValue(t.Format(params[0].String())), nil
 }
 
-func filterFloat(in *Value, param *Value) (*Value, error) {
+func filterFloat(in *Value, params ...*Value) (*Value, error) {
 	return AsValue(in.Float()), nil
 }
 
-func filterInteger(in *Value, param *Value) (*Value, error) {
+func filterInteger(in *Value, params ...*Value) (*Value, error) {
 	return AsValue(in.Integer()), nil
 }
 
-func filterLinebreaks(in *Value, param *Value) (*Value, error) {
+func filterLinebreaks(in *Value, params ...*Value) (*Value, error) {
 	if in.Len() == 0 {
 		return in, nil
 	}
@@ -608,11 +665,11 @@ func filterLinebreaks(in *Value, param *Value) (*Value, error) {
 	return AsValue(b.String()), nil
 }
 
-func filterLinebreaksbr(in *Value, param *Value) (*Value, error) {
+func filterLinebreaksbr(in *Value, params ...*Value) (*Value, error) {
 	return AsValue(strings.Replace(in.String(), "\n", "<br />", -1)), nil
 }
 
-func filterLinenumbers(in *Value, param *Value) (*Value, error) {
+func filterLinenumbers(in *Value, params ...*Value) (*Value, error) {
 	lines := strings.Split(in.String(), "\n")
 	output := make([]string, 0, len(lines))
 	for idx, line := range lines {
@@ -621,15 +678,19 @@ func filterLinenumbers(in *Value, param *Value) (*Value, error) {
 	return AsValue(strings.Join(output, "\n")), nil
 }
 
-func filterLjust(in *Value, param *Value) (*Value, error) {
-	times := param.Integer() - in.Len()
-	if times < 0 {
-		times = 0
+func filterLjust(in *Value, params ...*Value) (*Value, error) {
+	times := 0
+	if len(params) > 0 {
+		times = params[0].Integer() - in.Len()
+		if times < 0 {
+			times = 0
+		}
 	}
+
 	return AsValue(fmt.Sprintf("%s%s", in.String(), strings.Repeat(" ", times))), nil
 }
 
-func filterUrlencode(in *Value, param *Value) (*Value, error) {
+func filterUrlencode(in *Value, params ...*Value) (*Value, error) {
 	return AsValue(url.QueryEscape(in.String())), nil
 }
 
@@ -650,7 +711,7 @@ func filterUrlizeHelper(input string, autoescape bool, trunc int) string {
 
 		raw_url = strings.TrimSpace(raw_url)
 
-		t, err := ApplyFilter("iriencode", AsValue(raw_url), nil)
+		t, err := ApplyFilter("iriencode", AsValue(raw_url))
 		if err != nil {
 			panic(err)
 		}
@@ -667,7 +728,7 @@ func filterUrlizeHelper(input string, autoescape bool, trunc int) string {
 		}
 
 		if autoescape {
-			t, err := ApplyFilter("escape", AsValue(title), nil)
+			t, err := ApplyFilter("escape", AsValue(title))
 			if err != nil {
 				panic(err)
 			}
@@ -691,26 +752,32 @@ func filterUrlizeHelper(input string, autoescape bool, trunc int) string {
 	return sout
 }
 
-func filterUrlize(in *Value, param *Value) (*Value, error) {
+func filterUrlize(in *Value, params ...*Value) (*Value, error) {
 	autoescape := true
-	if param.IsBool() {
-		autoescape = param.Bool()
+	if len(params) > 0 && params[0].IsBool() {
+		autoescape = params[0].Bool()
 	}
 
 	return AsValue(filterUrlizeHelper(in.String(), autoescape, -1)), nil
 }
 
-func filterUrlizetrunc(in *Value, param *Value) (*Value, error) {
-	return AsValue(filterUrlizeHelper(in.String(), true, param.Integer())), nil
+func filterUrlizetrunc(in *Value, params ...*Value) (*Value, error) {
+	if err := paramsCountHelper(1, params); err != nil {
+		return AsValue(""), err
+	}
+	return AsValue(filterUrlizeHelper(in.String(), true, params[0].Integer())), nil
 }
 
-func filterStringformat(in *Value, param *Value) (*Value, error) {
-	return AsValue(fmt.Sprintf(param.String(), in.Interface())), nil
+func filterStringformat(in *Value, params ...*Value) (*Value, error) {
+	if len(params) < 1 {
+		return AsValue(fmt.Sprintf("%v", in.Interface())), nil
+	}
+	return AsValue(fmt.Sprintf(params[0].String(), in.Interface())), nil
 }
 
 var re_striptags = regexp.MustCompile("<[^>]*?>")
 
-func filterStriptags(in *Value, param *Value) (*Value, error) {
+func filterStriptags(in *Value, params ...*Value) (*Value, error) {
 	s := in.String()
 
 	// Strip all tags
@@ -726,7 +793,7 @@ var filterPhone2numericMap = map[string]string{
 	"w": "9", "x": "9", "y": "9", "z": "9",
 }
 
-func filterPhone2numeric(in *Value, param *Value) (*Value, error) {
+func filterPhone2numeric(in *Value, params ...*Value) (*Value, error) {
 	sin := in.String()
 	for k, v := range filterPhone2numericMap {
 		sin = strings.Replace(sin, k, v, -1)
@@ -735,25 +802,34 @@ func filterPhone2numeric(in *Value, param *Value) (*Value, error) {
 	return AsValue(sin), nil
 }
 
-func filterPluralize(in *Value, param *Value) (*Value, error) {
+func filterPluralize(in *Value, params ...*Value) (*Value, error) {
 	if in.IsNumber() {
-		// Works only on numbers
-		if param.Len() > 0 {
-			endings := strings.Split(param.String(), ",")
-			if len(endings) > 2 {
+		if len(params) > 0 {
+			// Old style (extract data)
+			if len(params) == 1 && strings.Contains(params[0].String(), ","){
+				endings := strings.Split(params[0].String(), ",")
+				params = []*Value{}
+				for _, endV := range endings {
+					params = append(params, AsValue(endV))
+				}
+			}
+
+			// New Style
+			if len(params) > 2 {
 				return nil, errors.New("You cannot pass more than 2 arguments to filter 'pluralize'.")
 			}
-			if len(endings) == 1 {
+
+			if len(params) == 1 {
 				// 1 argument
 				if in.Integer() != 1 {
-					return AsValue(endings[0]), nil
+					return params[0], nil
 				}
 			} else {
 				if in.Integer() != 1 {
 					// 2 arguments
-					return AsValue(endings[1]), nil
+					return params[1], nil
 				}
-				return AsValue(endings[0]), nil
+				return params[0], nil
 			}
 		} else {
 			if in.Integer() != 1 {
@@ -761,14 +837,13 @@ func filterPluralize(in *Value, param *Value) (*Value, error) {
 				return AsValue("s"), nil
 			}
 		}
-
 		return AsValue(""), nil
 	} else {
 		return nil, errors.New("Filter 'pluralize' does only work on numbers.")
 	}
 }
 
-func filterRandom(in *Value, param *Value) (*Value, error) {
+func filterRandom(in *Value, params ...*Value) (*Value, error) {
 	if !in.CanSlice() || in.Len() <= 0 {
 		return in, nil
 	}
@@ -776,9 +851,13 @@ func filterRandom(in *Value, param *Value) (*Value, error) {
 	return in.Index(i), nil
 }
 
-func filterRemovetags(in *Value, param *Value) (*Value, error) {
+func filterRemovetags(in *Value, params ...*Value) (*Value, error) {
+	if len(params) < 1 {
+		return in, nil
+	}
+
 	s := in.String()
-	tags := strings.Split(param.String(), ",")
+	tags := strings.Split(params[0].String(), ",")
 
 	// Strip only specific tags
 	for _, tag := range tags {
@@ -789,28 +868,43 @@ func filterRemovetags(in *Value, param *Value) (*Value, error) {
 	return AsValue(strings.TrimSpace(s)), nil
 }
 
-func filterRjust(in *Value, param *Value) (*Value, error) {
-	return AsValue(fmt.Sprintf(fmt.Sprintf("%%%ds", param.Integer()), in.String())), nil
+func filterRjust(in *Value, params ...*Value) (*Value, error) {
+	times := 0
+	if len(params) > 0 {
+		times = params[0].Integer()
+	}
+	return AsValue(fmt.Sprintf(fmt.Sprintf("%%%ds", times), in.String())), nil
 }
 
-func filterSlice(in *Value, param *Value) (*Value, error) {
-	comp := strings.Split(param.String(), ":")
-	if len(comp) != 2 {
-		return nil, errors.New("Slice string must have the format 'from:to' [from/to can be omitted, but the ':' is required]")
-	}
-
+func filterSlice(in *Value, params ...*Value) (*Value, error) {
 	if !in.CanSlice() {
 		return in, nil
 	}
+	if err := paramsCountHelper(1, params); err != nil {
+		return nil, err
+	}
 
-	from := AsValue(comp[0]).Integer()
+	// Old style (extract data)
+	if len(params) == 1 && strings.Contains(params[0].String(), ":"){
+		values := strings.Split(params[0].String(), ":")
+		params = []*Value{}
+		for _, v := range values {
+			params = append(params, AsValue(v))
+		}
+	}
+
+	if len(params) != 2 {
+		return nil, errors.New("Slice string must have the format 'from:to' [from/to can be omitted, but the ':' is required]")
+	}
+
+	from := params[0].Integer()
 	to := in.Len()
 
 	if from > to {
 		from = to
 	}
 
-	vto := AsValue(comp[1]).Integer()
+	vto := params[1].Integer()
 	if vto >= from && vto <= in.Len() {
 		to = vto
 	}
@@ -818,21 +912,25 @@ func filterSlice(in *Value, param *Value) (*Value, error) {
 	return in.Slice(from, to), nil
 }
 
-func filterTitle(in *Value, param *Value) (*Value, error) {
+func filterTitle(in *Value, params ...*Value) (*Value, error) {
 	if !in.IsString() {
 		return AsValue(""), nil
 	}
 	return AsValue(strings.Title(strings.ToLower(in.String()))), nil
 }
 
-func filterWordcount(in *Value, param *Value) (*Value, error) {
+func filterWordcount(in *Value, params ...*Value) (*Value, error) {
 	return AsValue(len(strings.Fields(in.String()))), nil
 }
 
-func filterWordwrap(in *Value, param *Value) (*Value, error) {
+func filterWordwrap(in *Value, params ...*Value) (*Value, error) {
+	if len(params) < 1 {
+		return in, nil
+	}
+
 	words := strings.Fields(in.String())
 	words_len := len(words)
-	wrap_at := param.Integer()
+	wrap_at := params[0].Integer()
 	if wrap_at <= 0 {
 		return in, nil
 	}
@@ -845,27 +943,35 @@ func filterWordwrap(in *Value, param *Value) (*Value, error) {
 	return AsValue(strings.Join(lines, "\n")), nil
 }
 
-func filterYesno(in *Value, param *Value) (*Value, error) {
+func filterYesno(in *Value, params ...*Value) (*Value, error) {
 	choices := map[int]string{
 		0: "yes",
 		1: "no",
 		2: "maybe",
 	}
-	param_string := param.String()
-	custom_choices := strings.Split(param_string, ",")
-	if len(param_string) > 0 {
-		if len(custom_choices) > 3 {
-			return nil, fmt.Errorf("You cannot pass more than 3 options to the 'yesno'-filter (got: '%s').", param_string)
+
+	// Old style (extract data)
+	if len(params) == 1 && strings.Contains(params[0].String(), ","){
+		customChoices := strings.Split(params[0].String(), ",")
+		params = []*Value{}
+		for _, chV := range customChoices {
+			params = append(params, AsValue(chV))
 		}
-		if len(custom_choices) < 2 {
-			return nil, fmt.Errorf("You must pass either no or at least 2 arguments to the 'yesno'-filter (got: '%s').", param_string)
+	}
+
+	if len(params) > 0 {
+		if len(params) > 3 {
+			return nil, fmt.Errorf("You cannot pass more than 3 options to the 'yesno'-filter (got %d: '%v').", len(params), params)
+		}
+		if len(params) < 2 {
+			return nil, fmt.Errorf("You must pass either no or at least 2 arguments to the 'yesno'-filter (got: '%v').", params)
 		}
 
 		// Map to the options now
-		choices[0] = custom_choices[0]
-		choices[1] = custom_choices[1]
-		if len(custom_choices) == 3 {
-			choices[2] = custom_choices[2]
+		for i := 0; i < len(params); i++ {
+			if !params[i].IsNil() {
+				choices[i] = params[i].String()
+			}
 		}
 	}
 
