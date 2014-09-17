@@ -145,6 +145,7 @@ In general, if any **filter** is outputting unsafe characters and you want the c
  * [beego-pongo2](https://github.com/oal/beego-pongo2) - A tiny little helper for using Pongo2 with [Beego](https://github.com/astaxie/beego).
  * [macaron-pongo2](https://github.com/macaron-contrib/pongo2) - pongo2 support for [Macaron](https://github.com/Unknwon/macaron), a modular web framework.
  * [ginpongo2](https://github.com/ngerakines/ginpongo2) - middleware for [gin](github.com/gin-gonic/gin) to use pongo2 templates
+ * [pongo2-trans](https://github.com/fromYukki/pongo2trans) - `trans`-tag implementation for internationalization
 
 Please add your project to this list and send me a pull request when you've developed something nice for pongo2.
 
