@@ -11,3 +11,4 @@
 {{ simple.uint }}
 {{ simple.uint|integer }}
 {{ simple.uint|float }}
+{{ HappyLyrics }}

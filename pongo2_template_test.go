@@ -174,6 +174,8 @@ Yep!`,
 func TestTemplates(t *testing.T) {
 	SetDebug(true) // activate pongo2's debugging output
 
+	RegisterGlobal("HappyLyrics", "Clap along if you feel like happiness is the truth")
+
 	matches, err := filepath.Glob("./template_tests/*.tpl")
 	if err != nil {
 		t.Fatal(err)
