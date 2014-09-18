@@ -35,3 +35,4 @@ tpl-error.out
 /mem.out
 /pongo2.test
 *.error
+/profile

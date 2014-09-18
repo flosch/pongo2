@@ -346,7 +346,7 @@ func BenchmarkParallelExecuteComplex(b *testing.B) {
 	b.ResetTimer()
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
-			_, err = tpl.ExecuteBytes(tplContext)
+			_, err := tpl.ExecuteBytes(tplContext)
 			if err != nil {
 				b.Fatal(err)
 			}
