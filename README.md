@@ -28,7 +28,7 @@ Please use the [issue tracker](https://github.com/flosch/pongo2/issues) if you'r
 		<h2 {% if (user.karma >= 40) || (user.karma > calc_avg_karma(userlist)+5) %}
 			class="karma-good"{% endif %}>
 			
-		     	<!-- This will call user.String() automatically if available: -->
+			<!-- This will call user.String() automatically if available: -->
 			{{ user }}
 		</h2>
 
