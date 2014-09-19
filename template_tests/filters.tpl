@@ -15,6 +15,7 @@ capfirst
 {{ 5|capfirst }}
 {{ "h"|capfirst }}
 {{ "hello there!"|capfirst }}
+{{ simple.chinese_hello_world|capfirst }}
 
 cut
 {{ 15|cut:"5" }}
@@ -53,11 +54,14 @@ title
 {{ "hello there!"|title }}
 {{ "HELLO THERE!"|title }}
 {{ "hELLO tHERE!"|title }}
+{{ simple.chinese_hello_world|title }}
 
 truncatechars
 {{ "Joel is a slug"|truncatechars:9 }}
 {{ "Joel is a slug"|truncatechars:13 }}
 {{ "Joel is a slug"|truncatechars:14 }}
+{{ simple.chinese_hello_world|truncatechars:1 }}
+{{ simple.chinese_hello_world|truncatechars:2 }}
 
 divisibleby
 {{ 21|divisibleby:3 }}
@@ -105,6 +109,7 @@ first
 {{ 5|first }}
 {{ true|first }}
 {{ nothing|first }}
+{{ simple.chinese_hello_world|first }}
 
 last
 {{ "Test"|last }}
@@ -112,6 +117,7 @@ last
 {{ 5|last }}
 {{ true|last }}
 {{ nothing|last }}
+{{ simple.chinese_hello_world|last }}
 
 urlencode
 {{ "http://www.example.org/foo?a=b&c=d"|urlencode }}
@@ -127,6 +133,9 @@ length_is
 {{ simple.name|length_is:"8" }}
 {{ simple.name|length_is:"10" }}
 {{ 5|length_is:1 }}
+{{ simple.chinese_hello_world|length_is:4 }}
+{{ simple.chinese_hello_world|length_is:3 }}
+{{ simple.chinese_hello_world|length_is:5 }}
 
 integer
 {{ "foobar"|integer }}
@@ -170,6 +179,7 @@ join
 stringformat
 {{ simple.float|stringformat:"%.2f" }}
 {{ simple.uint|stringformat:"Test: %d" }}
+{{ simple.chinese_hello_world|stringformat:"Chinese: %s" }}
 
 make_list
 {{ simple.name|make_list|join:", " }}
@@ -183,16 +193,19 @@ center
 '{{ "test2"|center:19 }}'
 '{{ "test2"|center:20 }}'
 {{ "test2"|center:20|length }}
+'{{ simple.chinese_hello_world|center:20 }}'
 
 ljust
 '{{ "test"|ljust:"2" }}'
 '{{ "test"|ljust:"20" }}'
 {{ "test"|ljust:"20"|length }}
+'{{ simple.chinese_hello_world|ljust:10 }}'
 
 rjust
 '{{ "test"|rjust:"2" }}'
 '{{ "test"|rjust:"20" }}'
 {{ "test"|rjust:"20"|length }}
+'{{ simple.chinese_hello_world|rjust:10 }}'
 
 wordcount
 {{ ""|wordcount }}
@@ -220,6 +233,9 @@ phone2numeric
 truncatewords
 {% filter truncatewords:9 %}{% lorem 25 w %}{% endfilter %}
 {% filter wordcount %}{% filter truncatewords:9 %}{% lorem 25 w %}{% endfilter %}{% endfilter %}
+{{ simple.chinese_hello_world|truncatewords:0 }}
+{{ simple.chinese_hello_world|truncatewords:1 }}
+{{ simple.chinese_hello_world|truncatewords:2 }}
 
 urlize
 {{ "http://www.florian-schlachter.de"|urlize|safe }}
@@ -268,6 +284,7 @@ slice
 {{ simple.multiple_item_list|slice:"2:3"|join:"," }}
 {{ simple.multiple_item_list|slice:"2:1"|join:"," }}
 {{ "Test"|slice:"1:3" }}
+{{ simple.chinese_hello_world|slice:"1:3" }}
 
 truncatechars_html
 {{ "This is a long test which will be cutted after some chars."|truncatechars_html:25|safe }}

@@ -36,3 +36,4 @@ tpl-error.out
 /pongo2.test
 *.error
 /profile
+/coverage.out

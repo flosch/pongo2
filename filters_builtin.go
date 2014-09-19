@@ -95,14 +95,15 @@ func init() {
 }
 
 func filterTruncatecharsHelper(s string, newLen int) string {
-	if newLen < len(s) {
+	runes := []rune(s)
+	if newLen < len(runes) {
 		if newLen >= 3 {
-			return fmt.Sprintf("%s...", s[:newLen-3])
+			return fmt.Sprintf("%s...", string(runes[:newLen-3]))
 		}
 		// Not enough space for the ellipsis
-		return s[:newLen]
+		return string(runes[:newLen])
 	}
-	return s
+	return string(runes)
 }
 
 func filterTruncateHtmlHelper(value string, new_output *bytes.Buffer, cond func() bool, fn func(c rune, s int, idx int) int, finalize func()) {
@@ -530,7 +531,8 @@ func filterCapfirst(in *Value, param *Value) (*Value, error) {
 		return AsValue(""), nil
 	}
 	t := in.String()
-	return AsValue(strings.ToUpper(string(t[0])) + t[1:]), nil
+	r, size := utf8.DecodeRuneInString(t)
+	return AsValue(strings.ToUpper(string(r)) + t[size:]), nil
 }
 
 func filterCenter(in *Value, param *Value) (*Value, error) {

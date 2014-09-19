@@ -15,6 +15,7 @@ capfirst
 
 H
 Hello there!
+你好世界
 
 cut
 1
@@ -53,11 +54,14 @@ H
 Hello There!
 Hello There!
 Hello There!
+你好世界
 
 truncatechars
 Joel i...
 Joel is a ...
 Joel is a slug
+你
+你好
 
 divisibleby
 True
@@ -105,6 +109,7 @@ T
 
 
 
+你
 
 last
 t
@@ -112,6 +117,7 @@ t
 
 
 
+界
 
 urlencode
 http%3A%2F%2Fwww.example.org%2Ffoo%3Fa%3Db%26c%3Dd
@@ -123,6 +129,9 @@ hallo
 
 length_is
 True
+False
+True
+False
 False
 True
 False
@@ -170,6 +179,7 @@ Hello, 99, 3.140000, good
 stringformat
 3.14
 Test: 8
+Chinese: 你好世界
 
 make_list
 j, o, h, n,  , d, o, e
@@ -183,16 +193,19 @@ center
 '       test2       '
 '        test2       '
 20
+'        你好世界        '
 
 ljust
 'test'
 'test                '
 20
+'你好世界      '
 
 rjust
 'test'
 '                test'
 20
+'      你好世界'
 
 wordcount
 0
@@ -234,6 +247,9 @@ phone2numeric
 truncatewords
 Lorem ipsum dolor sit amet, consectetur adipisici elit, sed ...
 10
+
+你好世界
+你好世界
 
 urlize
 <a href="http://www.florian-schlachter.de" rel="nofollow">http://www.florian-schlachter.de</a>
@@ -282,6 +298,7 @@ slice
 2
 2,3,5,8,13,21,34,55
 es
+好世
 
 truncatechars_html
 This is a long test wh...

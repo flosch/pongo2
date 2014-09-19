@@ -243,8 +243,11 @@ func (v *Value) Negate() *Value {
 // Otherwise it will return 0.
 func (v *Value) Len() int {
 	switch v.getResolvedValue().Kind() {
-	case reflect.Array, reflect.Chan, reflect.Map, reflect.Slice, reflect.String:
+	case reflect.Array, reflect.Chan, reflect.Map, reflect.Slice:
 		return v.getResolvedValue().Len()
+	case reflect.String:
+		runes := []rune(v.getResolvedValue().String())
+		return len(runes)
 	default:
 		logf("Value.Len() not available for type: %s\n", v.getResolvedValue().Kind().String())
 		return 0
@@ -255,8 +258,11 @@ func (v *Value) Len() int {
 // return an empty []int.
 func (v *Value) Slice(i, j int) *Value {
 	switch v.getResolvedValue().Kind() {
-	case reflect.Array, reflect.Slice, reflect.String:
+	case reflect.Array, reflect.Slice:
 		return AsValue(v.getResolvedValue().Slice(i, j).Interface())
+	case reflect.String:
+		runes := []rune(v.getResolvedValue().String())
+		return AsValue(string(runes[i:j]))
 	default:
 		logf("Value.Slice() not available for type: %s\n", v.getResolvedValue().Kind().String())
 		return AsValue([]int{})
@@ -273,7 +279,13 @@ func (v *Value) Index(i int) *Value {
 		}
 		return AsValue(v.getResolvedValue().Index(i).Interface())
 	case reflect.String:
-		return AsValue(v.getResolvedValue().Slice(i, i+1).Interface())
+		//return AsValue(v.getResolvedValue().Slice(i, i+1).Interface())
+		s := v.getResolvedValue().String()
+		runes := []rune(s)
+		if i < len(runes) {
+			return AsValue(string(runes[i]))
+		}
+		return AsValue("")
 	default:
 		logf("Value.Slice() not available for type: %s\n", v.getResolvedValue().Kind().String())
 		return AsValue([]int{})
