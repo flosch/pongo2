@@ -63,7 +63,7 @@ var pongo2MetaContext = Context{
 }
 
 func newExecutionContext(tpl *Template, ctx Context) *ExecutionContext {
-	privateCtx := globals
+	privateCtx := make(Context)
 
 	// Make the pongo2-related funcs/vars available to the context
 	privateCtx["pongo2"] = pongo2MetaContext
