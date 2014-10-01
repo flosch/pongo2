@@ -38,7 +38,7 @@ Please use the [issue tracker](https://github.com/flosch/pongo2/issues) if you'r
 		<!-- Let's allow the users to write down their biography using markdown;
 		     we will only show the first 15 words as a preview -->
 		<p>The user's biography:</p>
-		<p>{{ user.biography|markdown|truncatewords_html:15|safe }}
+		<p>{{ user.biography|markdown|truncatewords_html:15 }}
 			<a href="/user/{{ user.id }}/">read more</a></p>
 		
 		{% if is_admin %}<p>This user is an admin!</p>{% endif %}
@@ -117,8 +117,6 @@ You can access pongo2's API documentation on [godoc](https://godoc.org/github.co
 ## Caveats 
 
 ### Filters
-
-In general, if any **filter** is outputting unsafe characters and you want the characters/HTML tags being correctly interpreted by the browser (e. g. HTML tags in filter `linebreaks`), you will have to apply the `safe`-filter on your expression afterwards. Your output is *not* marked as being safe automatically (instead, pongo2 would automatically escape any unsafe character by default).
 
  * **date** / **time**: The `date` and `time` filter are taking the Golang specific time- and date-format (not Django's one) currently. [Take a look on the format here](http://golang.org/pkg/time/#Time.Format).
  * **stringformat**: `stringformat` does **not** take Python's string format syntax as a parameter, instead it takes Go's. Essentially `{{ 3.14|stringformat:"pi is %.2f" }}` is `fmt.Sprintf("pi is %.2f", 3.14)`.

@@ -239,7 +239,7 @@ func filterTruncatecharsHtml(in *Value, param *Value) (*Value, error) {
 		}
 	})
 
-	return AsValue(new_output.String()), nil
+	return AsSafeValue(new_output.String()), nil
 }
 
 func filterTruncatewords(in *Value, param *Value) (*Value, error) {
@@ -309,7 +309,7 @@ func filterTruncatewordsHtml(in *Value, param *Value) (*Value, error) {
 		}
 	})
 
-	return AsValue(new_output.String()), nil
+	return AsSafeValue(new_output.String()), nil
 }
 
 func filterEscape(in *Value, param *Value) (*Value, error) {

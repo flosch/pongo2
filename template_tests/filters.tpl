@@ -287,18 +287,18 @@ slice
 {{ simple.chinese_hello_world|slice:"1:3" }}
 
 truncatechars_html
-{{ "This is a long test which will be cutted after some chars."|truncatechars_html:25|safe }}
-{{ "<div class=\"foo\"><ul class=\"foo\"><li class=\"foo\"><p class=\"foo\">This is a long test which will be cutted after some chars.</p></li></ul></div>"|truncatechars_html:25|safe }}
-{{ "<p class='test' id='foo'>This is a long test which will be cutted after some chars.</p>"|truncatechars_html:25|safe }}
-{{ "<a name='link'><p>This </a>is a long test which will be cutted after some chars.</p>"|truncatechars_html:25|safe }}
-{{ "<p>This </a>is a long test which will be cutted after some chars.</p>"|truncatechars_html:25|safe }}
-{{ "<p>This is a long test which will be cutted after some chars.</p>"|truncatechars_html:7|safe }}
+{{ "This is a long test which will be cutted after some chars."|truncatechars_html:25 }}
+{{ "<div class=\"foo\"><ul class=\"foo\"><li class=\"foo\"><p class=\"foo\">This is a long test which will be cutted after some chars.</p></li></ul></div>"|truncatechars_html:25 }}
+{{ "<p class='test' id='foo'>This is a long test which will be cutted after some chars.</p>"|truncatechars_html:25 }}
+{{ "<a name='link'><p>This </a>is a long test which will be cutted after some chars.</p>"|truncatechars_html:25 }}
+{{ "<p>This </a>is a long test which will be cutted after some chars.</p>"|truncatechars_html:25 }}
+{{ "<p>This is a long test which will be cutted after some chars.</p>"|truncatechars_html:7 }}
 
 truncatewords_html
 {{ "This is a long test which will be cutted after some words."|truncatewords_html:25|safe }}
-{{ "<div class=\"foo\"><ul class=\"foo\"><li class=\"foo\"><p class=\"foo\">This is a long test which will be cutted after some chars.</p></li></ul></div>"|truncatewords_html:5|safe }}
-{{ "<p>This. is. a. long test. Test test, test.</p>"|truncatewords_html:8|safe }}
-{{ "<a name='link' href=\"https://....\"><p class=\"foo\">This </a>is a long test, which will be cutted after some words.</p>"|truncatewords_html:5|safe }}
-{{ "<p>This </a>is a long test, which will be cutted after some words.</p>"|truncatewords_html:5|safe }}
-{{ "<p>This is a long test which will be cutted after some words.</p>"|truncatewords_html:2|safe }}
-{{ "<p>This is a long test which will be cutted after some words.</p>"|truncatewords_html:0|safe }}
+{{ "<div class=\"foo\"><ul class=\"foo\"><li class=\"foo\"><p class=\"foo\">This is a long test which will be cutted after some chars.</p></li></ul></div>"|truncatewords_html:5 }}
+{{ "<p>This. is. a. long test. Test test, test.</p>"|truncatewords_html:8 }}
+{{ "<a name='link' href=\"https://....\"><p class=\"foo\">This </a>is a long test, which will be cutted after some words.</p>"|truncatewords_html:5 }}
+{{ "<p>This </a>is a long test, which will be cutted after some words.</p>"|truncatewords_html:5 }}
+{{ "<p>This is a long test which will be cutted after some words.</p>"|truncatewords_html:2 }}
+{{ "<p>This is a long test which will be cutted after some words.</p>"|truncatewords_html:0 }}
