@@ -296,7 +296,9 @@ func (vr *variableResolver) resolve(ctx *ExecutionContext) (*Value, error) {
 		// Happens in function calls (as a return value) or by injecting
 		// into the execution context (e.g. in a for-loop)
 		if current.Type() == reflect.TypeOf(&Value{}) {
-			current = current.Interface().(*Value).val
+			tmp_value := current.Interface().(*Value)
+			current = tmp_value.val
+			is_safe = tmp_value.safe
 		}
 
 		// Check whether this is an interface and resolve it where required
