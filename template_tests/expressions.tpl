@@ -46,3 +46,8 @@ in/not in
 {{ 7 in simple.intmap }}
 {{ !(5 in simple.intmap) }}
 {{ not(7 in simple.intmap) }}
+
+issue #48 (associativity for infix operators)
+{{ 34/3*3 }}
+{{ 10 + 24 / 6 / 2 }}
+{{ 6 - 4 - 2 }}

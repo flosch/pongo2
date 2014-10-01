@@ -7,12 +7,14 @@ import (
 )
 
 type Expression struct {
+	// TODO: Add location token?
 	expr1    IEvaluator
 	expr2    IEvaluator
 	op_token *Token
 }
 
 type relationalExpression struct {
+	// TODO: Add location token?
 	expr1    IEvaluator
 	expr2    IEvaluator
 	op_token *Token
@@ -28,12 +30,14 @@ type simpleExpression struct {
 }
 
 type term struct {
+	// TODO: Add location token?
 	factor1  IEvaluator
 	factor2  IEvaluator
 	op_token *Token
 }
 
 type power struct {
+	// TODO: Add location token?
 	power1 IEvaluator
 	power2 IEvaluator
 }
@@ -267,29 +271,6 @@ func (p *Parser) parseFactor() (IEvaluator, error) {
 	return p.parseVariableOrLiteralWithFilter()
 }
 
-func (p *Parser) parseTerm() (IEvaluator, error) {
-	term := new(term)
-
-	factor1, err := p.parsePower()
-	if err != nil {
-		return nil, err
-	}
-	term.factor1 = factor1
-
-	if p.PeekOne(TokenSymbol, "*", "/", "%") != nil {
-		op := p.Current()
-		p.Consume()
-		factor2, err := p.parseTerm()
-		if err != nil {
-			return nil, err
-		}
-		term.factor2 = factor2
-		term.op_token = op
-	}
-
-	return term, nil
-}
-
 func (p *Parser) parsePower() (IEvaluator, error) {
 	pw := new(power)
 
@@ -307,7 +288,49 @@ func (p *Parser) parsePower() (IEvaluator, error) {
 		pw.power2 = power2
 	}
 
+	if pw.power2 == nil {
+		// Shortcut for later evaluation
+		return pw.power1, nil
+	}
+
 	return pw, nil
+}
+
+func (p *Parser) parseTerm() (IEvaluator, error) {
+	return_term := new(term)
+
+	factor1, err := p.parsePower()
+	if err != nil {
+		return nil, err
+	}
+	return_term.factor1 = factor1
+
+	for p.PeekOne(TokenSymbol, "*", "/", "%") != nil {
+		if return_term.op_token != nil {
+			// Create new sub-term
+			return_term = &term{
+				factor1: return_term,
+			}
+		}
+
+		op := p.Current()
+		p.Consume()
+
+		factor2, err := p.parsePower()
+		if err != nil {
+			return nil, err
+		}
+
+		return_term.op_token = op
+		return_term.factor2 = factor2
+	}
+
+	if return_term.op_token == nil {
+		// Shortcut for later evaluation
+		return return_term.factor1, nil
+	}
+
+	return return_term, nil
 }
 
 func (p *Parser) parseSimpleExpression() (IEvaluator, error) {
@@ -330,13 +353,22 @@ func (p *Parser) parseSimpleExpression() (IEvaluator, error) {
 	}
 	expr.term1 = term1
 
-	if p.PeekOne(TokenSymbol, "+", "-") != nil {
+	for p.PeekOne(TokenSymbol, "+", "-") != nil {
+		if expr.op_token != nil {
+			// New sub expr
+			expr = &simpleExpression{
+				term1: expr,
+			}
+		}
+
 		op := p.Current()
 		p.Consume()
-		term2, err := p.parseSimpleExpression()
+
+		term2, err := p.parseTerm()
 		if err != nil {
 			return nil, err
 		}
+
 		expr.term2 = term2
 		expr.op_token = op
 	}
@@ -368,6 +400,11 @@ func (p *Parser) parseRelationalExpression() (IEvaluator, error) {
 		}
 		expr.op_token = t
 		expr.expr2 = expr2
+	}
+
+	if expr.expr2 == nil {
+		// Shortcut for later evaluation
+		return expr.expr1, nil
 	}
 
 	return expr, nil
