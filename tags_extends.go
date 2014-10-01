@@ -2,7 +2,6 @@ package pongo2
 
 import (
 	"bytes"
-	"path/filepath"
 )
 
 type tagExtendsNode struct {
@@ -28,13 +27,11 @@ func tagExtendsParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, e
 	if filename_token := arguments.MatchType(TokenString); filename_token != nil {
 		// prepared, static template
 
-		// Get parent's filename relative to the child's template directory
-		// TODO: Change filename resolution to a more flexible mechanism
-		childs_dir := filepath.Dir(doc.template.name)
-		parent_filename := filepath.Join(childs_dir, filename_token.Val)
+		// Get parent's filename
+		parent_filename := doc.template.set.resolveFilename(doc.template, filename_token.Val)
 
 		// Parse the parent
-		parent_template, err := FromFile(parent_filename)
+		parent_template, err := doc.template.set.FromFile(parent_filename)
 		if err != nil {
 			return nil, err
 		}

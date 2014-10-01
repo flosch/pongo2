@@ -3,7 +3,6 @@ package pongo2
 import (
 	"bytes"
 	"fmt"
-	"path/filepath"
 )
 
 type tagImportNode struct {
@@ -34,17 +33,14 @@ func tagImportParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, er
 		return nil, arguments.Error("Import-tag needs a filename as string.", nil)
 	}
 
-	// TODO: Does not work when template.name == "<string>" (created used FromString())
-	// TODO: Change filename resolution to a more flexible mechanism
-	including_dir := filepath.Dir(doc.template.name)
-	import_node.filename = filepath.Join(including_dir, filename_token.Val)
+	import_node.filename = doc.template.set.resolveFilename(doc.template, filename_token.Val)
 
 	if arguments.Remaining() == 0 {
 		return nil, arguments.Error("You must at least specify one macro to import.", nil)
 	}
 
 	// Compile the given template
-	tpl, err := FromFile(import_node.filename)
+	tpl, err := doc.template.set.FromFile(import_node.filename)
 	if err != nil {
 		return nil, arguments.Error(fmt.Sprintf("Could not compile '%s': %s", import_node.filename, err.Error()),
 			filename_token)

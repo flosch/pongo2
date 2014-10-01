@@ -308,6 +308,32 @@ func TestCompilationErrors(t *testing.T) {
 	}
 }
 
+func TestBaseDirectory(t *testing.T) {
+	mustStr := "Hello from template_tests/base_dir_test/"
+
+	s := NewSet("test set with base directory")
+	s.Globals["base_directory"] = "template_tests/base_dir_test/"
+	s.BaseDirectory = s.Globals["base_directory"].(string)
+
+	matches, err := filepath.Glob("./template_tests/base_dir_test/subdir/*")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, match := range matches {
+		tpl, err := s.FromFile(match)
+		if err != nil {
+			t.Fatal(err)
+		}
+		out, err := tpl.Execute(nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if out != mustStr {
+			t.Errorf("%s: out ('%s') != mustStr ('%s')", match, out, mustStr)
+		}
+	}
+}
+
 func BenchmarkExecuteComplex(b *testing.B) {
 	tpl, err := FromFile("template_tests/complex.tpl")
 	if err != nil {

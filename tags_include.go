@@ -2,7 +2,6 @@ package pongo2
 
 import (
 	"bytes"
-	"path/filepath"
 )
 
 type tagIncludeNode struct {
@@ -45,12 +44,10 @@ func (node *tagIncludeNode) Execute(ctx *ExecutionContext, buffer *bytes.Buffer)
 			return ctx.Error("Filename for 'include'-tag evaluated to an empty string.", nil)
 		}
 
-		// Get include-filename relative to the including-template directory
-		// TODO: Change filename resolution to a more flexible mechanism
-		including_dir := filepath.Dir(ctx.template.name)
-		included_filename := filepath.Join(including_dir, filename.String())
+		// Get include-filename
+		included_filename := ctx.template.set.resolveFilename(ctx.template, filename.String())
 
-		included_tpl, err := FromFile(included_filename)
+		included_tpl, err := ctx.template.set.FromFile(included_filename)
 		if err != nil {
 			return err
 		}
@@ -69,13 +66,12 @@ func tagIncludeParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, e
 	if filename_token := arguments.MatchType(TokenString); filename_token != nil {
 		// prepared, static template
 
-		// Get include-filename relative to the including-template directory
-		including_dir := filepath.Dir(doc.template.name)
-		included_filename := filepath.Join(including_dir, filename_token.Val)
+		// Get include-filename
+		included_filename := doc.template.set.resolveFilename(doc.template, filename_token.Val)
 
 		// Parse the parent
 		include_node.filename = included_filename
-		included_tpl, err := FromFile(included_filename)
+		included_tpl, err := doc.template.set.FromFile(included_filename)
 		if err != nil {
 			return nil, err
 		}

@@ -10,9 +10,10 @@ type Template struct {
 	set *TemplateSet
 
 	// Input
-	name string
-	tpl  string
-	size int
+	is_tpl_string bool
+	name          string
+	tpl           string
+	size          int
 
 	// Calculation
 	tokens []*Token
@@ -30,18 +31,19 @@ type Template struct {
 }
 
 func newTemplateString(set *TemplateSet, tpl string) (*Template, error) {
-	return newTemplate(set, "<string>", tpl)
+	return newTemplate(set, "<string>", true, tpl)
 }
 
-func newTemplate(set *TemplateSet, name, tpl string) (*Template, error) {
+func newTemplate(set *TemplateSet, name string, is_tpl_string bool, tpl string) (*Template, error) {
 	// Create the template
 	t := &Template{
-		set:    set,
-		name:   name,
-		tpl:    tpl,
-		size:   len(tpl),
-		blocks: make(map[string]*NodeWrapper),
-		macros: make(map[string]*tagMacroNode),
+		set:           set,
+		is_tpl_string: is_tpl_string,
+		name:          name,
+		tpl:           tpl,
+		size:          len(tpl),
+		blocks:        make(map[string]*NodeWrapper),
+		macros:        make(map[string]*tagMacroNode),
 	}
 
 	// Tokenize it
@@ -78,9 +80,10 @@ func (tpl *Template) execute(context Context) (*bytes.Buffer, error) {
 
 	// Create context if none is given
 	newContext := make(Context)
+	newContext.Update(tpl.set.Globals)
 
 	if context != nil {
-		newContext.Update(tpl.set.Globals).Update(context)
+		newContext.Update(context)
 
 		if len(newContext) > 0 {
 			// Check for context name syntax
