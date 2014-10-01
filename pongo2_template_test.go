@@ -173,7 +173,10 @@ Yep!`,
 }
 
 func TestTemplates(t *testing.T) {
-	SetDebug(true) // activate pongo2's debugging output
+	debug = true
+
+	// Add a global to the default set
+	Globals["this_is_a_global_variable"] = "this is a global text"
 
 	matches, err := filepath.Glob("./template_tests/*.tpl")
 	if err != nil {
@@ -208,7 +211,7 @@ func TestTemplates(t *testing.T) {
 }
 
 func TestExecutionErrors(t *testing.T) {
-	SetDebug(true) // activate pongo2's debugging output
+	debug = true
 
 	matches, err := filepath.Glob("./template_tests/*-execution.err")
 	if err != nil {
@@ -260,7 +263,7 @@ func TestExecutionErrors(t *testing.T) {
 }
 
 func TestCompilationErrors(t *testing.T) {
-	SetDebug(true) // activate pongo2's debugging output
+	debug = true
 
 	matches, err := filepath.Glob("./template_tests/*-compilation.err")
 	if err != nil {

@@ -109,3 +109,7 @@ func (ctx *ExecutionContext) Error(msg string, token *Token) error {
 			filename, pos, msg,
 		))
 }
+
+func (ctx *ExecutionContext) Logf(format string, args ...interface{}) {
+	ctx.template.set.logf(format, args...)
+}

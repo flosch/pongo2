@@ -7,6 +7,8 @@ import (
 )
 
 type Template struct {
+	set *TemplateSet
+
 	// Input
 	name string
 	tpl  string
@@ -27,13 +29,14 @@ type Template struct {
 	root *nodeDocument
 }
 
-func newTemplateString(tpl string) (*Template, error) {
-	return newTemplate("<string>", tpl)
+func newTemplateString(set *TemplateSet, tpl string) (*Template, error) {
+	return newTemplate(set, "<string>", tpl)
 }
 
-func newTemplate(name, tpl string) (*Template, error) {
+func newTemplate(set *TemplateSet, name, tpl string) (*Template, error) {
 	// Create the template
 	t := &Template{
+		set:    set,
 		name:   name,
 		tpl:    tpl,
 		size:   len(tpl),
@@ -74,18 +77,20 @@ func (tpl *Template) execute(context Context) (*bytes.Buffer, error) {
 	}
 
 	// Create context if none is given
-	if context == nil {
-		context = make(Context)
-	} else {
-		if len(context) > 0 {
+	newContext := make(Context)
+
+	if context != nil {
+		newContext.Update(tpl.set.Globals).Update(context)
+
+		if len(newContext) > 0 {
 			// Check for context name syntax
-			err := context.checkForValidIdentifiers()
+			err := newContext.checkForValidIdentifiers()
 			if err != nil {
 				return nil, err
 			}
 
 			// Check for clashes with macro names
-			for k, _ := range context {
+			for k, _ := range newContext {
 				_, has := tpl.macros[k]
 				if has {
 					return nil, fmt.Errorf("Context key name '%s' clashes with macro '%s'.", k, k)
@@ -95,7 +100,7 @@ func (tpl *Template) execute(context Context) (*bytes.Buffer, error) {
 	}
 
 	// Create operational context
-	ctx := newExecutionContext(parent, context)
+	ctx := newExecutionContext(parent, newContext)
 
 	// Run the selected document
 	err := parent.root.Execute(ctx, buffer)

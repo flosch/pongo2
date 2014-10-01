@@ -34,7 +34,7 @@ func (node *tagMacroNode) call(ctx *ExecutionContext, args ...*Value) *Value {
 			// Evaluate the default value
 			value_expr, err := v.Evaluate(ctx)
 			if err != nil {
-				logf(err.Error())
+				ctx.Logf(err.Error())
 				return AsSafeValue(err.Error())
 			}
 
@@ -44,7 +44,7 @@ func (node *tagMacroNode) call(ctx *ExecutionContext, args ...*Value) *Value {
 
 	if len(args) > len(node.args_order) {
 		// Too many arguments, we're ignoring them and just logging into debug mode.
-		logf(ctx.Error(fmt.Sprintf("Macro '%s' called with too many arguments (%d instead of %d).",
+		ctx.Logf(ctx.Error(fmt.Sprintf("Macro '%s' called with too many arguments (%d instead of %d).",
 			node.name, len(args), len(node.args_order)), node.position).Error())
 		return AsSafeValue(ctx.Error(fmt.Sprintf("Macro '%s' called with too many arguments (%d instead of %d).",
 			node.name, len(args), len(node.args_order)), node.position).Error())
