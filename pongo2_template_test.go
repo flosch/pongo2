@@ -178,6 +178,8 @@ func TestTemplates(t *testing.T) {
 	// Add a global to the default set
 	Globals["this_is_a_global_variable"] = "this is a global text"
 
+	RegisterGlobal("HappyLyrics", "Clap along if you feel like happiness is the truth")
+
 	matches, err := filepath.Glob("./template_tests/*.tpl")
 	if err != nil {
 		t.Fatal(err)

@@ -222,13 +222,21 @@ func (vr *variableResolver) resolve(ctx *ExecutionContext) (*Value, error) {
 
 	for idx, part := range vr.parts {
 		if idx == 0 {
+			var (
+				val	interface {}
+				ok	bool
+			)
 			// We're looking up the first part of the variable.
 			// First we're having a look in our private
 			// context (e. g. information provided by tags, like the forloop)
-			val, in_private := ctx.Private[vr.parts[0].s]
-			if !in_private {
+			val, ok = ctx.Private[vr.parts[0].s]
+			if !ok {
 				// Nothing found? Then have a final lookup in the public context
-				val = ctx.Public[vr.parts[0].s]
+				val, ok = ctx.Public[vr.parts[0].s]
+				if !ok {
+					// Still nothing, lets check global variables
+					val = globals[vr.parts[0].s]
+				}
 			}
 			current = reflect.ValueOf(val) // Get the initial value
 		} else {
