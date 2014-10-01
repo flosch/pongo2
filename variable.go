@@ -185,7 +185,7 @@ func (nv *nodeVariable) Execute(ctx *ExecutionContext, buffer *bytes.Buffer) err
 		return err
 	}
 
-	if !nv.expr.FilterApplied("safe") && value.IsString() && ctx.Autoescape {
+	if !nv.expr.FilterApplied("safe") && !value.safe && value.IsString() && ctx.Autoescape {
 		// apply escape filter
 		value, err = filters["escape"](value, nil)
 		if err != nil {
@@ -218,20 +218,37 @@ func (vr *variableResolver) String() string {
 
 func (vr *variableResolver) resolve(ctx *ExecutionContext) (*Value, error) {
 	var current reflect.Value
+	var is_macro bool
 
 	for idx, part := range vr.parts {
 		if idx == 0 {
 			// We're looking up the first part of the variable.
 			// First we're having a look in our private
 			// context (e. g. information provided by tags, like the forloop)
-			val, in_private := ctx.Private[vr.parts[0].s]
-			if !in_private {
-				// Nothing found? Then have a final lookup in the public context
-				val = ctx.Public[vr.parts[0].s]
+			val, has := ctx.Private[vr.parts[0].s]
+			if !has {
+
+				// Not in Private? Lets check for a macro.
+				val, has = ctx.template.macros[vr.parts[0].s]
+				if has {
+					is_macro = true
+					val = func(args ...*Value) string {
+						return ctx.template.macros[vr.parts[0].s].Call(ctx, args...)
+					}
+				} else {
+					// Nothing found? Then have a final lookup in the public context
+					val = ctx.Public[vr.parts[0].s]
+				}
 			}
+
 			current = reflect.ValueOf(val) // Get the initial value
 		} else {
 			// Next parts, resolve it from current
+
+			if is_macro {
+				// Don't allow chaining for macros
+				panic("todo")
+			}
 
 			// Before resolving the pointer, let's see if we have a method to call
 			// Problem with resolving the pointer is we're changing the receiver
@@ -295,7 +312,7 @@ func (vr *variableResolver) resolve(ctx *ExecutionContext) (*Value, error) {
 		// Happens in function calls (as a return value) or by injecting
 		// into the execution context (e.g. in a for-loop)
 		if current.Type() == reflect.TypeOf(&Value{}) {
-			current = current.Interface().(*Value).v
+			current = current.Interface().(*Value).val
 		}
 
 		// Check whether this is an interface and resolve it where required
@@ -381,7 +398,7 @@ func (vr *variableResolver) resolve(ctx *ExecutionContext) (*Value, error) {
 				current = reflect.ValueOf(rv.Interface())
 			} else {
 				// Return the function call value
-				current = rv.Interface().(*Value).v
+				current = rv.Interface().(*Value).val
 			}
 		}
 	}
@@ -391,7 +408,7 @@ func (vr *variableResolver) resolve(ctx *ExecutionContext) (*Value, error) {
 		return AsValue(nil), nil
 	}
 
-	return &Value{current}, nil
+	return &Value{val: current, safe: is_macro}, nil
 }
 
 func (vr *variableResolver) Evaluate(ctx *ExecutionContext) (*Value, error) {

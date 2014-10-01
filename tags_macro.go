@@ -15,7 +15,10 @@ type tagMacroNode struct {
 }
 
 func (node *tagMacroNode) Execute(ctx *ExecutionContext, buffer *bytes.Buffer) error {
+	return nil
+}
 
+func (node *tagMacroNode) Call(ctx *ExecutionContext, args ...*Value) string {
 	args_ctx := make(Context)
 
 	for k, v := range node.args {
@@ -26,45 +29,40 @@ func (node *tagMacroNode) Execute(ctx *ExecutionContext, buffer *bytes.Buffer) e
 			// Evaluate the default value
 			value_expr, err := v.Evaluate(ctx)
 			if err != nil {
-				return err
+				logf(err.Error())
+				return err.Error()
 			}
 
 			args_ctx[k] = value_expr
 		}
 	}
 
-	macro_func := func(args ...*Value) string {
-		if len(args) > len(node.args_order) {
-			// Too many arguments, we're ignoring them and just logging into debug mode.
-			logf(ctx.Error(fmt.Sprintf("Macro '%s' called with too many arguments (%d instead of %d).",
-				node.name, len(args), len(node.args_order)), node.position).Error())
-			return "(pongo2 error: macro called with too many arguments [see debug mode])"
-		}
-
-		// Make a context for the macro execution
-		macroCtx := NewChildExecutionContext(ctx)
-
-		// Register all arguments in the private context
-		macroCtx.Private.Update(args_ctx)
-
-		for idx, arg_value := range args {
-			macroCtx.Private[node.args_order[idx]] = arg_value.Interface()
-		}
-
-		var b bytes.Buffer
-		err := node.wrapper.Execute(macroCtx, &b)
-		if err != nil {
-			logf(ctx.Error(fmt.Sprintf("Error occured during execution of macro '%s': %s",
-				err.Error()), node.position).Error())
-			return "(pongo2 error: macro execution error [see debug mode])"
-		}
-		return b.String()
+	if len(args) > len(node.args_order) {
+		// Too many arguments, we're ignoring them and just logging into debug mode.
+		logf(ctx.Error(fmt.Sprintf("Macro '%s' called with too many arguments (%d instead of %d).",
+			node.name, len(args), len(node.args_order)), node.position).Error())
+		return ctx.Error(fmt.Sprintf("Macro '%s' called with too many arguments (%d instead of %d).",
+			node.name, len(args), len(node.args_order)), node.position).Error()
 	}
 
-	// Register the created macro function into the context
-	ctx.Private[node.name] = macro_func
+	// Make a context for the macro execution
+	macroCtx := NewChildExecutionContext(ctx)
 
-	return nil
+	// Register all arguments in the private context
+	macroCtx.Private.Update(args_ctx)
+
+	for idx, arg_value := range args {
+		macroCtx.Private[node.args_order[idx]] = arg_value.Interface()
+	}
+
+	var b bytes.Buffer
+	err := node.wrapper.Execute(macroCtx, &b)
+	if err != nil {
+		return ctx.Error(fmt.Sprintf("Error occured during execution of macro '%s': %s",
+			err.Error()), node.position).Error()
+	}
+
+	return b.String()
 }
 
 func tagMacroParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, error) {
@@ -120,6 +118,9 @@ func tagMacroParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, err
 	if endargs.Count() > 0 {
 		return nil, endargs.Error("Arguments not allowed here.", nil)
 	}
+
+	// Now register the macro
+	doc.template.macros[macro_node.name] = macro_node
 
 	return macro_node, nil
 }

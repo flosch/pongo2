@@ -21,6 +21,7 @@ type Template struct {
 	parent *Template
 	child  *Template
 	blocks map[string]*NodeWrapper
+	macros map[string]*tagMacroNode
 
 	// Output
 	root *nodeDocument
@@ -37,6 +38,7 @@ func newTemplate(name, tpl string) (*Template, error) {
 		tpl:    tpl,
 		size:   len(tpl),
 		blocks: make(map[string]*NodeWrapper),
+		macros: make(map[string]*tagMacroNode),
 	}
 
 	// Tokenize it
@@ -76,9 +78,18 @@ func (tpl *Template) execute(context Context) (*bytes.Buffer, error) {
 		context = make(Context)
 	} else {
 		if len(context) > 0 {
+			// Check for context name syntax
 			err := context.checkForValidIdentifiers()
 			if err != nil {
 				return nil, err
+			}
+
+			// Check for clashes with macro names
+			for k, _ := range context {
+				_, has := tpl.macros[k]
+				if has {
+					return nil, fmt.Errorf("Context key name '%s' clashes with macro '%s'.", k, k)
+				}
 			}
 		}
 	}

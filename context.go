@@ -51,7 +51,8 @@ func (c Context) Update(other Context) Context {
 // To create your own execution context within tags, use the
 // NewChildExecutionContext(parent) function.
 type ExecutionContext struct {
-	template   *Template
+	template *Template
+
 	Autoescape bool
 	Public     Context
 	Private    Context
@@ -69,7 +70,8 @@ func newExecutionContext(tpl *Template, ctx Context) *ExecutionContext {
 	privateCtx["pongo2"] = pongo2MetaContext
 
 	return &ExecutionContext{
-		template:   tpl,
+		template: tpl,
+
 		Public:     ctx,
 		Private:    privateCtx,
 		Autoescape: true,
@@ -78,7 +80,8 @@ func newExecutionContext(tpl *Template, ctx Context) *ExecutionContext {
 
 func NewChildExecutionContext(parent *ExecutionContext) *ExecutionContext {
 	newctx := &ExecutionContext{
-		template:   parent.template,
+		template: parent.template,
+
 		Public:     parent.Public,
 		Private:    make(Context),
 		Autoescape: parent.Autoescape,

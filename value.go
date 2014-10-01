@@ -8,7 +8,8 @@ import (
 )
 
 type Value struct {
-	v reflect.Value
+	val  reflect.Value
+	safe bool // used to indicate whether a Value needs explicit escaping in the template
 }
 
 // Converts any given value to a pongo2.Value
@@ -19,15 +20,15 @@ type Value struct {
 //     AsValue("my string")
 func AsValue(i interface{}) *Value {
 	return &Value{
-		v: reflect.ValueOf(i),
+		val: reflect.ValueOf(i),
 	}
 }
 
 func (v *Value) getResolvedValue() reflect.Value {
-	if v.v.IsValid() && v.v.Kind() == reflect.Ptr {
-		return v.v.Elem()
+	if v.val.IsValid() && v.val.Kind() == reflect.Ptr {
+		return v.val.Elem()
 	}
-	return v.v
+	return v.val
 }
 
 // Checks whether the underlying value is a string
@@ -361,7 +362,7 @@ func (v *Value) IterateOrder(fn func(idx, count int, key, value *Value) bool, em
 		keyLen := len(keys)
 		for idx, key := range keys {
 			value := v.getResolvedValue().MapIndex(key)
-			if !fn(idx, keyLen, &Value{key}, &Value{value}) {
+			if !fn(idx, keyLen, &Value{val: key}, &Value{val: value}) {
 				return
 			}
 		}
@@ -374,13 +375,13 @@ func (v *Value) IterateOrder(fn func(idx, count int, key, value *Value) bool, em
 		if itemCount > 0 {
 			if reverse {
 				for i := itemCount - 1; i >= 0; i-- {
-					if !fn(i, itemCount, &Value{v.getResolvedValue().Index(i)}, nil) {
+					if !fn(i, itemCount, &Value{val: v.getResolvedValue().Index(i)}, nil) {
 						return
 					}
 				}
 			} else {
 				for i := 0; i < itemCount; i++ {
-					if !fn(i, itemCount, &Value{v.getResolvedValue().Index(i)}, nil) {
+					if !fn(i, itemCount, &Value{val: v.getResolvedValue().Index(i)}, nil) {
 						return
 					}
 				}
@@ -395,13 +396,13 @@ func (v *Value) IterateOrder(fn func(idx, count int, key, value *Value) bool, em
 		if charCount > 0 {
 			if reverse {
 				for i := charCount - 1; i >= 0; i-- {
-					if !fn(i, charCount, &Value{v.getResolvedValue().Slice(i, i+1)}, nil) {
+					if !fn(i, charCount, &Value{val: v.getResolvedValue().Slice(i, i+1)}, nil) {
 						return
 					}
 				}
 			} else {
 				for i := 0; i < charCount; i++ {
-					if !fn(i, charCount, &Value{v.getResolvedValue().Slice(i, i+1)}, nil) {
+					if !fn(i, charCount, &Value{val: v.getResolvedValue().Slice(i, i+1)}, nil) {
 						return
 					}
 				}
@@ -418,8 +419,8 @@ func (v *Value) IterateOrder(fn func(idx, count int, key, value *Value) bool, em
 
 // Gives you access to the underlying value.
 func (v *Value) Interface() interface{} {
-	if v.v.IsValid() {
-		return v.v.Interface()
+	if v.val.IsValid() {
+		return v.val.Interface()
 	}
 	return nil
 }
