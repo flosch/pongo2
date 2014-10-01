@@ -218,37 +218,21 @@ func (vr *variableResolver) String() string {
 
 func (vr *variableResolver) resolve(ctx *ExecutionContext) (*Value, error) {
 	var current reflect.Value
-	var is_macro bool
+	var is_safe bool
 
 	for idx, part := range vr.parts {
 		if idx == 0 {
 			// We're looking up the first part of the variable.
 			// First we're having a look in our private
 			// context (e. g. information provided by tags, like the forloop)
-			val, has := ctx.Private[vr.parts[0].s]
-			if !has {
-
-				// Not in Private? Lets check for a macro.
-				val, has = ctx.template.macros[vr.parts[0].s]
-				if has {
-					is_macro = true
-					val = func(args ...*Value) string {
-						return ctx.template.macros[vr.parts[0].s].Call(ctx, args...)
-					}
-				} else {
-					// Nothing found? Then have a final lookup in the public context
-					val = ctx.Public[vr.parts[0].s]
-				}
+			val, in_private := ctx.Private[vr.parts[0].s]
+			if !in_private {
+				// Nothing found? Then have a final lookup in the public context
+				val = ctx.Public[vr.parts[0].s]
 			}
-
 			current = reflect.ValueOf(val) // Get the initial value
 		} else {
 			// Next parts, resolve it from current
-
-			if is_macro {
-				// Don't allow chaining for macros
-				panic("todo")
-			}
 
 			// Before resolving the pointer, let's see if we have a method to call
 			// Problem with resolving the pointer is we're changing the receiver
@@ -399,6 +383,7 @@ func (vr *variableResolver) resolve(ctx *ExecutionContext) (*Value, error) {
 			} else {
 				// Return the function call value
 				current = rv.Interface().(*Value).val
+				is_safe = rv.Interface().(*Value).safe
 			}
 		}
 	}
@@ -408,7 +393,7 @@ func (vr *variableResolver) resolve(ctx *ExecutionContext) (*Value, error) {
 		return AsValue(nil), nil
 	}
 
-	return &Value{val: current, safe: is_macro}, nil
+	return &Value{val: current, safe: is_safe}, nil
 }
 
 func (vr *variableResolver) Evaluate(ctx *ExecutionContext) (*Value, error) {

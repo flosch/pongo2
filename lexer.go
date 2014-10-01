@@ -37,7 +37,7 @@ var (
 	}
 
 	// Available keywords in pongo2
-	TokenKeywords = []string{"in", "and", "or", "not", "true", "false", "as"}
+	TokenKeywords = []string{"in", "and", "or", "not", "true", "false", "as", "export"}
 )
 
 type TokenType int

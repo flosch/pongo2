@@ -24,6 +24,14 @@ func AsValue(i interface{}) *Value {
 	}
 }
 
+// Like AsValue, but does not apply the 'escape' filter.
+func AsSafeValue(i interface{}) *Value {
+	return &Value{
+		val:  reflect.ValueOf(i),
+		safe: true,
+	}
+}
+
 func (v *Value) getResolvedValue() reflect.Value {
 	if v.val.IsValid() && v.val.Kind() == reflect.Ptr {
 		return v.val.Elem()

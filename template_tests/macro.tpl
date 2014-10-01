@@ -18,4 +18,10 @@ issue #39 (deactivate auto-escape of macros)
 <p>Hello {{ name }}.</p>
 {% endmacro %}
 {{ html_test("Max") }}
+
+Importing macros
+{% import "macro.helper" imported_macro, imported_macro as renamed_macro, imported_macro as html_test %}
+{{ imported_macro("User1") }}
+{{ renamed_macro("User2") }}
+{{ html_test("Max") }}
 End

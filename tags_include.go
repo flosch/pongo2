@@ -46,6 +46,7 @@ func (node *tagIncludeNode) Execute(ctx *ExecutionContext, buffer *bytes.Buffer)
 		}
 
 		// Get include-filename relative to the including-template directory
+		// TODO: Change filename resolution to a more flexible mechanism
 		including_dir := filepath.Dir(ctx.template.name)
 		included_filename := filepath.Join(including_dir, filename.String())
 

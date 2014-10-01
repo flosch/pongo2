@@ -29,6 +29,7 @@ func tagExtendsParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, e
 		// prepared, static template
 
 		// Get parent's filename relative to the child's template directory
+		// TODO: Change filename resolution to a more flexible mechanism
 		childs_dir := filepath.Dir(doc.template.name)
 		parent_filename := filepath.Join(childs_dir, filename_token.Val)
 

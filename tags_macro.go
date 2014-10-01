@@ -10,15 +10,20 @@ type tagMacroNode struct {
 	name       string
 	args_order []string
 	args       map[string]IEvaluator
+	exported   bool
 
 	wrapper *NodeWrapper
 }
 
 func (node *tagMacroNode) Execute(ctx *ExecutionContext, buffer *bytes.Buffer) error {
+	ctx.Private[node.name] = func(args ...*Value) *Value {
+		return node.call(ctx, args...)
+	}
+
 	return nil
 }
 
-func (node *tagMacroNode) Call(ctx *ExecutionContext, args ...*Value) string {
+func (node *tagMacroNode) call(ctx *ExecutionContext, args ...*Value) *Value {
 	args_ctx := make(Context)
 
 	for k, v := range node.args {
@@ -30,7 +35,7 @@ func (node *tagMacroNode) Call(ctx *ExecutionContext, args ...*Value) string {
 			value_expr, err := v.Evaluate(ctx)
 			if err != nil {
 				logf(err.Error())
-				return err.Error()
+				return AsSafeValue(err.Error())
 			}
 
 			args_ctx[k] = value_expr
@@ -41,8 +46,8 @@ func (node *tagMacroNode) Call(ctx *ExecutionContext, args ...*Value) string {
 		// Too many arguments, we're ignoring them and just logging into debug mode.
 		logf(ctx.Error(fmt.Sprintf("Macro '%s' called with too many arguments (%d instead of %d).",
 			node.name, len(args), len(node.args_order)), node.position).Error())
-		return ctx.Error(fmt.Sprintf("Macro '%s' called with too many arguments (%d instead of %d).",
-			node.name, len(args), len(node.args_order)), node.position).Error()
+		return AsSafeValue(ctx.Error(fmt.Sprintf("Macro '%s' called with too many arguments (%d instead of %d).",
+			node.name, len(args), len(node.args_order)), node.position).Error())
 	}
 
 	// Make a context for the macro execution
@@ -58,11 +63,11 @@ func (node *tagMacroNode) Call(ctx *ExecutionContext, args ...*Value) string {
 	var b bytes.Buffer
 	err := node.wrapper.Execute(macroCtx, &b)
 	if err != nil {
-		return ctx.Error(fmt.Sprintf("Error occured during execution of macro '%s': %s",
-			err.Error()), node.position).Error()
+		return AsSafeValue(ctx.Error(fmt.Sprintf("Error occured during execution of macro '%s': %s",
+			err.Error()), node.position).Error())
 	}
 
-	return b.String()
+	return AsSafeValue(b.String())
 }
 
 func tagMacroParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, error) {
@@ -108,6 +113,14 @@ func tagMacroParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, err
 		}
 	}
 
+	if arguments.Match(TokenKeyword, "export") != nil {
+		macro_node.exported = true
+	}
+
+	if arguments.Remaining() > 0 {
+		return nil, arguments.Error("Malformed macro-tag.", nil)
+	}
+
 	// Body wrapping
 	wrapper, endargs, err := doc.WrapUntilTag("endmacro")
 	if err != nil {
@@ -119,8 +132,10 @@ func tagMacroParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, err
 		return nil, endargs.Error("Arguments not allowed here.", nil)
 	}
 
-	// Now register the macro
-	doc.template.macros[macro_node.name] = macro_node
+	if macro_node.exported {
+		// Now register the macro if it wants to be exported
+		doc.template.macros[macro_node.name] = macro_node
+	}
 
 	return macro_node, nil
 }
