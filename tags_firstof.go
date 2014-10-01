@@ -6,7 +6,7 @@ import (
 
 type tagFirstofNode struct {
 	position *Token
-	args     []INodeEvaluator
+	args     []IEvaluator
 }
 
 func (node *tagFirstofNode) Execute(ctx *ExecutionContext, buffer *bytes.Buffer) error {

@@ -3,8 +3,8 @@ package pongo2
 import "bytes"
 
 type tagSetNode struct {
-	name		string
-	expression	INodeEvaluator
+	name       string
+	expression IEvaluator
 }
 
 func (node *tagSetNode) Execute(ctx *ExecutionContext, buffer *bytes.Buffer) error {

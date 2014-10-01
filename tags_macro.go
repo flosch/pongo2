@@ -9,7 +9,7 @@ type tagMacroNode struct {
 	position   *Token
 	name       string
 	args_order []string
-	args       map[string]INodeEvaluator
+	args       map[string]IEvaluator
 
 	wrapper *NodeWrapper
 }
@@ -70,7 +70,7 @@ func (node *tagMacroNode) Execute(ctx *ExecutionContext, buffer *bytes.Buffer) e
 func tagMacroParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, error) {
 	macro_node := &tagMacroNode{
 		position: start,
-		args:     make(map[string]INodeEvaluator),
+		args:     make(map[string]IEvaluator),
 	}
 
 	name_token := arguments.MatchType(TokenIdentifier)

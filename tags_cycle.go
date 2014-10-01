@@ -11,7 +11,7 @@ type tagCycleValue struct {
 
 type tagCycleNode struct {
 	position *Token
-	args     []INodeEvaluator
+	args     []IEvaluator
 	idx      int
 	as_name  string
 	silent   bool

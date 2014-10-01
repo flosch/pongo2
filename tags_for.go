@@ -7,7 +7,7 @@ import (
 type tagForNode struct {
 	key              string
 	value            string // only for maps: for key, value in map
-	object_evaluator INodeEvaluator
+	object_evaluator IEvaluator
 	reversed         bool
 
 	bodyWrapper  *NodeWrapper

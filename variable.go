@@ -26,10 +26,26 @@ type functionCallArgument interface {
 	Evaluate(*ExecutionContext) (*Value, error)
 }
 
-type stringResolver string
-type intResolver int
-type floatResolver float64
-type boolResolver bool
+// TODO: Add location tokens
+type stringResolver struct {
+	location_token *Token
+	val            string
+}
+
+type intResolver struct {
+	location_token *Token
+	val            int
+}
+
+type floatResolver struct {
+	location_token *Token
+	val            float64
+}
+
+type boolResolver struct {
+	location_token *Token
+	val            bool
+}
 
 type variableResolver struct {
 	location_token *Token
@@ -49,20 +65,98 @@ type nodeVariable struct {
 	expr           IEvaluator
 }
 
+func (expr *nodeFilteredVariable) Execute(ctx *ExecutionContext, buffer *bytes.Buffer) error {
+	value, err := expr.Evaluate(ctx)
+	if err != nil {
+		return err
+	}
+	buffer.WriteString(value.String())
+	return nil
+}
+
+func (expr *variableResolver) Execute(ctx *ExecutionContext, buffer *bytes.Buffer) error {
+	value, err := expr.Evaluate(ctx)
+	if err != nil {
+		return err
+	}
+	buffer.WriteString(value.String())
+	return nil
+}
+
+func (expr *stringResolver) Execute(ctx *ExecutionContext, buffer *bytes.Buffer) error {
+	value, err := expr.Evaluate(ctx)
+	if err != nil {
+		return err
+	}
+	buffer.WriteString(value.String())
+	return nil
+}
+
+func (expr *intResolver) Execute(ctx *ExecutionContext, buffer *bytes.Buffer) error {
+	value, err := expr.Evaluate(ctx)
+	if err != nil {
+		return err
+	}
+	buffer.WriteString(value.String())
+	return nil
+}
+
+func (expr *floatResolver) Execute(ctx *ExecutionContext, buffer *bytes.Buffer) error {
+	value, err := expr.Evaluate(ctx)
+	if err != nil {
+		return err
+	}
+	buffer.WriteString(value.String())
+	return nil
+}
+
+func (expr *boolResolver) Execute(ctx *ExecutionContext, buffer *bytes.Buffer) error {
+	value, err := expr.Evaluate(ctx)
+	if err != nil {
+		return err
+	}
+	buffer.WriteString(value.String())
+	return nil
+}
+
+func (v *nodeFilteredVariable) GetPositionToken() *Token {
+	return v.location_token
+}
+
+func (v *variableResolver) GetPositionToken() *Token {
+	return v.location_token
+}
+
+func (v *stringResolver) GetPositionToken() *Token {
+	return v.location_token
+}
+
+func (v *intResolver) GetPositionToken() *Token {
+	return v.location_token
+}
+
+func (v *floatResolver) GetPositionToken() *Token {
+	return v.location_token
+}
+
+func (v *boolResolver) GetPositionToken() *Token {
+	return v.location_token
+}
+
 func (s *stringResolver) Evaluate(ctx *ExecutionContext) (*Value, error) {
-	return AsValue(string(*s)), nil
+	return AsValue(s.val), nil
 }
 
 func (i *intResolver) Evaluate(ctx *ExecutionContext) (*Value, error) {
-	return AsValue(int(*i)), nil
+	return AsValue(i.val), nil
 }
 
 func (f *floatResolver) Evaluate(ctx *ExecutionContext) (*Value, error) {
-	return AsValue(float64(*f)), nil
+	return AsValue(f.val), nil
 }
 
 func (b *boolResolver) Evaluate(ctx *ExecutionContext) (*Value, error) {
-	return AsValue(bool(*b)), nil
+	return AsValue(b.val), nil
 }
 
 func (s *stringResolver) FilterApplied(name string) bool {
@@ -361,29 +455,44 @@ func (p *Parser) parseVariableOrLiteral() (IEvaluator, error) {
 			if err != nil {
 				return nil, err
 			}
-			fr := floatResolver(f)
-			return &fr, nil
+			fr := &floatResolver{
+				location_token: t,
+				val:            f,
+			}
+			return fr, nil
 		} else {
 			i, err := strconv.Atoi(t.Val)
 			if err != nil {
 				return nil, err
 			}
-			nr := intResolver(i)
-			return &nr, nil
+			nr := &intResolver{
+				location_token: t,
+				val:            i,
+			}
+			return nr, nil
 		}
 	case TokenString:
 		p.Consume()
-		sr := stringResolver(t.Val)
-		return &sr, nil
+		sr := &stringResolver{
+			location_token: t,
+			val:            t.Val,
+		}
+		return sr, nil
 	case TokenKeyword:
 		p.Consume()
 		switch t.Val {
 		case "true":
-			br := boolResolver(true)
-			return &br, nil
+			br := &boolResolver{
+				location_token: t,
+				val:            true,
+			}
+			return br, nil
 		case "false":
-			br := boolResolver(false)
-			return &br, nil
+			br := &boolResolver{
+				location_token: t,
+				val:            false,
+			}
+			return br, nil
 		default:
 			return nil, p.Error("This keyword is not allowed here.", nil)
 		}

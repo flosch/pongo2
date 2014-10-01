@@ -21,12 +21,11 @@ type relationalExpression struct {
 }
 
 type simpleExpression struct {
-	location_token *Token
-	negate         bool
-	negative_sign  bool
-	term1          IEvaluator
-	term2          IEvaluator
-	op_token       *Token
+	negate        bool
+	negative_sign bool
+	term1         IEvaluator
+	term2         IEvaluator
+	op_token      *Token
 }
 
 type term struct {
@@ -67,7 +66,63 @@ func (p *power) FilterApplied(name string) bool {
 		(p.power2 != nil && p.power2.FilterApplied(name)))
 }
 
+func (expr *Expression) GetPositionToken() *Token {
+	return expr.expr1.GetPositionToken()
+}
+
+func (expr *relationalExpression) GetPositionToken() *Token {
+	return expr.expr1.GetPositionToken()
+}
+
+func (expr *simpleExpression) GetPositionToken() *Token {
+	return expr.term1.GetPositionToken()
+}
+
+func (expr *term) GetPositionToken() *Token {
+	return expr.factor1.GetPositionToken()
+}
+
+func (expr *power) GetPositionToken() *Token {
+	return expr.power1.GetPositionToken()
+}
+
 func (expr *Expression) Execute(ctx *ExecutionContext, buffer *bytes.Buffer) error {
+	value, err := expr.Evaluate(ctx)
+	if err != nil {
+		return err
+	}
+	buffer.WriteString(value.String())
+	return nil
+}
+
+func (expr *relationalExpression) Execute(ctx *ExecutionContext, buffer *bytes.Buffer) error {
+	value, err := expr.Evaluate(ctx)
+	if err != nil {
+		return err
+	}
+	buffer.WriteString(value.String())
+	return nil
+}
+
+func (expr *simpleExpression) Execute(ctx *ExecutionContext, buffer *bytes.Buffer) error {
+	value, err := expr.Evaluate(ctx)
+	if err != nil {
+		return err
+	}
+	buffer.WriteString(value.String())
+	return nil
+}
+
+func (expr *term) Execute(ctx *ExecutionContext, buffer *bytes.Buffer) error {
+	value, err := expr.Evaluate(ctx)
+	if err != nil {
+		return err
+	}
+	buffer.WriteString(value.String())
+	return nil
+}
+
+func (expr *power) Execute(ctx *ExecutionContext, buffer *bytes.Buffer) error {
 	value, err := expr.Evaluate(ctx)
 	if err != nil {
 		return err
@@ -170,7 +225,7 @@ func (expr *simpleExpression) Evaluate(ctx *ExecutionContext) (*Value, error) {
 				panic("not possible")
 			}
 		} else {
-			return nil, ctx.Error("Negative sign on a non-number expression", expr.location_token)
+			return nil, ctx.Error("Negative sign on a non-number expression", expr.GetPositionToken())
 		}
 	}
 
@@ -289,7 +344,7 @@ func (p *Parser) parsePower() (IEvaluator, error) {
 	}
 
 	if pw.power2 == nil {
-		// Shortcut for later evaluation
+		// Shortcut for faster evaluation
 		return pw.power1, nil
 	}
 
@@ -326,7 +381,7 @@ func (p *Parser) parseTerm() (IEvaluator, error) {
 	}
 
 	if return_term.op_token == nil {
-		// Shortcut for later evaluation
+		// Shortcut for faster evaluation
 		return return_term.factor1, nil
 	}
 
@@ -335,7 +390,6 @@ func (p *Parser) parseTerm() (IEvaluator, error) {
 
 func (p *Parser) parseSimpleExpression() (IEvaluator, error) {
 	expr := new(simpleExpression)
-	expr.location_token = p.Current()
 
 	if sign := p.MatchOne(TokenSymbol, "+", "-"); sign != nil {
 		if sign.Val == "-" {
@@ -373,6 +427,11 @@ func (p *Parser) parseSimpleExpression() (IEvaluator, error) {
 		expr.op_token = op
 	}
 
+	if expr.negate == false && expr.negative_sign == false && expr.term2 == nil {
+		// Shortcut for faster evaluation
+		return expr.term1, nil
+	}
+
 	return expr, nil
 }
 
@@ -403,14 +462,14 @@ func (p *Parser) parseRelationalExpression() (IEvaluator, error) {
 	}
 
 	if expr.expr2 == nil {
-		// Shortcut for later evaluation
+		// Shortcut for faster evaluation
 		return expr.expr1, nil
 	}
 
 	return expr, nil
 }
 
-func (p *Parser) ParseExpression() (INodeEvaluator, error) {
+func (p *Parser) ParseExpression() (IEvaluator, error) {
 	rexpr1, err := p.parseRelationalExpression()
 	if err != nil {
 		return nil, err
@@ -429,6 +488,11 @@ func (p *Parser) ParseExpression() (INodeEvaluator, error) {
 		}
 		exp.expr2 = expr2
 		exp.op_token = op
+	}
+
+	if exp.expr2 == nil {
+		// Shortcut for faster evaluation
+		return exp.expr1, nil
 	}
 
 	return exp, nil

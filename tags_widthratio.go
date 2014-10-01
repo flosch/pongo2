@@ -8,8 +8,8 @@ import (
 
 type tagWidthratioNode struct {
 	position     *Token
-	current, max INodeEvaluator
-	width        INodeEvaluator
+	current, max IEvaluator
+	width        IEvaluator
 	ctx_name     string
 }
 

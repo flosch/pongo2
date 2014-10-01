@@ -7,18 +7,15 @@ import (
 	"strings"
 )
 
-type IEvaluator interface {
-	Evaluate(*ExecutionContext) (*Value, error)
-	FilterApplied(name string) bool
-}
-
 type INode interface {
 	Execute(*ExecutionContext, *bytes.Buffer) error
 }
 
-type INodeEvaluator interface {
+type IEvaluator interface {
 	INode
-	IEvaluator
+	GetPositionToken() *Token
+	Evaluate(*ExecutionContext) (*Value, error)
+	FilterApplied(name string) bool
 }
 
 // The parser provides you a comprehensive and easy tool to

@@ -64,8 +64,8 @@ var tplContext = Context{
 		"float":         float64(3.1415),
 		"str":           "string",
 		"chinese_hello_world": "你好世界",
-		"bool_true":     true,
-		"bool_false":    false,
+		"bool_true":           true,
+		"bool_false":          false,
 		"newline_text": `this is a text
 with a new line in it`,
 		"long_text": `This is a simple text.

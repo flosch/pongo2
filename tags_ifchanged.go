@@ -5,7 +5,7 @@ import (
 )
 
 type tagIfchangedNode struct {
-	watched_expr []INodeEvaluator
+	watched_expr []IEvaluator
 	last_values  []*Value
 	last_content []byte
 	thenWrapper  *NodeWrapper
