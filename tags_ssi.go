@@ -8,10 +8,24 @@ import (
 type tagSSINode struct {
 	filename string
 	content  string
+	template *Template
 }
 
 func (node *tagSSINode) Execute(ctx *ExecutionContext, buffer *bytes.Buffer) error {
-	buffer.WriteString(node.content)
+	if node.template != nil {
+		// Execute the template within the current context
+		includeCtx := make(Context)
+		includeCtx.Update(ctx.Public)
+		includeCtx.Update(ctx.Private)
+
+		err := node.template.ExecuteWriter(includeCtx, buffer)
+		if err != nil {
+			return err
+		}
+	} else {
+		// Just print out the content
+		buffer.WriteString(node.content)
+	}
 	return nil
 }
 
@@ -23,18 +37,14 @@ func tagSSIParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, error
 
 		if arguments.Match(TokenIdentifier, "parsed") != nil {
 			// parsed
-			temporary_tpl, err := FromFile(file_token.Val)
+			temporary_tpl, err := doc.template.set.FromFile(doc.template.set.resolveFilename(doc.template, file_token.Val))
 			if err != nil {
 				return nil, err
 			}
-			buf, err := temporary_tpl.Execute(nil)
-			if err != nil {
-				return nil, err
-			}
-			ssi_node.content = buf
+			ssi_node.template = temporary_tpl
 		} else {
 			// plaintext
-			buf, err := ioutil.ReadFile(file_token.Val)
+			buf, err := ioutil.ReadFile(doc.template.set.resolveFilename(doc.template, file_token.Val))
 			if err != nil {
 				return nil, err
 			}

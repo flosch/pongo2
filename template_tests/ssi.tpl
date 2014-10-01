@@ -1,2 +1,2 @@
-{% ssi "template_tests/ssi.helper" %}
-{% ssi "template_tests/ssi.helper" parsed %}
+{% ssi "ssi.helper" %}
+{% ssi "ssi.helper" parsed %}
