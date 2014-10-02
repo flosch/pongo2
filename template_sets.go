@@ -38,7 +38,7 @@ type TemplateSet struct {
 	// (for your personal security).
 	//
 	// SandboxDirectories can be changed at runtime. Please synchronize the access to it if you need to change it
-	// after you've added your first template to the set. You can use this match pattern for your directories:
+	// after you've added your first template to the set. You *must* use this match pattern for your directories:
 	//  http://golang.org/pkg/path/filepath/#Match
 	SandboxDirectories   []string
 	firstTemplateCreated bool
