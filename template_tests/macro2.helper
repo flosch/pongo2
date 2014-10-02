@@ -1,0 +1,1 @@
+{% macro greeter_macro() export %}{% import "macro.helper" imported_macro %}One greeting: {{ imported_macro("Dirk") }}{% endmacro %}

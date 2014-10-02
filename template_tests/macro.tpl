@@ -24,4 +24,7 @@ Importing macros
 {{ imported_macro("User1") }}
 {{ renamed_macro("User2") }}
 {{ html_test("Max") }}
+
+Chaining macros{% import "macro2.helper" greeter_macro %}
+{{ greeter_macro() }}
 End

@@ -35,4 +35,7 @@ Importing macros
 <p>Hey User1!</p>
 <p>Hey User2!</p>
 <p>Hey Max!</p>
+
+Chaining macros
+One greeting: <p>Hey Dirk!</p>
 End
