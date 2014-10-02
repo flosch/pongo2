@@ -8,8 +8,8 @@ import (
 	"path/filepath"
 )
 
-// A template set allows you to create your own template sets with your own global context (which is shared
-// among all members of the set) and your own configuration (like a specific base directory).
+// A template set allows you to create your own group of templates with their own global context (which is shared
+// among all members of the set), their own configuration (like a specific base directory) and their own sandbox.
 // It's useful for a separation of different kind of templates (e. g. web templates vs. mail templates).
 type TemplateSet struct {
 	name string
@@ -25,8 +25,8 @@ type TemplateSet struct {
 	BaseDirectory string
 
 	// Sandbox features
-	//  - Limit access to directories (using SandboxDirectories)
-	//  - Disallow access to specific tags and/or filters (using BanTag() and BanFilter())
+	// - Limit access to directories (using SandboxDirectories)
+	// - Disallow access to specific tags and/or filters (using BanTag() and BanFilter())
 	//
 	// You can limit file accesses (for all tags/filters which are using pongo2's file resolver technique)
 	// to these sandbox directories. All default pongo2 filters/tags are respecting these restrictions.
@@ -39,7 +39,7 @@ type TemplateSet struct {
 	//
 	// SandboxDirectories can be changed at runtime. Please synchronize the access to it if you need to change it
 	// after you've added your first template to the set. You *must* use this match pattern for your directories:
-	//  http://golang.org/pkg/path/filepath/#Match
+	// http://golang.org/pkg/path/filepath/#Match
 	SandboxDirectories   []string
 	firstTemplateCreated bool
 	bannedTags           map[string]bool
