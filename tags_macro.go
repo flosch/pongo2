@@ -15,7 +15,7 @@ type tagMacroNode struct {
 	wrapper *NodeWrapper
 }
 
-func (node *tagMacroNode) Execute(ctx *ExecutionContext, buffer *bytes.Buffer) error {
+func (node *tagMacroNode) Execute(ctx *ExecutionContext, buffer *bytes.Buffer) *Error {
 	ctx.Private[node.name] = func(args ...*Value) *Value {
 		return node.call(ctx, args...)
 	}
@@ -70,7 +70,7 @@ func (node *tagMacroNode) call(ctx *ExecutionContext, args ...*Value) *Value {
 	return AsSafeValue(b.String())
 }
 
-func tagMacroParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, error) {
+func tagMacroParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, *Error) {
 	macro_node := &tagMacroNode{
 		position: start,
 		args:     make(map[string]IEvaluator),

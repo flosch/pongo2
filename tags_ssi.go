@@ -11,7 +11,7 @@ type tagSSINode struct {
 	template *Template
 }
 
-func (node *tagSSINode) Execute(ctx *ExecutionContext, buffer *bytes.Buffer) error {
+func (node *tagSSINode) Execute(ctx *ExecutionContext, buffer *bytes.Buffer) *Error {
 	if node.template != nil {
 		// Execute the template within the current context
 		includeCtx := make(Context)
@@ -29,7 +29,7 @@ func (node *tagSSINode) Execute(ctx *ExecutionContext, buffer *bytes.Buffer) err
 	return nil
 }
 
-func tagSSIParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, error) {
+func tagSSIParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, *Error) {
 	ssi_node := &tagSSINode{}
 
 	if file_token := arguments.MatchType(TokenString); file_token != nil {
@@ -46,7 +46,10 @@ func tagSSIParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, error
 			// plaintext
 			buf, err := ioutil.ReadFile(doc.template.set.resolveFilename(doc.template, file_token.Val))
 			if err != nil {
-				return nil, err
+				return nil, &Error{
+					Sender:   "tag:ssi",
+					ErrorMsg: err.Error(),
+				}
 			}
 			ssi_node.content = string(buf)
 		}

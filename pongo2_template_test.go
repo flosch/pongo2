@@ -60,16 +60,16 @@ func (p *post) String() string {
 type tagSandboxDemoTag struct {
 }
 
-func (node *tagSandboxDemoTag) Execute(ctx *ExecutionContext, buffer *bytes.Buffer) error {
+func (node *tagSandboxDemoTag) Execute(ctx *ExecutionContext, buffer *bytes.Buffer) *Error {
 	buffer.WriteString("hello")
 	return nil
 }
 
-func tagSandboxDemoTagParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, error) {
+func tagSandboxDemoTagParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, *Error) {
 	return &tagSandboxDemoTag{}, nil
 }
 
-func BannedFilterFn(in *Value, params *Value) (*Value, error) {
+func BannedFilterFn(in *Value, params *Value) (*Value, *Error) {
 	return in, nil
 }
 
@@ -254,9 +254,9 @@ func TestTemplates(t *testing.T) {
 			t.Fatalf("Error on FromFile('%s'): %s", match, err.Error())
 		}
 		test_filename := fmt.Sprintf("%s.out", match)
-		test_out, err := ioutil.ReadFile(test_filename)
-		if err != nil {
-			t.Fatalf("Error on ReadFile('%s'): %s", test_filename, err.Error())
+		test_out, rerr := ioutil.ReadFile(test_filename)
+		if rerr != nil {
+			t.Fatalf("Error on ReadFile('%s'): %s", test_filename, rerr.Error())
 		}
 		tpl_out, err := tpl.ExecuteBytes(tplContext)
 		if err != nil {
@@ -318,6 +318,7 @@ func TestExecutionErrors(t *testing.T) {
 				t.Fatalf("[%s Line %d] Expected error for (got none): %s",
 					match, idx+1, tests[idx])
 			}
+
 			re := regexp.MustCompile(fmt.Sprintf("^%s$", checks[idx]))
 			if !re.MatchString(err.Error()) {
 				t.Fatalf("[%s Line %d] Error for '%s' (err = '%s') does not match the (regexp-)check: %s",

@@ -2,19 +2,18 @@ package pongo2
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 	"strings"
 )
 
 type INode interface {
-	Execute(*ExecutionContext, *bytes.Buffer) error
+	Execute(*ExecutionContext, *bytes.Buffer) *Error
 }
 
 type IEvaluator interface {
 	INode
 	GetPositionToken() *Token
-	Evaluate(*ExecutionContext) (*Value, error)
+	Evaluate(*ExecutionContext) (*Value, *Error)
 	FilterApplied(name string) bool
 }
 
@@ -180,7 +179,7 @@ func (p *Parser) GetR(shift int) *Token {
 // The 'token'-argument is optional. If provided, it will take
 // the token's position information. If not provided, it will
 // automatically use the CURRENT token's position information.
-func (p *Parser) Error(msg string, token *Token) error {
+func (p *Parser) Error(msg string, token *Token) *Error {
 	if token == nil {
 		// Set current token
 		token = p.Current()
@@ -191,23 +190,25 @@ func (p *Parser) Error(msg string, token *Token) error {
 			}
 		}
 	}
-	pos := ""
+	var line, col int
 	if token != nil {
-		// No tokens available
-		// TODO: Add location (from where?)
-		pos = fmt.Sprintf(" | Line %d Col %d (%s)",
-			token.Line, token.Col, token.String())
+		line = token.Line
+		col = token.Col
 	}
-	return errors.New(
-		fmt.Sprintf("[Parse Error in %s%s] %s",
-			p.name, pos, msg,
-		))
+	return &Error{
+		Filename: p.name,
+		Sender:   "parser",
+		Line:     line,
+		Column:   col,
+		Token:    token,
+		ErrorMsg: msg,
+	}
 }
 
 // Wraps all nodes between starting tag and "{% endtag %}" and provides
 // one simple interface to execute the wrapped nodes.
 // It returns a parser to process provided arguments to the tag.
-func (p *Parser) WrapUntilTag(names ...string) (*NodeWrapper, *Parser, error) {
+func (p *Parser) WrapUntilTag(names ...string) (*NodeWrapper, *Parser, *Error) {
 	wrapper := &NodeWrapper{}
 
 	tagArgs := make([]*Token, 0)

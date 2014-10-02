@@ -13,7 +13,7 @@ type tagWidthratioNode struct {
 	ctx_name     string
 }
 
-func (node *tagWidthratioNode) Execute(ctx *ExecutionContext, buffer *bytes.Buffer) error {
+func (node *tagWidthratioNode) Execute(ctx *ExecutionContext, buffer *bytes.Buffer) *Error {
 	current, err := node.current.Evaluate(ctx)
 	if err != nil {
 		return err
@@ -40,7 +40,7 @@ func (node *tagWidthratioNode) Execute(ctx *ExecutionContext, buffer *bytes.Buff
 	return nil
 }
 
-func tagWidthratioParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, error) {
+func tagWidthratioParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, *Error) {
 	widthratio_node := &tagWidthratioNode{
 		position: start,
 	}

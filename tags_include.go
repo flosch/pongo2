@@ -13,7 +13,7 @@ type tagIncludeNode struct {
 	with_pairs         map[string]IEvaluator
 }
 
-func (node *tagIncludeNode) Execute(ctx *ExecutionContext, buffer *bytes.Buffer) error {
+func (node *tagIncludeNode) Execute(ctx *ExecutionContext, buffer *bytes.Buffer) *Error {
 	// Building the context for the template
 	include_ctx := make(Context)
 
@@ -58,7 +58,7 @@ func (node *tagIncludeNode) Execute(ctx *ExecutionContext, buffer *bytes.Buffer)
 	}
 }
 
-func tagIncludeParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, error) {
+func tagIncludeParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, *Error) {
 	include_node := &tagIncludeNode{
 		with_pairs: make(map[string]IEvaluator),
 	}

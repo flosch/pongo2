@@ -30,11 +30,11 @@ type Template struct {
 	root *nodeDocument
 }
 
-func newTemplateString(set *TemplateSet, tpl string) (*Template, error) {
+func newTemplateString(set *TemplateSet, tpl string) (*Template, *Error) {
 	return newTemplate(set, "<string>", true, tpl)
 }
 
-func newTemplate(set *TemplateSet, name string, is_tpl_string bool, tpl string) (*Template, error) {
+func newTemplate(set *TemplateSet, name string, is_tpl_string bool, tpl string) (*Template, *Error) {
 	// Create the template
 	t := &Template{
 		set:             set,
@@ -67,7 +67,7 @@ func newTemplate(set *TemplateSet, name string, is_tpl_string bool, tpl string) 
 	return t, nil
 }
 
-func (tpl *Template) execute(context Context) (*bytes.Buffer, error) {
+func (tpl *Template) execute(context Context) (*bytes.Buffer, *Error) {
 	// Create output buffer
 	// We assume that the rendered template will be 30% larger
 	buffer := bytes.NewBuffer(make([]byte, 0, int(float64(tpl.size)*1.3)))
@@ -96,7 +96,11 @@ func (tpl *Template) execute(context Context) (*bytes.Buffer, error) {
 			for k, _ := range newContext {
 				_, has := tpl.exported_macros[k]
 				if has {
-					return nil, fmt.Errorf("Context key name '%s' clashes with macro '%s'.", k, k)
+					return nil, &Error{
+						Filename: tpl.name,
+						Sender:   "execution",
+						ErrorMsg: fmt.Sprintf("Context key name '%s' clashes with macro '%s'.", k, k),
+					}
 				}
 			}
 		}
@@ -116,25 +120,29 @@ func (tpl *Template) execute(context Context) (*bytes.Buffer, error) {
 // Executes the template with the given context and writes to writer (io.Writer)
 // on success. Context can be nil. Nothing is written on error; instead the error
 // is being returned.
-func (tpl *Template) ExecuteWriter(context Context, writer io.Writer) error {
+func (tpl *Template) ExecuteWriter(context Context, writer io.Writer) *Error {
 	buffer, err := tpl.execute(context)
 	if err != nil {
 		return err
 	}
 
 	l := buffer.Len()
-	n, err := buffer.WriteTo(writer)
+	n, werr := buffer.WriteTo(writer)
 	if int(n) != l {
 		panic(fmt.Sprintf("error on writing template: n(%d) != buffer.Len(%d)", n, l))
 	}
-	if err != nil {
-		return err
+	if werr != nil {
+		return &Error{
+			Filename: tpl.name,
+			Sender:   "execution",
+			ErrorMsg: werr.Error(),
+		}
 	}
 	return nil
 }
 
 // Executes the template and returns the rendered template as a []byte
-func (tpl *Template) ExecuteBytes(context Context) ([]byte, error) {
+func (tpl *Template) ExecuteBytes(context Context) ([]byte, *Error) {
 	// Execute template
 	buffer, err := tpl.execute(context)
 	if err != nil {
@@ -144,7 +152,7 @@ func (tpl *Template) ExecuteBytes(context Context) ([]byte, error) {
 }
 
 // Executes the template and returns the rendered template as a string
-func (tpl *Template) Execute(context Context) (string, error) {
+func (tpl *Template) Execute(context Context) (string, *Error) {
 	// Execute template
 	buffer, err := tpl.execute(context)
 	if err != nil {

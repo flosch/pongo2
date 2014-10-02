@@ -15,7 +15,7 @@ type tagFilterNode struct {
 	filterChain []*nodeFilterCall
 }
 
-func (node *tagFilterNode) Execute(ctx *ExecutionContext, buffer *bytes.Buffer) error {
+func (node *tagFilterNode) Execute(ctx *ExecutionContext, buffer *bytes.Buffer) *Error {
 	temp := bytes.NewBuffer(make([]byte, 0, 1024)) // 1 KiB size
 
 	err := node.bodyWrapper.Execute(ctx, temp)
@@ -46,7 +46,7 @@ func (node *tagFilterNode) Execute(ctx *ExecutionContext, buffer *bytes.Buffer) 
 	return nil
 }
 
-func tagFilterParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, error) {
+func tagFilterParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, *Error) {
 	filter_node := &tagFilterNode{
 		position: start,
 	}

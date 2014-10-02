@@ -90,7 +90,7 @@ func (set *TemplateSet) BanFilter(name string) {
 }
 
 // Loads  a template from string and returns a Template instance.
-func (set *TemplateSet) FromString(tpl string) (*Template, error) {
+func (set *TemplateSet) FromString(tpl string) (*Template, *Error) {
 	set.firstTemplateCreated = true
 
 	return newTemplateString(set, tpl)
@@ -99,12 +99,16 @@ func (set *TemplateSet) FromString(tpl string) (*Template, error) {
 // Loads  a template from a filename and returns a Template instance.
 // The filename must either be relative to the application's directory
 // or be an absolute path.
-func (set *TemplateSet) FromFile(filename string) (*Template, error) {
+func (set *TemplateSet) FromFile(filename string) (*Template, *Error) {
 	set.firstTemplateCreated = true
 
 	buf, err := ioutil.ReadFile(filename)
 	if err != nil {
-		return nil, err
+		return nil, &Error{
+			Filename: filename,
+			Sender:   "fromfile",
+			ErrorMsg: err.Error(),
+		}
 	}
 	return newTemplate(set, filename, false, string(buf))
 }

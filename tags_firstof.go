@@ -9,7 +9,7 @@ type tagFirstofNode struct {
 	args     []IEvaluator
 }
 
-func (node *tagFirstofNode) Execute(ctx *ExecutionContext, buffer *bytes.Buffer) error {
+func (node *tagFirstofNode) Execute(ctx *ExecutionContext, buffer *bytes.Buffer) *Error {
 	for _, arg := range node.args {
 		val, err := arg.Evaluate(ctx)
 		if err != nil {
@@ -32,7 +32,7 @@ func (node *tagFirstofNode) Execute(ctx *ExecutionContext, buffer *bytes.Buffer)
 	return nil
 }
 
-func tagFirstofParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, error) {
+func tagFirstofParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, *Error) {
 	firstof_node := &tagFirstofNode{
 		position: start,
 	}

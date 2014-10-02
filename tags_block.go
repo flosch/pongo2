@@ -22,7 +22,7 @@ func (node *tagBlockNode) getBlockWrapperByName(tpl *Template) *NodeWrapper {
 	return t
 }
 
-func (node *tagBlockNode) Execute(ctx *ExecutionContext, buffer *bytes.Buffer) error {
+func (node *tagBlockNode) Execute(ctx *ExecutionContext, buffer *bytes.Buffer) *Error {
 	tpl := ctx.template
 	if tpl == nil {
 		panic("internal error: tpl == nil")
@@ -43,7 +43,7 @@ func (node *tagBlockNode) Execute(ctx *ExecutionContext, buffer *bytes.Buffer) e
 	return nil
 }
 
-func tagBlockParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, error) {
+func tagBlockParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, *Error) {
 	if arguments.Count() == 0 {
 		return nil, arguments.Error("Tag 'block' requires an identifier.", nil)
 	}

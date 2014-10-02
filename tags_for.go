@@ -24,7 +24,7 @@ type tagForLoopInformation struct {
 	Parentloop  *tagForLoopInformation
 }
 
-func (node *tagForNode) Execute(ctx *ExecutionContext, buffer *bytes.Buffer) (forError error) {
+func (node *tagForNode) Execute(ctx *ExecutionContext, buffer *bytes.Buffer) (forError *Error) {
 	// Backup forloop (as parentloop in public context), key-name and value-name
 	forCtx := NewChildExecutionContext(ctx)
 	parentloop := forCtx.Private["forloop"]
@@ -86,7 +86,7 @@ func (node *tagForNode) Execute(ctx *ExecutionContext, buffer *bytes.Buffer) (fo
 	return nil
 }
 
-func tagForParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, error) {
+func tagForParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, *Error) {
 	for_node := &tagForNode{}
 
 	// Arguments parsing

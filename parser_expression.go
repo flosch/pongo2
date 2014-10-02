@@ -86,7 +86,7 @@ func (expr *power) GetPositionToken() *Token {
 	return expr.power1.GetPositionToken()
 }
 
-func (expr *Expression) Execute(ctx *ExecutionContext, buffer *bytes.Buffer) error {
+func (expr *Expression) Execute(ctx *ExecutionContext, buffer *bytes.Buffer) *Error {
 	value, err := expr.Evaluate(ctx)
 	if err != nil {
 		return err
@@ -95,7 +95,7 @@ func (expr *Expression) Execute(ctx *ExecutionContext, buffer *bytes.Buffer) err
 	return nil
 }
 
-func (expr *relationalExpression) Execute(ctx *ExecutionContext, buffer *bytes.Buffer) error {
+func (expr *relationalExpression) Execute(ctx *ExecutionContext, buffer *bytes.Buffer) *Error {
 	value, err := expr.Evaluate(ctx)
 	if err != nil {
 		return err
@@ -104,7 +104,7 @@ func (expr *relationalExpression) Execute(ctx *ExecutionContext, buffer *bytes.B
 	return nil
 }
 
-func (expr *simpleExpression) Execute(ctx *ExecutionContext, buffer *bytes.Buffer) error {
+func (expr *simpleExpression) Execute(ctx *ExecutionContext, buffer *bytes.Buffer) *Error {
 	value, err := expr.Evaluate(ctx)
 	if err != nil {
 		return err
@@ -113,7 +113,7 @@ func (expr *simpleExpression) Execute(ctx *ExecutionContext, buffer *bytes.Buffe
 	return nil
 }
 
-func (expr *term) Execute(ctx *ExecutionContext, buffer *bytes.Buffer) error {
+func (expr *term) Execute(ctx *ExecutionContext, buffer *bytes.Buffer) *Error {
 	value, err := expr.Evaluate(ctx)
 	if err != nil {
 		return err
@@ -122,7 +122,7 @@ func (expr *term) Execute(ctx *ExecutionContext, buffer *bytes.Buffer) error {
 	return nil
 }
 
-func (expr *power) Execute(ctx *ExecutionContext, buffer *bytes.Buffer) error {
+func (expr *power) Execute(ctx *ExecutionContext, buffer *bytes.Buffer) *Error {
 	value, err := expr.Evaluate(ctx)
 	if err != nil {
 		return err
@@ -131,7 +131,7 @@ func (expr *power) Execute(ctx *ExecutionContext, buffer *bytes.Buffer) error {
 	return nil
 }
 
-func (expr *Expression) Evaluate(ctx *ExecutionContext) (*Value, error) {
+func (expr *Expression) Evaluate(ctx *ExecutionContext) (*Value, *Error) {
 	v1, err := expr.expr1.Evaluate(ctx)
 	if err != nil {
 		return nil, err
@@ -154,7 +154,7 @@ func (expr *Expression) Evaluate(ctx *ExecutionContext) (*Value, error) {
 	}
 }
 
-func (expr *relationalExpression) Evaluate(ctx *ExecutionContext) (*Value, error) {
+func (expr *relationalExpression) Evaluate(ctx *ExecutionContext) (*Value, *Error) {
 	v1, err := expr.expr1.Evaluate(ctx)
 	if err != nil {
 		return nil, err
@@ -203,7 +203,7 @@ func (expr *relationalExpression) Evaluate(ctx *ExecutionContext) (*Value, error
 	}
 }
 
-func (expr *simpleExpression) Evaluate(ctx *ExecutionContext) (*Value, error) {
+func (expr *simpleExpression) Evaluate(ctx *ExecutionContext) (*Value, *Error) {
 	t1, err := expr.term1.Evaluate(ctx)
 	if err != nil {
 		return nil, err
@@ -259,7 +259,7 @@ func (expr *simpleExpression) Evaluate(ctx *ExecutionContext) (*Value, error) {
 	return result, nil
 }
 
-func (t *term) Evaluate(ctx *ExecutionContext) (*Value, error) {
+func (t *term) Evaluate(ctx *ExecutionContext) (*Value, *Error) {
 	f1, err := t.factor1.Evaluate(ctx)
 	if err != nil {
 		return nil, err
@@ -295,7 +295,7 @@ func (t *term) Evaluate(ctx *ExecutionContext) (*Value, error) {
 	}
 }
 
-func (pw *power) Evaluate(ctx *ExecutionContext) (*Value, error) {
+func (pw *power) Evaluate(ctx *ExecutionContext) (*Value, *Error) {
 	p1, err := pw.power1.Evaluate(ctx)
 	if err != nil {
 		return nil, err
@@ -311,7 +311,7 @@ func (pw *power) Evaluate(ctx *ExecutionContext) (*Value, error) {
 	}
 }
 
-func (p *Parser) parseFactor() (IEvaluator, error) {
+func (p *Parser) parseFactor() (IEvaluator, *Error) {
 	if p.Match(TokenSymbol, "(") != nil {
 		expr, err := p.ParseExpression()
 		if err != nil {
@@ -326,7 +326,7 @@ func (p *Parser) parseFactor() (IEvaluator, error) {
 	return p.parseVariableOrLiteralWithFilter()
 }
 
-func (p *Parser) parsePower() (IEvaluator, error) {
+func (p *Parser) parsePower() (IEvaluator, *Error) {
 	pw := new(power)
 
 	power1, err := p.parseFactor()
@@ -351,7 +351,7 @@ func (p *Parser) parsePower() (IEvaluator, error) {
 	return pw, nil
 }
 
-func (p *Parser) parseTerm() (IEvaluator, error) {
+func (p *Parser) parseTerm() (IEvaluator, *Error) {
 	return_term := new(term)
 
 	factor1, err := p.parsePower()
@@ -388,7 +388,7 @@ func (p *Parser) parseTerm() (IEvaluator, error) {
 	return return_term, nil
 }
 
-func (p *Parser) parseSimpleExpression() (IEvaluator, error) {
+func (p *Parser) parseSimpleExpression() (IEvaluator, *Error) {
 	expr := new(simpleExpression)
 
 	if sign := p.MatchOne(TokenSymbol, "+", "-"); sign != nil {
@@ -435,7 +435,7 @@ func (p *Parser) parseSimpleExpression() (IEvaluator, error) {
 	return expr, nil
 }
 
-func (p *Parser) parseRelationalExpression() (IEvaluator, error) {
+func (p *Parser) parseRelationalExpression() (IEvaluator, *Error) {
 	expr1, err := p.parseSimpleExpression()
 	if err != nil {
 		return nil, err
@@ -469,7 +469,7 @@ func (p *Parser) parseRelationalExpression() (IEvaluator, error) {
 	return expr, nil
 }
 
-func (p *Parser) ParseExpression() (IEvaluator, error) {
+func (p *Parser) ParseExpression() (IEvaluator, *Error) {
 	rexpr1, err := p.parseRelationalExpression()
 	if err != nil {
 		return nil, err

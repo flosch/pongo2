@@ -8,11 +8,11 @@ type tagExtendsNode struct {
 	filename string
 }
 
-func (node *tagExtendsNode) Execute(ctx *ExecutionContext, buffer *bytes.Buffer) error {
+func (node *tagExtendsNode) Execute(ctx *ExecutionContext, buffer *bytes.Buffer) *Error {
 	return nil
 }
 
-func tagExtendsParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, error) {
+func tagExtendsParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, *Error) {
 	extends_node := &tagExtendsNode{}
 
 	if doc.template.level > 1 {

@@ -97,7 +97,7 @@ func (t *Token) String() string {
 		typ, t.Typ, val, t.Line, t.Col)
 }
 
-func lex(name string, input string) ([]*Token, error) {
+func lex(name string, input string) ([]*Token, *Error) {
 	l := &lexer{
 		name:      name,
 		input:     input,
@@ -110,7 +110,13 @@ func lex(name string, input string) ([]*Token, error) {
 	l.run()
 	if l.errored {
 		errtoken := l.tokens[len(l.tokens)-1]
-		return nil, fmt.Errorf("[Lexer Error in %s (Line %d Col %d)] %s", name, errtoken.Line, errtoken.Col, errtoken.Val)
+		return nil, &Error{
+			Filename: name,
+			Line:     errtoken.Line,
+			Column:   errtoken.Col,
+			Sender:   "lexer",
+			ErrorMsg: errtoken.Val,
+		}
 	}
 	return l.tokens, nil
 }

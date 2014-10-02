@@ -9,7 +9,7 @@ type tagWithNode struct {
 	wrapper    *NodeWrapper
 }
 
-func (node *tagWithNode) Execute(ctx *ExecutionContext, buffer *bytes.Buffer) error {
+func (node *tagWithNode) Execute(ctx *ExecutionContext, buffer *bytes.Buffer) *Error {
 	//new context for block
 	withctx := NewChildExecutionContext(ctx)
 
@@ -25,7 +25,7 @@ func (node *tagWithNode) Execute(ctx *ExecutionContext, buffer *bytes.Buffer) er
 	return node.wrapper.Execute(withctx, buffer)
 }
 
-func tagWithParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, error) {
+func tagWithParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, *Error) {
 	with_node := &tagWithNode{
 		with_pairs: make(map[string]IEvaluator),
 	}

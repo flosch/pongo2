@@ -12,7 +12,7 @@ type tagIfchangedNode struct {
 	elseWrapper  *NodeWrapper
 }
 
-func (node *tagIfchangedNode) Execute(ctx *ExecutionContext, buffer *bytes.Buffer) error {
+func (node *tagIfchangedNode) Execute(ctx *ExecutionContext, buffer *bytes.Buffer) *Error {
 
 	if len(node.watched_expr) == 0 {
 		// Check against own rendered body
@@ -69,7 +69,7 @@ func (node *tagIfchangedNode) Execute(ctx *ExecutionContext, buffer *bytes.Buffe
 	return nil
 }
 
-func tagIfchangedParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, error) {
+func tagIfchangedParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, *Error) {
 	ifchanged_node := &tagIfchangedNode{}
 
 	for arguments.Remaining() > 0 {

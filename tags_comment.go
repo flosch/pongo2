@@ -6,11 +6,11 @@ import (
 
 type tagCommentNode struct{}
 
-func (node *tagCommentNode) Execute(ctx *ExecutionContext, buffer *bytes.Buffer) error {
+func (node *tagCommentNode) Execute(ctx *ExecutionContext, buffer *bytes.Buffer) *Error {
 	return nil
 }
 
-func tagCommentParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, error) {
+func tagCommentParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, *Error) {
 	comment_node := &tagCommentNode{}
 
 	// TODO: Process the endtag's arguments (see django 'comment'-tag documentation)

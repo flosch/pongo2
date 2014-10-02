@@ -10,7 +10,7 @@ type tagIfEqualNode struct {
 	elseWrapper *NodeWrapper
 }
 
-func (node *tagIfEqualNode) Execute(ctx *ExecutionContext, buffer *bytes.Buffer) error {
+func (node *tagIfEqualNode) Execute(ctx *ExecutionContext, buffer *bytes.Buffer) *Error {
 	r1, err := node.var1.Evaluate(ctx)
 	if err != nil {
 		return err
@@ -32,7 +32,7 @@ func (node *tagIfEqualNode) Execute(ctx *ExecutionContext, buffer *bytes.Buffer)
 	return nil
 }
 
-func tagIfEqualParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, error) {
+func tagIfEqualParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, *Error) {
 	ifequal_node := &tagIfEqualNode{}
 
 	// Parse two expressions

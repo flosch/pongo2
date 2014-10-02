@@ -15,7 +15,7 @@ Greetings to john from michelle. Howdy, anonymous guest!
 
 Greetings to john from michelle. Howdy, johann!
 
-[Execution Error in template_tests/macro.tpl | Line 2 Col 4 (<Token Typ=Identifier (4) Val='macro' Line=2 Col=4>)] Macro 'greetings' called with too many arguments (4 instead of 3).
+[Error (where: execution) in template_tests/macro.tpl | Line 2 Col 4 near 'macro'] Macro 'greetings' called with too many arguments (4 instead of 3).
 
 
 

@@ -7,7 +7,7 @@ type tagSetNode struct {
 	expression IEvaluator
 }
 
-func (node *tagSetNode) Execute(ctx *ExecutionContext, buffer *bytes.Buffer) error {
+func (node *tagSetNode) Execute(ctx *ExecutionContext, buffer *bytes.Buffer) *Error {
 	// Evaluate expression
 	value, err := node.expression.Evaluate(ctx)
 	if err != nil {
@@ -18,7 +18,7 @@ func (node *tagSetNode) Execute(ctx *ExecutionContext, buffer *bytes.Buffer) err
 	return nil
 }
 
-func tagSetParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, error) {
+func tagSetParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, *Error) {
 	node := &tagSetNode{}
 
 	// Parse variable name

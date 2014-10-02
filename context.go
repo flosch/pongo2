@@ -1,7 +1,6 @@
 package pongo2
 
 import (
-	"errors"
 	"fmt"
 	"regexp"
 )
@@ -21,10 +20,13 @@ var reIdentifiers = regexp.MustCompile("^[a-zA-Z0-9_]+$")
 //     {{ pongo2.version }}
 type Context map[string]interface{}
 
-func (c Context) checkForValidIdentifiers() error {
+func (c Context) checkForValidIdentifiers() *Error {
 	for k, v := range c {
 		if !reIdentifiers.MatchString(k) {
-			return fmt.Errorf("Context-key '%s' (value: '%+v') is not a valid identifier.", k, v)
+			return &Error{
+				Sender:   "checkForValidIdentifiers",
+				ErrorMsg: fmt.Sprintf("Context-key '%s' (value: '%+v') is not a valid identifier.", k, v),
+			}
 		}
 	}
 	return nil
@@ -94,20 +96,24 @@ func NewChildExecutionContext(parent *ExecutionContext) *ExecutionContext {
 	return newctx
 }
 
-func (ctx *ExecutionContext) Error(msg string, token *Token) error {
-	pos := ""
+func (ctx *ExecutionContext) Error(msg string, token *Token) *Error {
 	filename := ctx.template.name
+	var line, col int
 	if token != nil {
 		// No tokens available
 		// TODO: Add location (from where?)
 		filename = token.Filename
-		pos = fmt.Sprintf(" | Line %d Col %d (%s)",
-			token.Line, token.Col, token.String())
+		line = token.Line
+		col = token.Col
 	}
-	return errors.New(
-		fmt.Sprintf("[Execution Error in %s%s] %s",
-			filename, pos, msg,
-		))
+	return &Error{
+		Filename: filename,
+		Line:     line,
+		Column:   col,
+		Token:    token,
+		Sender:   "execution",
+		ErrorMsg: msg,
+	}
 }
 
 func (ctx *ExecutionContext) Logf(format string, args ...interface{}) {

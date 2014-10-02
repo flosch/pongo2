@@ -40,7 +40,7 @@ func parseTemplateFn(s string, c Context) func() {
 func (s *TestSuite) TestMisc(c *C) {
 	// Must
 	// TODO: Add better error message (see issue #18)
-	c.Check(func() { Must(test_suite2.FromFile("template_tests/inheritance/base2.tpl")) }, PanicMatches, "open template_tests/inheritance/doesnotexist.tpl: no such file or directory")
+	c.Check(func() { Must(test_suite2.FromFile("template_tests/inheritance/base2.tpl")) }, PanicMatches, `\[Error \(where: fromfile\) in template_tests/inheritance/doesnotexist.tpl\] open template_tests/inheritance/doesnotexist.tpl: no such file or directory`)
 
 	// Context
 	c.Check(parseTemplateFn("", Context{"'illegal": nil}), PanicMatches, ".*not a valid identifier.*")
@@ -60,5 +60,5 @@ func (s *TestSuite) TestMisc(c *C) {
 		if err != nil {
 			panic(err)
 		}
-	}, PanicMatches, "Filter with name 'doesnotexist' not found.")
+	}, PanicMatches, `\[Error \(where: applyfilter\)\] Filter with name 'doesnotexist' not found.`)
 }

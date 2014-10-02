@@ -23,7 +23,7 @@ type variablePart struct {
 }
 
 type functionCallArgument interface {
-	Evaluate(*ExecutionContext) (*Value, error)
+	Evaluate(*ExecutionContext) (*Value, *Error)
 }
 
 // TODO: Add location tokens
@@ -65,7 +65,7 @@ type nodeVariable struct {
 	expr           IEvaluator
 }
 
-func (expr *nodeFilteredVariable) Execute(ctx *ExecutionContext, buffer *bytes.Buffer) error {
+func (expr *nodeFilteredVariable) Execute(ctx *ExecutionContext, buffer *bytes.Buffer) *Error {
 	value, err := expr.Evaluate(ctx)
 	if err != nil {
 		return err
@@ -74,7 +74,7 @@ func (expr *nodeFilteredVariable) Execute(ctx *ExecutionContext, buffer *bytes.B
 	return nil
 }
 
-func (expr *variableResolver) Execute(ctx *ExecutionContext, buffer *bytes.Buffer) error {
+func (expr *variableResolver) Execute(ctx *ExecutionContext, buffer *bytes.Buffer) *Error {
 	value, err := expr.Evaluate(ctx)
 	if err != nil {
 		return err
@@ -83,7 +83,7 @@ func (expr *variableResolver) Execute(ctx *ExecutionContext, buffer *bytes.Buffe
 	return nil
 }
 
-func (expr *stringResolver) Execute(ctx *ExecutionContext, buffer *bytes.Buffer) error {
+func (expr *stringResolver) Execute(ctx *ExecutionContext, buffer *bytes.Buffer) *Error {
 	value, err := expr.Evaluate(ctx)
 	if err != nil {
 		return err
@@ -92,7 +92,7 @@ func (expr *stringResolver) Execute(ctx *ExecutionContext, buffer *bytes.Buffer)
 	return nil
 }
 
-func (expr *intResolver) Execute(ctx *ExecutionContext, buffer *bytes.Buffer) error {
+func (expr *intResolver) Execute(ctx *ExecutionContext, buffer *bytes.Buffer) *Error {
 	value, err := expr.Evaluate(ctx)
 	if err != nil {
 		return err
@@ -101,7 +101,7 @@ func (expr *intResolver) Execute(ctx *ExecutionContext, buffer *bytes.Buffer) er
 	return nil
 }
 
-func (expr *floatResolver) Execute(ctx *ExecutionContext, buffer *bytes.Buffer) error {
+func (expr *floatResolver) Execute(ctx *ExecutionContext, buffer *bytes.Buffer) *Error {
 	value, err := expr.Evaluate(ctx)
 	if err != nil {
 		return err
@@ -110,7 +110,7 @@ func (expr *floatResolver) Execute(ctx *ExecutionContext, buffer *bytes.Buffer) 
 	return nil
 }
 
-func (expr *boolResolver) Execute(ctx *ExecutionContext, buffer *bytes.Buffer) error {
+func (expr *boolResolver) Execute(ctx *ExecutionContext, buffer *bytes.Buffer) *Error {
 	value, err := expr.Evaluate(ctx)
 	if err != nil {
 		return err
@@ -143,19 +143,19 @@ func (v *boolResolver) GetPositionToken() *Token {
 	return v.location_token
 }
 
-func (s *stringResolver) Evaluate(ctx *ExecutionContext) (*Value, error) {
+func (s *stringResolver) Evaluate(ctx *ExecutionContext) (*Value, *Error) {
 	return AsValue(s.val), nil
 }
 
-func (i *intResolver) Evaluate(ctx *ExecutionContext) (*Value, error) {
+func (i *intResolver) Evaluate(ctx *ExecutionContext) (*Value, *Error) {
 	return AsValue(i.val), nil
 }
 
-func (f *floatResolver) Evaluate(ctx *ExecutionContext) (*Value, error) {
+func (f *floatResolver) Evaluate(ctx *ExecutionContext) (*Value, *Error) {
 	return AsValue(f.val), nil
 }
 
-func (b *boolResolver) Evaluate(ctx *ExecutionContext) (*Value, error) {
+func (b *boolResolver) Evaluate(ctx *ExecutionContext) (*Value, *Error) {
 	return AsValue(b.val), nil
 }
 
@@ -179,7 +179,7 @@ func (nv *nodeVariable) FilterApplied(name string) bool {
 	return nv.expr.FilterApplied(name)
 }
 
-func (nv *nodeVariable) Execute(ctx *ExecutionContext, buffer *bytes.Buffer) error {
+func (nv *nodeVariable) Execute(ctx *ExecutionContext, buffer *bytes.Buffer) *Error {
 	value, err := nv.expr.Evaluate(ctx)
 	if err != nil {
 		return err
@@ -398,7 +398,7 @@ func (vr *variableResolver) resolve(ctx *ExecutionContext) (*Value, error) {
 	return &Value{val: current, safe: is_safe}, nil
 }
 
-func (vr *variableResolver) Evaluate(ctx *ExecutionContext) (*Value, error) {
+func (vr *variableResolver) Evaluate(ctx *ExecutionContext) (*Value, *Error) {
 	value, err := vr.resolve(ctx)
 	if err != nil {
 		return AsValue(nil), ctx.Error(err.Error(), vr.location_token)
@@ -415,7 +415,7 @@ func (v *nodeFilteredVariable) FilterApplied(name string) bool {
 	return false
 }
 
-func (v *nodeFilteredVariable) Evaluate(ctx *ExecutionContext) (*Value, error) {
+func (v *nodeFilteredVariable) Evaluate(ctx *ExecutionContext) (*Value, *Error) {
 	value, err := v.resolver.Evaluate(ctx)
 	if err != nil {
 		return nil, err
@@ -432,7 +432,7 @@ func (v *nodeFilteredVariable) Evaluate(ctx *ExecutionContext) (*Value, error) {
 }
 
 // IDENT | IDENT.(IDENT|NUMBER)...
-func (p *Parser) parseVariableOrLiteral() (IEvaluator, error) {
+func (p *Parser) parseVariableOrLiteral() (IEvaluator, *Error) {
 	t := p.Current()
 
 	if t == nil {
@@ -457,7 +457,7 @@ func (p *Parser) parseVariableOrLiteral() (IEvaluator, error) {
 			}
 			f, err := strconv.ParseFloat(fmt.Sprintf("%s.%s", t.Val, t2.Val), 64)
 			if err != nil {
-				return nil, err
+				return nil, p.Error(err.Error(), t)
 			}
 			fr := &floatResolver{
 				location_token: t,
@@ -467,7 +467,7 @@ func (p *Parser) parseVariableOrLiteral() (IEvaluator, error) {
 		} else {
 			i, err := strconv.Atoi(t.Val)
 			if err != nil {
-				return nil, err
+				return nil, p.Error(err.Error(), t)
 			}
 			nr := &intResolver{
 				location_token: t,
@@ -599,7 +599,7 @@ variableLoop:
 	return resolver, nil
 }
 
-func (p *Parser) parseVariableOrLiteralWithFilter() (*nodeFilteredVariable, error) {
+func (p *Parser) parseVariableOrLiteralWithFilter() (*nodeFilteredVariable, *Error) {
 	v := &nodeFilteredVariable{
 		location_token: p.Current(),
 	}
@@ -635,7 +635,7 @@ filterLoop:
 	return v, nil
 }
 
-func (p *Parser) parseVariableElement() (INode, error) {
+func (p *Parser) parseVariableElement() (INode, *Error) {
 	node := &nodeVariable{
 		location_token: p.Current(),
 	}

@@ -19,7 +19,7 @@ type tagLoremNode struct {
 	random   bool   // does not use the default paragraph "Lorem ipsum dolor sit amet, ..."
 }
 
-func (node *tagLoremNode) Execute(ctx *ExecutionContext, buffer *bytes.Buffer) error {
+func (node *tagLoremNode) Execute(ctx *ExecutionContext, buffer *bytes.Buffer) *Error {
 	switch node.method {
 	case "b":
 		if node.random {
@@ -87,7 +87,7 @@ func (node *tagLoremNode) Execute(ctx *ExecutionContext, buffer *bytes.Buffer) e
 	return nil
 }
 
-func tagLoremParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, error) {
+func tagLoremParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, *Error) {
 	lorem_node := &tagLoremNode{
 		position: start,
 		count:    1,
