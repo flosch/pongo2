@@ -619,6 +619,12 @@ filterLoop:
 		if err != nil {
 			return nil, err
 		}
+
+		// Check sandbox filter restriction
+		if _, is_banned := p.template.set.bannedFilters[filter.name]; is_banned {
+			return nil, p.Error(fmt.Sprintf("Usage of filter '%s' is not allowed (sandbox restriction active).", filter.name), nil)
+		}
+
 		v.filterChain = append(v.filterChain, filter)
 
 		continue filterLoop

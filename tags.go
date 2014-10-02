@@ -101,6 +101,11 @@ func (p *Parser) parseTagElement() (INodeTag, error) {
 		return nil, p.Error(fmt.Sprintf("Tag '%s' not found (or beginning tag not provided)", token_name.Val), token_name)
 	}
 
+	// Check sandbox tag restriction
+	if _, is_banned := p.template.set.bannedTags[token_name.Val]; is_banned {
+		return nil, p.Error(fmt.Sprintf("Usage of tag '%s' is not allowed (sandbox restriction active).", token_name.Val), token_name)
+	}
+
 	args_token := make([]*Token, 0)
 	for p.Peek(TokenSymbol, "%}") == nil && p.Remaining() > 0 {
 		// Add token to args
@@ -115,7 +120,7 @@ func (p *Parser) parseTagElement() (INodeTag, error) {
 
 	p.Match(TokenSymbol, "%}")
 
-	arg_parser := newParser(p.name, args_token, nil)
+	arg_parser := newParser(p.name, args_token, p.template)
 	if len(args_token) == 0 {
 		// This is done to have nice EOF error messages
 		arg_parser.last_token = token_name

@@ -61,7 +61,7 @@ func tagImportParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, er
 			as_name = alias_token.Val
 		}
 
-		macro_instance, has := tpl.macros[macro_name_token.Val]
+		macro_instance, has := tpl.exported_macros[macro_name_token.Val]
 		if !has {
 			return nil, arguments.Error(fmt.Sprintf("Macro '%s' not found (or not exported) in '%s'.", macro_name_token.Val,
 				import_node.filename), macro_name_token)

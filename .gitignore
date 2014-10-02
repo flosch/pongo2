@@ -37,3 +37,4 @@ tpl-error.out
 *.error
 /profile
 /coverage.out
+/pongo2_internal_test.ignore

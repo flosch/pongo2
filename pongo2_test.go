@@ -14,10 +14,13 @@ type TestSuite struct {
 	tpl *Template
 }
 
-var _ = Suite(&TestSuite{})
+var (
+	_           = Suite(&TestSuite{})
+	test_suite2 = NewSet("test suite 2")
+)
 
 func parseTemplate(s string, c Context) string {
-	t, err := FromString(s)
+	t, err := test_suite2.FromString(s)
 	if err != nil {
 		panic(err)
 	}
@@ -37,7 +40,7 @@ func parseTemplateFn(s string, c Context) func() {
 func (s *TestSuite) TestMisc(c *C) {
 	// Must
 	// TODO: Add better error message (see issue #18)
-	c.Check(func() { Must(FromFile("template_tests/inheritance/base2.tpl")) }, PanicMatches, "open template_tests/inheritance/doesnotexist.tpl: no such file or directory")
+	c.Check(func() { Must(test_suite2.FromFile("template_tests/inheritance/base2.tpl")) }, PanicMatches, "open template_tests/inheritance/doesnotexist.tpl: no such file or directory")
 
 	// Context
 	c.Check(parseTemplateFn("", Context{"'illegal": nil}), PanicMatches, ".*not a valid identifier.*")

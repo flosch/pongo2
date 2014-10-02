@@ -53,6 +53,71 @@ func (p *post) String() string {
 	return ":-)"
 }
 
+/*
+ * Start setup sandbox
+ */
+
+type tagSandboxDemoTag struct {
+}
+
+func (node *tagSandboxDemoTag) Execute(ctx *ExecutionContext, buffer *bytes.Buffer) error {
+	buffer.WriteString("hello")
+	return nil
+}
+
+func tagSandboxDemoTagParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, error) {
+	return &tagSandboxDemoTag{}, nil
+}
+
+func BannedFilterFn(in *Value, params *Value) (*Value, error) {
+	return in, nil
+}
+
+func init() {
+	DefaultSet.Debug = true
+
+	RegisterFilter("banned_filter", BannedFilterFn)
+	RegisterFilter("unbanned_filter", BannedFilterFn)
+	RegisterTag("banned_tag", tagSandboxDemoTagParser)
+	RegisterTag("unbanned_tag", tagSandboxDemoTagParser)
+
+	DefaultSet.BanFilter("banned_filter")
+	DefaultSet.BanTag("banned_tag")
+
+	// Allow different kind of levels inside template_tests/
+	abs_path, err := filepath.Abs("./template_tests/*")
+	if err != nil {
+		panic(err)
+	}
+	DefaultSet.SandboxDirectories = append(DefaultSet.SandboxDirectories, abs_path)
+
+	abs_path, err = filepath.Abs("./template_tests/*/*")
+	if err != nil {
+		panic(err)
+	}
+	DefaultSet.SandboxDirectories = append(DefaultSet.SandboxDirectories, abs_path)
+
+	abs_path, err = filepath.Abs("./template_tests/*/*/*")
+	if err != nil {
+		panic(err)
+	}
+	DefaultSet.SandboxDirectories = append(DefaultSet.SandboxDirectories, abs_path)
+
+	// Allow pongo2 temp files
+	DefaultSet.SandboxDirectories = append(DefaultSet.SandboxDirectories, "/tmp/pongo2_*")
+
+	f, err := ioutil.TempFile("/tmp/", "pongo2_")
+	if err != nil {
+		panic("cannot write to /tmp/")
+	}
+	f.Write([]byte("Hello from pongo2"))
+	DefaultSet.Globals["temp_file"] = f.Name()
+}
+
+/*
+ * End setup sandbox
+ */
+
 var tplContext = Context{
 	"number": 11,
 	"simple": map[string]interface{}{
