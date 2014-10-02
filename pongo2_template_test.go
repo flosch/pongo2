@@ -399,7 +399,7 @@ func TestBaseDirectory(t *testing.T) {
 	}
 }
 
-func BenchmarkExecuteComplex(b *testing.B) {
+func BenchmarkExecuteComplexWithSandboxActive(b *testing.B) {
 	tpl, err := FromFile("template_tests/complex.tpl")
 	if err != nil {
 		b.Fatal(err)
@@ -413,7 +413,7 @@ func BenchmarkExecuteComplex(b *testing.B) {
 	}
 }
 
-func BenchmarkCompileAndExecuteComplex(b *testing.B) {
+func BenchmarkCompileAndExecuteComplexWithSandboxActive(b *testing.B) {
 	buf, err := ioutil.ReadFile("template_tests/complex.tpl")
 	if err != nil {
 		b.Fatal(err)
@@ -433,8 +433,63 @@ func BenchmarkCompileAndExecuteComplex(b *testing.B) {
 	}
 }
 
-func BenchmarkParallelExecuteComplex(b *testing.B) {
+func BenchmarkParallelExecuteComplexWithSandboxActive(b *testing.B) {
 	tpl, err := FromFile("template_tests/complex.tpl")
+	if err != nil {
+		b.Fatal(err)
+	}
+	b.ResetTimer()
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			_, err := tpl.ExecuteBytes(tplContext)
+			if err != nil {
+				b.Fatal(err)
+			}
+		}
+	})
+}
+
+func BenchmarkExecuteComplexWithoutSandbox(b *testing.B) {
+	s := NewSet("set without sandbox")
+	tpl, err := s.FromFile("template_tests/complex.tpl")
+	if err != nil {
+		b.Fatal(err)
+	}
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_, err = tpl.ExecuteBytes(tplContext)
+		if err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
+func BenchmarkCompileAndExecuteComplexWithoutSandbox(b *testing.B) {
+	buf, err := ioutil.ReadFile("template_tests/complex.tpl")
+	if err != nil {
+		b.Fatal(err)
+	}
+	preloadedTpl := string(buf)
+
+	s := NewSet("set without sandbox")
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		tpl, err := s.FromString(preloadedTpl)
+		if err != nil {
+			b.Fatal(err)
+		}
+
+		_, err = tpl.ExecuteBytes(tplContext)
+		if err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
+func BenchmarkParallelExecuteComplexWithoutSandbox(b *testing.B) {
+	s := NewSet("set without sandbox")
+	tpl, err := s.FromFile("template_tests/complex.tpl")
 	if err != nil {
 		b.Fatal(err)
 	}
