@@ -43,8 +43,7 @@ func tagImportParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, *E
 	// Compile the given template
 	tpl, err := doc.template.set.FromFile(import_node.filename)
 	if err != nil {
-		return nil, arguments.Error(fmt.Sprintf("Could not compile '%s': %s", import_node.filename, err.Error()),
-			filename_token)
+		return nil, err.updateFromTokenIfNeeded(start)
 	}
 
 	for arguments.Remaining() > 0 {

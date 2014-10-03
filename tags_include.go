@@ -73,14 +73,14 @@ func tagIncludeParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, *
 		include_node.filename = included_filename
 		included_tpl, err := doc.template.set.FromFile(included_filename)
 		if err != nil {
-			return nil, err
+			return nil, err.updateFromTokenIfNeeded(filename_token)
 		}
 		include_node.tpl = included_tpl
 	} else {
 		// No String, then the user wants to use lazy-evaluation (slower, but possible)
 		filename_evaluator, err := arguments.ParseExpression()
 		if err != nil {
-			return nil, err
+			return nil, err.updateFromTokenIfNeeded(filename_token)
 		}
 		include_node.filename_evaluator = filename_evaluator
 		include_node.lazy = true
@@ -99,7 +99,7 @@ func tagIncludeParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, *
 			}
 			value_expr, err := arguments.ParseExpression()
 			if err != nil {
-				return nil, err
+				return nil, err.updateFromTokenIfNeeded(key_token)
 			}
 
 			include_node.with_pairs[key_token.Val] = value_expr
