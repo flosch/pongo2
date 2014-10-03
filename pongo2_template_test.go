@@ -404,7 +404,7 @@ func TestBaseDirectory(t *testing.T) {
 	}
 }
 
-func BenchmarkWithCache(b *testing.B) {
+func BenchmarkCache(b *testing.B) {
 	cache_set := NewSet("cache set")
 	for i := 0; i < b.N; i++ {
 		tpl, err := cache_set.FromCache("template_tests/complex.tpl")
