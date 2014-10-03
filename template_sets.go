@@ -22,7 +22,7 @@ type TemplateSet struct {
 
 	// Base directory: If you set the base directory (string is non-empty), all filename lookups in tags/filters are
 	// relative to this directory. If it's empty, all lookups are relative to the current filename which is importing.
-	BaseDirectory string
+	baseDirectory string
 
 	// Sandbox features
 	// - Limit access to directories (using SandboxDirectories)
@@ -55,6 +55,35 @@ func NewSet(name string) *TemplateSet {
 		bannedTags:    make(map[string]bool),
 		bannedFilters: make(map[string]bool),
 	}
+}
+
+// Use this function to set your template set's base directory. This directory will be used for any relative
+// path in filters, tags and From*-functions to determine your template.
+func (set *TemplateSet) SetBaseDirectory(name string) error {
+	// Make the path absolute
+	if !filepath.IsAbs(name) {
+		abs, err := filepath.Abs(name)
+		if err != nil {
+			return err
+		}
+		name = abs
+	}
+
+	// Check for existence
+	fi, err := os.Stat(name)
+	if  err != nil {
+		return err
+	}
+	if !fi.IsDir() {
+		return fmt.Errorf("The given path '%s' is not a directory.")
+	}
+
+	set.baseDirectory = name
+	return nil
+}
+
+func (set *TemplateSet) BaseDirectory() string {
+	return set.baseDirectory
 }
 
 // Ban a specific tag for this template set. See more in the documentation for TemplateSet.
@@ -96,13 +125,14 @@ func (set *TemplateSet) FromString(tpl string) (*Template, *Error) {
 	return newTemplateString(set, tpl)
 }
 
-// Loads  a template from a filename and returns a Template instance.
-// The filename must either be relative to the application's directory
-// or be an absolute path.
+// Loads a template from a filename and returns a Template instance.
+// If a base directory is set, the filename must be either relative to it
+// or be an absolute path. Sandbox restrictions (SandboxDirectories) apply
+// if given.
 func (set *TemplateSet) FromFile(filename string) (*Template, *Error) {
 	set.firstTemplateCreated = true
 
-	buf, err := ioutil.ReadFile(filename)
+	buf, err := ioutil.ReadFile(set.resolveFilename(nil, filename))
 	if err != nil {
 		return nil, &Error{
 			Filename: filename,
@@ -145,6 +175,9 @@ func (set *TemplateSet) logf(format string, args ...interface{}) {
 	}
 }
 
+// Resolves a filename relative to the base directory. Absolute paths are allowed.
+// If sandbox restrictions are given (SandboxDirectories), they will be respected and checked.
+// On sandbox restriction violation, resolveFilename() panics.
 func (set *TemplateSet) resolveFilename(tpl *Template, filename string) (resolved_path string) {
 	if len(set.SandboxDirectories) > 0 {
 		defer func() {
@@ -180,14 +213,17 @@ func (set *TemplateSet) resolveFilename(tpl *Template, filename string) (resolve
 		return filename
 	}
 
-	if set.BaseDirectory == "" {
-		if tpl.is_tpl_string {
-			return filename
+	if set.baseDirectory == "" {
+		if tpl != nil {
+			if tpl.is_tpl_string {
+				return filename
+			}
+			base := filepath.Dir(tpl.name)
+			return filepath.Join(base, filename)
 		}
-		base := filepath.Dir(tpl.name)
-		return filepath.Join(base, filename)
+		return filename
 	} else {
-		return filepath.Join(set.BaseDirectory, filename)
+		return filepath.Join(set.baseDirectory, filename)
 	}
 }
 

@@ -379,13 +379,17 @@ func TestBaseDirectory(t *testing.T) {
 
 	s := NewSet("test set with base directory")
 	s.Globals["base_directory"] = "template_tests/base_dir_test/"
-	s.BaseDirectory = s.Globals["base_directory"].(string)
+	if err := s.SetBaseDirectory(s.Globals["base_directory"].(string)); err != nil {
+		t.Fatal(err)
+	}
 
 	matches, err := filepath.Glob("./template_tests/base_dir_test/subdir/*")
 	if err != nil {
 		t.Fatal(err)
 	}
 	for _, match := range matches {
+		match = strings.Replace(match, "template_tests/base_dir_test/", "", -1)
+
 		tpl, err := s.FromFile(match)
 		if err != nil {
 			t.Fatal(err)
