@@ -88,7 +88,7 @@ func (fc *filterCall) Execute(v *Value, ctx *ExecutionContext) (*Value, *Error) 
 
 	filtered_value, err := fc.filterFunc(v, param)
 	if err != nil {
-		return nil, ctx.Error(fmt.Sprintf("Error executing filter '%s': %s", fc.name, err.Error()), fc.token)
+		return nil, err.updateFromTokenIfNeeded(fc.token)
 	}
 	return filtered_value, nil
 }

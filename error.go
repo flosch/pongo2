@@ -21,6 +21,18 @@ type Error struct {
 	ErrorMsg string
 }
 
+func (e *Error) updateFromTokenIfNeeded(t *Token) *Error {
+	if e.Token == nil {
+		e.Token = t
+		if e.Line <= 0 {
+			e.Line = t.Line
+			e.Column = t.Col
+		}
+	}
+
+	return e
+}
+
 // Returns a nice formatted error string.
 func (e *Error) Error() string {
 	s := "[Error"

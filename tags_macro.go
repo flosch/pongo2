@@ -63,8 +63,7 @@ func (node *tagMacroNode) call(ctx *ExecutionContext, args ...*Value) *Value {
 	var b bytes.Buffer
 	err := node.wrapper.Execute(macroCtx, &b)
 	if err != nil {
-		return AsSafeValue(ctx.Error(fmt.Sprintf("Error occured during execution of macro '%s': %s",
-			err.Error()), node.position).Error())
+		return AsSafeValue(err.updateFromTokenIfNeeded(node.position).Error())
 	}
 
 	return AsSafeValue(b.String())
