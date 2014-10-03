@@ -404,6 +404,35 @@ func TestBaseDirectory(t *testing.T) {
 	}
 }
 
+func BenchmarkWithCache(b *testing.B) {
+	cache_set := NewSet("cache set")
+	for i := 0; i < b.N; i++ {
+		tpl, err := cache_set.FromCache("template_tests/complex.tpl")
+		if err != nil {
+			b.Fatal(err)
+		}
+		_, err = tpl.ExecuteBytes(tplContext)
+		if err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
+func BenchmarkCacheDebugOn(b *testing.B) {
+	cache_debug_set := NewSet("cache set")
+	cache_debug_set.Debug = true
+	for i := 0; i < b.N; i++ {
+		tpl, err := cache_debug_set.FromFile("template_tests/complex.tpl")
+		if err != nil {
+			b.Fatal(err)
+		}
+		_, err = tpl.ExecuteBytes(tplContext)
+		if err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
 func BenchmarkExecuteComplexWithSandboxActive(b *testing.B) {
 	tpl, err := FromFile("template_tests/complex.tpl")
 	if err != nil {

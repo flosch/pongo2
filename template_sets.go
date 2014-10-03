@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"sync"
 )
 
 // A template set allows you to create your own group of templates with their own global context (which is shared
@@ -17,7 +18,9 @@ type TemplateSet struct {
 	// Globals will be provided to all templates created within this template set
 	Globals Context
 
-	// If debug is true (default false), ExecutionContext.Logf() will work and output to STDOUT.
+	// If debug is true (default false), ExecutionContext.Logf() will work and output to STDOUT. Furthermore,
+	// FromCache() won't cache the templates. Make sure to synchronize the access to it in case you're changing this
+	// variable during program execution (and template compilation/execution).
 	Debug bool
 
 	// Base directory: If you set the base directory (string is non-empty), all filename lookups in tags/filters are
@@ -44,6 +47,10 @@ type TemplateSet struct {
 	firstTemplateCreated bool
 	bannedTags           map[string]bool
 	bannedFilters        map[string]bool
+
+	// Template cache (for FromCache())
+	templateCache      map[string]*Template
+	templateCacheMutex sync.Mutex
 }
 
 // Create your own template sets to separate different kind of templates (e. g. web from mail templates) with
@@ -54,6 +61,7 @@ func NewSet(name string) *TemplateSet {
 		Globals:       make(Context),
 		bannedTags:    make(map[string]bool),
 		bannedFilters: make(map[string]bool),
+		templateCache: make(map[string]*Template),
 	}
 }
 
@@ -71,7 +79,7 @@ func (set *TemplateSet) SetBaseDirectory(name string) error {
 
 	// Check for existence
 	fi, err := os.Stat(name)
-	if  err != nil {
+	if err != nil {
 		return err
 	}
 	if !fi.IsDir() {
@@ -116,6 +124,41 @@ func (set *TemplateSet) BanFilter(name string) {
 		panic(fmt.Sprintf("Filter '%s' is already banned.", name))
 	}
 	set.bannedFilters[name] = true
+}
+
+// FromCache() is a convenient method to cache templates. It is thread-safe
+// and will only compile the template associated with a filename once.
+// If TemplateSet.Debug is true (for example during development phase),
+// FromCache() will not cache the template and instead recompile it on any
+// call (to make changes to a template live instantaneously).
+// Like FromFile(), FromCache() takes a relative path to a set base directory.
+// Sandbox restrictions apply (if given).
+func (set *TemplateSet) FromCache(filename string) (*Template, *Error) {
+	if set.Debug {
+		// Recompile on any request
+		return set.FromFile(filename)
+	} else {
+		// Cache the template
+		cleaned_filename := set.resolveFilename(nil, filename)
+
+		set.templateCacheMutex.Lock()
+		defer set.templateCacheMutex.Unlock()
+
+		tpl, has := set.templateCache[cleaned_filename]
+
+		// Cache miss
+		if !has {
+			tpl, err := set.FromFile(cleaned_filename)
+			if err != nil {
+				return nil, err
+			}
+			set.templateCache[cleaned_filename] = tpl
+			return tpl, nil
+		}
+
+		// Cache hit
+		return tpl, nil
+	}
 }
 
 // Loads  a template from string and returns a Template instance.
@@ -244,6 +287,7 @@ var (
 	// Methods on the default set
 	FromString           = DefaultSet.FromString
 	FromFile             = DefaultSet.FromFile
+	FromCache            = DefaultSet.FromCache
 	RenderTemplateString = DefaultSet.RenderTemplateString
 	RenderTemplateFile   = DefaultSet.RenderTemplateFile
 
