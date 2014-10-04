@@ -111,6 +111,7 @@ You can access pongo2's API documentation on [godoc](https://godoc.org/github.co
 
 ## Blog post series
 
+ * [pongo2 v2 released](https://www.florian-schlachter.de/post/pongo2-v2/)
  * [pongo2 1.0 released](https://www.florian-schlachter.de/post/pongo2-10/) [August 8th 2014]
  * [pongo2 playground](https://www.florian-schlachter.de/post/pongo2-playground/) [August 1st 2014]
  * [Release of pongo2 1.0-rc1 + pongo2-addons](https://www.florian-schlachter.de/post/pongo2-10-rc1/) [July 30th 2014]
