@@ -64,9 +64,9 @@ Please use the [issue tracker](https://github.com/flosch/pongo2/issues) if you'r
 
 ## Development status
 
-**Latest stable release**: v1.0 (`go get -u gopkg.in/flosch/pongo2.v1` / [`v1`](https://github.com/flosch/pongo2/tree/v1)-branch) [[read the announcement](https://github.com/flosch/pongo2/releases/tag/v1.0)]
+**Latest stable release**: v2.0 (`go get -u gopkg.in/flosch/pongo2.v2` / [`v1`](https://github.com/flosch/pongo2/tree/v1)-branch) [[read the announcement](https://github.com/flosch/pongo2/releases/tag/v1.0)]
 
-**Current development**: v1.1 (`master`-branch)
+**Current development**: v3 (`master`-branch)
 
 | Topic                                | Status                                                                                 |
 | ------------------------------------ | -------------------------------------------------------------------------------------- |       
