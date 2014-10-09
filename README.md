@@ -4,6 +4,7 @@
 [![Build Status](https://travis-ci.org/flosch/pongo2.svg?branch=master)](https://travis-ci.org/flosch/pongo2)
 [![Coverage Status](https://coveralls.io/repos/flosch/pongo2/badge.png?branch=master)](https://coveralls.io/r/flosch/pongo2?branch=master)
 [![gratipay](http://img.shields.io/badge/gratipay-support%20pongo-brightgreen.svg)](https://gratipay.com/flosch/)
+[![Bountysource](https://www.bountysource.com/badge/tracker?tracker_id=3654947)](https://www.bountysource.com/trackers/3654947-pongo2?utm_source=3654947&utm_medium=shield&utm_campaign=TRACKER_BADGE)
 
 pongo2 is the successor of [pongo](https://github.com/flosch/pongo), a Django-syntax like templating-language.
 
