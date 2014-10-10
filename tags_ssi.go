@@ -20,7 +20,7 @@ func (node *tagSSINode) Execute(ctx *ExecutionContext, buffer *bytes.Buffer) *Er
 
 		err := node.template.ExecuteWriter(includeCtx, buffer)
 		if err != nil {
-			return err
+			return err.(*Error)
 		}
 	} else {
 		// Just print out the content
@@ -39,7 +39,7 @@ func tagSSIParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, *Erro
 			// parsed
 			temporary_tpl, err := doc.template.set.FromFile(doc.template.set.resolveFilename(doc.template, file_token.Val))
 			if err != nil {
-				return nil, err.updateFromTokenIfNeeded(file_token)
+				return nil, err.(*Error).updateFromTokenIfNeeded(file_token)
 			}
 			ssi_node.template = temporary_tpl
 		} else {

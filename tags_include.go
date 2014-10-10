@@ -47,14 +47,22 @@ func (node *tagIncludeNode) Execute(ctx *ExecutionContext, buffer *bytes.Buffer)
 		// Get include-filename
 		included_filename := ctx.template.set.resolveFilename(ctx.template, filename.String())
 
-		included_tpl, err := ctx.template.set.FromFile(included_filename)
-		if err != nil {
-			return err
+		included_tpl, err2 := ctx.template.set.FromFile(included_filename)
+		if err2 != nil {
+			return err2.(*Error)
 		}
-		return included_tpl.ExecuteWriter(include_ctx, buffer)
+		err2 = included_tpl.ExecuteWriter(include_ctx, buffer)
+		if err2 != nil {
+			return err2.(*Error)
+		}
+		return nil
 	} else {
 		// Template is already parsed with static filename
-		return node.tpl.ExecuteWriter(include_ctx, buffer)
+		err := node.tpl.ExecuteWriter(include_ctx, buffer)
+		if err != nil {
+			return err.(*Error)
+		}
+		return nil
 	}
 }
 
@@ -73,7 +81,7 @@ func tagIncludeParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, *
 		include_node.filename = included_filename
 		included_tpl, err := doc.template.set.FromFile(included_filename)
 		if err != nil {
-			return nil, err.updateFromTokenIfNeeded(filename_token)
+			return nil, err.(*Error).updateFromTokenIfNeeded(filename_token)
 		}
 		include_node.tpl = included_tpl
 	} else {

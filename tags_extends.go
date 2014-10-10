@@ -33,7 +33,7 @@ func tagExtendsParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, *
 		// Parse the parent
 		parent_template, err := doc.template.set.FromFile(parent_filename)
 		if err != nil {
-			return nil, err
+			return nil, err.(*Error)
 		}
 
 		// Keep track of things

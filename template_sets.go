@@ -133,7 +133,7 @@ func (set *TemplateSet) BanFilter(name string) {
 // call (to make changes to a template live instantaneously).
 // Like FromFile(), FromCache() takes a relative path to a set base directory.
 // Sandbox restrictions apply (if given).
-func (set *TemplateSet) FromCache(filename string) (*Template, *Error) {
+func (set *TemplateSet) FromCache(filename string) (*Template, error) {
 	if set.Debug {
 		// Recompile on any request
 		return set.FromFile(filename)
@@ -162,7 +162,7 @@ func (set *TemplateSet) FromCache(filename string) (*Template, *Error) {
 }
 
 // Loads  a template from string and returns a Template instance.
-func (set *TemplateSet) FromString(tpl string) (*Template, *Error) {
+func (set *TemplateSet) FromString(tpl string) (*Template, error) {
 	set.firstTemplateCreated = true
 
 	return newTemplateString(set, tpl)
@@ -172,7 +172,7 @@ func (set *TemplateSet) FromString(tpl string) (*Template, *Error) {
 // If a base directory is set, the filename must be either relative to it
 // or be an absolute path. Sandbox restrictions (SandboxDirectories) apply
 // if given.
-func (set *TemplateSet) FromFile(filename string) (*Template, *Error) {
+func (set *TemplateSet) FromFile(filename string) (*Template, error) {
 	set.firstTemplateCreated = true
 
 	buf, err := ioutil.ReadFile(set.resolveFilename(nil, filename))

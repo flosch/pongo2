@@ -30,11 +30,11 @@ type Template struct {
 	root *nodeDocument
 }
 
-func newTemplateString(set *TemplateSet, tpl string) (*Template, *Error) {
+func newTemplateString(set *TemplateSet, tpl string) (*Template, error) {
 	return newTemplate(set, "<string>", true, tpl)
 }
 
-func newTemplate(set *TemplateSet, name string, is_tpl_string bool, tpl string) (*Template, *Error) {
+func newTemplate(set *TemplateSet, name string, is_tpl_string bool, tpl string) (*Template, error) {
 	// Create the template
 	t := &Template{
 		set:             set,
@@ -67,7 +67,7 @@ func newTemplate(set *TemplateSet, name string, is_tpl_string bool, tpl string) 
 	return t, nil
 }
 
-func (tpl *Template) execute(context Context) (*bytes.Buffer, *Error) {
+func (tpl *Template) execute(context Context) (*bytes.Buffer, error) {
 	// Create output buffer
 	// We assume that the rendered template will be 30% larger
 	buffer := bytes.NewBuffer(make([]byte, 0, int(float64(tpl.size)*1.3)))
@@ -120,7 +120,7 @@ func (tpl *Template) execute(context Context) (*bytes.Buffer, *Error) {
 // Executes the template with the given context and writes to writer (io.Writer)
 // on success. Context can be nil. Nothing is written on error; instead the error
 // is being returned.
-func (tpl *Template) ExecuteWriter(context Context, writer io.Writer) *Error {
+func (tpl *Template) ExecuteWriter(context Context, writer io.Writer) error {
 	buffer, err := tpl.execute(context)
 	if err != nil {
 		return err
@@ -142,7 +142,7 @@ func (tpl *Template) ExecuteWriter(context Context, writer io.Writer) *Error {
 }
 
 // Executes the template and returns the rendered template as a []byte
-func (tpl *Template) ExecuteBytes(context Context) ([]byte, *Error) {
+func (tpl *Template) ExecuteBytes(context Context) ([]byte, error) {
 	// Execute template
 	buffer, err := tpl.execute(context)
 	if err != nil {
@@ -152,7 +152,7 @@ func (tpl *Template) ExecuteBytes(context Context) ([]byte, *Error) {
 }
 
 // Executes the template and returns the rendered template as a string
-func (tpl *Template) Execute(context Context) (string, *Error) {
+func (tpl *Template) Execute(context Context) (string, error) {
 	// Execute template
 	buffer, err := tpl.execute(context)
 	if err != nil {

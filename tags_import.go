@@ -43,7 +43,7 @@ func tagImportParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, *E
 	// Compile the given template
 	tpl, err := doc.template.set.FromFile(import_node.filename)
 	if err != nil {
-		return nil, err.updateFromTokenIfNeeded(start)
+		return nil, err.(*Error).updateFromTokenIfNeeded(start)
 	}
 
 	for arguments.Remaining() > 0 {
