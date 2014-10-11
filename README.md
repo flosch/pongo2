@@ -141,6 +141,7 @@ You can access pongo2's API documentation on [godoc](https://godoc.org/github.co
 ## Official
 
  * [ponginae](https://github.com/flosch/ponginae) - A web-framework for Go (using pongo2).
+ * [pongo2-tools](https://github.com/flosch/pongo2-tools) - Official tools and helpers for pongo2
  * [pongo2-addons](https://github.com/flosch/pongo2-addons) - Official additional filters/tags for pongo2 (for example a **markdown**-filter). They are in their own repository because they're relying on 3rd-party-libraries.
 
 ## 3rd-party
