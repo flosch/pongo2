@@ -196,6 +196,7 @@ func (p *Parser) Error(msg string, token *Token) *Error {
 		col = token.Col
 	}
 	return &Error{
+		Template: p.template,
 		Filename: p.name,
 		Sender:   "parser",
 		Line:     line,

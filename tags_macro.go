@@ -45,7 +45,7 @@ func (node *tagMacroNode) call(ctx *ExecutionContext, args ...*Value) *Value {
 	if len(args) > len(node.args_order) {
 		// Too many arguments, we're ignoring them and just logging into debug mode.
 		err := ctx.Error(fmt.Sprintf("Macro '%s' called with too many arguments (%d instead of %d).",
-				node.name, len(args), len(node.args_order)), nil).updateFromTokenIfNeeded(ctx.template, node.position)
+			node.name, len(args), len(node.args_order)), nil).updateFromTokenIfNeeded(ctx.template, node.position)
 
 		ctx.Logf(err.Error()) // TODO: This is a workaround, because the error is not returned yet to the Execution()-methods
 		return AsSafeValue(err.Error())

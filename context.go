@@ -107,6 +107,7 @@ func (ctx *ExecutionContext) Error(msg string, token *Token) *Error {
 		col = token.Col
 	}
 	return &Error{
+		Template: ctx.template,
 		Filename: filename,
 		Line:     line,
 		Column:   col,
