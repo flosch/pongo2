@@ -13,6 +13,7 @@ import (
 // a filter, make Sender equals 'filter:yourfilter'; same goes for tags: 'tag:mytag').
 // It's okay if you only fill in ErrorMsg if you don't have any other details at hand.
 type Error struct {
+	Template *Template
 	Filename string
 	Line     int
 	Column   int
@@ -21,7 +22,11 @@ type Error struct {
 	ErrorMsg string
 }
 
-func (e *Error) updateFromTokenIfNeeded(t *Token) *Error {
+func (e *Error) updateFromTokenIfNeeded(template *Template, t *Token) *Error {
+	if e.Template == nil {
+		e.Template = template
+	}
+
 	if e.Token == nil {
 		e.Token = t
 		if e.Line <= 0 {
@@ -59,7 +64,11 @@ func (e *Error) RawLine() (line string, available bool) {
 		return "", false
 	}
 
-	file, err := os.Open(e.Filename)
+	if e.Template == nil {
+		panic("pongo2: Template in error object should never be nil (did you missed to call Error.updateFromTokenIfNeeded()?).")
+	}
+
+	file, err := os.Open(e.Template.set.resolveFilename(e.Template, e.Filename))
 	if err != nil {
 		panic(err)
 	}
