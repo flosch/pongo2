@@ -64,11 +64,11 @@ func (e *Error) RawLine() (line string, available bool) {
 		return "", false
 	}
 
-	if e.Template == nil {
-		panic("pongo2: Template in error object should never be nil (did you missed to call Error.updateFromTokenIfNeeded()?).")
+	filename := e.Filename
+	if e.Template != nil {
+		filename = e.Template.set.resolveFilename(e.Template, e.Filename)
 	}
-
-	file, err := os.Open(e.Template.set.resolveFilename(e.Template, e.Filename))
+	file, err := os.Open(filename)
 	if err != nil {
 		panic(err)
 	}
