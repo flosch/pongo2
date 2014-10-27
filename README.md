@@ -69,6 +69,8 @@ Please use the [issue tracker](https://github.com/flosch/pongo2/issues) if you'r
 
 **Current development**: v3 (`master`-branch)
 
+**Deprecated versions** (not supported anymore): v1
+
 | Topic                                | Status                                                                                 |
 | ------------------------------------ | -------------------------------------------------------------------------------------- |       
 | Django version compatibility:        | [1.7](https://docs.djangoproject.com/en/1.7/ref/templates/builtins/)                  |
