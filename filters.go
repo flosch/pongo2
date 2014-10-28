@@ -88,7 +88,7 @@ func (fc *filterCall) Execute(v *Value, ctx *ExecutionContext) (*Value, *Error) 
 
 	filtered_value, err := fc.filterFunc(v, param)
 	if err != nil {
-		return nil, err.updateFromTokenIfNeeded(fc.token)
+		return nil, err.updateFromTokenIfNeeded(ctx.template, fc.token)
 	}
 	return filtered_value, nil
 }
