@@ -65,9 +65,11 @@ Please use the [issue tracker](https://github.com/flosch/pongo2/issues) if you'r
 
 ## Development status
 
-**Latest stable release**: v2.0 (`go get -u gopkg.in/flosch/pongo2.v2` / [`v2`](https://github.com/flosch/pongo2/tree/v2)-branch) [[read the announcement](https://www.florian-schlachter.de/post/pongo2-v2/)]
+**Latest stable release**: v3.0 (`go get -u gopkg.in/flosch/pongo2.v3` / [`v3`](https://github.com/flosch/pongo2/tree/v3)-branch) [[read the announcement](https://www.florian-schlachter.de/post/pongo2-v3/)]
 
-**Current development**: v3 (`master`-branch)
+**Current development**: v4 (`master`-branch)
+
+*Note*: With the release of pongo v4 the branch v2 will be deprecated.
 
 **Deprecated versions** (not supported anymore): v1
 
