@@ -51,14 +51,14 @@ func (node *tagIncludeNode) Execute(ctx *ExecutionContext, buffer *bytes.Buffer)
 		if err2 != nil {
 			return err2.(*Error)
 		}
-		err2 = included_tpl.ExecuteWriter(include_ctx, buffer)
+		err2 = included_tpl.ExecuteBuffer(include_ctx, buffer)
 		if err2 != nil {
 			return err2.(*Error)
 		}
 		return nil
 	} else {
 		// Template is already parsed with static filename
-		err := node.tpl.ExecuteWriter(include_ctx, buffer)
+		err := node.tpl.ExecuteBuffer(include_ctx, buffer)
 		if err != nil {
 			return err.(*Error)
 		}
