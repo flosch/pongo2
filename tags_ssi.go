@@ -18,7 +18,7 @@ func (node *tagSSINode) Execute(ctx *ExecutionContext, buffer *bytes.Buffer) *Er
 		includeCtx.Update(ctx.Public)
 		includeCtx.Update(ctx.Private)
 
-		err := node.template.ExecuteWriter(includeCtx, buffer)
+		err := node.template.ExecuteBuffer(includeCtx, buffer)
 		if err != nil {
 			return err.(*Error)
 		}
