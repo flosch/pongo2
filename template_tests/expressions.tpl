@@ -52,7 +52,7 @@ issue #48 (associativity for infix operators)
 {{ 10 + 24 / 6 / 2 }}
 {{ 6 - 4 - 2 }}
 
-issue #64 (uint comparison with const)
+issue #64 (uint comparison with int const)
 {{ simple.uint }}
 {{ simple.uint == 8 }}
 {{ simple.uint == 9 }}

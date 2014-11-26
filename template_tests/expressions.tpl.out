@@ -52,7 +52,7 @@ issue #48 (associativity for infix operators)
 12
 0
 
-issue #64 (uint comparison with const)
+issue #64 (uint comparison with int const)
 8
 True
 False
