@@ -71,13 +71,17 @@ func (tpl *Template) execute(context Context) (*bytes.Buffer, error) {
 	// Create output buffer
 	// We assume that the rendered template will be 30% larger
 	buffer := bytes.NewBuffer(make([]byte, 0, int(float64(tpl.size)*1.3)))
-	if err := tpl.executeBuffer(context, buffer); err != nil {
+	if err := tpl.ExecuteBuffer(context, buffer); err != nil {
 		return nil, err
 	}
 	return buffer, nil
 }
 
-func (tpl *Template) executeBuffer(context Context, buffer *bytes.Buffer) error {
+// Executes the template with the given context and writes to buffer.
+// It prevents pongo2 to allocate a new buffer for template output generation;
+// instead, the API user can provide his own allocated buffer for
+// performance reasons.
+func (tpl *Template) ExecuteBuffer(context Context, buffer *bytes.Buffer) error {
 	// Determine the parent to be executed (for template inheritance)
 	parent := tpl
 	for parent.parent != nil {
@@ -145,13 +149,6 @@ func (tpl *Template) ExecuteWriter(context Context, writer io.Writer) error {
 		}
 	}
 	return nil
-}
-
-// Executes the template with the given context and writes to buffer (bytes.Buffer)
-// on success. This method can use useful if you already have predefined buffer with
-// specified size.
-func (tpl *Template) ExecuteBuffer(context Context, buffer *bytes.Buffer) error {
-	return tpl.executeBuffer(context, buffer)
 }
 
 // Executes the template and returns the rendered template as a []byte
