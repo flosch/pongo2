@@ -435,5 +435,9 @@ func (v *Value) Interface() interface{} {
 
 // Checks whether two values are containing the same value or object.
 func (v *Value) EqualValueTo(other *Value) bool {
+	// comparison of uint with int fails using .Interfac()-comparison (see issue #64)
+	if v.IsInteger() && other.IsInteger() {
+		return v.Integer() == other.Integer()
+	}
 	return v.Interface() == other.Interface()
 }

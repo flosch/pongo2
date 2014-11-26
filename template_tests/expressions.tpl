@@ -51,3 +51,12 @@ issue #48 (associativity for infix operators)
 {{ 34/3*3 }}
 {{ 10 + 24 / 6 / 2 }}
 {{ 6 - 4 - 2 }}
+
+issue #64 (uint comparison with const)
+{{ simple.uint }}
+{{ simple.uint == 8 }}
+{{ simple.uint == 9 }}
+{{ simple.uint >= 8 }}
+{{ simple.uint <= 8 }}
+{{ simple.uint < 8 }}
+{{ simple.uint > 8 }}
