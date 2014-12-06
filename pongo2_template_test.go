@@ -124,6 +124,7 @@ var tplContext = Context{
 		"number":        42,
 		"name":          "john doe",
 		"included_file": "INCLUDES.helper",
+		"included_file_not_exists": "INCLUDES.helper.not_exists",
 		"nil":           nil,
 		"uint":          uint(8),
 		"float":         float64(3.1415),
