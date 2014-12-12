@@ -163,7 +163,7 @@ func (tpl *Template) ExecuteWriter(context Context, writer io.Writer) error {
 // this function might already have written parts of the generated template in the
 // case of an execution error because there's no intermediate buffer involved for
 // performance reasons. This is handy if you need high performance template
-// generation or if you want or manage your own buffers.
+// generation or if you want to manage your own pool of buffers.
 func (tpl *Template) ExecuteWriterUnbuffered(context Context, writer io.Writer) error {
 	return tpl.newTemplateWriterAndExecute(context, writer)
 }
