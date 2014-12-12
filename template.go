@@ -148,6 +148,23 @@ func (tpl *Template) newBufferAndExecute(context Context) (*bytes.Buffer, error)
 // on success. Context can be nil. Nothing is written on error; instead the error
 // is being returned.
 func (tpl *Template) ExecuteWriter(context Context, writer io.Writer) error {
+	buf, err := tpl.newBufferAndExecute(context)
+	if err != nil {
+		return err
+	}
+	_, err = buf.WriteTo(writer)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// Same as ExecuteWriter. The only difference between both functions is that
+// this function might already have written parts of the generated template in the
+// case of an execution error because there's no intermediate buffer involved for
+// performance reasons. This is handy if you need high performance template
+// generation or if you want or manage your own buffers.
+func (tpl *Template) ExecuteWriterUnbuffered(context Context, writer io.Writer) error {
 	return tpl.newTemplateWriterAndExecute(context, writer)
 }
 
