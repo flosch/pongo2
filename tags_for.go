@@ -1,9 +1,5 @@
 package pongo2
 
-import (
-	"bytes"
-)
-
 type tagForNode struct {
 	key              string
 	value            string // only for maps: for key, value in map
@@ -24,7 +20,7 @@ type tagForLoopInformation struct {
 	Parentloop  *tagForLoopInformation
 }
 
-func (node *tagForNode) Execute(ctx *ExecutionContext, buffer *bytes.Buffer) (forError *Error) {
+func (node *tagForNode) Execute(ctx *ExecutionContext, writer TemplateWriter) (forError *Error) {
 	// Backup forloop (as parentloop in public context), key-name and value-name
 	forCtx := NewChildExecutionContext(ctx)
 	parentloop := forCtx.Private["forloop"]
@@ -67,7 +63,7 @@ func (node *tagForNode) Execute(ctx *ExecutionContext, buffer *bytes.Buffer) (fo
 		loopInfo.Revcounter0 = count - (idx + 1) // TODO: Not sure about this, have to look it up
 
 		// Render elements with updated context
-		err := node.bodyWrapper.Execute(forCtx, buffer)
+		err := node.bodyWrapper.Execute(forCtx, writer)
 		if err != nil {
 			forError = err
 			return false
@@ -76,7 +72,7 @@ func (node *tagForNode) Execute(ctx *ExecutionContext, buffer *bytes.Buffer) (fo
 	}, func() {
 		// Nothing to iterate over (maybe wrong type or no items)
 		if node.emptyWrapper != nil {
-			err := node.emptyWrapper.Execute(forCtx, buffer)
+			err := node.emptyWrapper.Execute(forCtx, writer)
 			if err != nil {
 				forError = err
 			}

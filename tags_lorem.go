@@ -1,7 +1,6 @@
 package pongo2
 
 import (
-	"bytes"
 	"math/rand"
 	"strings"
 	"time"
@@ -19,64 +18,64 @@ type tagLoremNode struct {
 	random   bool   // does not use the default paragraph "Lorem ipsum dolor sit amet, ..."
 }
 
-func (node *tagLoremNode) Execute(ctx *ExecutionContext, buffer *bytes.Buffer) *Error {
+func (node *tagLoremNode) Execute(ctx *ExecutionContext, writer TemplateWriter) *Error {
 	switch node.method {
 	case "b":
 		if node.random {
 			for i := 0; i < node.count; i++ {
 				if i > 0 {
-					buffer.WriteString("\n")
+					writer.WriteString("\n")
 				}
 				par := tagLoremParagraphs[rand.Intn(len(tagLoremParagraphs))]
-				buffer.WriteString(par)
+				writer.WriteString(par)
 			}
 		} else {
 			for i := 0; i < node.count; i++ {
 				if i > 0 {
-					buffer.WriteString("\n")
+					writer.WriteString("\n")
 				}
 				par := tagLoremParagraphs[i%len(tagLoremParagraphs)]
-				buffer.WriteString(par)
+				writer.WriteString(par)
 			}
 		}
 	case "w":
 		if node.random {
 			for i := 0; i < node.count; i++ {
 				if i > 0 {
-					buffer.WriteString(" ")
+					writer.WriteString(" ")
 				}
 				word := tagLoremWords[rand.Intn(len(tagLoremWords))]
-				buffer.WriteString(word)
+				writer.WriteString(word)
 			}
 		} else {
 			for i := 0; i < node.count; i++ {
 				if i > 0 {
-					buffer.WriteString(" ")
+					writer.WriteString(" ")
 				}
 				word := tagLoremWords[i%len(tagLoremWords)]
-				buffer.WriteString(word)
+				writer.WriteString(word)
 			}
 		}
 	case "p":
 		if node.random {
 			for i := 0; i < node.count; i++ {
 				if i > 0 {
-					buffer.WriteString("\n")
+					writer.WriteString("\n")
 				}
-				buffer.WriteString("<p>")
+				writer.WriteString("<p>")
 				par := tagLoremParagraphs[rand.Intn(len(tagLoremParagraphs))]
-				buffer.WriteString(par)
-				buffer.WriteString("</p>")
+				writer.WriteString(par)
+				writer.WriteString("</p>")
 			}
 		} else {
 			for i := 0; i < node.count; i++ {
 				if i > 0 {
-					buffer.WriteString("\n")
+					writer.WriteString("\n")
 				}
-				buffer.WriteString("<p>")
+				writer.WriteString("<p>")
 				par := tagLoremParagraphs[i%len(tagLoremParagraphs)]
-				buffer.WriteString(par)
-				buffer.WriteString("</p>")
+				writer.WriteString(par)
+				writer.WriteString("</p>")
 
 			}
 		}

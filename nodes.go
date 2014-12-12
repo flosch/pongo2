@@ -1,17 +1,13 @@
 package pongo2
 
-import (
-	"bytes"
-)
-
 // The root document
 type nodeDocument struct {
 	Nodes []INode
 }
 
-func (doc *nodeDocument) Execute(ctx *ExecutionContext, buffer *bytes.Buffer) *Error {
+func (doc *nodeDocument) Execute(ctx *ExecutionContext, writer TemplateWriter) *Error {
 	for _, n := range doc.Nodes {
-		err := n.Execute(ctx, buffer)
+		err := n.Execute(ctx, writer)
 		if err != nil {
 			return err
 		}

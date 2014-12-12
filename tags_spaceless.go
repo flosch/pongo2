@@ -11,7 +11,7 @@ type tagSpacelessNode struct {
 
 var tagSpacelessRegexp = regexp.MustCompile(`(?U:(<.*>))([\t\n\v\f\r ]+)(?U:(<.*>))`)
 
-func (node *tagSpacelessNode) Execute(ctx *ExecutionContext, buffer *bytes.Buffer) *Error {
+func (node *tagSpacelessNode) Execute(ctx *ExecutionContext, writer TemplateWriter) *Error {
 	b := bytes.NewBuffer(make([]byte, 0, 1024)) // 1 KiB
 
 	err := node.wrapper.Execute(ctx, b)
@@ -28,7 +28,7 @@ func (node *tagSpacelessNode) Execute(ctx *ExecutionContext, buffer *bytes.Buffe
 		s = s2
 	}
 
-	buffer.WriteString(s)
+	writer.WriteString(s)
 
 	return nil
 }

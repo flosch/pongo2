@@ -1,7 +1,6 @@
 package pongo2
 
 import (
-	"bytes"
 	"io/ioutil"
 )
 
@@ -11,20 +10,20 @@ type tagSSINode struct {
 	template *Template
 }
 
-func (node *tagSSINode) Execute(ctx *ExecutionContext, buffer *bytes.Buffer) *Error {
+func (node *tagSSINode) Execute(ctx *ExecutionContext, writer TemplateWriter) *Error {
 	if node.template != nil {
 		// Execute the template within the current context
 		includeCtx := make(Context)
 		includeCtx.Update(ctx.Public)
 		includeCtx.Update(ctx.Private)
 
-		err := node.template.ExecuteBuffer(includeCtx, buffer)
+		err := node.template.execute(includeCtx, writer)
 		if err != nil {
 			return err.(*Error)
 		}
 	} else {
 		// Just print out the content
-		buffer.WriteString(node.content)
+		writer.WriteString(node.content)
 	}
 	return nil
 }

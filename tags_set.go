@@ -1,13 +1,11 @@
 package pongo2
 
-import "bytes"
-
 type tagSetNode struct {
 	name       string
 	expression IEvaluator
 }
 
-func (node *tagSetNode) Execute(ctx *ExecutionContext, buffer *bytes.Buffer) *Error {
+func (node *tagSetNode) Execute(ctx *ExecutionContext, writer TemplateWriter) *Error {
 	// Evaluate expression
 	value, err := node.expression.Evaluate(ctx)
 	if err != nil {

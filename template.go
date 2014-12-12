@@ -6,6 +6,23 @@ import (
 	"io"
 )
 
+type TemplateWriter interface {
+	io.Writer
+	WriteString(string) (int, error)
+}
+
+type templateWriter struct {
+	w io.Writer
+}
+
+func (tw *templateWriter) WriteString(s string) (int, error) {
+	return tw.w.Write([]byte(s))
+}
+
+func (tw *templateWriter) Write(b []byte) (int, error) {
+	return tw.w.Write(b)
+}
+
 type Template struct {
 	set *TemplateSet
 
@@ -67,21 +84,7 @@ func newTemplate(set *TemplateSet, name string, is_tpl_string bool, tpl string) 
 	return t, nil
 }
 
-func (tpl *Template) execute(context Context) (*bytes.Buffer, error) {
-	// Create output buffer
-	// We assume that the rendered template will be 30% larger
-	buffer := bytes.NewBuffer(make([]byte, 0, int(float64(tpl.size)*1.3)))
-	if err := tpl.ExecuteBuffer(context, buffer); err != nil {
-		return nil, err
-	}
-	return buffer, nil
-}
-
-// Executes the template with the given context and writes to buffer.
-// It prevents pongo2 to allocate a new buffer for template output generation;
-// instead, the API user can provide his own allocated buffer for
-// performance reasons.
-func (tpl *Template) ExecuteBuffer(context Context, buffer *bytes.Buffer) error {
+func (tpl *Template) execute(context Context, writer TemplateWriter) error {
 	// Determine the parent to be executed (for template inheritance)
 	parent := tpl
 	for parent.parent != nil {
@@ -120,41 +123,38 @@ func (tpl *Template) ExecuteBuffer(context Context, buffer *bytes.Buffer) error 
 	ctx := newExecutionContext(parent, newContext)
 
 	// Run the selected document
-	if err := parent.root.Execute(ctx, buffer); err != nil {
+	if err := parent.root.Execute(ctx, writer); err != nil {
 		return err
 	}
 
 	return nil
+}
+
+func (tpl *Template) newTemplateWriterAndExecute(context Context, writer io.Writer) error {
+	return tpl.execute(context, &templateWriter{w: writer})
+}
+
+func (tpl *Template) newBufferAndExecute(context Context) (*bytes.Buffer, error) {
+	// Create output buffer
+	// We assume that the rendered template will be 30% larger
+	buffer := bytes.NewBuffer(make([]byte, 0, int(float64(tpl.size)*1.3)))
+	if err := tpl.execute(context, buffer); err != nil {
+		return nil, err
+	}
+	return buffer, nil
 }
 
 // Executes the template with the given context and writes to writer (io.Writer)
 // on success. Context can be nil. Nothing is written on error; instead the error
 // is being returned.
 func (tpl *Template) ExecuteWriter(context Context, writer io.Writer) error {
-	buffer, err := tpl.execute(context)
-	if err != nil {
-		return err
-	}
-
-	l := buffer.Len()
-	n, werr := buffer.WriteTo(writer)
-	if int(n) != l {
-		panic(fmt.Sprintf("error on writing template: n(%d) != buffer.Len(%d)", n, l))
-	}
-	if werr != nil {
-		return &Error{
-			Filename: tpl.name,
-			Sender:   "execution",
-			ErrorMsg: werr.Error(),
-		}
-	}
-	return nil
+	return tpl.newTemplateWriterAndExecute(context, writer)
 }
 
 // Executes the template and returns the rendered template as a []byte
 func (tpl *Template) ExecuteBytes(context Context) ([]byte, error) {
 	// Execute template
-	buffer, err := tpl.execute(context)
+	buffer, err := tpl.newBufferAndExecute(context)
 	if err != nil {
 		return nil, err
 	}
@@ -164,7 +164,7 @@ func (tpl *Template) ExecuteBytes(context Context) ([]byte, error) {
 // Executes the template and returns the rendered template as a string
 func (tpl *Template) Execute(context Context) (string, error) {
 	// Execute template
-	buffer, err := tpl.execute(context)
+	buffer, err := tpl.newBufferAndExecute(context)
 	if err != nil {
 		return "", err
 	}

@@ -1,14 +1,10 @@
 package pongo2
 
-import (
-	"bytes"
-)
-
 type tagExtendsNode struct {
 	filename string
 }
 
-func (node *tagExtendsNode) Execute(ctx *ExecutionContext, buffer *bytes.Buffer) *Error {
+func (node *tagExtendsNode) Execute(ctx *ExecutionContext, writer TemplateWriter) *Error {
 	return nil
 }
 

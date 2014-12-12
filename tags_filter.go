@@ -15,7 +15,7 @@ type tagFilterNode struct {
 	filterChain []*nodeFilterCall
 }
 
-func (node *tagFilterNode) Execute(ctx *ExecutionContext, buffer *bytes.Buffer) *Error {
+func (node *tagFilterNode) Execute(ctx *ExecutionContext, writer TemplateWriter) *Error {
 	temp := bytes.NewBuffer(make([]byte, 0, 1024)) // 1 KiB size
 
 	err := node.bodyWrapper.Execute(ctx, temp)
@@ -41,7 +41,7 @@ func (node *tagFilterNode) Execute(ctx *ExecutionContext, buffer *bytes.Buffer) 
 		}
 	}
 
-	buffer.WriteString(value.String())
+	writer.WriteString(value.String())
 
 	return nil
 }

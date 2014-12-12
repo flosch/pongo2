@@ -1,9 +1,5 @@
 package pongo2
 
-import (
-	"bytes"
-)
-
 type tagIncludeNode struct {
 	tpl                *Template
 	filename_evaluator IEvaluator
@@ -11,10 +7,10 @@ type tagIncludeNode struct {
 	only               bool
 	filename           string
 	with_pairs         map[string]IEvaluator
-	if_exists		   bool
+	if_exists          bool
 }
 
-func (node *tagIncludeNode) Execute(ctx *ExecutionContext, buffer *bytes.Buffer) *Error {
+func (node *tagIncludeNode) Execute(ctx *ExecutionContext, writer TemplateWriter) *Error {
 	// Building the context for the template
 	include_ctx := make(Context)
 
@@ -56,14 +52,14 @@ func (node *tagIncludeNode) Execute(ctx *ExecutionContext, buffer *bytes.Buffer)
 			}
 			return err2.(*Error)
 		}
-		err2 = included_tpl.ExecuteBuffer(include_ctx, buffer)
+		err2 = included_tpl.ExecuteWriter(include_ctx, writer)
 		if err2 != nil {
 			return err2.(*Error)
 		}
 		return nil
 	} else {
 		// Template is already parsed with static filename
-		err := node.tpl.ExecuteBuffer(include_ctx, buffer)
+		err := node.tpl.ExecuteWriter(include_ctx, writer)
 		if err != nil {
 			return err.(*Error)
 		}
@@ -71,9 +67,9 @@ func (node *tagIncludeNode) Execute(ctx *ExecutionContext, buffer *bytes.Buffer)
 	}
 }
 
-type tagIncludeEmptyNode struct {}
+type tagIncludeEmptyNode struct{}
 
-func (node *tagIncludeEmptyNode) Execute(ctx *ExecutionContext, buffer *bytes.Buffer) *Error {
+func (node *tagIncludeEmptyNode) Execute(ctx *ExecutionContext, writer TemplateWriter) *Error {
 	return nil
 }
 

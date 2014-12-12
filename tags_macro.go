@@ -15,7 +15,7 @@ type tagMacroNode struct {
 	wrapper *NodeWrapper
 }
 
-func (node *tagMacroNode) Execute(ctx *ExecutionContext, buffer *bytes.Buffer) *Error {
+func (node *tagMacroNode) Execute(ctx *ExecutionContext, writer TemplateWriter) *Error {
 	ctx.Private[node.name] = func(args ...*Value) *Value {
 		return node.call(ctx, args...)
 	}

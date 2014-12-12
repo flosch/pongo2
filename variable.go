@@ -1,7 +1,6 @@
 package pongo2
 
 import (
-	"bytes"
 	"fmt"
 	"reflect"
 	"strconv"
@@ -65,57 +64,57 @@ type nodeVariable struct {
 	expr           IEvaluator
 }
 
-func (expr *nodeFilteredVariable) Execute(ctx *ExecutionContext, buffer *bytes.Buffer) *Error {
+func (expr *nodeFilteredVariable) Execute(ctx *ExecutionContext, writer TemplateWriter) *Error {
 	value, err := expr.Evaluate(ctx)
 	if err != nil {
 		return err
 	}
-	buffer.WriteString(value.String())
+	writer.WriteString(value.String())
 	return nil
 }
 
-func (expr *variableResolver) Execute(ctx *ExecutionContext, buffer *bytes.Buffer) *Error {
+func (expr *variableResolver) Execute(ctx *ExecutionContext, writer TemplateWriter) *Error {
 	value, err := expr.Evaluate(ctx)
 	if err != nil {
 		return err
 	}
-	buffer.WriteString(value.String())
+	writer.WriteString(value.String())
 	return nil
 }
 
-func (expr *stringResolver) Execute(ctx *ExecutionContext, buffer *bytes.Buffer) *Error {
+func (expr *stringResolver) Execute(ctx *ExecutionContext, writer TemplateWriter) *Error {
 	value, err := expr.Evaluate(ctx)
 	if err != nil {
 		return err
 	}
-	buffer.WriteString(value.String())
+	writer.WriteString(value.String())
 	return nil
 }
 
-func (expr *intResolver) Execute(ctx *ExecutionContext, buffer *bytes.Buffer) *Error {
+func (expr *intResolver) Execute(ctx *ExecutionContext, writer TemplateWriter) *Error {
 	value, err := expr.Evaluate(ctx)
 	if err != nil {
 		return err
 	}
-	buffer.WriteString(value.String())
+	writer.WriteString(value.String())
 	return nil
 }
 
-func (expr *floatResolver) Execute(ctx *ExecutionContext, buffer *bytes.Buffer) *Error {
+func (expr *floatResolver) Execute(ctx *ExecutionContext, writer TemplateWriter) *Error {
 	value, err := expr.Evaluate(ctx)
 	if err != nil {
 		return err
 	}
-	buffer.WriteString(value.String())
+	writer.WriteString(value.String())
 	return nil
 }
 
-func (expr *boolResolver) Execute(ctx *ExecutionContext, buffer *bytes.Buffer) *Error {
+func (expr *boolResolver) Execute(ctx *ExecutionContext, writer TemplateWriter) *Error {
 	value, err := expr.Evaluate(ctx)
 	if err != nil {
 		return err
 	}
-	buffer.WriteString(value.String())
+	writer.WriteString(value.String())
 	return nil
 }
 
@@ -179,7 +178,7 @@ func (nv *nodeVariable) FilterApplied(name string) bool {
 	return nv.expr.FilterApplied(name)
 }
 
-func (nv *nodeVariable) Execute(ctx *ExecutionContext, buffer *bytes.Buffer) *Error {
+func (nv *nodeVariable) Execute(ctx *ExecutionContext, writer TemplateWriter) *Error {
 	value, err := nv.expr.Evaluate(ctx)
 	if err != nil {
 		return err
@@ -193,7 +192,7 @@ func (nv *nodeVariable) Execute(ctx *ExecutionContext, buffer *bytes.Buffer) *Er
 		}
 	}
 
-	buffer.WriteString(value.String())
+	writer.WriteString(value.String())
 	return nil
 }
 

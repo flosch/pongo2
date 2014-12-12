@@ -1,9 +1,5 @@
 package pongo2
 
-import (
-	"bytes"
-)
-
 type tagTemplateTagNode struct {
 	content string
 }
@@ -19,8 +15,8 @@ var templateTagMapping = map[string]string{
 	"closecomment":  "#}",
 }
 
-func (node *tagTemplateTagNode) Execute(ctx *ExecutionContext, buffer *bytes.Buffer) *Error {
-	buffer.WriteString(node.content)
+func (node *tagTemplateTagNode) Execute(ctx *ExecutionContext, writer TemplateWriter) *Error {
+	writer.WriteString(node.content)
 	return nil
 }
 

@@ -60,8 +60,8 @@ func (p *post) String() string {
 type tagSandboxDemoTag struct {
 }
 
-func (node *tagSandboxDemoTag) Execute(ctx *ExecutionContext, buffer *bytes.Buffer) *Error {
-	buffer.WriteString("hello")
+func (node *tagSandboxDemoTag) Execute(ctx *ExecutionContext, writer TemplateWriter) *Error {
+	writer.WriteString("hello")
 	return nil
 }
 
@@ -121,14 +121,14 @@ func init() {
 var tplContext = Context{
 	"number": 11,
 	"simple": map[string]interface{}{
-		"number":        42,
-		"name":          "john doe",
-		"included_file": "INCLUDES.helper",
+		"number":                   42,
+		"name":                     "john doe",
+		"included_file":            "INCLUDES.helper",
 		"included_file_not_exists": "INCLUDES.helper.not_exists",
-		"nil":           nil,
-		"uint":          uint(8),
-		"float":         float64(3.1415),
-		"str":           "string",
+		"nil":   nil,
+		"uint":  uint(8),
+		"float": float64(3.1415),
+		"str":   "string",
 		"chinese_hello_world": "你好世界",
 		"bool_true":           true,
 		"bool_false":          false,
@@ -412,7 +412,7 @@ func BenchmarkCache(b *testing.B) {
 		if err != nil {
 			b.Fatal(err)
 		}
-		_, err = tpl.ExecuteBytes(tplContext)
+		err = tpl.ExecuteWriter(tplContext, ioutil.Discard)
 		if err != nil {
 			b.Fatal(err)
 		}
@@ -427,7 +427,7 @@ func BenchmarkCacheDebugOn(b *testing.B) {
 		if err != nil {
 			b.Fatal(err)
 		}
-		_, err = tpl.ExecuteBytes(tplContext)
+		err = tpl.ExecuteWriter(tplContext, ioutil.Discard)
 		if err != nil {
 			b.Fatal(err)
 		}
@@ -441,7 +441,7 @@ func BenchmarkExecuteComplexWithSandboxActive(b *testing.B) {
 	}
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_, err = tpl.ExecuteBytes(tplContext)
+		err = tpl.ExecuteWriter(tplContext, ioutil.Discard)
 		if err != nil {
 			b.Fatal(err)
 		}
@@ -461,7 +461,7 @@ func BenchmarkCompileAndExecuteComplexWithSandboxActive(b *testing.B) {
 			b.Fatal(err)
 		}
 
-		_, err = tpl.ExecuteBytes(tplContext)
+		err = tpl.ExecuteWriter(tplContext, ioutil.Discard)
 		if err != nil {
 			b.Fatal(err)
 		}
@@ -476,7 +476,7 @@ func BenchmarkParallelExecuteComplexWithSandboxActive(b *testing.B) {
 	b.ResetTimer()
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
-			_, err := tpl.ExecuteBytes(tplContext)
+			err := tpl.ExecuteWriter(tplContext, ioutil.Discard)
 			if err != nil {
 				b.Fatal(err)
 			}
@@ -492,7 +492,7 @@ func BenchmarkExecuteComplexWithoutSandbox(b *testing.B) {
 	}
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_, err = tpl.ExecuteBytes(tplContext)
+		err = tpl.ExecuteWriter(tplContext, ioutil.Discard)
 		if err != nil {
 			b.Fatal(err)
 		}
@@ -515,7 +515,7 @@ func BenchmarkCompileAndExecuteComplexWithoutSandbox(b *testing.B) {
 			b.Fatal(err)
 		}
 
-		_, err = tpl.ExecuteBytes(tplContext)
+		err = tpl.ExecuteWriter(tplContext, ioutil.Discard)
 		if err != nil {
 			b.Fatal(err)
 		}
@@ -531,7 +531,7 @@ func BenchmarkParallelExecuteComplexWithoutSandbox(b *testing.B) {
 	b.ResetTimer()
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
-			_, err := tpl.ExecuteBytes(tplContext)
+			err := tpl.ExecuteWriter(tplContext, ioutil.Discard)
 			if err != nil {
 				b.Fatal(err)
 			}

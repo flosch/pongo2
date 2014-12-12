@@ -1,7 +1,6 @@
 package pongo2
 
 import (
-	"bytes"
 	"fmt"
 )
 
@@ -22,7 +21,7 @@ func (node *tagBlockNode) getBlockWrapperByName(tpl *Template) *NodeWrapper {
 	return t
 }
 
-func (node *tagBlockNode) Execute(ctx *ExecutionContext, buffer *bytes.Buffer) *Error {
+func (node *tagBlockNode) Execute(ctx *ExecutionContext, writer TemplateWriter) *Error {
 	tpl := ctx.template
 	if tpl == nil {
 		panic("internal error: tpl == nil")
@@ -33,7 +32,7 @@ func (node *tagBlockNode) Execute(ctx *ExecutionContext, buffer *bytes.Buffer) *
 		// fmt.Printf("could not find: %s\n", node.name)
 		return ctx.Error("internal error: block_wrapper == nil in tagBlockNode.Execute()", nil)
 	}
-	err := block_wrapper.Execute(ctx, buffer)
+	err := block_wrapper.Execute(ctx, writer)
 	if err != nil {
 		return err
 	}

@@ -1,15 +1,11 @@
 package pongo2
 
-import (
-	"bytes"
-)
-
 type tagFirstofNode struct {
 	position *Token
 	args     []IEvaluator
 }
 
-func (node *tagFirstofNode) Execute(ctx *ExecutionContext, buffer *bytes.Buffer) *Error {
+func (node *tagFirstofNode) Execute(ctx *ExecutionContext, writer TemplateWriter) *Error {
 	for _, arg := range node.args {
 		val, err := arg.Evaluate(ctx)
 		if err != nil {
@@ -24,7 +20,7 @@ func (node *tagFirstofNode) Execute(ctx *ExecutionContext, buffer *bytes.Buffer)
 				}
 			}
 
-			buffer.WriteString(val.String())
+			writer.WriteString(val.String())
 			return nil
 		}
 	}

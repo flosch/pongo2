@@ -1,9 +1,5 @@
 package pongo2
 
-import (
-	"bytes"
-)
-
 type tagCycleValue struct {
 	node  *tagCycleNode
 	value *Value
@@ -21,7 +17,7 @@ func (cv *tagCycleValue) String() string {
 	return cv.value.String()
 }
 
-func (node *tagCycleNode) Execute(ctx *ExecutionContext, buffer *bytes.Buffer) *Error {
+func (node *tagCycleNode) Execute(ctx *ExecutionContext, writer TemplateWriter) *Error {
 	item := node.args[node.idx%len(node.args)]
 	node.idx++
 
@@ -46,7 +42,7 @@ func (node *tagCycleNode) Execute(ctx *ExecutionContext, buffer *bytes.Buffer) *
 		t.value = val
 
 		if !t.node.silent {
-			buffer.WriteString(val.String())
+			writer.WriteString(val.String())
 		}
 	} else {
 		// Regular call
@@ -60,7 +56,7 @@ func (node *tagCycleNode) Execute(ctx *ExecutionContext, buffer *bytes.Buffer) *
 			ctx.Private[node.as_name] = cycle_value
 		}
 		if !node.silent {
-			buffer.WriteString(val.String())
+			writer.WriteString(val.String())
 		}
 	}
 
