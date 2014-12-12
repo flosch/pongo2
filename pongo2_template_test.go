@@ -412,7 +412,7 @@ func BenchmarkCache(b *testing.B) {
 		if err != nil {
 			b.Fatal(err)
 		}
-		err = tpl.ExecuteWriter(tplContext, ioutil.Discard)
+		err = tpl.ExecuteWriterUnbuffered(tplContext, ioutil.Discard)
 		if err != nil {
 			b.Fatal(err)
 		}
@@ -427,7 +427,7 @@ func BenchmarkCacheDebugOn(b *testing.B) {
 		if err != nil {
 			b.Fatal(err)
 		}
-		err = tpl.ExecuteWriter(tplContext, ioutil.Discard)
+		err = tpl.ExecuteWriterUnbuffered(tplContext, ioutil.Discard)
 		if err != nil {
 			b.Fatal(err)
 		}
@@ -441,7 +441,7 @@ func BenchmarkExecuteComplexWithSandboxActive(b *testing.B) {
 	}
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		err = tpl.ExecuteWriter(tplContext, ioutil.Discard)
+		err = tpl.ExecuteWriterUnbuffered(tplContext, ioutil.Discard)
 		if err != nil {
 			b.Fatal(err)
 		}
@@ -461,7 +461,7 @@ func BenchmarkCompileAndExecuteComplexWithSandboxActive(b *testing.B) {
 			b.Fatal(err)
 		}
 
-		err = tpl.ExecuteWriter(tplContext, ioutil.Discard)
+		err = tpl.ExecuteWriterUnbuffered(tplContext, ioutil.Discard)
 		if err != nil {
 			b.Fatal(err)
 		}
@@ -476,7 +476,7 @@ func BenchmarkParallelExecuteComplexWithSandboxActive(b *testing.B) {
 	b.ResetTimer()
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
-			err := tpl.ExecuteWriter(tplContext, ioutil.Discard)
+			err := tpl.ExecuteWriterUnbuffered(tplContext, ioutil.Discard)
 			if err != nil {
 				b.Fatal(err)
 			}
@@ -492,7 +492,7 @@ func BenchmarkExecuteComplexWithoutSandbox(b *testing.B) {
 	}
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		err = tpl.ExecuteWriter(tplContext, ioutil.Discard)
+		err = tpl.ExecuteWriterUnbuffered(tplContext, ioutil.Discard)
 		if err != nil {
 			b.Fatal(err)
 		}
@@ -515,7 +515,7 @@ func BenchmarkCompileAndExecuteComplexWithoutSandbox(b *testing.B) {
 			b.Fatal(err)
 		}
 
-		err = tpl.ExecuteWriter(tplContext, ioutil.Discard)
+		err = tpl.ExecuteWriterUnbuffered(tplContext, ioutil.Discard)
 		if err != nil {
 			b.Fatal(err)
 		}
@@ -531,7 +531,7 @@ func BenchmarkParallelExecuteComplexWithoutSandbox(b *testing.B) {
 	b.ResetTimer()
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
-			err := tpl.ExecuteWriter(tplContext, ioutil.Discard)
+			err := tpl.ExecuteWriterUnbuffered(tplContext, ioutil.Discard)
 			if err != nil {
 				b.Fatal(err)
 			}
