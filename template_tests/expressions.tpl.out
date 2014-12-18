@@ -46,6 +46,13 @@ True
 False
 False
 True
+True
+False
+True
+True
+False
+True
+False
 
 issue #48 (associativity for infix operators)
 33

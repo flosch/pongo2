@@ -46,6 +46,13 @@ in/not in
 {{ 7 in simple.intmap }}
 {{ !(5 in simple.intmap) }}
 {{ not(7 in simple.intmap) }}
+{{ 1 in simple.multiple_item_list }}
+{{ 4 in simple.multiple_item_list }}
+{{ !(4 in simple.multiple_item_list) }}
+{{ "Hello" in simple.misc_list }}
+{{ "Hello2" in simple.misc_list }}
+{{ 99 in simple.misc_list }}
+{{ False in simple.misc_list }}
 
 issue #48 (associativity for infix operators)
 {{ 34/3*3 }}
