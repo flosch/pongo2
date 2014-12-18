@@ -328,7 +328,14 @@ func (v *Value) Contains(other *Value) bool {
 	case reflect.String:
 		return strings.Contains(v.getResolvedValue().String(), other.String())
 
-	// TODO: reflect.Array, reflect.Slice
+	case reflect.Slice, reflect.Array:
+		for i := 0; i < v.getResolvedValue().Len(); i++ {
+			item := v.getResolvedValue().Index(i)
+			if other.Interface() == item.Interface() {
+				return true
+			}
+		}
+		return false
 
 	default:
 		logf("Value.Contains() not available for type: %s\n", v.getResolvedValue().Kind().String())
