@@ -51,6 +51,7 @@ func newTemplateString(set *TemplateSet, tpl string) (*Template, error) {
 	return newTemplate(set, "<string>", true, tpl)
 }
 
+// TODO: Change newTemplate from string to []byte, don't create an extra string here
 func newTemplate(set *TemplateSet, name string, is_tpl_string bool, tpl string) (*Template, error) {
 	// Create the template
 	t := &Template{

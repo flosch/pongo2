@@ -42,7 +42,7 @@ func (node *tagIncludeNode) Execute(ctx *ExecutionContext, writer TemplateWriter
 		}
 
 		// Get include-filename
-		included_filename := ctx.template.set.resolveFilename(ctx.template, filename.String())
+		included_filename := ctx.template.set.loader.AbsPath(ctx.template, filename.String())
 
 		included_tpl, err2 := ctx.template.set.FromFile(included_filename)
 		if err2 != nil {
@@ -85,7 +85,7 @@ func tagIncludeParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, *
 		if_exists := arguments.Match(TokenIdentifier, "if_exists") != nil
 
 		// Get include-filename
-		included_filename := doc.template.set.resolveFilename(doc.template, filename_token.Val)
+		included_filename := doc.template.set.loader.AbsPath(doc.template, filename_token.Val)
 
 		// Parse the parent
 		include_node.filename = included_filename

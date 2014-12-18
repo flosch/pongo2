@@ -66,7 +66,7 @@ func (e *Error) RawLine() (line string, available bool) {
 
 	filename := e.Filename
 	if e.Template != nil {
-		filename = e.Template.set.resolveFilename(e.Template, e.Filename)
+		filename = e.Template.set.loader.AbsPath(e.Template, e.Filename)
 	}
 	file, err := os.Open(filename)
 	if err != nil {
