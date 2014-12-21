@@ -105,7 +105,7 @@ If you're using the `master`-branch of pongo2, you might be interested in this s
 ## How you can help
 
  * Write [filters](https://github.com/flosch/pongo2/blob/master/filters_builtin.go#L3) / [tags](https://github.com/flosch/pongo2/blob/master/tags.go#L4) (see [tutorial](https://www.florian-schlachter.de/post/pongo2/)) by forking pongo2 and sending pull requests
- * Write/improve code tests (use the following command to see what tests are missing: `go test -v -cover -covermode=count -coverprofile=cover.out && go tool cover -html=cover.out`)
+ * Write/improve code tests (use the following command to see what tests are missing: `go test -v -cover -covermode=count -coverprofile=cover.out && go tool cover -html=cover.out` or have a look on [gocover.io/github.com/flosch/pongo2](http://gocover.io/github.com/flosch/pongo2))
  * Write/improve template tests (see the `template_tests/` directory)
  * Write middleware, libraries and websites using pongo2. :-)
 
