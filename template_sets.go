@@ -51,17 +51,39 @@ type TemplateSet struct {
 	// Template cache (for FromCache())
 	templateCache      map[string]*Template
 	templateCacheMutex sync.Mutex
+
+	// Locates and returns a templates
+	TemplateFecher TemplateFetcher
+}
+
+type TemplateFetcher interface {
+	FromFile(filename string) ([]byte, error) // Gets the file contents
+}
+
+type DefaultTemplateFetcher struct{}
+
+func (f *DefaultTemplateFetcher) FromFile(filename string) ([]byte, error) {
+	buf, err := ioutil.ReadFile(filename)
+	if err != nil {
+		return nil, &Error{
+			Filename: filename,
+			Sender:   "fromfile",
+			ErrorMsg: err.Error(),
+		}
+	}
+	return buf, err
 }
 
 // Create your own template sets to separate different kind of templates (e. g. web from mail templates) with
 // different globals or other configurations (like base directories).
 func NewSet(name string) *TemplateSet {
 	return &TemplateSet{
-		name:          name,
-		Globals:       make(Context),
-		bannedTags:    make(map[string]bool),
-		bannedFilters: make(map[string]bool),
-		templateCache: make(map[string]*Template),
+		name:           name,
+		Globals:        make(Context),
+		bannedTags:     make(map[string]bool),
+		bannedFilters:  make(map[string]bool),
+		templateCache:  make(map[string]*Template),
+		TemplateFecher: new(DefaultTemplateFetcher),
 	}
 }
 
@@ -139,20 +161,18 @@ func (set *TemplateSet) FromCache(filename string) (*Template, error) {
 		return set.FromFile(filename)
 	} else {
 		// Cache the template
-		cleaned_filename := set.resolveFilename(nil, filename)
-
 		set.templateCacheMutex.Lock()
 		defer set.templateCacheMutex.Unlock()
 
-		tpl, has := set.templateCache[cleaned_filename]
+		tpl, has := set.templateCache[filename]
 
 		// Cache miss
 		if !has {
-			tpl, err := set.FromFile(cleaned_filename)
+			tpl, err := set.FromFile(filename)
 			if err != nil {
 				return nil, err
 			}
-			set.templateCache[cleaned_filename] = tpl
+			set.templateCache[filename] = tpl
 			return tpl, nil
 		}
 
@@ -174,14 +194,11 @@ func (set *TemplateSet) FromString(tpl string) (*Template, error) {
 // if given.
 func (set *TemplateSet) FromFile(filename string) (*Template, error) {
 	set.firstTemplateCreated = true
+	cleanupFilename := set.resolveFilename(nil, filename)
 
-	buf, err := ioutil.ReadFile(set.resolveFilename(nil, filename))
+	buf, err := set.TemplateFecher.FromFile(cleanupFilename)
 	if err != nil {
-		return nil, &Error{
-			Filename: filename,
-			Sender:   "fromfile",
-			ErrorMsg: err.Error(),
-		}
+		return nil, err
 	}
 	return newTemplate(set, filename, false, string(buf))
 }
