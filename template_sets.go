@@ -53,11 +53,12 @@ type TemplateSet struct {
 	templateCacheMutex sync.Mutex
 
 	// Locates and returns a templates
-	TemplateFecher TemplateFetcher
+	TemplateFetcher TemplateFetcher
 }
 
 type TemplateFetcher interface {
-	FromFile(filename string) ([]byte, error) // Gets the file contents
+	FromFile(filename string) ([]byte, error)                                                // Gets the file contents
+	ResolveFilename(set *TemplateSet, tpl *Template, filename string) (resolved_path string) // Resolves paths
 }
 
 type DefaultTemplateFetcher struct{}
@@ -74,16 +75,68 @@ func (f *DefaultTemplateFetcher) FromFile(filename string) ([]byte, error) {
 	return buf, err
 }
 
+// Resolves a filename relative to the base directory. Absolute paths are allowed.
+// If sandbox restrictions are given (SandboxDirectories), they will be respected and checked.
+// On sandbox restriction violation, resolveFilename() panics.
+func (f *DefaultTemplateFetcher) ResolveFilename(set *TemplateSet, tpl *Template, filename string) (resolved_path string) {
+	if len(set.SandboxDirectories) > 0 {
+		defer func() {
+			// Remove any ".." or other crap
+			resolved_path = filepath.Clean(resolved_path)
+
+			// Make the path absolute
+			abs_path, err := filepath.Abs(resolved_path)
+			if err != nil {
+				panic(err)
+			}
+			resolved_path = abs_path
+
+			// Check against the sandbox directories (once one pattern matches, we're done and can allow it)
+			for _, pattern := range set.SandboxDirectories {
+				matched, err := filepath.Match(pattern, resolved_path)
+				if err != nil {
+					panic("Wrong sandbox directory match pattern (see http://golang.org/pkg/path/filepath/#Match).")
+				}
+				if matched {
+					// OK!
+					return
+				}
+			}
+
+			// No pattern matched, we have to log+deny the request
+			logf("Access attempt outside of the sandbox directories (blocked): '%s'", resolved_path)
+			resolved_path = ""
+		}()
+	}
+
+	if filepath.IsAbs(filename) {
+		return filename
+	}
+
+	if set.BaseDirectory() == "" {
+		if tpl != nil {
+			if tpl.is_tpl_string {
+				return filename
+			}
+			base := filepath.Dir(tpl.name)
+			return filepath.Join(base, filename)
+		}
+		return filename
+	} else {
+		return filepath.Join(set.BaseDirectory(), filename)
+	}
+}
+
 // Create your own template sets to separate different kind of templates (e. g. web from mail templates) with
 // different globals or other configurations (like base directories).
 func NewSet(name string) *TemplateSet {
 	return &TemplateSet{
-		name:           name,
-		Globals:        make(Context),
-		bannedTags:     make(map[string]bool),
-		bannedFilters:  make(map[string]bool),
-		templateCache:  make(map[string]*Template),
-		TemplateFecher: new(DefaultTemplateFetcher),
+		name:            name,
+		Globals:         make(Context),
+		bannedTags:      make(map[string]bool),
+		bannedFilters:   make(map[string]bool),
+		templateCache:   make(map[string]*Template),
+		TemplateFetcher: new(DefaultTemplateFetcher),
 	}
 }
 
@@ -196,7 +249,7 @@ func (set *TemplateSet) FromFile(filename string) (*Template, error) {
 	set.firstTemplateCreated = true
 	cleanupFilename := set.resolveFilename(nil, filename)
 
-	buf, err := set.TemplateFecher.FromFile(cleanupFilename)
+	buf, err := set.TemplateFetcher.FromFile(cleanupFilename)
 	if err != nil {
 		return nil, err
 	}
@@ -235,56 +288,9 @@ func (set *TemplateSet) logf(format string, args ...interface{}) {
 	}
 }
 
-// Resolves a filename relative to the base directory. Absolute paths are allowed.
-// If sandbox restrictions are given (SandboxDirectories), they will be respected and checked.
-// On sandbox restriction violation, resolveFilename() panics.
+// Delegate to TemplateFetcher
 func (set *TemplateSet) resolveFilename(tpl *Template, filename string) (resolved_path string) {
-	if len(set.SandboxDirectories) > 0 {
-		defer func() {
-			// Remove any ".." or other crap
-			resolved_path = filepath.Clean(resolved_path)
-
-			// Make the path absolute
-			abs_path, err := filepath.Abs(resolved_path)
-			if err != nil {
-				panic(err)
-			}
-			resolved_path = abs_path
-
-			// Check against the sandbox directories (once one pattern matches, we're done and can allow it)
-			for _, pattern := range set.SandboxDirectories {
-				matched, err := filepath.Match(pattern, resolved_path)
-				if err != nil {
-					panic("Wrong sandbox directory match pattern (see http://golang.org/pkg/path/filepath/#Match).")
-				}
-				if matched {
-					// OK!
-					return
-				}
-			}
-
-			// No pattern matched, we have to log+deny the request
-			set.logf("Access attempt outside of the sandbox directories (blocked): '%s'", resolved_path)
-			resolved_path = ""
-		}()
-	}
-
-	if filepath.IsAbs(filename) {
-		return filename
-	}
-
-	if set.baseDirectory == "" {
-		if tpl != nil {
-			if tpl.is_tpl_string {
-				return filename
-			}
-			base := filepath.Dir(tpl.name)
-			return filepath.Join(base, filename)
-		}
-		return filename
-	} else {
-		return filepath.Join(set.baseDirectory, filename)
-	}
+	return set.TemplateFetcher.ResolveFilename(set, tpl, filename)
 }
 
 // Logging function (internally used)
