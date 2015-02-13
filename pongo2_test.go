@@ -48,19 +48,19 @@ func (s *TestSuite) TestMisc(c *C) {
 	c.Check(parseTemplateFn("", Context{"'illegal": nil}), PanicMatches, ".*not a valid identifier.*")
 
 	// Registers
-	c.Check(func() { RegisterFilter("escape", nil) }, PanicMatches, ".*is already registered.*")
-	c.Check(func() { RegisterTag("for", nil) }, PanicMatches, ".*is already registered.*")
-
-	// ApplyFilter
-	v, err := ApplyFilter("title", AsValue("this is a title"), nil)
-	if err != nil {
-		c.Fatal(err)
-	}
-	c.Check(v.String(), Equals, "This Is A Title")
-	c.Check(func() {
-		_, err := ApplyFilter("doesnotexist", nil, nil)
-		if err != nil {
-			panic(err)
-		}
-	}, PanicMatches, `\[Error \(where: applyfilter\)\] Filter with name 'doesnotexist' not found.`)
+    // c.Check(func() { RegisterFilter("escape", nil) }, PanicMatches, ".*is already registered.*")
+    // c.Check(func() { RegisterTag("for", nil) }, PanicMatches, ".*is already registered.*")
+    //
+    // // ApplyFilter
+    // v, err := ApplyFilter("title", AsValue("this is a title"), nil)
+    // if err != nil {
+    //     c.Fatal(err)
+    // }
+    // c.Check(v.String(), Equals, "This Is A Title")
+    // c.Check(func() {
+    //     _, err := ApplyFilter("doesnotexist", nil, nil)
+    //     if err != nil {
+    //         panic(err)
+    //     }
+    // }, PanicMatches, `\[Error \(where: applyfilter\)\] Filter with name 'doesnotexist' not found.`)
 }

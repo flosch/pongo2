@@ -59,6 +59,7 @@ type ExecutionContext struct {
 	Public     Context
 	Private    Context
 	Shared     Context
+	Filters    PongoFilters
 }
 
 var pongo2MetaContext = Context{
@@ -71,11 +72,22 @@ func newExecutionContext(tpl *Template, ctx Context) *ExecutionContext {
 	// Make the pongo2-related funcs/vars available to the context
 	privateCtx["pongo2"] = pongo2MetaContext
 
+	builtInFilters := NewPongoBuiltInFilters()
+
+	// Get filters from context
+    var contextFilters map[string]FilterFunction
+	contextFilters, ok := ctx["_filters"].(map[string]FilterFunction)
+	if ok {
+		for name, filter := range contextFilters {
+			builtInFilters.SetFilter(name, filter)
+		}
+	}
 	return &ExecutionContext{
 		template: tpl,
 
 		Public:     ctx,
 		Private:    privateCtx,
+		Filters:    builtInFilters,
 		Autoescape: true,
 	}
 }
@@ -89,11 +101,20 @@ func NewChildExecutionContext(parent *ExecutionContext) *ExecutionContext {
 		Autoescape: parent.Autoescape,
 	}
 	newctx.Shared = parent.Shared
+	newctx.Filters = parent.Filters
 
 	// Copy all existing private items
 	newctx.Private.Update(parent.Private)
 
 	return newctx
+}
+
+func (ctx *ExecutionContext) GetFilterFunc(filterName string) (FilterFunction, *Error) {
+	filterFunc, err := ctx.Filters.GetFilter(filterName)
+	if err != nil {
+		return nil, ctx.Error(fmt.Sprintf("Filter '%s' does not exist.", filterName), nil)
+	}
+	return filterFunc, nil
 }
 
 func (ctx *ExecutionContext) Error(msg string, token *Token) *Error {

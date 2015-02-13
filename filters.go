@@ -6,10 +6,18 @@ import (
 
 type FilterFunction func(in *Value, param *Value) (out *Value, err *Error)
 
-var filters map[string]FilterFunction
+// var filters map[string]FilterFunction
 
-func init() {
-	filters = make(map[string]FilterFunction)
+type PongoFilters struct {
+	Filters map[string]FilterFunction
+}
+
+// func init() {
+//     filters =
+// }
+
+func NewPongoFilters() PongoFilters {
+	return PongoFilters{Filters: make(map[string]FilterFunction)}
 }
 
 // Registers a new filter. If there's already a filter with the same
@@ -19,27 +27,43 @@ func init() {
 //
 // See http://www.florian-schlachter.de/post/pongo2/ for more about
 // writing filters and tags.
-func RegisterFilter(name string, fn FilterFunction) {
-	_, existing := filters[name]
+func (f *PongoFilters) RegisterFilter(name string, fn FilterFunction) {
+	_, existing := f.Filters[name]
 	if existing {
 		panic(fmt.Sprintf("Filter with name '%s' is already registered.", name))
 	}
-	filters[name] = fn
+	f.Filters[name] = fn
+}
+
+func (f *PongoFilters) SetFilter(name string, fn FilterFunction) {
+	f.Filters[name] = fn
 }
 
 // Replaces an already registered filter with a new implementation. Use this
 // function with caution since it allows you to change existing filter behaviour.
-func ReplaceFilter(name string, fn FilterFunction) {
-	_, existing := filters[name]
+func (f *PongoFilters) ReplaceFilter(name string, fn FilterFunction) {
+	_, existing := f.Filters[name]
 	if !existing {
 		panic(fmt.Sprintf("Filter with name '%s' does not exist (therefore cannot be overridden).", name))
 	}
-	filters[name] = fn
+	f.Filters[name] = fn
+}
+
+func (f *PongoFilters) GetFilter(name string) (FilterFunction, *Error) {
+	filter, existing := f.Filters[name]
+	if !existing {
+		return nil, &Error{
+			Sender:   "getfilter",
+			ErrorMsg: fmt.Sprintf("Filter with name '%s' not found.", name),
+		}
+	}
+
+	return filter, nil
 }
 
 // Like ApplyFilter, but panics on an error
-func MustApplyFilter(name string, value *Value, param *Value) *Value {
-	val, err := ApplyFilter(name, value, param)
+func (f *PongoFilters) MustApplyFilter(name string, value *Value, param *Value) *Value {
+	val, err := f.ApplyFilter(name, value, param)
 	if err != nil {
 		panic(err)
 	}
@@ -47,8 +71,8 @@ func MustApplyFilter(name string, value *Value, param *Value) *Value {
 }
 
 // Applies a filter to a given value using the given parameters. Returns a *pongo2.Value or an error.
-func ApplyFilter(name string, value *Value, param *Value) (*Value, *Error) {
-	fn, existing := filters[name]
+func (f *PongoFilters) ApplyFilter(name string, value *Value, param *Value) (*Value, *Error) {
+	fn, existing := f.Filters[name]
 	if !existing {
 		return nil, &Error{
 			Sender:   "applyfilter",
@@ -70,7 +94,7 @@ type filterCall struct {
 	name      string
 	parameter IEvaluator
 
-	filterFunc FilterFunction
+	filterFunc string
 }
 
 func (fc *filterCall) Execute(v *Value, ctx *ExecutionContext) (*Value, *Error) {
@@ -85,8 +109,13 @@ func (fc *filterCall) Execute(v *Value, ctx *ExecutionContext) (*Value, *Error) 
 	} else {
 		param = AsValue(nil)
 	}
-
-	filtered_value, err := fc.filterFunc(v, param)
+	// Get filter func
+	filterFunc, err := ctx.GetFilterFunc(fc.filterFunc)
+	if err != nil {
+		return nil, err.updateFromTokenIfNeeded(ctx.template, fc.token)
+	}
+	// Apply filter func
+	filtered_value, err := filterFunc(v, param)
 	if err != nil {
 		return nil, err.updateFromTokenIfNeeded(ctx.template, fc.token)
 	}
@@ -108,12 +137,12 @@ func (p *Parser) parseFilter() (*filterCall, *Error) {
 	}
 
 	// Get the appropriate filter function and bind it
-	filterFn, exists := filters[ident_token.Val]
-	if !exists {
-		return nil, p.Error(fmt.Sprintf("Filter '%s' does not exist.", ident_token.Val), ident_token)
-	}
+	// filterFn, exists := filters[ident_token.Val]
+	// if !exists {
+	//     return nil, p.Error(fmt.Sprintf("Filter '%s' does not exist.", ident_token.Val), ident_token)
+	// }
 
-	filter.filterFunc = filterFn
+	filter.filterFunc = ident_token.Val
 
 	// Check for filter-argument (2 tokens needed: ':' ARG)
 	if p.Match(TokenSymbol, ":") != nil {

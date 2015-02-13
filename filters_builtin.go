@@ -37,60 +37,61 @@ import (
 	"unicode/utf8"
 )
 
-func init() {
+func NewPongoBuiltInFilters() PongoFilters {
 	rand.Seed(time.Now().Unix())
+	f := NewPongoFilters()
 
-	RegisterFilter("escape", filterEscape)
-	RegisterFilter("safe", filterSafe)
-	RegisterFilter("escapejs", filterEscapejs)
+	f.RegisterFilter("escape", filterEscape)
+	f.RegisterFilter("safe", filterSafe)
+	f.RegisterFilter("escapejs", filterEscapejs)
+	f.RegisterFilter("add", filterAdd)
+	f.RegisterFilter("addslashes", filterAddslashes)
+	f.RegisterFilter("capfirst", filterCapfirst)
+	f.RegisterFilter("center", filterCenter)
+	f.RegisterFilter("cut", filterCut)
+	f.RegisterFilter("date", filterDate)
+	f.RegisterFilter("default", filterDefault)
+	f.RegisterFilter("default_if_none", filterDefaultIfNone)
+	f.RegisterFilter("divisibleby", filterDivisibleby)
+	f.RegisterFilter("first", filterFirst)
+	f.RegisterFilter("floatformat", filterFloatformat)
+	f.RegisterFilter("get_digit", filterGetdigit)
+	f.RegisterFilter("iriencode", filterIriencode)
+	f.RegisterFilter("join", filterJoin)
+	f.RegisterFilter("last", filterLast)
+	f.RegisterFilter("length", filterLength)
+	f.RegisterFilter("length_is", filterLengthis)
+	f.RegisterFilter("linebreaks", filterLinebreaks)
+	f.RegisterFilter("linebreaksbr", filterLinebreaksbr)
+	f.RegisterFilter("linenumbers", filterLinenumbers)
+	f.RegisterFilter("ljust", filterLjust)
+	f.RegisterFilter("lower", filterLower)
+	f.RegisterFilter("make_list", filterMakelist)
+	f.RegisterFilter("phone2numeric", filterPhone2numeric)
+	f.RegisterFilter("pluralize", filterPluralize)
+	f.RegisterFilter("random", filterRandom)
+	f.RegisterFilter("removetags", filterRemovetags)
+	f.RegisterFilter("rjust", filterRjust)
+	f.RegisterFilter("slice", filterSlice)
+	f.RegisterFilter("stringformat", filterStringformat)
+	f.RegisterFilter("striptags", filterStriptags)
+	f.RegisterFilter("time", filterDate) // time uses filterDate (same golang-format)
+	f.RegisterFilter("title", filterTitle)
+	f.RegisterFilter("truncatechars", filterTruncatechars)
+	f.RegisterFilter("truncatechars_html", filterTruncatecharsHtml)
+	f.RegisterFilter("truncatewords", filterTruncatewords)
+	f.RegisterFilter("truncatewords_html", filterTruncatewordsHtml)
+	f.RegisterFilter("upper", filterUpper)
+	f.RegisterFilter("urlencode", filterUrlencode)
+	f.RegisterFilter("urlize", filterUrlize)
+	f.RegisterFilter("urlizetrunc", filterUrlizetrunc)
+	f.RegisterFilter("wordcount", filterWordcount)
+	f.RegisterFilter("wordwrap", filterWordwrap)
+	f.RegisterFilter("yesno", filterYesno)
 
-	RegisterFilter("add", filterAdd)
-	RegisterFilter("addslashes", filterAddslashes)
-	RegisterFilter("capfirst", filterCapfirst)
-	RegisterFilter("center", filterCenter)
-	RegisterFilter("cut", filterCut)
-	RegisterFilter("date", filterDate)
-	RegisterFilter("default", filterDefault)
-	RegisterFilter("default_if_none", filterDefaultIfNone)
-	RegisterFilter("divisibleby", filterDivisibleby)
-	RegisterFilter("first", filterFirst)
-	RegisterFilter("floatformat", filterFloatformat)
-	RegisterFilter("get_digit", filterGetdigit)
-	RegisterFilter("iriencode", filterIriencode)
-	RegisterFilter("join", filterJoin)
-	RegisterFilter("last", filterLast)
-	RegisterFilter("length", filterLength)
-	RegisterFilter("length_is", filterLengthis)
-	RegisterFilter("linebreaks", filterLinebreaks)
-	RegisterFilter("linebreaksbr", filterLinebreaksbr)
-	RegisterFilter("linenumbers", filterLinenumbers)
-	RegisterFilter("ljust", filterLjust)
-	RegisterFilter("lower", filterLower)
-	RegisterFilter("make_list", filterMakelist)
-	RegisterFilter("phone2numeric", filterPhone2numeric)
-	RegisterFilter("pluralize", filterPluralize)
-	RegisterFilter("random", filterRandom)
-	RegisterFilter("removetags", filterRemovetags)
-	RegisterFilter("rjust", filterRjust)
-	RegisterFilter("slice", filterSlice)
-	RegisterFilter("stringformat", filterStringformat)
-	RegisterFilter("striptags", filterStriptags)
-	RegisterFilter("time", filterDate) // time uses filterDate (same golang-format)
-	RegisterFilter("title", filterTitle)
-	RegisterFilter("truncatechars", filterTruncatechars)
-	RegisterFilter("truncatechars_html", filterTruncatecharsHtml)
-	RegisterFilter("truncatewords", filterTruncatewords)
-	RegisterFilter("truncatewords_html", filterTruncatewordsHtml)
-	RegisterFilter("upper", filterUpper)
-	RegisterFilter("urlencode", filterUrlencode)
-	RegisterFilter("urlize", filterUrlize)
-	RegisterFilter("urlizetrunc", filterUrlizetrunc)
-	RegisterFilter("wordcount", filterWordcount)
-	RegisterFilter("wordwrap", filterWordwrap)
-	RegisterFilter("yesno", filterYesno)
-
-	RegisterFilter("float", filterFloat)     // pongo-specific
-	RegisterFilter("integer", filterInteger) // pongo-specific
+	f.RegisterFilter("float", filterFloat)     // pongo-specific
+	f.RegisterFilter("integer", filterInteger) // pongo-specific
+	return f
 }
 
 func filterTruncatecharsHelper(s string, newLen int) string {
@@ -654,7 +655,8 @@ func filterUrlizeHelper(input string, autoescape bool, trunc int) string {
 
 		raw_url = strings.TrimSpace(raw_url)
 
-		t, err := ApplyFilter("iriencode", AsValue(raw_url), nil)
+        // t, err := ApplyFilter("iriencode", AsValue(raw_url), nil)
+		t, err := filterIriencode(AsValue(raw_url), nil)
 		if err != nil {
 			panic(err)
 		}
@@ -671,7 +673,8 @@ func filterUrlizeHelper(input string, autoescape bool, trunc int) string {
 		}
 
 		if autoescape {
-			t, err := ApplyFilter("escape", AsValue(title), nil)
+			t, err := filterEscape(AsValue(title), nil)
+            
 			if err != nil {
 				panic(err)
 			}
