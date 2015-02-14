@@ -16,7 +16,7 @@ type TestSuite struct {
 
 var (
 	_           = Suite(&TestSuite{})
-	test_suite2 = NewSet("test suite 2", nil)
+	test_suite2 = NewSet("test suite 2")
 )
 
 func parseTemplate(s string, c Context) string {
