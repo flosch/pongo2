@@ -105,7 +105,7 @@ If you're using the `master`-branch of pongo2, you might be interested in this s
 ## How you can help
 
  * Write [filters](https://github.com/flosch/pongo2/blob/master/filters_builtin.go#L3) / [tags](https://github.com/flosch/pongo2/blob/master/tags.go#L4) (see [tutorial](https://www.florian-schlachter.de/post/pongo2/)) by forking pongo2 and sending pull requests
- * Write/improve code tests (use the following command to see what tests are missing: `go test -v -cover -covermode=count -coverprofile=cover.out && go tool cover -html=cover.out`)
+ * Write/improve code tests (use the following command to see what tests are missing: `go test -v -cover -covermode=count -coverprofile=cover.out && go tool cover -html=cover.out` or have a look on [gocover.io/github.com/flosch/pongo2](http://gocover.io/github.com/flosch/pongo2))
  * Write/improve template tests (see the `template_tests/` directory)
  * Write middleware, libraries and websites using pongo2. :-)
 
@@ -157,6 +157,7 @@ You can access pongo2's API documentation on [godoc](https://godoc.org/github.co
  * [macaron-pongo2](https://github.com/macaron-contrib/pongo2) - pongo2 support for [Macaron](https://github.com/Unknwon/macaron), a modular web framework.
  * [ginpongo2](https://github.com/ngerakines/ginpongo2) - middleware for [gin](github.com/gin-gonic/gin) to use pongo2 templates
  * [pongo2-trans](https://github.com/fromYukki/pongo2trans) - `trans`-tag implementation for internationalization
+ * [tpongo2](https://github.com/tango-contrib/tpongo2) - pongo2 support for [Tango](https://github.com/lunny/tango), a micro-kernel & pluggable web framework.
 
 Please add your project to this list and send me a pull request when you've developed something nice for pongo2.
 
