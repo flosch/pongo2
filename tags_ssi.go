@@ -36,17 +36,14 @@ func tagSSIParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, *Erro
 
 		if arguments.Match(TokenIdentifier, "parsed") != nil {
 			// parsed
-			temporary_tpl, err := doc.template.set.FromFile(doc.template.set.loader.AbsPath(doc.template, file_token.Val))
+			temporary_tpl, err := doc.template.set.FromFile(doc.template.set.resolveFilename(doc.template, file_token.Val))
 			if err != nil {
 				return nil, err.(*Error).updateFromTokenIfNeeded(doc.template, file_token)
 			}
 			ssi_node.template = temporary_tpl
 		} else {
 			// plaintext
-			rd, err := doc.template.set.loader.OpenFile(doc.template.set.loader.AbsPath(doc.template, file_token.Val))
-			defer rd.Close()
-
-			buf, err := ioutil.ReadAll(rd)
+			buf, err := ioutil.ReadFile(doc.template.set.resolveFilename(doc.template, file_token.Val))
 			if err != nil {
 				return nil, (&Error{
 					Sender:   "tag:ssi",

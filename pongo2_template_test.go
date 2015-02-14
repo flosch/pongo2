@@ -84,31 +84,27 @@ func init() {
 	DefaultSet.BanFilter("banned_filter")
 	DefaultSet.BanTag("banned_tag")
 
-	var sbdirs []string
-
 	// Allow different kind of levels inside template_tests/
 	abs_path, err := filepath.Abs("./template_tests/*")
 	if err != nil {
 		panic(err)
 	}
-	sbdirs = append(sbdirs, abs_path)
+	DefaultSet.SandboxDirectories = append(DefaultSet.SandboxDirectories, abs_path)
 
 	abs_path, err = filepath.Abs("./template_tests/*/*")
 	if err != nil {
 		panic(err)
 	}
-	sbdirs = append(sbdirs, abs_path)
+	DefaultSet.SandboxDirectories = append(DefaultSet.SandboxDirectories, abs_path)
 
 	abs_path, err = filepath.Abs("./template_tests/*/*/*")
 	if err != nil {
 		panic(err)
 	}
-	sbdirs = append(sbdirs, abs_path)
+	DefaultSet.SandboxDirectories = append(DefaultSet.SandboxDirectories, abs_path)
 
 	// Allow pongo2 temp files
-	sbdirs = append(sbdirs, "/tmp/pongo2_*")
-
-	DefaultSet.loader = NewFilesystemLoader("", sbdirs)
+	DefaultSet.SandboxDirectories = append(DefaultSet.SandboxDirectories, "/tmp/pongo2_*")
 
 	f, err := ioutil.TempFile("/tmp/", "pongo2_")
 	if err != nil {
@@ -382,8 +378,11 @@ func TestCompilationErrors(t *testing.T) {
 func TestBaseDirectory(t *testing.T) {
 	mustStr := "Hello from template_tests/base_dir_test/"
 
-	s := NewSet("test set with base directory", NewFilesystemLoader("template_tests/base_dir_test/", nil))
+	s := NewSet("test set with base directory")
 	s.Globals["base_directory"] = "template_tests/base_dir_test/"
+	if err := s.SetBaseDirectory(s.Globals["base_directory"].(string)); err != nil {
+		t.Fatal(err)
+	}
 
 	matches, err := filepath.Glob("./template_tests/base_dir_test/subdir/*")
 	if err != nil {
@@ -407,7 +406,7 @@ func TestBaseDirectory(t *testing.T) {
 }
 
 func BenchmarkCache(b *testing.B) {
-	cache_set := NewSet("cache set", nil)
+	cache_set := NewSet("cache set")
 	for i := 0; i < b.N; i++ {
 		tpl, err := cache_set.FromCache("template_tests/complex.tpl")
 		if err != nil {
@@ -421,7 +420,7 @@ func BenchmarkCache(b *testing.B) {
 }
 
 func BenchmarkCacheDebugOn(b *testing.B) {
-	cache_debug_set := NewSet("cache set", nil)
+	cache_debug_set := NewSet("cache set")
 	cache_debug_set.Debug = true
 	for i := 0; i < b.N; i++ {
 		tpl, err := cache_debug_set.FromFile("template_tests/complex.tpl")
@@ -486,7 +485,7 @@ func BenchmarkParallelExecuteComplexWithSandboxActive(b *testing.B) {
 }
 
 func BenchmarkExecuteComplexWithoutSandbox(b *testing.B) {
-	s := NewSet("set without sandbox", nil)
+	s := NewSet("set without sandbox")
 	tpl, err := s.FromFile("template_tests/complex.tpl")
 	if err != nil {
 		b.Fatal(err)
@@ -507,7 +506,7 @@ func BenchmarkCompileAndExecuteComplexWithoutSandbox(b *testing.B) {
 	}
 	preloadedTpl := string(buf)
 
-	s := NewSet("set without sandbox", nil)
+	s := NewSet("set without sandbox")
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -524,7 +523,7 @@ func BenchmarkCompileAndExecuteComplexWithoutSandbox(b *testing.B) {
 }
 
 func BenchmarkParallelExecuteComplexWithoutSandbox(b *testing.B) {
-	s := NewSet("set without sandbox", nil)
+	s := NewSet("set without sandbox")
 	tpl, err := s.FromFile("template_tests/complex.tpl")
 	if err != nil {
 		b.Fatal(err)
