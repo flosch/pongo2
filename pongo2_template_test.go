@@ -76,11 +76,11 @@ func BannedFilterFn(in *Value, params *Value) (*Value, *Error) {
 func init() {
 	DefaultSet.Debug = true
 
-    RegisterTag("banned_tag", tagSandboxDemoTagParser)
-    RegisterTag("unbanned_tag", tagSandboxDemoTagParser)
+	RegisterTag("banned_tag", tagSandboxDemoTagParser)
+	RegisterTag("unbanned_tag", tagSandboxDemoTagParser)
 
 	DefaultSet.BanFilter("banned_filter")
-    DefaultSet.BanTag("banned_tag")
+	DefaultSet.BanTag("banned_tag")
 
 	// Allow different kind of levels inside template_tests/
 	abs_path, err := filepath.Abs("./template_tests/*")

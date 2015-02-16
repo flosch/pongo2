@@ -75,7 +75,7 @@ func newExecutionContext(tpl *Template, ctx Context) *ExecutionContext {
 	builtInFilters := NewPongoBuiltInFilters()
 
 	// Get filters from context
-    var contextFilters map[string]FilterFunction
+	var contextFilters map[string]FilterFunction
 	contextFilters, ok := ctx["_filters"].(map[string]FilterFunction)
 	if ok {
 		for name, filter := range contextFilters {
