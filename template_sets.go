@@ -188,18 +188,6 @@ func (set *TemplateSet) BanTag(name string) {
 // Ban a specific filter for this template set. See more in the documentation for TemplateSet.
 func (set *TemplateSet) BanFilter(name string) {
 	// TODO: implement this, but so far unused
-	// _, has := filters[name]
-	// if !has {
-	//     panic(fmt.Sprintf("Filter '%s' not found.", name))
-	// }
-	// if set.firstTemplateCreated {
-	//     panic("You cannot ban any filters after you've added your first template to your template set.")
-	// }
-	// _, has = set.bannedFilters[name]
-	// if has {
-	//     panic(fmt.Sprintf("Filter '%s' is already banned.", name))
-	// }
-	// set.bannedFilters[name] = true
 	return
 }
 
