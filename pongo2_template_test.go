@@ -76,8 +76,6 @@ func BannedFilterFn(in *Value, params *Value) (*Value, *Error) {
 func init() {
 	DefaultSet.Debug = true
 
-	RegisterFilter("banned_filter", BannedFilterFn)
-	RegisterFilter("unbanned_filter", BannedFilterFn)
 	RegisterTag("banned_tag", tagSandboxDemoTagParser)
 	RegisterTag("unbanned_tag", tagSandboxDemoTagParser)
 
@@ -103,7 +101,7 @@ func init() {
 	}
 	DefaultSet.SandboxDirectories = append(DefaultSet.SandboxDirectories, abs_path)
 
-	// Allow pongo2 temp files
+	// Allow pongo2 temp Sfiles
 	DefaultSet.SandboxDirectories = append(DefaultSet.SandboxDirectories, "/tmp/pongo2_*")
 
 	f, err := ioutil.TempFile("/tmp/", "pongo2_")
