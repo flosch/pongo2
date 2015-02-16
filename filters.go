@@ -136,12 +136,6 @@ func (p *Parser) parseFilter() (*filterCall, *Error) {
 		name:  ident_token.Val,
 	}
 
-	// Get the appropriate filter function and bind it
-	// filterFn, exists := filters[ident_token.Val]
-	// if !exists {
-	//     return nil, p.Error(fmt.Sprintf("Filter '%s' does not exist.", ident_token.Val), ident_token)
-	// }
-
 	filter.filterFunc = ident_token.Val
 
 	// Check for filter-argument (2 tokens needed: ':' ARG)

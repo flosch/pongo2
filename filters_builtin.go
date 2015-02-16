@@ -655,7 +655,6 @@ func filterUrlizeHelper(input string, autoescape bool, trunc int) string {
 
 		raw_url = strings.TrimSpace(raw_url)
 
-		// t, err := ApplyFilter("iriencode", AsValue(raw_url), nil)
 		t, err := filterIriencode(AsValue(raw_url), nil)
 		if err != nil {
 			panic(err)
