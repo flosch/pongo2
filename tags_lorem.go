@@ -87,33 +87,33 @@ func (node *tagLoremNode) Execute(ctx *ExecutionContext, writer TemplateWriter) 
 }
 
 func tagLoremParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, *Error) {
-	lorem_node := &tagLoremNode{
+	loremNode := &tagLoremNode{
 		position: start,
 		count:    1,
 		method:   "b",
 	}
 
-	if count_token := arguments.MatchType(TokenNumber); count_token != nil {
-		lorem_node.count = AsValue(count_token.Val).Integer()
+	if countToken := arguments.MatchType(TokenNumber); countToken != nil {
+		loremNode.count = AsValue(countToken.Val).Integer()
 	}
 
-	if method_token := arguments.MatchType(TokenIdentifier); method_token != nil {
-		if method_token.Val != "w" && method_token.Val != "p" && method_token.Val != "b" {
+	if methodToken := arguments.MatchType(TokenIdentifier); methodToken != nil {
+		if methodToken.Val != "w" && methodToken.Val != "p" && methodToken.Val != "b" {
 			return nil, arguments.Error("lorem-method must be either 'w', 'p' or 'b'.", nil)
 		}
 
-		lorem_node.method = method_token.Val
+		loremNode.method = methodToken.Val
 	}
 
 	if arguments.MatchOne(TokenIdentifier, "random") != nil {
-		lorem_node.random = true
+		loremNode.random = true
 	}
 
 	if arguments.Remaining() > 0 {
 		return nil, arguments.Error("Malformed lorem-tag arguments.", nil)
 	}
 
-	return lorem_node, nil
+	return loremNode, nil
 }
 
 func init() {

@@ -29,7 +29,7 @@ func (node *tagFirstofNode) Execute(ctx *ExecutionContext, writer TemplateWriter
 }
 
 func tagFirstofParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, *Error) {
-	firstof_node := &tagFirstofNode{
+	firstofNode := &tagFirstofNode{
 		position: start,
 	}
 
@@ -38,10 +38,10 @@ func tagFirstofParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, *
 		if err != nil {
 			return nil, err
 		}
-		firstof_node.args = append(firstof_node.args, node)
+		firstofNode.args = append(firstofNode.args, node)
 	}
 
-	return firstof_node, nil
+	return firstofNode, nil
 }
 
 func init() {

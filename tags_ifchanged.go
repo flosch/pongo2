@@ -5,16 +5,15 @@ import (
 )
 
 type tagIfchangedNode struct {
-	watched_expr []IEvaluator
-	last_values  []*Value
-	last_content []byte
-	thenWrapper  *NodeWrapper
-	elseWrapper  *NodeWrapper
+	watchedExpr []IEvaluator
+	lastValues  []*Value
+	lastContent []byte
+	thenWrapper *NodeWrapper
+	elseWrapper *NodeWrapper
 }
 
 func (node *tagIfchangedNode) Execute(ctx *ExecutionContext, writer TemplateWriter) *Error {
-
-	if len(node.watched_expr) == 0 {
+	if len(node.watchedExpr) == 0 {
 		// Check against own rendered body
 
 		buf := bytes.NewBuffer(make([]byte, 0, 1024)) // 1 KiB
@@ -23,33 +22,33 @@ func (node *tagIfchangedNode) Execute(ctx *ExecutionContext, writer TemplateWrit
 			return err
 		}
 
-		buf_bytes := buf.Bytes()
-		if !bytes.Equal(node.last_content, buf_bytes) {
+		bufBytes := buf.Bytes()
+		if !bytes.Equal(node.lastContent, bufBytes) {
 			// Rendered content changed, output it
-			writer.Write(buf_bytes)
-			node.last_content = buf_bytes
+			writer.Write(bufBytes)
+			node.lastContent = bufBytes
 		}
 	} else {
-		now_values := make([]*Value, 0, len(node.watched_expr))
-		for _, expr := range node.watched_expr {
+		nowValues := make([]*Value, 0, len(node.watchedExpr))
+		for _, expr := range node.watchedExpr {
 			val, err := expr.Evaluate(ctx)
 			if err != nil {
 				return err
 			}
-			now_values = append(now_values, val)
+			nowValues = append(nowValues, val)
 		}
 
 		// Compare old to new values now
-		changed := len(node.last_values) == 0
+		changed := len(node.lastValues) == 0
 
-		for idx, old_val := range node.last_values {
-			if !old_val.EqualValueTo(now_values[idx]) {
+		for idx, oldVal := range node.lastValues {
+			if !oldVal.EqualValueTo(nowValues[idx]) {
 				changed = true
 				break // we can stop here because ONE value changed
 			}
 		}
 
-		node.last_values = now_values
+		node.lastValues = nowValues
 
 		if changed {
 			// Render thenWrapper
@@ -70,7 +69,7 @@ func (node *tagIfchangedNode) Execute(ctx *ExecutionContext, writer TemplateWrit
 }
 
 func tagIfchangedParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, *Error) {
-	ifchanged_node := &tagIfchangedNode{}
+	ifchangedNode := &tagIfchangedNode{}
 
 	for arguments.Remaining() > 0 {
 		// Parse condition
@@ -78,7 +77,7 @@ func tagIfchangedParser(doc *Parser, start *Token, arguments *Parser) (INodeTag,
 		if err != nil {
 			return nil, err
 		}
-		ifchanged_node.watched_expr = append(ifchanged_node.watched_expr, expr)
+		ifchangedNode.watchedExpr = append(ifchangedNode.watchedExpr, expr)
 	}
 
 	if arguments.Remaining() > 0 {
@@ -90,7 +89,7 @@ func tagIfchangedParser(doc *Parser, start *Token, arguments *Parser) (INodeTag,
 	if err != nil {
 		return nil, err
 	}
-	ifchanged_node.thenWrapper = wrapper
+	ifchangedNode.thenWrapper = wrapper
 
 	if endargs.Count() > 0 {
 		return nil, endargs.Error("Arguments not allowed here.", nil)
@@ -102,14 +101,14 @@ func tagIfchangedParser(doc *Parser, start *Token, arguments *Parser) (INodeTag,
 		if err != nil {
 			return nil, err
 		}
-		ifchanged_node.elseWrapper = wrapper
+		ifchangedNode.elseWrapper = wrapper
 
 		if endargs.Count() > 0 {
 			return nil, endargs.Error("Arguments not allowed here.", nil)
 		}
 	}
 
-	return ifchanged_node, nil
+	return ifchangedNode, nil
 }
 
 func init() {

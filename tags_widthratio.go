@@ -9,7 +9,7 @@ type tagWidthratioNode struct {
 	position     *Token
 	current, max IEvaluator
 	width        IEvaluator
-	ctx_name     string
+	ctxName      string
 }
 
 func (node *tagWidthratioNode) Execute(ctx *ExecutionContext, writer TemplateWriter) *Error {
@@ -30,17 +30,17 @@ func (node *tagWidthratioNode) Execute(ctx *ExecutionContext, writer TemplateWri
 
 	value := int(math.Ceil(current.Float()/max.Float()*width.Float() + 0.5))
 
-	if node.ctx_name == "" {
+	if node.ctxName == "" {
 		writer.WriteString(fmt.Sprintf("%d", value))
 	} else {
-		ctx.Private[node.ctx_name] = value
+		ctx.Private[node.ctxName] = value
 	}
 
 	return nil
 }
 
 func tagWidthratioParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, *Error) {
-	widthratio_node := &tagWidthratioNode{
+	widthratioNode := &tagWidthratioNode{
 		position: start,
 	}
 
@@ -48,34 +48,34 @@ func tagWidthratioParser(doc *Parser, start *Token, arguments *Parser) (INodeTag
 	if err != nil {
 		return nil, err
 	}
-	widthratio_node.current = current
+	widthratioNode.current = current
 
 	max, err := arguments.ParseExpression()
 	if err != nil {
 		return nil, err
 	}
-	widthratio_node.max = max
+	widthratioNode.max = max
 
 	width, err := arguments.ParseExpression()
 	if err != nil {
 		return nil, err
 	}
-	widthratio_node.width = width
+	widthratioNode.width = width
 
 	if arguments.MatchOne(TokenKeyword, "as") != nil {
 		// Name follows
-		name_token := arguments.MatchType(TokenIdentifier)
-		if name_token == nil {
+		nameToken := arguments.MatchType(TokenIdentifier)
+		if nameToken == nil {
 			return nil, arguments.Error("Expected name (identifier).", nil)
 		}
-		widthratio_node.ctx_name = name_token.Val
+		widthratioNode.ctxName = nameToken.Val
 	}
 
 	if arguments.Remaining() > 0 {
 		return nil, arguments.Error("Malformed widthratio-tag arguments.", nil)
 	}
 
-	return widthratio_node, nil
+	return widthratioNode, nil
 }
 
 func init() {

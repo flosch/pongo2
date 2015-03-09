@@ -257,7 +257,7 @@ func (set *TemplateSet) resolveFilename(tpl *Template, filename string) (resolve
 
 	if set.baseDirectory == "" {
 		if tpl != nil {
-			if tpl.is_tpl_string {
+			if tpl.isTplString {
 				return filename
 			}
 			base := filepath.Dir(tpl.name)

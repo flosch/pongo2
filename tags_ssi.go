@@ -29,28 +29,28 @@ func (node *tagSSINode) Execute(ctx *ExecutionContext, writer TemplateWriter) *E
 }
 
 func tagSSIParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, *Error) {
-	ssi_node := &tagSSINode{}
+	SSINode := &tagSSINode{}
 
-	if file_token := arguments.MatchType(TokenString); file_token != nil {
-		ssi_node.filename = file_token.Val
+	if fileToken := arguments.MatchType(TokenString); fileToken != nil {
+		SSINode.filename = fileToken.Val
 
 		if arguments.Match(TokenIdentifier, "parsed") != nil {
 			// parsed
-			temporary_tpl, err := doc.template.set.FromFile(doc.template.set.resolveFilename(doc.template, file_token.Val))
+			temporaryTpl, err := doc.template.set.FromFile(doc.template.set.resolveFilename(doc.template, fileToken.Val))
 			if err != nil {
-				return nil, err.(*Error).updateFromTokenIfNeeded(doc.template, file_token)
+				return nil, err.(*Error).updateFromTokenIfNeeded(doc.template, fileToken)
 			}
-			ssi_node.template = temporary_tpl
+			SSINode.template = temporaryTpl
 		} else {
 			// plaintext
-			buf, err := ioutil.ReadFile(doc.template.set.resolveFilename(doc.template, file_token.Val))
+			buf, err := ioutil.ReadFile(doc.template.set.resolveFilename(doc.template, fileToken.Val))
 			if err != nil {
 				return nil, (&Error{
 					Sender:   "tag:ssi",
 					ErrorMsg: err.Error(),
-				}).updateFromTokenIfNeeded(doc.template, file_token)
+				}).updateFromTokenIfNeeded(doc.template, fileToken)
 			}
-			ssi_node.content = string(buf)
+			SSINode.content = string(buf)
 		}
 	} else {
 		return nil, arguments.Error("First argument must be a string.", nil)
@@ -60,7 +60,7 @@ func tagSSIParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, *Erro
 		return nil, arguments.Error("Malformed SSI-tag argument.", nil)
 	}
 
-	return ssi_node, nil
+	return SSINode, nil
 }
 
 func init() {

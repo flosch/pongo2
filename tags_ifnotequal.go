@@ -20,16 +20,15 @@ func (node *tagIfNotEqualNode) Execute(ctx *ExecutionContext, writer TemplateWri
 
 	if result {
 		return node.thenWrapper.Execute(ctx, writer)
-	} else {
-		if node.elseWrapper != nil {
-			return node.elseWrapper.Execute(ctx, writer)
-		}
+	}
+	if node.elseWrapper != nil {
+		return node.elseWrapper.Execute(ctx, writer)
 	}
 	return nil
 }
 
 func tagIfNotEqualParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, *Error) {
-	ifnotequal_node := &tagIfNotEqualNode{}
+	ifnotequalNode := &tagIfNotEqualNode{}
 
 	// Parse two expressions
 	var1, err := arguments.ParseExpression()
@@ -40,8 +39,8 @@ func tagIfNotEqualParser(doc *Parser, start *Token, arguments *Parser) (INodeTag
 	if err != nil {
 		return nil, err
 	}
-	ifnotequal_node.var1 = var1
-	ifnotequal_node.var2 = var2
+	ifnotequalNode.var1 = var1
+	ifnotequalNode.var2 = var2
 
 	if arguments.Remaining() > 0 {
 		return nil, arguments.Error("ifequal only takes 2 arguments.", nil)
@@ -52,7 +51,7 @@ func tagIfNotEqualParser(doc *Parser, start *Token, arguments *Parser) (INodeTag
 	if err != nil {
 		return nil, err
 	}
-	ifnotequal_node.thenWrapper = wrapper
+	ifnotequalNode.thenWrapper = wrapper
 
 	if endargs.Count() > 0 {
 		return nil, endargs.Error("Arguments not allowed here.", nil)
@@ -64,14 +63,14 @@ func tagIfNotEqualParser(doc *Parser, start *Token, arguments *Parser) (INodeTag
 		if err != nil {
 			return nil, err
 		}
-		ifnotequal_node.elseWrapper = wrapper
+		ifnotequalNode.elseWrapper = wrapper
 
 		if endargs.Count() > 0 {
 			return nil, endargs.Error("Arguments not allowed here.", nil)
 		}
 	}
 
-	return ifnotequal_node, nil
+	return ifnotequalNode, nil
 }
 
 func init() {

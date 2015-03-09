@@ -15,12 +15,12 @@ type TestSuite struct {
 }
 
 var (
-	_           = Suite(&TestSuite{})
-	test_suite2 = NewSet("test suite 2")
+	_          = Suite(&TestSuite{})
+	testSuite2 = NewSet("test suite 2")
 )
 
 func parseTemplate(s string, c Context) string {
-	t, err := test_suite2.FromString(s)
+	t, err := testSuite2.FromString(s)
 	if err != nil {
 		panic(err)
 	}
@@ -40,7 +40,7 @@ func parseTemplateFn(s string, c Context) func() {
 func (s *TestSuite) TestMisc(c *C) {
 	// Must
 	// TODO: Add better error message (see issue #18)
-	c.Check(func() { Must(test_suite2.FromFile("template_tests/inheritance/base2.tpl")) },
+	c.Check(func() { Must(testSuite2.FromFile("template_tests/inheritance/base2.tpl")) },
 		PanicMatches,
 		`\[Error \(where: fromfile\) in template_tests/inheritance/doesnotexist.tpl | Line 1 Col 12 near 'doesnotexist.tpl'\] open template_tests/inheritance/doesnotexist.tpl: no such file or directory`)
 

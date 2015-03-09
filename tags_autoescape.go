@@ -20,22 +20,22 @@ func (node *tagAutoescapeNode) Execute(ctx *ExecutionContext, writer TemplateWri
 }
 
 func tagAutoescapeParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, *Error) {
-	autoescape_node := &tagAutoescapeNode{}
+	autoescapeNode := &tagAutoescapeNode{}
 
 	wrapper, _, err := doc.WrapUntilTag("endautoescape")
 	if err != nil {
 		return nil, err
 	}
-	autoescape_node.wrapper = wrapper
+	autoescapeNode.wrapper = wrapper
 
-	mode_token := arguments.MatchType(TokenIdentifier)
-	if mode_token == nil {
+	modeToken := arguments.MatchType(TokenIdentifier)
+	if modeToken == nil {
 		return nil, arguments.Error("A mode is required for autoescape-tag.", nil)
 	}
-	if mode_token.Val == "on" {
-		autoescape_node.autoescape = true
-	} else if mode_token.Val == "off" {
-		autoescape_node.autoescape = false
+	if modeToken.Val == "on" {
+		autoescapeNode.autoescape = true
+	} else if modeToken.Val == "off" {
+		autoescapeNode.autoescape = false
 	} else {
 		return nil, arguments.Error("Only 'on' or 'off' is valid as an autoescape-mode.", nil)
 	}
@@ -44,7 +44,7 @@ func tagAutoescapeParser(doc *Parser, start *Token, arguments *Parser) (INodeTag
 		return nil, arguments.Error("Malformed autoescape-tag arguments.", nil)
 	}
 
-	return autoescape_node, nil
+	return autoescapeNode, nil
 }
 
 func init() {

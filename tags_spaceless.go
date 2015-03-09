@@ -34,19 +34,19 @@ func (node *tagSpacelessNode) Execute(ctx *ExecutionContext, writer TemplateWrit
 }
 
 func tagSpacelessParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, *Error) {
-	spaceless_node := &tagSpacelessNode{}
+	spacelessNode := &tagSpacelessNode{}
 
 	wrapper, _, err := doc.WrapUntilTag("endspaceless")
 	if err != nil {
 		return nil, err
 	}
-	spaceless_node.wrapper = wrapper
+	spacelessNode.wrapper = wrapper
 
 	if arguments.Remaining() > 0 {
 		return nil, arguments.Error("Malformed spaceless-tag arguments.", nil)
 	}
 
-	return spaceless_node, nil
+	return spacelessNode, nil
 }
 
 func init() {

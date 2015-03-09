@@ -86,31 +86,31 @@ func (fc *filterCall) Execute(v *Value, ctx *ExecutionContext) (*Value, *Error) 
 		param = AsValue(nil)
 	}
 
-	filtered_value, err := fc.filterFunc(v, param)
+	filteredValue, err := fc.filterFunc(v, param)
 	if err != nil {
 		return nil, err.updateFromTokenIfNeeded(ctx.template, fc.token)
 	}
-	return filtered_value, nil
+	return filteredValue, nil
 }
 
 // Filter = IDENT | IDENT ":" FilterArg | IDENT "|" Filter
 func (p *Parser) parseFilter() (*filterCall, *Error) {
-	ident_token := p.MatchType(TokenIdentifier)
+	identToken := p.MatchType(TokenIdentifier)
 
 	// Check filter ident
-	if ident_token == nil {
+	if identToken == nil {
 		return nil, p.Error("Filter name must be an identifier.", nil)
 	}
 
 	filter := &filterCall{
-		token: ident_token,
-		name:  ident_token.Val,
+		token: identToken,
+		name:  identToken.Val,
 	}
 
 	// Get the appropriate filter function and bind it
-	filterFn, exists := filters[ident_token.Val]
+	filterFn, exists := filters[identToken.Val]
 	if !exists {
-		return nil, p.Error(fmt.Sprintf("Filter '%s' does not exist.", ident_token.Val), ident_token)
+		return nil, p.Error(fmt.Sprintf("Filter '%s' does not exist.", identToken.Val), identToken)
 	}
 
 	filter.filterFunc = filterFn
