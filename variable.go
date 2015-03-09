@@ -17,8 +17,8 @@ type variablePart struct {
 	s   string
 	i   int
 
-	is_function_call bool
-	calling_args     []functionCallArgument // needed for a function call, represents all argument nodes (INode supports nested function calls)
+	isFunctionCall bool
+	callingArgs    []functionCallArgument // needed for a function call, represents all argument nodes (INode supports nested function calls)
 }
 
 type functionCallArgument interface {
@@ -27,45 +27,45 @@ type functionCallArgument interface {
 
 // TODO: Add location tokens
 type stringResolver struct {
-	location_token *Token
-	val            string
+	locationToken *Token
+	val           string
 }
 
 type intResolver struct {
-	location_token *Token
-	val            int
+	locationToken *Token
+	val           int
 }
 
 type floatResolver struct {
-	location_token *Token
-	val            float64
+	locationToken *Token
+	val           float64
 }
 
 type boolResolver struct {
-	location_token *Token
-	val            bool
+	locationToken *Token
+	val           bool
 }
 
 type variableResolver struct {
-	location_token *Token
+	locationToken *Token
 
 	parts []*variablePart
 }
 
 type nodeFilteredVariable struct {
-	location_token *Token
+	locationToken *Token
 
 	resolver    IEvaluator
 	filterChain []*filterCall
 }
 
 type nodeVariable struct {
-	location_token *Token
-	expr           IEvaluator
+	locationToken *Token
+	expr          IEvaluator
 }
 
-func (expr *nodeFilteredVariable) Execute(ctx *ExecutionContext, writer TemplateWriter) *Error {
-	value, err := expr.Evaluate(ctx)
+func (v *nodeFilteredVariable) Execute(ctx *ExecutionContext, writer TemplateWriter) *Error {
+	value, err := v.Evaluate(ctx)
 	if err != nil {
 		return err
 	}
@@ -73,8 +73,8 @@ func (expr *nodeFilteredVariable) Execute(ctx *ExecutionContext, writer Template
 	return nil
 }
 
-func (expr *variableResolver) Execute(ctx *ExecutionContext, writer TemplateWriter) *Error {
-	value, err := expr.Evaluate(ctx)
+func (vr *variableResolver) Execute(ctx *ExecutionContext, writer TemplateWriter) *Error {
+	value, err := vr.Evaluate(ctx)
 	if err != nil {
 		return err
 	}
@@ -82,8 +82,8 @@ func (expr *variableResolver) Execute(ctx *ExecutionContext, writer TemplateWrit
 	return nil
 }
 
-func (expr *stringResolver) Execute(ctx *ExecutionContext, writer TemplateWriter) *Error {
-	value, err := expr.Evaluate(ctx)
+func (s *stringResolver) Execute(ctx *ExecutionContext, writer TemplateWriter) *Error {
+	value, err := s.Evaluate(ctx)
 	if err != nil {
 		return err
 	}
@@ -91,8 +91,8 @@ func (expr *stringResolver) Execute(ctx *ExecutionContext, writer TemplateWriter
 	return nil
 }
 
-func (expr *intResolver) Execute(ctx *ExecutionContext, writer TemplateWriter) *Error {
-	value, err := expr.Evaluate(ctx)
+func (i *intResolver) Execute(ctx *ExecutionContext, writer TemplateWriter) *Error {
+	value, err := i.Evaluate(ctx)
 	if err != nil {
 		return err
 	}
@@ -100,8 +100,8 @@ func (expr *intResolver) Execute(ctx *ExecutionContext, writer TemplateWriter) *
 	return nil
 }
 
-func (expr *floatResolver) Execute(ctx *ExecutionContext, writer TemplateWriter) *Error {
-	value, err := expr.Evaluate(ctx)
+func (f *floatResolver) Execute(ctx *ExecutionContext, writer TemplateWriter) *Error {
+	value, err := f.Evaluate(ctx)
 	if err != nil {
 		return err
 	}
@@ -109,8 +109,8 @@ func (expr *floatResolver) Execute(ctx *ExecutionContext, writer TemplateWriter)
 	return nil
 }
 
-func (expr *boolResolver) Execute(ctx *ExecutionContext, writer TemplateWriter) *Error {
-	value, err := expr.Evaluate(ctx)
+func (b *boolResolver) Execute(ctx *ExecutionContext, writer TemplateWriter) *Error {
+	value, err := b.Evaluate(ctx)
 	if err != nil {
 		return err
 	}
@@ -119,27 +119,27 @@ func (expr *boolResolver) Execute(ctx *ExecutionContext, writer TemplateWriter) 
 }
 
 func (v *nodeFilteredVariable) GetPositionToken() *Token {
-	return v.location_token
+	return v.locationToken
 }
 
-func (v *variableResolver) GetPositionToken() *Token {
-	return v.location_token
+func (vr *variableResolver) GetPositionToken() *Token {
+	return vr.locationToken
 }
 
-func (v *stringResolver) GetPositionToken() *Token {
-	return v.location_token
+func (s *stringResolver) GetPositionToken() *Token {
+	return s.locationToken
 }
 
-func (v *intResolver) GetPositionToken() *Token {
-	return v.location_token
+func (i *intResolver) GetPositionToken() *Token {
+	return i.locationToken
 }
 
-func (v *floatResolver) GetPositionToken() *Token {
-	return v.location_token
+func (f *floatResolver) GetPositionToken() *Token {
+	return f.locationToken
 }
 
-func (v *boolResolver) GetPositionToken() *Token {
-	return v.location_token
+func (b *boolResolver) GetPositionToken() *Token {
+	return b.locationToken
 }
 
 func (s *stringResolver) Evaluate(ctx *ExecutionContext) (*Value, *Error) {
@@ -217,15 +217,15 @@ func (vr *variableResolver) String() string {
 
 func (vr *variableResolver) resolve(ctx *ExecutionContext) (*Value, error) {
 	var current reflect.Value
-	var is_safe bool
+	var isSafe bool
 
 	for idx, part := range vr.parts {
 		if idx == 0 {
 			// We're looking up the first part of the variable.
 			// First we're having a look in our private
 			// context (e. g. information provided by tags, like the forloop)
-			val, in_private := ctx.Private[vr.parts[0].s]
-			if !in_private {
+			val, inPrivate := ctx.Private[vr.parts[0].s]
+			if !inPrivate {
 				// Nothing found? Then have a final lookup in the public context
 				val = ctx.Public[vr.parts[0].s]
 			}
@@ -235,16 +235,16 @@ func (vr *variableResolver) resolve(ctx *ExecutionContext) (*Value, error) {
 
 			// Before resolving the pointer, let's see if we have a method to call
 			// Problem with resolving the pointer is we're changing the receiver
-			is_func := false
+			isFunc := false
 			if part.typ == varTypeIdent {
-				func_value := current.MethodByName(part.s)
-				if func_value.IsValid() {
-					current = func_value
-					is_func = true
+				funcValue := current.MethodByName(part.s)
+				if funcValue.IsValid() {
+					current = funcValue
+					isFunc = true
 				}
 			}
 
-			if !is_func {
+			if !isFunc {
 				// If current a pointer, resolve it
 				if current.Kind() == reflect.Ptr {
 					current = current.Elem()
@@ -295,9 +295,9 @@ func (vr *variableResolver) resolve(ctx *ExecutionContext) (*Value, error) {
 		// Happens in function calls (as a return value) or by injecting
 		// into the execution context (e.g. in a for-loop)
 		if current.Type() == reflect.TypeOf(&Value{}) {
-			tmp_value := current.Interface().(*Value)
-			current = tmp_value.val
-			is_safe = tmp_value.safe
+			tmpValue := current.Interface().(*Value)
+			current = tmpValue.val
+			isSafe = tmpValue.safe
 		}
 
 		// Check whether this is an interface and resolve it where required
@@ -306,10 +306,10 @@ func (vr *variableResolver) resolve(ctx *ExecutionContext) (*Value, error) {
 		}
 
 		// Check if the part is a function call
-		if part.is_function_call || current.Kind() == reflect.Func {
+		if part.isFunctionCall || current.Kind() == reflect.Func {
 			// Check for callable
 			if current.Kind() != reflect.Func {
-				return nil, fmt.Errorf("'%s' is not a function (it is %s).", vr.String(), current.Kind().String())
+				return nil, fmt.Errorf("'%s' is not a function (it is %s)", vr.String(), current.Kind().String())
 			}
 
 			// Check for correct function syntax and types
@@ -317,58 +317,56 @@ func (vr *variableResolver) resolve(ctx *ExecutionContext) (*Value, error) {
 			t := current.Type()
 
 			// Input arguments
-			if len(part.calling_args) != t.NumIn() && !(len(part.calling_args) >= t.NumIn()-1 && t.IsVariadic()) {
+			if len(part.callingArgs) != t.NumIn() && !(len(part.callingArgs) >= t.NumIn()-1 && t.IsVariadic()) {
 				return nil,
 					fmt.Errorf("Function input argument count (%d) of '%s' must be equal to the calling argument count (%d).",
-						t.NumIn(), vr.String(), len(part.calling_args))
+						t.NumIn(), vr.String(), len(part.callingArgs))
 			}
 
 			// Output arguments
 			if t.NumOut() != 1 {
-				return nil, fmt.Errorf("'%s' must have exactly 1 output argument.", vr.String())
+				return nil, fmt.Errorf("'%s' must have exactly 1 output argument", vr.String())
 			}
 
 			// Evaluate all parameters
-			parameters := make([]reflect.Value, 0)
+			var parameters []reflect.Value
 
-			num_args := t.NumIn()
-			is_variadic := t.IsVariadic()
-			var fn_arg reflect.Type
+			numArgs := t.NumIn()
+			isVariadic := t.IsVariadic()
+			var fnArg reflect.Type
 
-			for idx, arg := range part.calling_args {
+			for idx, arg := range part.callingArgs {
 				pv, err := arg.Evaluate(ctx)
 				if err != nil {
 					return nil, err
 				}
 
-				if is_variadic {
+				if isVariadic {
 					if idx >= t.NumIn()-1 {
-						fn_arg = t.In(num_args - 1).Elem()
+						fnArg = t.In(numArgs - 1).Elem()
 					} else {
-						fn_arg = t.In(idx)
+						fnArg = t.In(idx)
 					}
 				} else {
-					fn_arg = t.In(idx)
+					fnArg = t.In(idx)
 				}
 
-				if fn_arg != reflect.TypeOf(new(Value)) {
+				if fnArg != reflect.TypeOf(new(Value)) {
 					// Function's argument is not a *pongo2.Value, then we have to check whether input argument is of the same type as the function's argument
-					if !is_variadic {
-						if fn_arg != reflect.TypeOf(pv.Interface()) && fn_arg.Kind() != reflect.Interface {
+					if !isVariadic {
+						if fnArg != reflect.TypeOf(pv.Interface()) && fnArg.Kind() != reflect.Interface {
 							return nil, fmt.Errorf("Function input argument %d of '%s' must be of type %s or *pongo2.Value (not %T).",
-								idx, vr.String(), fn_arg.String(), pv.Interface())
-						} else {
-							// Function's argument has another type, using the interface-value
-							parameters = append(parameters, reflect.ValueOf(pv.Interface()))
+								idx, vr.String(), fnArg.String(), pv.Interface())
 						}
+						// Function's argument has another type, using the interface-value
+						parameters = append(parameters, reflect.ValueOf(pv.Interface()))
 					} else {
-						if fn_arg != reflect.TypeOf(pv.Interface()) && fn_arg.Kind() != reflect.Interface {
+						if fnArg != reflect.TypeOf(pv.Interface()) && fnArg.Kind() != reflect.Interface {
 							return nil, fmt.Errorf("Function variadic input argument of '%s' must be of type %s or *pongo2.Value (not %T).",
-								vr.String(), fn_arg.String(), pv.Interface())
-						} else {
-							// Function's argument has another type, using the interface-value
-							parameters = append(parameters, reflect.ValueOf(pv.Interface()))
+								vr.String(), fnArg.String(), pv.Interface())
 						}
+						// Function's argument has another type, using the interface-value
+						parameters = append(parameters, reflect.ValueOf(pv.Interface()))
 					}
 				} else {
 					// Function's argument is a *pongo2.Value
@@ -384,7 +382,7 @@ func (vr *variableResolver) resolve(ctx *ExecutionContext) (*Value, error) {
 			} else {
 				// Return the function call value
 				current = rv.Interface().(*Value).val
-				is_safe = rv.Interface().(*Value).safe
+				isSafe = rv.Interface().(*Value).safe
 			}
 		}
 	}
@@ -394,13 +392,13 @@ func (vr *variableResolver) resolve(ctx *ExecutionContext) (*Value, error) {
 		return AsValue(nil), nil
 	}
 
-	return &Value{val: current, safe: is_safe}, nil
+	return &Value{val: current, safe: isSafe}, nil
 }
 
 func (vr *variableResolver) Evaluate(ctx *ExecutionContext) (*Value, *Error) {
 	value, err := vr.resolve(ctx)
 	if err != nil {
-		return AsValue(nil), ctx.Error(err.Error(), vr.location_token)
+		return AsValue(nil), ctx.Error(err.Error(), vr.locationToken)
 	}
 	return value, nil
 }
@@ -435,7 +433,7 @@ func (p *Parser) parseVariableOrLiteral() (IEvaluator, *Error) {
 	t := p.Current()
 
 	if t == nil {
-		return nil, p.Error("Unexpected EOF, expected a number, string, keyword or identifier.", p.last_token)
+		return nil, p.Error("Unexpected EOF, expected a number, string, keyword or identifier.", p.lastToken)
 	}
 
 	// Is first part a number or a string, there's nothing to resolve (because there's only to return the value then)
@@ -459,26 +457,26 @@ func (p *Parser) parseVariableOrLiteral() (IEvaluator, *Error) {
 				return nil, p.Error(err.Error(), t)
 			}
 			fr := &floatResolver{
-				location_token: t,
-				val:            f,
+				locationToken: t,
+				val:           f,
 			}
 			return fr, nil
-		} else {
-			i, err := strconv.Atoi(t.Val)
-			if err != nil {
-				return nil, p.Error(err.Error(), t)
-			}
-			nr := &intResolver{
-				location_token: t,
-				val:            i,
-			}
-			return nr, nil
 		}
+		i, err := strconv.Atoi(t.Val)
+		if err != nil {
+			return nil, p.Error(err.Error(), t)
+		}
+		nr := &intResolver{
+			locationToken: t,
+			val:           i,
+		}
+		return nr, nil
+
 	case TokenString:
 		p.Consume()
 		sr := &stringResolver{
-			location_token: t,
-			val:            t.Val,
+			locationToken: t,
+			val:           t.Val,
 		}
 		return sr, nil
 	case TokenKeyword:
@@ -486,14 +484,14 @@ func (p *Parser) parseVariableOrLiteral() (IEvaluator, *Error) {
 		switch t.Val {
 		case "true":
 			br := &boolResolver{
-				location_token: t,
-				val:            true,
+				locationToken: t,
+				val:           true,
 			}
 			return br, nil
 		case "false":
 			br := &boolResolver{
-				location_token: t,
-				val:            false,
+				locationToken: t,
+				val:           false,
 			}
 			return br, nil
 		default:
@@ -502,7 +500,7 @@ func (p *Parser) parseVariableOrLiteral() (IEvaluator, *Error) {
 	}
 
 	resolver := &variableResolver{
-		location_token: t,
+		locationToken: t,
 	}
 
 	// First part of a variable MUST be an identifier
@@ -550,26 +548,26 @@ variableLoop:
 			} else {
 				// EOF
 				return nil, p.Error("Unexpected EOF, expected either IDENTIFIER or NUMBER after DOT.",
-					p.last_token)
+					p.lastToken)
 			}
 		} else if p.Match(TokenSymbol, "(") != nil {
 			// Function call
 			// FunctionName '(' Comma-separated list of expressions ')'
 			part := resolver.parts[len(resolver.parts)-1]
-			part.is_function_call = true
+			part.isFunctionCall = true
 		argumentLoop:
 			for {
 				if p.Remaining() == 0 {
-					return nil, p.Error("Unexpected EOF, expected function call argument list.", p.last_token)
+					return nil, p.Error("Unexpected EOF, expected function call argument list.", p.lastToken)
 				}
 
 				if p.Peek(TokenSymbol, ")") == nil {
 					// No closing bracket, so we're parsing an expression
-					expr_arg, err := p.ParseExpression()
+					exprArg, err := p.ParseExpression()
 					if err != nil {
 						return nil, err
 					}
-					part.calling_args = append(part.calling_args, expr_arg)
+					part.callingArgs = append(part.callingArgs, exprArg)
 
 					if p.Match(TokenSymbol, ")") != nil {
 						// If there's a closing bracket after an expression, we will stop parsing the arguments
@@ -600,7 +598,7 @@ variableLoop:
 
 func (p *Parser) parseVariableOrLiteralWithFilter() (*nodeFilteredVariable, *Error) {
 	v := &nodeFilteredVariable{
-		location_token: p.Current(),
+		locationToken: p.Current(),
 	}
 
 	// Parse the variable name
@@ -620,15 +618,13 @@ filterLoop:
 		}
 
 		// Check sandbox filter restriction
-		if _, is_banned := p.template.set.bannedFilters[filter.name]; is_banned {
+		if _, isBanned := p.template.set.bannedFilters[filter.name]; isBanned {
 			return nil, p.Error(fmt.Sprintf("Usage of filter '%s' is not allowed (sandbox restriction active).", filter.name), nil)
 		}
 
 		v.filterChain = append(v.filterChain, filter)
 
 		continue filterLoop
-
-		return nil, p.Error("This token is not allowed within a variable.", nil)
 	}
 
 	return v, nil
@@ -636,7 +632,7 @@ filterLoop:
 
 func (p *Parser) parseVariableElement() (INode, *Error) {
 	node := &nodeVariable{
-		location_token: p.Current(),
+		locationToken: p.Current(),
 	}
 
 	p.Consume() // consume '{{'

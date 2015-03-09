@@ -11,7 +11,7 @@ import (
 	"time"
 )
 
-var admin_list = []string{"user2"}
+var adminList = []string{"user2"}
 
 var time1 = time.Date(2014, 06, 10, 15, 30, 15, 0, time.UTC)
 var time2 = time.Date(2011, 03, 21, 8, 37, 56, 12, time.UTC)
@@ -32,8 +32,8 @@ type comment struct {
 	Text   string
 }
 
-func is_admin(u *user) bool {
-	for _, a := range admin_list {
+func isAdmin(u *user) bool {
+	for _, a := range adminList {
 		if a == u.Name {
 			return true
 		}
@@ -42,11 +42,11 @@ func is_admin(u *user) bool {
 }
 
 func (u *user) Is_admin() *Value {
-	return AsValue(is_admin(u))
+	return AsValue(isAdmin(u))
 }
 
 func (u *user) Is_admin2() bool {
-	return is_admin(u)
+	return isAdmin(u)
 }
 
 func (p *post) String() string {
@@ -85,23 +85,23 @@ func init() {
 	DefaultSet.BanTag("banned_tag")
 
 	// Allow different kind of levels inside template_tests/
-	abs_path, err := filepath.Abs("./template_tests/*")
+	absPath, err := filepath.Abs("./template_tests/*")
 	if err != nil {
 		panic(err)
 	}
-	DefaultSet.SandboxDirectories = append(DefaultSet.SandboxDirectories, abs_path)
+	DefaultSet.SandboxDirectories = append(DefaultSet.SandboxDirectories, absPath)
 
-	abs_path, err = filepath.Abs("./template_tests/*/*")
+	absPath, err = filepath.Abs("./template_tests/*/*")
 	if err != nil {
 		panic(err)
 	}
-	DefaultSet.SandboxDirectories = append(DefaultSet.SandboxDirectories, abs_path)
+	DefaultSet.SandboxDirectories = append(DefaultSet.SandboxDirectories, absPath)
 
-	abs_path, err = filepath.Abs("./template_tests/*/*/*")
+	absPath, err = filepath.Abs("./template_tests/*/*/*")
 	if err != nil {
 		panic(err)
 	}
-	DefaultSet.SandboxDirectories = append(DefaultSet.SandboxDirectories, abs_path)
+	DefaultSet.SandboxDirectories = append(DefaultSet.SandboxDirectories, absPath)
 
 	// Allow pongo2 temp files
 	DefaultSet.SandboxDirectories = append(DefaultSet.SandboxDirectories, "/tmp/pongo2_*")
@@ -151,6 +151,14 @@ Yep!`,
 			2: "two",
 			5: "five",
 		},
+		"strmap": map[string]string{
+			"abc": "def",
+			"bcd": "efg",
+			"zab": "cde",
+			"gh":  "kqm",
+			"ukq": "qqa",
+			"aab": "aba",
+		},
 		"func_add": func(a, b int) int {
 			return a + b
 		},
@@ -178,7 +186,7 @@ Yep!`,
 		},
 	},
 	"complex": map[string]interface{}{
-		"is_admin": is_admin,
+		"is_admin": isAdmin,
 		"post": post{
 			Text:    "<h2>Hello!</h2><p>Welcome to my new blog page. I'm using pongo2 which supports {{ variables }} and {% tags %}.</p>",
 			Created: time2,

@@ -1,8 +1,8 @@
 package pongo2
 
 type tagWithNode struct {
-	with_pairs map[string]IEvaluator
-	wrapper    *NodeWrapper
+	withPairs map[string]IEvaluator
+	wrapper   *NodeWrapper
 }
 
 func (node *tagWithNode) Execute(ctx *ExecutionContext, writer TemplateWriter) *Error {
@@ -10,7 +10,7 @@ func (node *tagWithNode) Execute(ctx *ExecutionContext, writer TemplateWriter) *
 	withctx := NewChildExecutionContext(ctx)
 
 	// Put all custom with-pairs into the context
-	for key, value := range node.with_pairs {
+	for key, value := range node.withPairs {
 		val, err := value.Evaluate(ctx)
 		if err != nil {
 			return err
@@ -22,8 +22,8 @@ func (node *tagWithNode) Execute(ctx *ExecutionContext, writer TemplateWriter) *
 }
 
 func tagWithParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, *Error) {
-	with_node := &tagWithNode{
-		with_pairs: make(map[string]IEvaluator),
+	withNode := &tagWithNode{
+		withPairs: make(map[string]IEvaluator),
 	}
 
 	if arguments.Count() == 0 {
@@ -34,7 +34,7 @@ func tagWithParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, *Err
 	if err != nil {
 		return nil, err
 	}
-	with_node.wrapper = wrapper
+	withNode.wrapper = wrapper
 
 	if endargs.Count() > 0 {
 		return nil, endargs.Error("Arguments not allowed here.", nil)
@@ -42,45 +42,45 @@ func tagWithParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, *Err
 
 	// Scan through all arguments to see which style the user uses (old or new style).
 	// If we find any "as" keyword we will enforce old style; otherwise we will use new style.
-	old_style := false // by default we're using the new_style
+	oldStyle := false // by default we're using the new_style
 	for i := 0; i < arguments.Count(); i++ {
 		if arguments.PeekN(i, TokenKeyword, "as") != nil {
-			old_style = true
+			oldStyle = true
 			break
 		}
 	}
 
 	for arguments.Remaining() > 0 {
-		if old_style {
-			value_expr, err := arguments.ParseExpression()
+		if oldStyle {
+			valueExpr, err := arguments.ParseExpression()
 			if err != nil {
 				return nil, err
 			}
 			if arguments.Match(TokenKeyword, "as") == nil {
 				return nil, arguments.Error("Expected 'as' keyword.", nil)
 			}
-			key_token := arguments.MatchType(TokenIdentifier)
-			if key_token == nil {
+			keyToken := arguments.MatchType(TokenIdentifier)
+			if keyToken == nil {
 				return nil, arguments.Error("Expected an identifier", nil)
 			}
-			with_node.with_pairs[key_token.Val] = value_expr
+			withNode.withPairs[keyToken.Val] = valueExpr
 		} else {
-			key_token := arguments.MatchType(TokenIdentifier)
-			if key_token == nil {
+			keyToken := arguments.MatchType(TokenIdentifier)
+			if keyToken == nil {
 				return nil, arguments.Error("Expected an identifier", nil)
 			}
 			if arguments.Match(TokenSymbol, "=") == nil {
 				return nil, arguments.Error("Expected '='.", nil)
 			}
-			value_expr, err := arguments.ParseExpression()
+			valueExpr, err := arguments.ParseExpression()
 			if err != nil {
 				return nil, err
 			}
-			with_node.with_pairs[key_token.Val] = value_expr
+			withNode.withPairs[keyToken.Val] = valueExpr
 		}
 	}
 
-	return with_node, nil
+	return withNode, nil
 }
 
 func init() {

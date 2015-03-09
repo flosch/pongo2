@@ -87,46 +87,46 @@ func ReplaceTag(name string, parserFn TagParser) {
 // Tag = "{%" IDENT ARGS "%}"
 func (p *Parser) parseTagElement() (INodeTag, *Error) {
 	p.Consume() // consume "{%"
-	token_name := p.MatchType(TokenIdentifier)
+	tokenName := p.MatchType(TokenIdentifier)
 
 	// Check for identifier
-	if token_name == nil {
+	if tokenName == nil {
 		return nil, p.Error("Tag name must be an identifier.", nil)
 	}
 
 	// Check for the existing tag
-	tag, exists := tags[token_name.Val]
+	tag, exists := tags[tokenName.Val]
 	if !exists {
 		// Does not exists
-		return nil, p.Error(fmt.Sprintf("Tag '%s' not found (or beginning tag not provided)", token_name.Val), token_name)
+		return nil, p.Error(fmt.Sprintf("Tag '%s' not found (or beginning tag not provided)", tokenName.Val), tokenName)
 	}
 
 	// Check sandbox tag restriction
-	if _, is_banned := p.template.set.bannedTags[token_name.Val]; is_banned {
-		return nil, p.Error(fmt.Sprintf("Usage of tag '%s' is not allowed (sandbox restriction active).", token_name.Val), token_name)
+	if _, isBanned := p.template.set.bannedTags[tokenName.Val]; isBanned {
+		return nil, p.Error(fmt.Sprintf("Usage of tag '%s' is not allowed (sandbox restriction active).", tokenName.Val), tokenName)
 	}
 
-	args_token := make([]*Token, 0)
+	var argsToken []*Token
 	for p.Peek(TokenSymbol, "%}") == nil && p.Remaining() > 0 {
 		// Add token to args
-		args_token = append(args_token, p.Current())
+		argsToken = append(argsToken, p.Current())
 		p.Consume() // next token
 	}
 
 	// EOF?
 	if p.Remaining() == 0 {
-		return nil, p.Error("Unexpectedly reached EOF, no tag end found.", p.last_token)
+		return nil, p.Error("Unexpectedly reached EOF, no tag end found.", p.lastToken)
 	}
 
 	p.Match(TokenSymbol, "%}")
 
-	arg_parser := newParser(p.name, args_token, p.template)
-	if len(args_token) == 0 {
+	argParser := newParser(p.name, argsToken, p.template)
+	if len(argsToken) == 0 {
 		// This is done to have nice EOF error messages
-		arg_parser.last_token = token_name
+		argParser.lastToken = tokenName
 	}
 
 	p.template.level++
 	defer func() { p.template.level-- }()
-	return tag.parser(p, token_name, arg_parser)
+	return tag.parser(p, tokenName, argParser)
 }

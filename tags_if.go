@@ -14,25 +14,24 @@ func (node *tagIfNode) Execute(ctx *ExecutionContext, writer TemplateWriter) *Er
 
 		if result.IsTrue() {
 			return node.wrappers[i].Execute(ctx, writer)
-		} else {
-			// Last condition?
-			if len(node.conditions) == i+1 && len(node.wrappers) > i+1 {
-				return node.wrappers[i+1].Execute(ctx, writer)
-			}
+		}
+		// Last condition?
+		if len(node.conditions) == i+1 && len(node.wrappers) > i+1 {
+			return node.wrappers[i+1].Execute(ctx, writer)
 		}
 	}
 	return nil
 }
 
 func tagIfParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, *Error) {
-	if_node := &tagIfNode{}
+	ifNode := &tagIfNode{}
 
 	// Parse first and main IF condition
 	condition, err := arguments.ParseExpression()
 	if err != nil {
 		return nil, err
 	}
-	if_node.conditions = append(if_node.conditions, condition)
+	ifNode.conditions = append(ifNode.conditions, condition)
 
 	if arguments.Remaining() > 0 {
 		return nil, arguments.Error("If-condition is malformed.", nil)
@@ -40,27 +39,27 @@ func tagIfParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, *Error
 
 	// Check the rest
 	for {
-		wrapper, tag_args, err := doc.WrapUntilTag("elif", "else", "endif")
+		wrapper, tagArgs, err := doc.WrapUntilTag("elif", "else", "endif")
 		if err != nil {
 			return nil, err
 		}
-		if_node.wrappers = append(if_node.wrappers, wrapper)
+		ifNode.wrappers = append(ifNode.wrappers, wrapper)
 
 		if wrapper.Endtag == "elif" {
 			// elif can take a condition
-			condition, err := tag_args.ParseExpression()
+			condition, err := tagArgs.ParseExpression()
 			if err != nil {
 				return nil, err
 			}
-			if_node.conditions = append(if_node.conditions, condition)
+			ifNode.conditions = append(ifNode.conditions, condition)
 
-			if tag_args.Remaining() > 0 {
-				return nil, tag_args.Error("Elif-condition is malformed.", nil)
+			if tagArgs.Remaining() > 0 {
+				return nil, tagArgs.Error("Elif-condition is malformed.", nil)
 			}
 		} else {
-			if tag_args.Count() > 0 {
+			if tagArgs.Count() > 0 {
 				// else/endif can't take any conditions
-				return nil, tag_args.Error("Arguments not allowed here.", nil)
+				return nil, tagArgs.Error("Arguments not allowed here.", nil)
 			}
 		}
 
@@ -69,7 +68,7 @@ func tagIfParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, *Error
 		}
 	}
 
-	return if_node, nil
+	return ifNode, nil
 }
 
 func init() {

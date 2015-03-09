@@ -12,7 +12,7 @@ type Value struct {
 	safe bool // used to indicate whether a Value needs explicit escaping in the template
 }
 
-// Converts any given value to a pongo2.Value
+// AsValue converts any given value to a pongo2.Value
 // Usually being used within own functions passed to a template
 // through a Context or within filter functions.
 //
@@ -24,7 +24,7 @@ func AsValue(i interface{}) *Value {
 	}
 }
 
-// Like AsValue, but does not apply the 'escape' filter.
+// AsSafeValue works like AsValue, but does not apply the 'escape' filter.
 func AsSafeValue(i interface{}) *Value {
 	return &Value{
 		val:  reflect.ValueOf(i),
@@ -111,9 +111,8 @@ func (v *Value) String() string {
 	case reflect.Bool:
 		if v.Bool() {
 			return "True"
-		} else {
-			return "False"
 		}
+		return "False"
 	case reflect.Struct:
 		if t, ok := v.Interface().(fmt.Stringer); ok {
 			return t.String()
@@ -229,15 +228,13 @@ func (v *Value) Negate() *Value {
 		reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
 		if v.Integer() != 0 {
 			return AsValue(0)
-		} else {
-			return AsValue(1)
 		}
+		return AsValue(1)
 	case reflect.Float32, reflect.Float64:
 		if v.Float() != 0.0 {
 			return AsValue(float64(0.0))
-		} else {
-			return AsValue(float64(1.1))
 		}
+		return AsValue(float64(1.1))
 	case reflect.Array, reflect.Chan, reflect.Map, reflect.Slice, reflect.String:
 		return AsValue(v.getResolvedValue().Len() == 0)
 	case reflect.Bool:
@@ -301,7 +298,7 @@ func (v *Value) Index(i int) *Value {
 	}
 }
 
-// Checks whether the underlying value (which must be of type struct, map,
+// Contains checks whether the underlying value (which must be of type struct, map,
 // string, array or slice) contains of another Value (e. g. used to check
 // whether a struct contains of a specific field or a map contains a specific key).
 //
@@ -310,21 +307,21 @@ func (v *Value) Index(i int) *Value {
 func (v *Value) Contains(other *Value) bool {
 	switch v.getResolvedValue().Kind() {
 	case reflect.Struct:
-		field_value := v.getResolvedValue().FieldByName(other.String())
-		return field_value.IsValid()
+		fieldValue := v.getResolvedValue().FieldByName(other.String())
+		return fieldValue.IsValid()
 	case reflect.Map:
-		var map_value reflect.Value
+		var mapValue reflect.Value
 		switch other.Interface().(type) {
 		case int:
-			map_value = v.getResolvedValue().MapIndex(other.getResolvedValue())
+			mapValue = v.getResolvedValue().MapIndex(other.getResolvedValue())
 		case string:
-			map_value = v.getResolvedValue().MapIndex(other.getResolvedValue())
+			mapValue = v.getResolvedValue().MapIndex(other.getResolvedValue())
 		default:
 			logf("Value.Contains() does not support lookup type '%s'\n", other.getResolvedValue().Kind().String())
 			return false
 		}
 
-		return map_value.IsValid()
+		return mapValue.IsValid()
 	case reflect.String:
 		return strings.Contains(v.getResolvedValue().String(), other.String())
 

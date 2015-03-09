@@ -5,8 +5,8 @@ import (
 )
 
 type nodeFilterCall struct {
-	name       string
-	param_expr IEvaluator
+	name      string
+	paramExpr IEvaluator
 }
 
 type tagFilterNode struct {
@@ -27,8 +27,8 @@ func (node *tagFilterNode) Execute(ctx *ExecutionContext, writer TemplateWriter)
 
 	for _, call := range node.filterChain {
 		var param *Value
-		if call.param_expr != nil {
-			param, err = call.param_expr.Evaluate(ctx)
+		if call.paramExpr != nil {
+			param, err = call.paramExpr.Evaluate(ctx)
 			if err != nil {
 				return err
 			}
@@ -47,7 +47,7 @@ func (node *tagFilterNode) Execute(ctx *ExecutionContext, writer TemplateWriter)
 }
 
 func tagFilterParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, *Error) {
-	filter_node := &tagFilterNode{
+	filterNode := &tagFilterNode{
 		position: start,
 	}
 
@@ -55,16 +55,16 @@ func tagFilterParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, *E
 	if err != nil {
 		return nil, err
 	}
-	filter_node.bodyWrapper = wrapper
+	filterNode.bodyWrapper = wrapper
 
 	for arguments.Remaining() > 0 {
 		filterCall := &nodeFilterCall{}
 
-		name_token := arguments.MatchType(TokenIdentifier)
-		if name_token == nil {
+		nameToken := arguments.MatchType(TokenIdentifier)
+		if nameToken == nil {
 			return nil, arguments.Error("Expected a filter name (identifier).", nil)
 		}
-		filterCall.name = name_token.Val
+		filterCall.name = nameToken.Val
 
 		if arguments.MatchOne(TokenSymbol, ":") != nil {
 			// Filter parameter
@@ -73,10 +73,10 @@ func tagFilterParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, *E
 			if err != nil {
 				return nil, err
 			}
-			filterCall.param_expr = expr
+			filterCall.paramExpr = expr
 		}
 
-		filter_node.filterChain = append(filter_node.filterChain, filterCall)
+		filterNode.filterChain = append(filterNode.filterChain, filterCall)
 
 		if arguments.MatchOne(TokenSymbol, "|") == nil {
 			break
@@ -87,7 +87,7 @@ func tagFilterParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, *E
 		return nil, arguments.Error("Malformed filter-tag arguments.", nil)
 	}
 
-	return filter_node, nil
+	return filterNode, nil
 }
 
 func init() {

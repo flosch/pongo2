@@ -7,7 +7,7 @@ func (node *tagCommentNode) Execute(ctx *ExecutionContext, writer TemplateWriter
 }
 
 func tagCommentParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, *Error) {
-	comment_node := &tagCommentNode{}
+	commentNode := &tagCommentNode{}
 
 	// TODO: Process the endtag's arguments (see django 'comment'-tag documentation)
 	_, _, err := doc.WrapUntilTag("endcomment")
@@ -19,7 +19,7 @@ func tagCommentParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, *
 		return nil, arguments.Error("Tag 'comment' does not take any argument.", nil)
 	}
 
-	return comment_node, nil
+	return commentNode, nil
 }
 
 func init() {

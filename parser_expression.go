@@ -7,31 +7,31 @@ import (
 
 type Expression struct {
 	// TODO: Add location token?
-	expr1    IEvaluator
-	expr2    IEvaluator
-	op_token *Token
+	expr1   IEvaluator
+	expr2   IEvaluator
+	opToken *Token
 }
 
 type relationalExpression struct {
 	// TODO: Add location token?
-	expr1    IEvaluator
-	expr2    IEvaluator
-	op_token *Token
+	expr1   IEvaluator
+	expr2   IEvaluator
+	opToken *Token
 }
 
 type simpleExpression struct {
-	negate        bool
-	negative_sign bool
-	term1         IEvaluator
-	term2         IEvaluator
-	op_token      *Token
+	negate       bool
+	negativeSign bool
+	term1        IEvaluator
+	term2        IEvaluator
+	opToken      *Token
 }
 
 type term struct {
 	// TODO: Add location token?
-	factor1  IEvaluator
-	factor2  IEvaluator
-	op_token *Token
+	factor1 IEvaluator
+	factor2 IEvaluator
+	opToken *Token
 }
 
 type power struct {
@@ -55,14 +55,14 @@ func (expr *simpleExpression) FilterApplied(name string) bool {
 		(expr.term2 != nil && expr.term2.FilterApplied(name)))
 }
 
-func (t *term) FilterApplied(name string) bool {
-	return t.factor1.FilterApplied(name) && (t.factor2 == nil ||
-		(t.factor2 != nil && t.factor2.FilterApplied(name)))
+func (expr *term) FilterApplied(name string) bool {
+	return expr.factor1.FilterApplied(name) && (expr.factor2 == nil ||
+		(expr.factor2 != nil && expr.factor2.FilterApplied(name)))
 }
 
-func (p *power) FilterApplied(name string) bool {
-	return p.power1.FilterApplied(name) && (p.power2 == nil ||
-		(p.power2 != nil && p.power2.FilterApplied(name)))
+func (expr *power) FilterApplied(name string) bool {
+	return expr.power1.FilterApplied(name) && (expr.power2 == nil ||
+		(expr.power2 != nil && expr.power2.FilterApplied(name)))
 }
 
 func (expr *Expression) GetPositionToken() *Token {
@@ -140,13 +140,13 @@ func (expr *Expression) Evaluate(ctx *ExecutionContext) (*Value, *Error) {
 		if err != nil {
 			return nil, err
 		}
-		switch expr.op_token.Val {
+		switch expr.opToken.Val {
 		case "and", "&&":
 			return AsValue(v1.IsTrue() && v2.IsTrue()), nil
 		case "or", "||":
 			return AsValue(v1.IsTrue() || v2.IsTrue()), nil
 		default:
-			panic(fmt.Sprintf("unimplemented: %s", expr.op_token.Val))
+			panic(fmt.Sprintf("unimplemented: %s", expr.opToken.Val))
 		}
 	} else {
 		return v1, nil
@@ -163,39 +163,35 @@ func (expr *relationalExpression) Evaluate(ctx *ExecutionContext) (*Value, *Erro
 		if err != nil {
 			return nil, err
 		}
-		switch expr.op_token.Val {
+		switch expr.opToken.Val {
 		case "<=":
 			if v1.IsFloat() || v2.IsFloat() {
 				return AsValue(v1.Float() <= v2.Float()), nil
-			} else {
-				return AsValue(v1.Integer() <= v2.Integer()), nil
 			}
+			return AsValue(v1.Integer() <= v2.Integer()), nil
 		case ">=":
 			if v1.IsFloat() || v2.IsFloat() {
 				return AsValue(v1.Float() >= v2.Float()), nil
-			} else {
-				return AsValue(v1.Integer() >= v2.Integer()), nil
 			}
+			return AsValue(v1.Integer() >= v2.Integer()), nil
 		case "==":
 			return AsValue(v1.EqualValueTo(v2)), nil
 		case ">":
 			if v1.IsFloat() || v2.IsFloat() {
 				return AsValue(v1.Float() > v2.Float()), nil
-			} else {
-				return AsValue(v1.Integer() > v2.Integer()), nil
 			}
+			return AsValue(v1.Integer() > v2.Integer()), nil
 		case "<":
 			if v1.IsFloat() || v2.IsFloat() {
 				return AsValue(v1.Float() < v2.Float()), nil
-			} else {
-				return AsValue(v1.Integer() < v2.Integer()), nil
 			}
+			return AsValue(v1.Integer() < v2.Integer()), nil
 		case "!=", "<>":
 			return AsValue(!v1.EqualValueTo(v2)), nil
 		case "in":
 			return AsValue(v2.Contains(v1)), nil
 		default:
-			panic(fmt.Sprintf("unimplemented: %s", expr.op_token.Val))
+			panic(fmt.Sprintf("unimplemented: %s", expr.opToken.Val))
 		}
 	} else {
 		return v1, nil
@@ -213,7 +209,7 @@ func (expr *simpleExpression) Evaluate(ctx *ExecutionContext) (*Value, *Error) {
 		result = result.Negate()
 	}
 
-	if expr.negative_sign {
+	if expr.negativeSign {
 		if result.IsNumber() {
 			switch {
 			case result.IsFloat():
@@ -233,23 +229,21 @@ func (expr *simpleExpression) Evaluate(ctx *ExecutionContext) (*Value, *Error) {
 		if err != nil {
 			return nil, err
 		}
-		switch expr.op_token.Val {
+		switch expr.opToken.Val {
 		case "+":
 			if result.IsFloat() || t2.IsFloat() {
 				// Result will be a float
 				return AsValue(result.Float() + t2.Float()), nil
-			} else {
-				// Result will be an integer
-				return AsValue(result.Integer() + t2.Integer()), nil
 			}
+			// Result will be an integer
+			return AsValue(result.Integer() + t2.Integer()), nil
 		case "-":
 			if result.IsFloat() || t2.IsFloat() {
 				// Result will be a float
 				return AsValue(result.Float() - t2.Float()), nil
-			} else {
-				// Result will be an integer
-				return AsValue(result.Integer() - t2.Integer()), nil
 			}
+			// Result will be an integer
+			return AsValue(result.Integer() - t2.Integer()), nil
 		default:
 			panic("unimplemented")
 		}
@@ -258,17 +252,17 @@ func (expr *simpleExpression) Evaluate(ctx *ExecutionContext) (*Value, *Error) {
 	return result, nil
 }
 
-func (t *term) Evaluate(ctx *ExecutionContext) (*Value, *Error) {
-	f1, err := t.factor1.Evaluate(ctx)
+func (expr *term) Evaluate(ctx *ExecutionContext) (*Value, *Error) {
+	f1, err := expr.factor1.Evaluate(ctx)
 	if err != nil {
 		return nil, err
 	}
-	if t.factor2 != nil {
-		f2, err := t.factor2.Evaluate(ctx)
+	if expr.factor2 != nil {
+		f2, err := expr.factor2.Evaluate(ctx)
 		if err != nil {
 			return nil, err
 		}
-		switch t.op_token.Val {
+		switch expr.opToken.Val {
 		case "*":
 			if f1.IsFloat() || f2.IsFloat() {
 				// Result will be float
@@ -294,20 +288,19 @@ func (t *term) Evaluate(ctx *ExecutionContext) (*Value, *Error) {
 	}
 }
 
-func (pw *power) Evaluate(ctx *ExecutionContext) (*Value, *Error) {
-	p1, err := pw.power1.Evaluate(ctx)
+func (expr *power) Evaluate(ctx *ExecutionContext) (*Value, *Error) {
+	p1, err := expr.power1.Evaluate(ctx)
 	if err != nil {
 		return nil, err
 	}
-	if pw.power2 != nil {
-		p2, err := pw.power2.Evaluate(ctx)
+	if expr.power2 != nil {
+		p2, err := expr.power2.Evaluate(ctx)
 		if err != nil {
 			return nil, err
 		}
 		return AsValue(math.Pow(p1.Float(), p2.Float())), nil
-	} else {
-		return p1, nil
 	}
+	return p1, nil
 }
 
 func (p *Parser) parseFactor() (IEvaluator, *Error) {
@@ -351,19 +344,19 @@ func (p *Parser) parsePower() (IEvaluator, *Error) {
 }
 
 func (p *Parser) parseTerm() (IEvaluator, *Error) {
-	return_term := new(term)
+	returnTerm := new(term)
 
 	factor1, err := p.parsePower()
 	if err != nil {
 		return nil, err
 	}
-	return_term.factor1 = factor1
+	returnTerm.factor1 = factor1
 
 	for p.PeekOne(TokenSymbol, "*", "/", "%") != nil {
-		if return_term.op_token != nil {
+		if returnTerm.opToken != nil {
 			// Create new sub-term
-			return_term = &term{
-				factor1: return_term,
+			returnTerm = &term{
+				factor1: returnTerm,
 			}
 		}
 
@@ -375,16 +368,16 @@ func (p *Parser) parseTerm() (IEvaluator, *Error) {
 			return nil, err
 		}
 
-		return_term.op_token = op
-		return_term.factor2 = factor2
+		returnTerm.opToken = op
+		returnTerm.factor2 = factor2
 	}
 
-	if return_term.op_token == nil {
+	if returnTerm.opToken == nil {
 		// Shortcut for faster evaluation
-		return return_term.factor1, nil
+		return returnTerm.factor1, nil
 	}
 
-	return return_term, nil
+	return returnTerm, nil
 }
 
 func (p *Parser) parseSimpleExpression() (IEvaluator, *Error) {
@@ -392,7 +385,7 @@ func (p *Parser) parseSimpleExpression() (IEvaluator, *Error) {
 
 	if sign := p.MatchOne(TokenSymbol, "+", "-"); sign != nil {
 		if sign.Val == "-" {
-			expr.negative_sign = true
+			expr.negativeSign = true
 		}
 	}
 
@@ -407,7 +400,7 @@ func (p *Parser) parseSimpleExpression() (IEvaluator, *Error) {
 	expr.term1 = term1
 
 	for p.PeekOne(TokenSymbol, "+", "-") != nil {
-		if expr.op_token != nil {
+		if expr.opToken != nil {
 			// New sub expr
 			expr = &simpleExpression{
 				term1: expr,
@@ -423,10 +416,10 @@ func (p *Parser) parseSimpleExpression() (IEvaluator, *Error) {
 		}
 
 		expr.term2 = term2
-		expr.op_token = op
+		expr.opToken = op
 	}
 
-	if expr.negate == false && expr.negative_sign == false && expr.term2 == nil {
+	if expr.negate == false && expr.negativeSign == false && expr.term2 == nil {
 		// Shortcut for faster evaluation
 		return expr.term1, nil
 	}
@@ -449,14 +442,14 @@ func (p *Parser) parseRelationalExpression() (IEvaluator, *Error) {
 		if err != nil {
 			return nil, err
 		}
-		expr.op_token = t
+		expr.opToken = t
 		expr.expr2 = expr2
 	} else if t := p.MatchOne(TokenKeyword, "in"); t != nil {
 		expr2, err := p.parseSimpleExpression()
 		if err != nil {
 			return nil, err
 		}
-		expr.op_token = t
+		expr.opToken = t
 		expr.expr2 = expr2
 	}
 
@@ -486,7 +479,7 @@ func (p *Parser) ParseExpression() (IEvaluator, *Error) {
 			return nil, err
 		}
 		exp.expr2 = expr2
-		exp.op_token = op
+		exp.opToken = op
 	}
 
 	if exp.expr2 == nil {

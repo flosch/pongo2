@@ -9,7 +9,7 @@ type tagCycleNode struct {
 	position *Token
 	args     []IEvaluator
 	idx      int
-	as_name  string
+	asName   string
 	silent   bool
 }
 
@@ -47,13 +47,13 @@ func (node *tagCycleNode) Execute(ctx *ExecutionContext, writer TemplateWriter) 
 	} else {
 		// Regular call
 
-		cycle_value := &tagCycleValue{
+		cycleValue := &tagCycleValue{
 			node:  node,
 			value: val,
 		}
 
-		if node.as_name != "" {
-			ctx.Private[node.as_name] = cycle_value
+		if node.asName != "" {
+			ctx.Private[node.asName] = cycleValue
 		}
 		if !node.silent {
 			writer.WriteString(val.String())
@@ -65,7 +65,7 @@ func (node *tagCycleNode) Execute(ctx *ExecutionContext, writer TemplateWriter) 
 
 // HINT: We're not supporting the old comma-seperated list of expresions argument-style
 func tagCycleParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, *Error) {
-	cycle_node := &tagCycleNode{
+	cycleNode := &tagCycleNode{
 		position: start,
 	}
 
@@ -74,19 +74,19 @@ func tagCycleParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, *Er
 		if err != nil {
 			return nil, err
 		}
-		cycle_node.args = append(cycle_node.args, node)
+		cycleNode.args = append(cycleNode.args, node)
 
 		if arguments.MatchOne(TokenKeyword, "as") != nil {
 			// as
 
-			name_token := arguments.MatchType(TokenIdentifier)
-			if name_token == nil {
+			nameToken := arguments.MatchType(TokenIdentifier)
+			if nameToken == nil {
 				return nil, arguments.Error("Name (identifier) expected after 'as'.", nil)
 			}
-			cycle_node.as_name = name_token.Val
+			cycleNode.asName = nameToken.Val
 
 			if arguments.MatchOne(TokenIdentifier, "silent") != nil {
-				cycle_node.silent = true
+				cycleNode.silent = true
 			}
 
 			// Now we're finished
@@ -98,7 +98,7 @@ func tagCycleParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, *Er
 		return nil, arguments.Error("Malformed cycle-tag.", nil)
 	}
 
-	return cycle_node, nil
+	return cycleNode, nil
 }
 
 func init() {

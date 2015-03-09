@@ -26,10 +26,10 @@ type IEvaluator interface {
 //
 // (See Token's documentation for more about tokens)
 type Parser struct {
-	name       string
-	idx        int
-	tokens     []*Token
-	last_token *Token
+	name      string
+	idx       int
+	tokens    []*Token
+	lastToken *Token
 
 	// if the parser parses a template document, here will be
 	// a reference to it (needed to access the template through Tags)
@@ -46,7 +46,7 @@ func newParser(name string, tokens []*Token, template *Template) *Parser {
 		template: template,
 	}
 	if len(tokens) > 0 {
-		p.last_token = tokens[len(tokens)-1]
+		p.lastToken = tokens[len(tokens)-1]
 	}
 	return p
 }
@@ -211,19 +211,19 @@ func (p *Parser) Error(msg string, token *Token) *Error {
 func (p *Parser) WrapUntilTag(names ...string) (*NodeWrapper, *Parser, *Error) {
 	wrapper := &NodeWrapper{}
 
-	tagArgs := make([]*Token, 0)
+	var tagArgs []*Token
 
 	for p.Remaining() > 0 {
 		// New tag, check whether we have to stop wrapping here
 		if p.Peek(TokenSymbol, "{%") != nil {
-			tag_ident := p.PeekTypeN(1, TokenIdentifier)
+			tagIdent := p.PeekTypeN(1, TokenIdentifier)
 
-			if tag_ident != nil {
+			if tagIdent != nil {
 				// We've found a (!) end-tag
 
 				found := false
 				for _, n := range names {
-					if tag_ident.Val == n {
+					if tagIdent.Val == n {
 						found = true
 						break
 					}
@@ -237,16 +237,15 @@ func (p *Parser) WrapUntilTag(names ...string) (*NodeWrapper, *Parser, *Error) {
 					for {
 						if p.Match(TokenSymbol, "%}") != nil {
 							// Okay, end the wrapping here
-							wrapper.Endtag = tag_ident.Val
+							wrapper.Endtag = tagIdent.Val
 							return wrapper, newParser(p.template.name, tagArgs, p.template), nil
-						} else {
-							t := p.Current()
-							p.Consume()
-							if t == nil {
-								return nil, nil, p.Error("Unexpected EOF.", p.last_token)
-							}
-							tagArgs = append(tagArgs, t)
 						}
+						t := p.Current()
+						p.Consume()
+						if t == nil {
+							return nil, nil, p.Error("Unexpected EOF.", p.lastToken)
+						}
+						tagArgs = append(tagArgs, t)
 					}
 				}
 			}
@@ -262,5 +261,5 @@ func (p *Parser) WrapUntilTag(names ...string) (*NodeWrapper, *Parser, *Error) {
 	}
 
 	return nil, nil, p.Error(fmt.Sprintf("Unexpected EOF, expected tag %s.", strings.Join(names, " or ")),
-		p.last_token)
+		p.lastToken)
 }

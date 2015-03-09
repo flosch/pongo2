@@ -63,8 +63,8 @@ type lexer struct {
 	line      int
 	col       int
 
-	in_verbatim   bool
-	verbatim_name string
+	inVerbatim   bool
+	verbatimName string
 }
 
 func (t *Token) String() string {
@@ -216,8 +216,8 @@ func (l *lexer) run() {
 	for {
 		// TODO: Support verbatim tag names
 		// https://docs.djangoproject.com/en/dev/ref/templates/builtins/#verbatim
-		if l.in_verbatim {
-			name := l.verbatim_name
+		if l.inVerbatim {
+			name := l.verbatimName
 			if name != "" {
 				name += " "
 			}
@@ -229,20 +229,20 @@ func (l *lexer) run() {
 				l.pos += w
 				l.col += w
 				l.ignore()
-				l.in_verbatim = false
+				l.inVerbatim = false
 			}
 		} else if strings.HasPrefix(l.input[l.pos:], "{% verbatim %}") { // tag
 			if l.pos > l.start {
 				l.emit(TokenHTML)
 			}
-			l.in_verbatim = true
+			l.inVerbatim = true
 			w := len("{% verbatim %}")
 			l.pos += w
 			l.col += w
 			l.ignore()
 		}
 
-		if !l.in_verbatim {
+		if !l.inVerbatim {
 			// Ignore single-line comments {# ... #}
 			if strings.HasPrefix(l.input[l.pos:], "{#") {
 				if l.pos > l.start {
@@ -303,7 +303,7 @@ func (l *lexer) run() {
 		l.emit(TokenHTML)
 	}
 
-	if l.in_verbatim {
+	if l.inVerbatim {
 		l.errorf("verbatim-tag not closed, got EOF.")
 	}
 }
@@ -394,7 +394,7 @@ func (l *lexer) stateNumber() lexerStateFn {
 
 func (l *lexer) stateString() lexerStateFn {
 	l.ignore()
-	l.startcol -= 1 // we're starting the position at the first "
+	l.startcol-- // we're starting the position at the first "
 	for !l.accept(`"`) {
 		switch l.next() {
 		case '\\':
