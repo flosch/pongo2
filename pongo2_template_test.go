@@ -149,8 +149,8 @@ Yep!`,
 		"xss":                "<script>alert(\"uh oh\");</script>",
 		"intmap": map[int]string{
 			1: "one",
-			2: "two",
 			5: "five",
+			2: "two",
 		},
 		"strmap": map[string]string{
 			"abc": "def",

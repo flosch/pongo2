@@ -18,5 +18,20 @@
 reversed
 '55 34 21 13 8 5 3 2 1 1 '
 
-sorted map
+sorted string map
 'aab abc bcd gh ukq zab '
+
+sorted int map
+'1 2 5 '
+
+sorted int list
+'1 22 192 249 581 8271 9999 1828591 '
+
+reversed sorted int list
+'1828591 9999 8271 581 249 192 22 1 '
+
+reversed sorted string map
+'zab ukq gh bcd abc aab '
+
+reversed sorted int map
+'5 2 1 '

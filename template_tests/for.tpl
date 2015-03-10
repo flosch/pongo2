@@ -8,5 +8,20 @@
 reversed
 '{% for item in simple.multiple_item_list reversed %}{{ item }} {% endfor %}'
 
-sorted map
+sorted string map
 '{% for key in simple.strmap sorted %}{{ key }} {% endfor %}'
+
+sorted int map
+'{% for key in simple.intmap sorted %}{{ key }} {% endfor %}'
+
+sorted int list
+'{% for key in simple.unsorted_int_list sorted %}{{ key }} {% endfor %}'
+
+reversed sorted int list
+'{% for key in simple.unsorted_int_list reversed sorted %}{{ key }} {% endfor %}'
+
+reversed sorted string map
+'{% for key in simple.strmap reversed sorted %}{{ key }} {% endfor %}'
+
+reversed sorted int map
+'{% for key in simple.intmap reversed sorted %}{{ key }} {% endfor %}'

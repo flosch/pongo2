@@ -372,11 +372,10 @@ func (v *Value) IterateOrder(fn func(idx, count int, key, value *Value) bool, em
 	case reflect.Map:
 		keys := SortedKeys(v.getResolvedValue().MapKeys())
 		if sorted {
-			sort.Sort(keys)
-
 			if reverse {
-				// TODO(flosch): Handle reverse
-				panic("TODO: handle reverse")
+				sort.Sort(sort.Reverse(keys))
+			} else {
+				sort.Sort(keys)
 			}
 		}
 		keyLen := len(keys)
@@ -391,24 +390,31 @@ func (v *Value) IterateOrder(fn func(idx, count int, key, value *Value) bool, em
 		}
 		return // done
 	case reflect.Array, reflect.Slice:
-		if sorted {
-			// TODO(flosch): Handle sorted
-			panic("TODO: handle sort")
-		}
+		var items ValuesList
 
 		itemCount := v.getResolvedValue().Len()
-		if itemCount > 0 {
+		for i := 0; i < itemCount; i++ {
+			items = append(items, &Value{val: v.getResolvedValue().Index(i)})
+		}
+
+		if sorted {
 			if reverse {
-				for i := itemCount - 1; i >= 0; i-- {
-					if !fn(i, itemCount, &Value{val: v.getResolvedValue().Index(i)}, nil) {
-						return
-					}
-				}
+				sort.Sort(sort.Reverse(items))
 			} else {
-				for i := 0; i < itemCount; i++ {
-					if !fn(i, itemCount, &Value{val: v.getResolvedValue().Index(i)}, nil) {
-						return
-					}
+				sort.Sort(items)
+			}
+		} else {
+			if reverse {
+				for i := 0; i < itemCount/2; i++ {
+					items[i], items[itemCount-1-i] = items[itemCount-1-i], items[i]
+				}
+			}
+		}
+
+		if len(items) > 0 {
+			for idx, item := range items {
+				if !fn(idx, itemCount, item, nil) {
+					return
 				}
 			}
 		} else {
@@ -418,7 +424,7 @@ func (v *Value) IterateOrder(fn func(idx, count int, key, value *Value) bool, em
 	case reflect.String:
 		if sorted {
 			// TODO(flosch): Handle sorted
-			panic("TODO: handle sort")
+			panic("TODO: handle sort for type string")
 		}
 
 		// TODO(flosch): Not utf8-compatible (utf8-decoding neccessary)
@@ -476,6 +482,8 @@ func (sk SortedKeys) Less(i, j int) bool {
 	switch {
 	case vi.IsInteger() && vj.IsInteger():
 		return vi.Integer() < vj.Integer()
+	case vi.IsFloat() && vj.IsFloat():
+		return vi.Float() < vj.Float()
 	default:
 		return vi.String() < vj.String()
 	}
@@ -483,4 +491,27 @@ func (sk SortedKeys) Less(i, j int) bool {
 
 func (sk SortedKeys) Swap(i, j int) {
 	sk[i], sk[j] = sk[j], sk[i]
+}
+
+type ValuesList []*Value
+
+func (vl ValuesList) Len() int {
+	return len(vl)
+}
+
+func (vl ValuesList) Less(i, j int) bool {
+	vi := vl[i]
+	vj := vl[j]
+	switch {
+	case vi.IsInteger() && vj.IsInteger():
+		return vi.Integer() < vj.Integer()
+	case vi.IsFloat() && vj.IsFloat():
+		return vi.Float() < vj.Float()
+	default:
+		return vi.String() < vj.String()
+	}
+}
+
+func (vl ValuesList) Swap(i, j int) {
+	vl[i], vl[j] = vl[j], vl[i]
 }
