@@ -7,3 +7,6 @@
 
 reversed
 '{% for item in simple.multiple_item_list reversed %}{{ item }} {% endfor %}'
+
+sorted map
+'{% for key in simple.strmap sorted %}{{ key }} {% endfor %}'

@@ -5,6 +5,7 @@ type tagForNode struct {
 	value           string // only for maps: for key, value in map
 	objectEvaluator IEvaluator
 	reversed        bool
+	sorted          bool
 
 	bodyWrapper  *NodeWrapper
 	emptyWrapper *NodeWrapper
@@ -77,7 +78,7 @@ func (node *tagForNode) Execute(ctx *ExecutionContext, writer TemplateWriter) (f
 				forError = err
 			}
 		}
-	}, node.reversed)
+	}, node.reversed, node.sorted)
 
 	return nil
 }
@@ -116,6 +117,10 @@ func tagForParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, *Erro
 
 	if arguments.MatchOne(TokenIdentifier, "reversed") != nil {
 		forNode.reversed = true
+	}
+
+	if arguments.MatchOne(TokenIdentifier, "sorted") != nil {
+		forNode.sorted = true
 	}
 
 	if arguments.Remaining() > 0 {

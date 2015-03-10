@@ -3,6 +3,7 @@ package pongo2
 import (
 	"fmt"
 	"reflect"
+	"sort"
 	"strconv"
 	"strings"
 )
@@ -361,16 +362,23 @@ func (v *Value) CanSlice() bool {
 // If the underlying value has no items or is not one of the types above,
 // the empty function (function's second argument) will be called.
 func (v *Value) Iterate(fn func(idx, count int, key, value *Value) bool, empty func()) {
-	v.IterateOrder(fn, empty, false)
+	v.IterateOrder(fn, empty, false, false)
 }
 
 // Like Value.Iterate, but can iterate through an array/slice/string in reverse. Does
 // not affect the iteration through a map because maps don't have any particular order.
-func (v *Value) IterateOrder(fn func(idx, count int, key, value *Value) bool, empty func(), reverse bool) {
+func (v *Value) IterateOrder(fn func(idx, count int, key, value *Value) bool, empty func(), reverse bool, sorted bool) {
 	switch v.getResolvedValue().Kind() {
 	case reflect.Map:
-		// Reverse not needed for maps, since they are not ordered
-		keys := v.getResolvedValue().MapKeys()
+		keys := SortedKeys(v.getResolvedValue().MapKeys())
+		if sorted {
+			sort.Sort(keys)
+
+			if reverse {
+				// TODO(flosch): Handle reverse
+				panic("TODO: handle reverse")
+			}
+		}
 		keyLen := len(keys)
 		for idx, key := range keys {
 			value := v.getResolvedValue().MapIndex(key)
@@ -383,6 +391,11 @@ func (v *Value) IterateOrder(fn func(idx, count int, key, value *Value) bool, em
 		}
 		return // done
 	case reflect.Array, reflect.Slice:
+		if sorted {
+			// TODO(flosch): Handle sorted
+			panic("TODO: handle sort")
+		}
+
 		itemCount := v.getResolvedValue().Len()
 		if itemCount > 0 {
 			if reverse {
@@ -403,7 +416,12 @@ func (v *Value) IterateOrder(fn func(idx, count int, key, value *Value) bool, em
 		}
 		return // done
 	case reflect.String:
-		// TODO: Not utf8-compatible (utf8-decoding neccessary)
+		if sorted {
+			// TODO(flosch): Handle sorted
+			panic("TODO: handle sort")
+		}
+
+		// TODO(flosch): Not utf8-compatible (utf8-decoding neccessary)
 		charCount := v.getResolvedValue().Len()
 		if charCount > 0 {
 			if reverse {
@@ -444,4 +462,25 @@ func (v *Value) EqualValueTo(other *Value) bool {
 		return v.Integer() == other.Integer()
 	}
 	return v.Interface() == other.Interface()
+}
+
+type SortedKeys []reflect.Value
+
+func (sk SortedKeys) Len() int {
+	return len(sk)
+}
+
+func (sk SortedKeys) Less(i, j int) bool {
+	vi := &Value{val: sk[i]}
+	vj := &Value{val: sk[j]}
+	switch {
+	case vi.IsInteger() && vj.IsInteger():
+		return vi.Integer() < vj.Integer()
+	default:
+		return vi.String() < vj.String()
+	}
+}
+
+func (sk SortedKeys) Swap(i, j int) {
+	sk[i], sk[j] = sk[j], sk[i]
 }
