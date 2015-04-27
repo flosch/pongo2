@@ -8,10 +8,6 @@ type tagBlockNode struct {
 	name string
 }
 
-func NewTagBlockNode(name string) tagBlockNode {
-	return tagBlockNode(tagBlockNode{name: name})
-}
-
 func (node *tagBlockNode) getBlockWrapperByName(tpl *Template) *NodeWrapper {
 	var t *NodeWrapper
 	if tpl.child != nil {

@@ -84,7 +84,7 @@ func newTemplate(set *TemplateSet, name string, isTplString bool, tpl string) (*
 	return t, nil
 }
 
-func (tpl *Template) newExecutionContext(context Context) (*ExecutionContext, error) {
+func (tpl *Template) newContextForExecution(context Context) (*Template, *ExecutionContext, error) {
 	// Determine the parent to be executed (for template inheritance)
 	parent := tpl
 	for parent.parent != nil {
@@ -102,14 +102,14 @@ func (tpl *Template) newExecutionContext(context Context) (*ExecutionContext, er
 			// Check for context name syntax
 			err := newContext.checkForValidIdentifiers()
 			if err != nil {
-				return nil, err
+				return parent, nil, err
 			}
 
 			// Check for clashes with macro names
 			for k := range newContext {
 				_, has := tpl.exportedMacros[k]
 				if has {
-					return nil, &Error{
+					return parent, nil, &Error{
 						Filename: tpl.name,
 						Sender:   "execution",
 						ErrorMsg: fmt.Sprintf("Context key name '%s' clashes with macro '%s'.", k, k),
@@ -122,17 +122,17 @@ func (tpl *Template) newExecutionContext(context Context) (*ExecutionContext, er
 	// Create operational context
 	ctx := newExecutionContext(parent, newContext)
 
-	return ctx, nil
+	return parent, ctx, nil
 }
 
 func (tpl *Template) execute(context Context, writer TemplateWriter) error {
-	ctx, err := tpl.newExecutionContext(context)
+	parent, ctx, err := tpl.newContextForExecution(context)
 	if err != nil {
 		return err
 	}
 
 	// Run the selected document
-	if err := tpl.root.Execute(ctx, writer); err != nil {
+	if err := parent.root.Execute(ctx, writer); err != nil {
 		return err
 	}
 
@@ -153,13 +153,12 @@ func (tpl *Template) newBufferAndExecute(context Context) (*bytes.Buffer, error)
 	return buffer, nil
 }
 
-func (tpl *Template) ExecuteBlocks(context Context, blocks []string) (result map[string][]byte, err error) {
-	result = make(map[string][]byte)
-	ctx := new(ExecutionContext)
-	ctx, err = tpl.newExecutionContext(context)
+func (tpl *Template) ExecuteBlocks(context Context, blocks []string) (map[string][]byte, error) {
+	result := make(map[string][]byte)
+	_, ctx, err := tpl.newContextForExecution(context)
 	if err != nil {
 		fmt.Print(err.Error())
-		return
+		return result, err
 	}
 	buffer := bytes.NewBuffer(make([]byte, 0, int(float64(tpl.Size)*1.3)))
 
@@ -169,12 +168,12 @@ func (tpl *Template) ExecuteBlocks(context Context, blocks []string) (result map
 
 		err = blockTag.Execute(ctx, buffer)
 		if err != nil {
-			return
+			return result, err
 		}
 		result[block] = buffer.Bytes()
 		buffer.Reset()
 	}
-	return
+	return result, nil
 }
 
 // Executes the template with the given context and writes to writer (io.Writer)
