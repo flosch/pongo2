@@ -53,7 +53,7 @@ func (c Context) Update(other Context) Context {
 // To create your own execution context within tags, use the
 // NewChildExecutionContext(parent) function.
 type ExecutionContext struct {
-	template *Template
+	Template *Template
 
 	Autoescape bool
 	Public     Context
@@ -72,7 +72,7 @@ func newExecutionContext(tpl *Template, ctx Context) *ExecutionContext {
 	privateCtx["pongo2"] = pongo2MetaContext
 
 	return &ExecutionContext{
-		template: tpl,
+		Template: tpl,
 
 		Public:     ctx,
 		Private:    privateCtx,
@@ -82,7 +82,7 @@ func newExecutionContext(tpl *Template, ctx Context) *ExecutionContext {
 
 func NewChildExecutionContext(parent *ExecutionContext) *ExecutionContext {
 	newctx := &ExecutionContext{
-		template: parent.template,
+		Template: parent.Template,
 
 		Public:     parent.Public,
 		Private:    make(Context),
@@ -97,7 +97,7 @@ func NewChildExecutionContext(parent *ExecutionContext) *ExecutionContext {
 }
 
 func (ctx *ExecutionContext) Error(msg string, token *Token) *Error {
-	filename := ctx.template.name
+	filename := ctx.Template.name
 	var line, col int
 	if token != nil {
 		// No tokens available
@@ -107,7 +107,7 @@ func (ctx *ExecutionContext) Error(msg string, token *Token) *Error {
 		col = token.Col
 	}
 	return &Error{
-		Template: ctx.template,
+		Template: ctx.Template,
 		Filename: filename,
 		Line:     line,
 		Column:   col,
@@ -118,5 +118,5 @@ func (ctx *ExecutionContext) Error(msg string, token *Token) *Error {
 }
 
 func (ctx *ExecutionContext) Logf(format string, args ...interface{}) {
-	ctx.template.set.logf(format, args...)
+	ctx.Template.set.logf(format, args...)
 }

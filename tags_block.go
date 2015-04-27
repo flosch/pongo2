@@ -8,6 +8,10 @@ type tagBlockNode struct {
 	name string
 }
 
+func NewTagBlockNode(name string) tagBlockNode {
+	return tagBlockNode(tagBlockNode{name: name})
+}
+
 func (node *tagBlockNode) getBlockWrapperByName(tpl *Template) *NodeWrapper {
 	var t *NodeWrapper
 	if tpl.child != nil {
@@ -22,7 +26,7 @@ func (node *tagBlockNode) getBlockWrapperByName(tpl *Template) *NodeWrapper {
 }
 
 func (node *tagBlockNode) Execute(ctx *ExecutionContext, writer TemplateWriter) *Error {
-	tpl := ctx.template
+	tpl := ctx.Template
 	if tpl == nil {
 		panic("internal error: tpl == nil")
 	}
