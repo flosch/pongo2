@@ -338,7 +338,7 @@ func TestExecutionErrors(t *testing.T) {
 	}
 }
 
-func TestBlockExecutionErrors(t *testing.T) {
+func TestBlockTemplates(t *testing.T) {
 	debug = true
 
 	matches, err := filepath.Glob("./template_tests/block_render/*.tpl")
@@ -357,7 +357,7 @@ func TestBlockExecutionErrors(t *testing.T) {
 		if rerr != nil {
 			t.Fatalf("Error on ReadFile('%s'): %s", test_filename, rerr.Error())
 		}
-		tpl_out, err := tpl.ExecuteBlocks(tplContext, []string{"content"})
+		tpl_out, err := tpl.ExecuteBlocks(tplContext, []string{"content", "more_content"})
 		if err != nil {
 			t.Fatalf("Error on ExecuteBlocks('%s'): %s", match, err.Error())
 		}
@@ -365,11 +365,15 @@ func TestBlockExecutionErrors(t *testing.T) {
 		if _, ok := tpl_out["content"]; !ok {
 			t.Errorf("Failed: content not in tpl_out for %s", match)
 		}
+		if _, ok := tpl_out["more_content"]; !ok {
+			t.Errorf("Failed: more_content not in tpl_out for %s", match)
+		}
 		test_string := string(test_out[:])
-		if test_string != tpl_out["content"] {
+		joined_string := strings.Join([]string{tpl_out["content"], tpl_out["more_content"]}, "")
+		if test_string != joined_string {
 			t.Logf("BlockTemplate (rendered) '%s': '%s'", match, tpl_out["content"])
 			err_filename := filepath.Base(fmt.Sprintf("%s.error", match))
-			err := ioutil.WriteFile(err_filename, []byte(tpl_out["content"]), 0600)
+			err := ioutil.WriteFile(err_filename, []byte(joined_string), 0600)
 			if err != nil {
 				t.Fatalf(err.Error())
 			}
