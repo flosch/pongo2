@@ -153,12 +153,11 @@ func (tpl *Template) newBufferAndExecute(context Context) (*bytes.Buffer, error)
 	return buffer, nil
 }
 
-func (tpl *Template) ExecuteBlocks(context Context, blocks []string) (map[string][]byte, error) {
-	result := make(map[string][]byte)
+func (tpl *Template) ExecuteBlocks(context Context, blocks []string) (map[string]string, error) {
+	result := make(map[string]string)
 	_, ctx, err := tpl.newContextForExecution(context)
 	if err != nil {
-		fmt.Print(err.Error())
-		return result, err
+		return nil, err
 	}
 	buffer := bytes.NewBuffer(make([]byte, 0, int(float64(tpl.Size)*1.3)))
 
@@ -166,11 +165,11 @@ func (tpl *Template) ExecuteBlocks(context Context, blocks []string) (map[string
 		block := blocks[i]
 		blockTag := tagBlockNode{name: block}
 
-		err = blockTag.Execute(ctx, buffer)
+		err := blockTag.Execute(ctx, buffer)
 		if err != nil {
-			return result, err
+			return nil, err
 		}
-		result[block] = buffer.Bytes()
+		result[block] = buffer.String()
 		buffer.Reset()
 	}
 	return result, nil
