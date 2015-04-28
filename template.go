@@ -30,7 +30,7 @@ type Template struct {
 	isTplString bool
 	name        string
 	tpl         string
-	Size        int
+	size        int
 
 	// Calculation
 	tokens []*Token
@@ -58,7 +58,7 @@ func newTemplate(set *TemplateSet, name string, isTplString bool, tpl string) (*
 		isTplString:    isTplString,
 		name:           name,
 		tpl:            tpl,
-		Size:           len(tpl),
+		size:           len(tpl),
 		blocks:         make(map[string]*NodeWrapper),
 		exportedMacros: make(map[string]*tagMacroNode),
 	}
@@ -146,7 +146,7 @@ func (tpl *Template) newTemplateWriterAndExecute(context Context, writer io.Writ
 func (tpl *Template) newBufferAndExecute(context Context) (*bytes.Buffer, error) {
 	// Create output buffer
 	// We assume that the rendered template will be 30% larger
-	buffer := bytes.NewBuffer(make([]byte, 0, int(float64(tpl.Size)*1.3)))
+	buffer := bytes.NewBuffer(make([]byte, 0, int(float64(tpl.size)*1.3)))
 	if err := tpl.execute(context, buffer); err != nil {
 		return nil, err
 	}
@@ -159,7 +159,7 @@ func (tpl *Template) ExecuteBlocks(context Context, blocks []string) (map[string
 	if err != nil {
 		return nil, err
 	}
-	buffer := bytes.NewBuffer(make([]byte, 0, int(float64(tpl.Size)*1.3)))
+	buffer := bytes.NewBuffer(make([]byte, 0, int(float64(tpl.size)*1.3)))
 
 	for i := 0; i < len(blocks); i++ {
 		block := blocks[i]

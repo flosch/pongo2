@@ -22,7 +22,7 @@ func (node *tagBlockNode) getBlockWrapperByName(tpl *Template) *NodeWrapper {
 }
 
 func (node *tagBlockNode) Execute(ctx *ExecutionContext, writer TemplateWriter) *Error {
-	tpl := ctx.Template
+	tpl := ctx.template
 	if tpl == nil {
 		panic("internal error: tpl == nil")
 	}
