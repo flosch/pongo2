@@ -6,7 +6,7 @@ import (
 	"os"
 )
 
-// This Error type is being used to address an error during lexing, parsing or
+// The Error type is being used to address an error during lexing, parsing or
 // execution. If you want to return an error object (for example in your own
 // tag or filter) fill this object with as much information as you have.
 // Make sure "Sender" is always given (if you're returning an error within
@@ -58,7 +58,7 @@ func (e *Error) Error() string {
 	return s
 }
 
-// Returns the affected line from the original template, if available.
+// RawLine returns the affected line from the original template, if available.
 func (e *Error) RawLine() (line string, available bool) {
 	if e.Line <= 0 || e.Filename == "<string>" {
 		return "", false
@@ -72,7 +72,12 @@ func (e *Error) RawLine() (line string, available bool) {
 	if err != nil {
 		panic(err)
 	}
-	defer file.Close()
+	defer func() {
+		err := file.Close()
+		if err != nil {
+			panic(err)
+		}
+	}()
 
 	scanner := bufio.NewScanner(file)
 	l := 0

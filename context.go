@@ -7,7 +7,7 @@ import (
 
 var reIdentifiers = regexp.MustCompile("^[a-zA-Z0-9_]+$")
 
-// Use this Context type to provide constants, variables, instances or functions to your template.
+// A Context type provides constants, variables, instances or functions to a template.
 //
 // pongo2 automatically provides meta-information or functions through the "pongo2"-key.
 // Currently, context["pongo2"] contains the following keys:
@@ -32,6 +32,7 @@ func (c Context) checkForValidIdentifiers() *Error {
 	return nil
 }
 
+// Update updates this context with the key/value-pairs from another context.
 func (c Context) Update(other Context) Context {
 	for k, v := range other {
 		c[k] = v
@@ -39,6 +40,8 @@ func (c Context) Update(other Context) Context {
 	return c
 }
 
+// ExecutionContext contains all data important for the current rendering state.
+//
 // If you're writing a custom tag, your tag's Execute()-function will
 // have access to the ExecutionContext. This struct stores anything
 // about the current rendering process's Context including

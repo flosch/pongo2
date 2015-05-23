@@ -7,7 +7,6 @@ import (
 type tagImportNode struct {
 	position *Token
 	filename string
-	template *Template
 	macros   map[string]*tagMacroNode // alias/name -> macro instance
 }
 
