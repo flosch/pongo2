@@ -47,7 +47,7 @@ func tagIfParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, *Error
 
 		if wrapper.Endtag == "elif" {
 			// elif can take a condition
-			condition, err := tagArgs.ParseExpression()
+			condition, err = tagArgs.ParseExpression()
 			if err != nil {
 				return nil, err
 			}
