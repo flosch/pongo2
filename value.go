@@ -370,7 +370,7 @@ func (v *Value) Iterate(fn func(idx, count int, key, value *Value) bool, empty f
 func (v *Value) IterateOrder(fn func(idx, count int, key, value *Value) bool, empty func(), reverse bool, sorted bool) {
 	switch v.getResolvedValue().Kind() {
 	case reflect.Map:
-		keys := SortedKeys(v.getResolvedValue().MapKeys())
+		keys := sortedKeys(v.getResolvedValue().MapKeys())
 		if sorted {
 			if reverse {
 				sort.Sort(sort.Reverse(keys))
@@ -390,7 +390,7 @@ func (v *Value) IterateOrder(fn func(idx, count int, key, value *Value) bool, em
 		}
 		return // done
 	case reflect.Array, reflect.Slice:
-		var items ValuesList
+		var items valuesList
 
 		itemCount := v.getResolvedValue().Len()
 		for i := 0; i < itemCount; i++ {
@@ -470,13 +470,13 @@ func (v *Value) EqualValueTo(other *Value) bool {
 	return v.Interface() == other.Interface()
 }
 
-type SortedKeys []reflect.Value
+type sortedKeys []reflect.Value
 
-func (sk SortedKeys) Len() int {
+func (sk sortedKeys) Len() int {
 	return len(sk)
 }
 
-func (sk SortedKeys) Less(i, j int) bool {
+func (sk sortedKeys) Less(i, j int) bool {
 	vi := &Value{val: sk[i]}
 	vj := &Value{val: sk[j]}
 	switch {
@@ -489,17 +489,17 @@ func (sk SortedKeys) Less(i, j int) bool {
 	}
 }
 
-func (sk SortedKeys) Swap(i, j int) {
+func (sk sortedKeys) Swap(i, j int) {
 	sk[i], sk[j] = sk[j], sk[i]
 }
 
-type ValuesList []*Value
+type valuesList []*Value
 
-func (vl ValuesList) Len() int {
+func (vl valuesList) Len() int {
 	return len(vl)
 }
 
-func (vl ValuesList) Less(i, j int) bool {
+func (vl valuesList) Less(i, j int) bool {
 	vi := vl[i]
 	vj := vl[j]
 	switch {
@@ -512,6 +512,6 @@ func (vl ValuesList) Less(i, j int) bool {
 	}
 }
 
-func (vl ValuesList) Swap(i, j int) {
+func (vl valuesList) Swap(i, j int) {
 	vl[i], vl[j] = vl[j], vl[i]
 }
