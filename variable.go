@@ -374,6 +374,13 @@ func (vr *variableResolver) resolve(ctx *ExecutionContext) (*Value, error) {
 				}
 			}
 
+			// Check if any of the values are invalid
+			for _, p := range parameters {
+				if p.Kind() == reflect.Invalid {
+					return nil, fmt.Errorf("Calling a function using an invalid parameter")
+				}
+			}
+
 			// Call it and get first return parameter back
 			rv := current.Call(parameters)[0]
 
