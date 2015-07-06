@@ -9,35 +9,61 @@ import (
 	"sync"
 )
 
+type TemplateSet interface {
+	Debugger
+	// Globals will be provided to all templates created within this template set
+	Globals() Context
+
+	// internal log
+	logf(format string, args ...interface{})
+
+	SetBasePath(basePath string) error
+	FromString(tpl string) (*Template, error)
+	FromPath(path string) (*Template, error)
+	ResolvePath(tpl *Template, path string) (resolvedPath string)
+	RenderTemplateString(s string, ctx Context) string
+	RenderTemplatePath(fn string, ctx Context) string
+}
+
 // Interface describing the Sandbox implementation used for TemplateSet
-type Sandboxer interface {
+type TemplateSandboxer interface {
 
 	// Ban a tag by name
 	BanTag(name string)
 
+	BannedTags() map[string]bool
+
 	// Ban a filter by name
 	BanFilter(name string)
 
+	BannedFilters() map[string]bool
+
 	// Add a directory to the sandbox
-	AddSandboxedDirectory(directory string)
+	AddSandboxDirectory(directory string)
 
 	// List directories in sandbox
 	SandboxedDirectories() []string
 }
 
+// Cache for templates
+type TemplateSetCacher interface {
+
+	// Fetch template from cache, on miss return FromPath
+	FromCache(path string) (*Template, error)
+}
+
 // A template set allows you to create your own group of templates with their own global context (which is shared
 // among all members of the set), their own configuration (like a specific base directory) and their own sandbox.
 // It's useful for a separation of different kind of templates (e. g. web templates vs. mail templates).
-type TemplateSet struct {
+type FileTemplateSet struct {
 	name string
 
-	// Globals will be provided to all templates created within this template set
-	Globals Context
+	globals Context
 
 	// If debug is true (default false), ExecutionContext.Logf() will work and output to STDOUT. Furthermore,
 	// FromCache() won't cache the templates. Make sure to synchronize the access to it in case you're changing this
 	// variable during program execution (and template compilation/execution).
-	Debug bool
+	debug bool
 
 	// Base directory: If you set the base directory (string is non-empty), all filename lookups in tags/filters are
 	// relative to this directory. If it's empty, all lookups are relative to the current filename which is importing.
@@ -71,19 +97,32 @@ type TemplateSet struct {
 
 // Create your own template sets to separate different kind of templates (e. g. web from mail templates) with
 // different globals or other configurations (like base directories).
-func NewSet(name string) *TemplateSet {
-	return &TemplateSet{
+func NewFileSet(name string) TemplateSet {
+	return &FileTemplateSet{
 		name:          name,
-		Globals:       make(Context),
+		debug:         false,
+		globals:       make(Context),
 		bannedTags:    make(map[string]bool),
 		bannedFilters: make(map[string]bool),
 		templateCache: make(map[string]*Template),
 	}
 }
 
+func (set *FileTemplateSet) Globals() Context {
+	return set.globals
+}
+
+func (set *FileTemplateSet) SetDebug(debug bool) {
+	set.debug = debug
+}
+
+func (set FileTemplateSet) Debug() bool {
+	return set.debug
+}
+
 // Use this function to set your template set's base directory. This directory will be used for any relative
 // path in filters, tags and From*-functions to determine your template.
-func (set *TemplateSet) SetBaseDirectory(name string) error {
+func (set *FileTemplateSet) SetBasePath(name string) error {
 	// Make the path absolute
 	if !filepath.IsAbs(name) {
 		abs, err := filepath.Abs(name)
@@ -106,12 +145,12 @@ func (set *TemplateSet) SetBaseDirectory(name string) error {
 	return nil
 }
 
-func (set *TemplateSet) BaseDirectory() string {
+func (set *FileTemplateSet) BaseDirectory() string {
 	return set.baseDirectory
 }
 
 // Ban a specific tag for this template set. See more in the documentation for TemplateSet.
-func (set *TemplateSet) BanTag(name string) {
+func (set *FileTemplateSet) BanTag(name string) {
 	_, has := tags[name]
 	if !has {
 		panic(fmt.Sprintf("Tag '%s' not found.", name))
@@ -126,8 +165,12 @@ func (set *TemplateSet) BanTag(name string) {
 	set.bannedTags[name] = true
 }
 
+func (set *FileTemplateSet) BannedTags() map[string]bool {
+	return set.bannedTags
+}
+
 // Ban a specific filter for this template set. See more in the documentation for TemplateSet.
-func (set *TemplateSet) BanFilter(name string) {
+func (set *FileTemplateSet) BanFilter(name string) {
 	_, has := filters[name]
 	if !has {
 		panic(fmt.Sprintf("Filter '%s' not found.", name))
@@ -142,6 +185,10 @@ func (set *TemplateSet) BanFilter(name string) {
 	set.bannedFilters[name] = true
 }
 
+func (set *FileTemplateSet) BannedFilters() map[string]bool {
+	return set.bannedFilters
+}
+
 // FromCache() is a convenient method to cache templates. It is thread-safe
 // and will only compile the template associated with a filename once.
 // If TemplateSet.Debug is true (for example during development phase),
@@ -149,26 +196,26 @@ func (set *TemplateSet) BanFilter(name string) {
 // call (to make changes to a template live instantaneously).
 // Like FromFile(), FromCache() takes a relative path to a set base directory.
 // Sandbox restrictions apply (if given).
-func (set *TemplateSet) FromCache(filename string) (*Template, error) {
-	if set.Debug {
+func (set *FileTemplateSet) FromCache(path string) (*Template, error) {
+	if set.debug {
 		// Recompile on any request
-		return set.FromFile(filename)
+		return set.FromPath(path)
 	}
 	// Cache the template
-	cleanedFilename := set.resolveFilename(nil, filename)
+	cleanedpath := set.ResolvePath(nil, path)
 
 	set.templateCacheMutex.Lock()
 	defer set.templateCacheMutex.Unlock()
 
-	tpl, has := set.templateCache[cleanedFilename]
+	tpl, has := set.templateCache[cleanedpath]
 
 	// Cache miss
 	if !has {
-		tpl, err := set.FromFile(cleanedFilename)
+		tpl, err := set.FromPath(cleanedpath)
 		if err != nil {
 			return nil, err
 		}
-		set.templateCache[cleanedFilename] = tpl
+		set.templateCache[cleanedpath] = tpl
 		return tpl, nil
 	}
 
@@ -177,7 +224,7 @@ func (set *TemplateSet) FromCache(filename string) (*Template, error) {
 }
 
 // FromString loads a template from string and returns a Template instance.
-func (set *TemplateSet) FromString(tpl string) (*Template, error) {
+func (set *FileTemplateSet) FromString(tpl string) (*Template, error) {
 	set.firstTemplateCreated = true
 
 	return newTemplateString(set, tpl)
@@ -187,10 +234,10 @@ func (set *TemplateSet) FromString(tpl string) (*Template, error) {
 // If a base directory is set, the filename must be either relative to it
 // or be an absolute path. Sandbox restrictions (SandboxDirectories) apply
 // if given.
-func (set *TemplateSet) FromFile(filename string) (*Template, error) {
+func (set *FileTemplateSet) FromPath(filename string) (*Template, error) {
 	set.firstTemplateCreated = true
 
-	buf, err := ioutil.ReadFile(set.resolveFilename(nil, filename))
+	buf, err := ioutil.ReadFile(set.ResolvePath(nil, filename))
 	if err != nil {
 		return nil, &Error{
 			Filename: filename,
@@ -203,7 +250,7 @@ func (set *TemplateSet) FromFile(filename string) (*Template, error) {
 
 // Shortcut; renders a template string directly. Panics when providing a
 // malformed template or an error occurs during execution.
-func (set *TemplateSet) RenderTemplateString(s string, ctx Context) string {
+func (set *FileTemplateSet) RenderTemplateString(s string, ctx Context) string {
 	set.firstTemplateCreated = true
 
 	tpl := Must(set.FromString(s))
@@ -216,10 +263,10 @@ func (set *TemplateSet) RenderTemplateString(s string, ctx Context) string {
 
 // Shortcut; renders a template file directly. Panics when providing a
 // malformed template or an error occurs during execution.
-func (set *TemplateSet) RenderTemplateFile(fn string, ctx Context) string {
+func (set *FileTemplateSet) RenderTemplatePath(fn string, ctx Context) string {
 	set.firstTemplateCreated = true
 
-	tpl := Must(set.FromFile(fn))
+	tpl := Must(set.FromPath(fn))
 	result, err := tpl.Execute(ctx)
 	if err != nil {
 		panic(err)
@@ -227,8 +274,8 @@ func (set *TemplateSet) RenderTemplateFile(fn string, ctx Context) string {
 	return result
 }
 
-func (set *TemplateSet) logf(format string, args ...interface{}) {
-	if set.Debug {
+func (set *FileTemplateSet) logf(format string, args ...interface{}) {
+	if set.debug {
 		logger.Printf(fmt.Sprintf("[template set: %s] %s", set.name, format), args...)
 	}
 }
@@ -236,7 +283,7 @@ func (set *TemplateSet) logf(format string, args ...interface{}) {
 // Resolves a filename relative to the base directory. Absolute paths are allowed.
 // If sandbox restrictions are given (SandboxDirectories), they will be respected and checked.
 // On sandbox restriction violation, resolveFilename() panics.
-func (set *TemplateSet) resolveFilename(tpl *Template, filename string) (resolvedPath string) {
+func (set *FileTemplateSet) ResolvePath(tpl *Template, path string) (resolvedPath string) {
 	if len(set.SandboxDirectories()) > 0 {
 		defer func() {
 			// Remove any ".." or other crap
@@ -267,28 +314,28 @@ func (set *TemplateSet) resolveFilename(tpl *Template, filename string) (resolve
 		}()
 	}
 
-	if filepath.IsAbs(filename) {
-		return filename
+	if filepath.IsAbs(path) {
+		return path
 	}
 
 	if set.baseDirectory == "" {
 		if tpl != nil {
 			if tpl.isTplString {
-				return filename
+				return path
 			}
 			base := filepath.Dir(tpl.name)
-			return filepath.Join(base, filename)
+			return filepath.Join(base, path)
 		}
-		return filename
+		return path
 	}
-	return filepath.Join(set.baseDirectory, filename)
+	return filepath.Join(set.baseDirectory, path)
 }
 
-func (set *TemplateSet) SandboxDirectories() []string {
+func (set *FileTemplateSet) SandboxDirectories() []string {
 	return set.sandboxDirectories
 }
 
-func (set *TemplateSet) AddSandboxDirectory(name string) {
+func (set *FileTemplateSet) AddSandboxDirectory(name string) {
 	set.sandboxDirectories = append(set.sandboxDirectories, name)
 }
 
@@ -304,15 +351,5 @@ var (
 	logger = log.New(os.Stdout, "[pongo2] ", log.LstdFlags)
 
 	// Creating a default set
-	DefaultSet = NewSet("default")
-
-	// Methods on the default set
-	FromString           = DefaultSet.FromString
-	FromFile             = DefaultSet.FromFile
-	FromCache            = DefaultSet.FromCache
-	RenderTemplateString = DefaultSet.RenderTemplateString
-	RenderTemplateFile   = DefaultSet.RenderTemplateFile
-
-	// Globals for the default set
-	Globals = DefaultSet.Globals
+	DefaultSet = NewFileSet("default")
 )

@@ -24,7 +24,7 @@ func (tw *templateWriter) Write(b []byte) (int, error) {
 }
 
 type Template struct {
-	set *TemplateSet
+	set TemplateSet
 
 	// Input
 	isTplString bool
@@ -47,11 +47,11 @@ type Template struct {
 	root *nodeDocument
 }
 
-func newTemplateString(set *TemplateSet, tpl string) (*Template, error) {
+func newTemplateString(set TemplateSet, tpl string) (*Template, error) {
 	return newTemplate(set, "<string>", true, tpl)
 }
 
-func newTemplate(set *TemplateSet, name string, isTplString bool, tpl string) (*Template, error) {
+func newTemplate(set TemplateSet, name string, isTplString bool, tpl string) (*Template, error) {
 	// Create the template
 	t := &Template{
 		set:            set,
@@ -93,7 +93,7 @@ func (tpl *Template) execute(context Context, writer TemplateWriter) error {
 
 	// Create context if none is given
 	newContext := make(Context)
-	newContext.Update(tpl.set.Globals)
+	newContext.Update(tpl.set.Globals())
 
 	if context != nil {
 		newContext.Update(context)
