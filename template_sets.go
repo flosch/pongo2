@@ -9,6 +9,22 @@ import (
 	"sync"
 )
 
+// Interface describing the Sandbox implementation used for TemplateSet
+type Sandboxer interface {
+
+	// Ban a tag by name
+	BanTag(name string)
+
+	// Ban a filter by name
+	BanFilter(name string)
+
+	// Add a directory to the sandbox
+	AddSandboxedDirectory(directory string)
+
+	// List directories in sandbox
+	SandboxedDirectories() []string
+}
+
 // A template set allows you to create your own group of templates with their own global context (which is shared
 // among all members of the set), their own configuration (like a specific base directory) and their own sandbox.
 // It's useful for a separation of different kind of templates (e. g. web templates vs. mail templates).
@@ -43,7 +59,7 @@ type TemplateSet struct {
 	// SandboxDirectories can be changed at runtime. Please synchronize the access to it if you need to change it
 	// after you've added your first template to the set. You *must* use this match pattern for your directories:
 	// http://golang.org/pkg/path/filepath/#Match
-	SandboxDirectories   []string
+	sandboxDirectories   []string
 	firstTemplateCreated bool
 	bannedTags           map[string]bool
 	bannedFilters        map[string]bool
@@ -221,7 +237,7 @@ func (set *TemplateSet) logf(format string, args ...interface{}) {
 // If sandbox restrictions are given (SandboxDirectories), they will be respected and checked.
 // On sandbox restriction violation, resolveFilename() panics.
 func (set *TemplateSet) resolveFilename(tpl *Template, filename string) (resolvedPath string) {
-	if len(set.SandboxDirectories) > 0 {
+	if len(set.SandboxDirectories()) > 0 {
 		defer func() {
 			// Remove any ".." or other crap
 			resolvedPath = filepath.Clean(resolvedPath)
@@ -234,7 +250,7 @@ func (set *TemplateSet) resolveFilename(tpl *Template, filename string) (resolve
 			resolvedPath = absPath
 
 			// Check against the sandbox directories (once one pattern matches, we're done and can allow it)
-			for _, pattern := range set.SandboxDirectories {
+			for _, pattern := range set.SandboxDirectories() {
 				matched, err := filepath.Match(pattern, resolvedPath)
 				if err != nil {
 					panic("Wrong sandbox directory match pattern (see http://golang.org/pkg/path/filepath/#Match).")
@@ -266,6 +282,14 @@ func (set *TemplateSet) resolveFilename(tpl *Template, filename string) (resolve
 		return filename
 	}
 	return filepath.Join(set.baseDirectory, filename)
+}
+
+func (set *TemplateSet) SandboxDirectories() []string {
+	return set.sandboxDirectories
+}
+
+func (set *TemplateSet) AddSandboxDirectory(name string) {
+	set.sandboxDirectories = append(set.sandboxDirectories, name)
 }
 
 // Logging function (internally used)

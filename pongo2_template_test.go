@@ -89,22 +89,22 @@ func init() {
 	if err != nil {
 		panic(err)
 	}
-	DefaultSet.SandboxDirectories = append(DefaultSet.SandboxDirectories, absPath)
+	DefaultSet.AddSandboxDirectory(absPath)
 
 	absPath, err = filepath.Abs("./template_tests/*/*")
 	if err != nil {
 		panic(err)
 	}
-	DefaultSet.SandboxDirectories = append(DefaultSet.SandboxDirectories, absPath)
+	DefaultSet.AddSandboxDirectory(absPath)
 
 	absPath, err = filepath.Abs("./template_tests/*/*/*")
 	if err != nil {
 		panic(err)
 	}
-	DefaultSet.SandboxDirectories = append(DefaultSet.SandboxDirectories, absPath)
+	DefaultSet.AddSandboxDirectory(absPath)
 
 	// Allow pongo2 temp files
-	DefaultSet.SandboxDirectories = append(DefaultSet.SandboxDirectories, "/tmp/pongo2_*")
+	DefaultSet.AddSandboxDirectory(absPath)
 
 	f, err := ioutil.TempFile("/tmp/", "pongo2_")
 	if err != nil {
