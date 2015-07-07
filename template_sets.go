@@ -42,7 +42,7 @@ type TemplateSandboxer interface {
 	AddSandboxDirectory(directory string)
 
 	// List directories in sandbox
-	SandboxedDirectories() []string
+	SandboxDirectories() []string
 }
 
 // Cache for templates
