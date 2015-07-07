@@ -74,44 +74,50 @@ func BannedFilterFn(in *Value, params *Value) (*Value, *Error) {
 }
 
 func init() {
-	DefaultSet.Debug = true
+	//TODO add Debug support back in via interface
+	//DefaultSet.Debug = true
 
 	RegisterFilter("banned_filter", BannedFilterFn)
 	RegisterFilter("unbanned_filter", BannedFilterFn)
 	RegisterTag("banned_tag", tagSandboxDemoTagParser)
 	RegisterTag("unbanned_tag", tagSandboxDemoTagParser)
 
-	DefaultSet.BanFilter("banned_filter")
-	DefaultSet.BanTag("banned_tag")
+	if sandboxed, ok := DefaultSet.(TemplateSandboxer); ok == true {
+		sandboxed.BanFilter("banned_filter")
+		sandboxed.BanTag("banned_tag")
 
-	// Allow different kind of levels inside template_tests/
-	absPath, err := filepath.Abs("./template_tests/*")
-	if err != nil {
-		panic(err)
+		// Allow different kind of levels inside template_tests/
+		absPath, err := filepath.Abs("./template_tests/*")
+		if err != nil {
+			panic(err)
+		}
+		sandboxed.AddSandboxDirectory(absPath)
+
+		absPath, err = filepath.Abs("./template_tests/*/*")
+		if err != nil {
+			panic(err)
+		}
+		sandboxed.AddSandboxDirectory(absPath)
+
+		absPath, err = filepath.Abs("./template_tests/*/*/*")
+		if err != nil {
+			panic(err)
+		}
+		sandboxed.AddSandboxDirectory(absPath)
+
+		// Allow pongo2 temp files
+		sandboxed.AddSandboxDirectory(absPath)
+
+		f, err := ioutil.TempFile("/tmp/", "pongo2_")
+		if err != nil {
+			panic("cannot write to /tmp/")
+		}
+		f.Write([]byte("Hello from pongo2"))
+		DefaultSet.Globals()["temp_file"] = f.Name()
+		sandboxed.AddSandboxDirectory("/tmp/pongo2_*")
 	}
-	DefaultSet.SandboxDirectories = append(DefaultSet.SandboxDirectories, absPath)
 
-	absPath, err = filepath.Abs("./template_tests/*/*")
-	if err != nil {
-		panic(err)
-	}
-	DefaultSet.SandboxDirectories = append(DefaultSet.SandboxDirectories, absPath)
-
-	absPath, err = filepath.Abs("./template_tests/*/*/*")
-	if err != nil {
-		panic(err)
-	}
-	DefaultSet.SandboxDirectories = append(DefaultSet.SandboxDirectories, absPath)
-
-	// Allow pongo2 temp files
-	DefaultSet.SandboxDirectories = append(DefaultSet.SandboxDirectories, "/tmp/pongo2_*")
-
-	f, err := ioutil.TempFile("/tmp/", "pongo2_")
-	if err != nil {
-		panic("cannot write to /tmp/")
-	}
-	f.Write([]byte("Hello from pongo2"))
-	DefaultSet.Globals["temp_file"] = f.Name()
+	// Alternate TemplateImplementation
 }
 
 /*
@@ -251,7 +257,7 @@ func TestTemplates(t *testing.T) {
 	debug = true
 
 	// Add a global to the default set
-	Globals["this_is_a_global_variable"] = "this is a global text"
+	DefaultSet.Globals()["this_is_a_global_variable"] = "this is a global text"
 
 	matches, err := filepath.Glob("./template_tests/*.tpl")
 	if err != nil {
@@ -259,7 +265,7 @@ func TestTemplates(t *testing.T) {
 	}
 	for idx, match := range matches {
 		t.Logf("[Template %3d] Testing '%s'", idx+1, match)
-		tpl, err := FromFile(match)
+		tpl, err := DefaultSet.FromPath(match)
 		if err != nil {
 			t.Fatalf("Error on FromFile('%s'): %s", match, err.Error())
 		}
@@ -318,7 +324,7 @@ func TestExecutionErrors(t *testing.T) {
 					match, idx+1)
 			}
 
-			tpl, err := FromString(test)
+			tpl, err := DefaultSet.FromString(test)
 			if err != nil {
 				t.Fatalf("Error on FromString('%s'): %s", test, err.Error())
 			}
@@ -371,7 +377,7 @@ func TestCompilationErrors(t *testing.T) {
 					match, idx+1)
 			}
 
-			_, err = FromString(test)
+			_, err = DefaultSet.FromString(test)
 			if err == nil {
 				t.Fatalf("[%s | Line %d] Expected error for (got none): %s", match, idx+1, tests[idx])
 			}
@@ -387,9 +393,9 @@ func TestCompilationErrors(t *testing.T) {
 func TestBaseDirectory(t *testing.T) {
 	mustStr := "Hello from template_tests/base_dir_test/"
 
-	s := NewSet("test set with base directory")
-	s.Globals["base_directory"] = "template_tests/base_dir_test/"
-	if err := s.SetBaseDirectory(s.Globals["base_directory"].(string)); err != nil {
+	s := NewFileSet("test set with base directory")
+	s.Globals()["base_directory"] = "template_tests/base_dir_test/"
+	if err := s.SetBasePath(s.Globals()["base_directory"].(string)); err != nil {
 		t.Fatal(err)
 	}
 
@@ -400,7 +406,7 @@ func TestBaseDirectory(t *testing.T) {
 	for _, match := range matches {
 		match = strings.Replace(match, "template_tests/base_dir_test/", "", -1)
 
-		tpl, err := s.FromFile(match)
+		tpl, err := s.FromPath(match)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -415,9 +421,10 @@ func TestBaseDirectory(t *testing.T) {
 }
 
 func BenchmarkCache(b *testing.B) {
-	cache_set := NewSet("cache set")
+	cache_set := NewFileSet("cache set")
+	template_set_cache := cache_set.(TemplateSetCacher)
 	for i := 0; i < b.N; i++ {
-		tpl, err := cache_set.FromCache("template_tests/complex.tpl")
+		tpl, err := template_set_cache.FromCache("template_tests/complex.tpl")
 		if err != nil {
 			b.Fatal(err)
 		}
@@ -429,10 +436,10 @@ func BenchmarkCache(b *testing.B) {
 }
 
 func BenchmarkCacheDebugOn(b *testing.B) {
-	cache_debug_set := NewSet("cache set")
-	cache_debug_set.Debug = true
+	cache_debug_set := NewFileSet("cache set")
+	cache_debug_set.SetDebug(true)
 	for i := 0; i < b.N; i++ {
-		tpl, err := cache_debug_set.FromFile("template_tests/complex.tpl")
+		tpl, err := cache_debug_set.FromPath("template_tests/complex.tpl")
 		if err != nil {
 			b.Fatal(err)
 		}
@@ -444,7 +451,7 @@ func BenchmarkCacheDebugOn(b *testing.B) {
 }
 
 func BenchmarkExecuteComplexWithSandboxActive(b *testing.B) {
-	tpl, err := FromFile("template_tests/complex.tpl")
+	tpl, err := DefaultSet.FromPath("template_tests/complex.tpl")
 	if err != nil {
 		b.Fatal(err)
 	}
@@ -465,7 +472,7 @@ func BenchmarkCompileAndExecuteComplexWithSandboxActive(b *testing.B) {
 	preloadedTpl := string(buf)
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		tpl, err := FromString(preloadedTpl)
+		tpl, err := DefaultSet.FromString(preloadedTpl)
 		if err != nil {
 			b.Fatal(err)
 		}
@@ -478,7 +485,7 @@ func BenchmarkCompileAndExecuteComplexWithSandboxActive(b *testing.B) {
 }
 
 func BenchmarkParallelExecuteComplexWithSandboxActive(b *testing.B) {
-	tpl, err := FromFile("template_tests/complex.tpl")
+	tpl, err := DefaultSet.FromPath("template_tests/complex.tpl")
 	if err != nil {
 		b.Fatal(err)
 	}
@@ -494,8 +501,8 @@ func BenchmarkParallelExecuteComplexWithSandboxActive(b *testing.B) {
 }
 
 func BenchmarkExecuteComplexWithoutSandbox(b *testing.B) {
-	s := NewSet("set without sandbox")
-	tpl, err := s.FromFile("template_tests/complex.tpl")
+	s := NewFileSet("set without sandbox")
+	tpl, err := s.FromPath("template_tests/complex.tpl")
 	if err != nil {
 		b.Fatal(err)
 	}
@@ -515,7 +522,7 @@ func BenchmarkCompileAndExecuteComplexWithoutSandbox(b *testing.B) {
 	}
 	preloadedTpl := string(buf)
 
-	s := NewSet("set without sandbox")
+	s := NewFileSet("set without sandbox")
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -532,8 +539,8 @@ func BenchmarkCompileAndExecuteComplexWithoutSandbox(b *testing.B) {
 }
 
 func BenchmarkParallelExecuteComplexWithoutSandbox(b *testing.B) {
-	s := NewSet("set without sandbox")
-	tpl, err := s.FromFile("template_tests/complex.tpl")
+	s := NewFileSet("set without sandbox")
+	tpl, err := s.FromPath("template_tests/complex.tpl")
 	if err != nil {
 		b.Fatal(err)
 	}
