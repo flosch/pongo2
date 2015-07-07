@@ -107,14 +107,15 @@ func init() {
 
 		// Allow pongo2 temp files
 		sandboxed.AddSandboxDirectory(absPath)
-	}
 
-	f, err := ioutil.TempFile("/tmp/", "pongo2_")
-	if err != nil {
-		panic("cannot write to /tmp/")
+		f, err := ioutil.TempFile("/tmp/", "pongo2_")
+		if err != nil {
+			panic("cannot write to /tmp/")
+		}
+		f.Write([]byte("Hello from pongo2"))
+		DefaultSet.Globals()["temp_file"] = f.Name()
+		sandboxed.AddSandboxDirectory("/tmp/pongo2_*")
 	}
-	f.Write([]byte("Hello from pongo2"))
-	DefaultSet.Globals()["temp_file"] = f.Name()
 
 	// Alternate TemplateImplementation
 }
