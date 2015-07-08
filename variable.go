@@ -261,7 +261,11 @@ func (vr *variableResolver) resolve(ctx *ExecutionContext) (*Value, error) {
 					// * slices/arrays/strings
 					switch current.Kind() {
 					case reflect.String, reflect.Array, reflect.Slice:
-						current = current.Index(part.i)
+						if current.Len() > part.i {
+							current = current.Index(part.i)
+						} else {
+							return nil, fmt.Errorf("Index out of range: %d (variable %s)", part.i, vr.String())
+						}
 					default:
 						return nil, fmt.Errorf("Can't access an index on type %s (variable %s)",
 							current.Kind().String(), vr.String())
