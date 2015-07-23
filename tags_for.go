@@ -80,7 +80,7 @@ func (node *tagForNode) Execute(ctx *ExecutionContext, writer TemplateWriter) (f
 		}
 	}, node.reversed, node.sorted)
 
-	return nil
+	return forError
 }
 
 func tagForParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, *Error) {
