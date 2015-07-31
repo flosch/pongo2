@@ -10,14 +10,21 @@ import (
 	"sync"
 )
 
+// TemplateLoader allows to implement a virtual file system.
 type TemplateLoader interface {
+	// Abs calculates the path to a given template. Whenever a path must be resolved
+	// due to an import from another template, the base equals the parent template's path.
 	Abs(base, name string) string
+
+	// Get returns an io.Reader where the template's content can be read from.
 	Get(path string) (io.Reader, error)
 }
 
-// A template set allows you to create your own group of templates with their own global context (which is shared
-// among all members of the set), their own configuration (like a specific base directory) and their own sandbox.
-// It's useful for a separation of different kind of templates (e. g. web templates vs. mail templates).
+// TemplateSet allows you to create your own group of templates with their own
+// global context (which is shared among all members of the set) and their own
+// configuration.
+// It's useful for a separation of different kind of templates
+// (e. g. web templates vs. mail templates).
 type TemplateSet struct {
 	name   string
 	loader TemplateLoader
@@ -25,23 +32,18 @@ type TemplateSet struct {
 	// Globals will be provided to all templates created within this template set
 	Globals Context
 
-	// If debug is true (default false), ExecutionContext.Logf() will work and output to STDOUT. Furthermore,
-	// FromCache() won't cache the templates. Make sure to synchronize the access to it in case you're changing this
+	// If debug is true (default false), ExecutionContext.Logf() will work and output
+	// to STDOUT. Furthermore, FromCache() won't cache the templates.
+	// Make sure to synchronize the access to it in case you're changing this
 	// variable during program execution (and template compilation/execution).
 	Debug bool
 
 	// Sandbox features
-	// - Limit access to directories (using SandboxDirectories)
 	// - Disallow access to specific tags and/or filters (using BanTag() and BanFilter())
 	//
-	// You can limit file accesses (for all tags/filters which are using pongo2's file resolver technique)
-	// to these sandbox directories. All default pongo2 filters/tags are respecting these restrictions.
-	// For example, if you only have your base directory in the list, a {% ssi "/etc/passwd" %} will not work.
-	// No items in SandboxDirectories means no restrictions at all.
-	//
-	// For efficiency reasons you can ban tags/filters only *before* you have added your first
-	// template to the set (restrictions are statically checked). After you added one, it's not possible anymore
-	// (for your personal security).
+	// For efficiency reasons you can ban tags/filters only *before* you have
+	// added your first template to the set (restrictions are statically checked).
+	// After you added one, it's not possible anymore (for your personal security).
 	firstTemplateCreated bool
 	bannedTags           map[string]bool
 	bannedFilters        map[string]bool
@@ -51,8 +53,9 @@ type TemplateSet struct {
 	templateCacheMutex sync.Mutex
 }
 
-// Create your own template sets to separate different kind of templates (e. g. web from mail templates) with
-// different globals or other configurations (like base directories).
+// NewSet can be used to create sets with different kind of templates
+// (e. g. web from mail templates), with different globals or
+// other configurations.
 func NewSet(name string, loader TemplateLoader) *TemplateSet {
 	return &TemplateSet{
 		name:          name,
@@ -111,13 +114,11 @@ func (set *TemplateSet) BanFilter(name string) error {
 	return nil
 }
 
-// FromCache() is a convenient method to cache templates. It is thread-safe
+// FromCache is a convenient method to cache templates. It is thread-safe
 // and will only compile the template associated with a filename once.
 // If TemplateSet.Debug is true (for example during development phase),
 // FromCache() will not cache the template and instead recompile it on any
 // call (to make changes to a template live instantaneously).
-// Like FromFile(), FromCache() takes a relative path to a set base directory.
-// Sandbox restrictions apply (if given).
 func (set *TemplateSet) FromCache(filename string) (*Template, error) {
 	if set.Debug {
 		// Recompile on any request
@@ -153,9 +154,6 @@ func (set *TemplateSet) FromString(tpl string) (*Template, error) {
 }
 
 // FromFile loads a template from a filename and returns a Template instance.
-// If a base directory is set, the filename must be either relative to it
-// or be an absolute path. Sandbox restrictions (SandboxDirectories) apply
-// if given.
 func (set *TemplateSet) FromFile(filename string) (*Template, error) {
 	set.firstTemplateCreated = true
 
@@ -222,9 +220,12 @@ var (
 	debug  bool // internal debugging
 	logger = log.New(os.Stdout, "[pongo2] ", log.LstdFlags|log.Lshortfile)
 
-	// Creating a default set
+	// DefaultLoader allows the default un-sandboxed access to the local file
+	// system and is being used by the DefaultSet.
 	DefaultLoader = MustNewLocalFileSystemLoader("")
-	DefaultSet    = NewSet("default", DefaultLoader)
+
+	// DefaultSet is a set created for you for convinience reasons.
+	DefaultSet = NewSet("default", DefaultLoader)
 
 	// Methods on the default set
 	FromString           = DefaultSet.FromString

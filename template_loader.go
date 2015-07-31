@@ -32,8 +32,9 @@ func NewLocalFileSystemLoader(baseDir string) (*LocalFilesystemLoader, error) {
 	return fs, nil
 }
 
-// Use this function to set your template set's base directory. This directory will be used for any relative
-// path in filters, tags and From*-functions to determine your template.
+// Use this function to set your template's base directory. This directory will
+// be used for any relative path in filters, tags and From*-functions to determine
+// your template.
 func (fs *LocalFilesystemLoader) SetBaseDir(path string) error {
 	// Make the path absolute
 	if !filepath.IsAbs(path) {
@@ -65,10 +66,11 @@ func (fs *LocalFilesystemLoader) Get(path string) (io.Reader, error) {
 	return bytes.NewReader(buf), nil
 }
 
-// Resolves a filename relative to the base directory. Absolute paths are allowed.
-// If sandbox restrictions are given (SandboxDirectories), they will be respected and checked.
-// On sandbox restriction violation, resolveFilename() panics.
-
+// Abs resolves a filename relative to the base directory. Absolute paths are allowed.
+// When there's no base dir set, the absolute path to the filename
+// will be calculated based on either the provided base directory (which
+// might be a path of a template which includes another template) or
+// the current working directory.
 func (fs *LocalFilesystemLoader) Abs(base, name string) string {
 	if filepath.IsAbs(name) {
 		return name
@@ -92,10 +94,12 @@ func (fs *LocalFilesystemLoader) Abs(base, name string) string {
 	return filepath.Join(fs.baseDir, name)
 }
 
+// SandboxedFilesystemLoader is still WIP.
 type SandboxedFilesystemLoader struct {
 	*LocalFilesystemLoader
 }
 
+// NewSandboxedFilesystemLoader creates a new sandboxed local file system instance.
 func NewSandboxedFilesystemLoader(baseDir string) (*SandboxedFilesystemLoader, error) {
 	fs, err := NewLocalFileSystemLoader(baseDir)
 	if err != nil {
