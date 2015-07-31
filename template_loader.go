@@ -1,8 +1,11 @@
 package pongo2
 
 import (
+	"bytes"
 	"fmt"
 	"io"
+	"io/ioutil"
+	"log"
 	"os"
 	"path/filepath"
 )
@@ -11,86 +14,96 @@ type LocalFilesystemLoader struct {
 	baseDir string
 }
 
-func NewLocalFileSystemLoader(baseDir string) *LocalFilesystemLoader {
-	return &LocalFilesystemLoader{
-		baseDir: baseDir,
+func MustNewLocalFileSystemLoader(baseDir string) *LocalFilesystemLoader {
+	fs, err := NewLocalFileSystemLoader(baseDir)
+	if err != nil {
+		log.Panic(err)
 	}
+	return fs
+}
+
+func NewLocalFileSystemLoader(baseDir string) (*LocalFilesystemLoader, error) {
+	fs := &LocalFilesystemLoader{}
+	if baseDir != "" {
+		if err := fs.SetBaseDir(baseDir); err != nil {
+			return nil, err
+		}
+	}
+	return fs, nil
 }
 
 // Use this function to set your template set's base directory. This directory will be used for any relative
 // path in filters, tags and From*-functions to determine your template.
-func (fs *LocalFilesystemLoader) SetBaseDirectory(name string) error {
+func (fs *LocalFilesystemLoader) SetBaseDir(path string) error {
 	// Make the path absolute
-	if !filepath.IsAbs(name) {
-		abs, err := filepath.Abs(name)
+	if !filepath.IsAbs(path) {
+		abs, err := filepath.Abs(path)
 		if err != nil {
 			return err
 		}
-		name = abs
+		path = abs
 	}
 
 	// Check for existence
-	fi, err := os.Stat(name)
+	fi, err := os.Stat(path)
 	if err != nil {
 		return err
 	}
 	if !fi.IsDir() {
-		return fmt.Errorf("The given path '%s' is not a directory.", name)
+		return fmt.Errorf("The given path '%s' is not a directory.", path)
 	}
 
-	set.baseDirectory = name
+	fs.baseDir = path
 	return nil
 }
 
-func (fs *LocalFilesystemLoader) Exists(name string) bool {
-	_, err := os.Stat(name)
-	return err == nil
-}
-
-func (fs *LocalFilesystemLoader) IsDir(name string) bool {
-	fi, err := os.Stat(name)
+func (fs *LocalFilesystemLoader) Get(path string) (io.Reader, error) {
+	buf, err := ioutil.ReadFile(path)
 	if err != nil {
-		return false
+		return nil, err
 	}
-	return fi.IsDir()
-}
-
-func (fs *LocalFilesystemLoader) Open(name string) (io.ReadCloser, error) {
-	return os.Open(name)
+	return bytes.NewReader(buf), nil
 }
 
 // Resolves a filename relative to the base directory. Absolute paths are allowed.
 // If sandbox restrictions are given (SandboxDirectories), they will be respected and checked.
 // On sandbox restriction violation, resolveFilename() panics.
 
-func (fs *LocalFilesystemLoader) Abs(relativeTo, name string) string {
+func (fs *LocalFilesystemLoader) Abs(base, name string) string {
 	if filepath.IsAbs(name) {
 		return name
 	}
 
-	// No base directory given
+	// Our own base dir has always priority; if there's none
+	// we use the path provided in base.
+	var err error
 	if fs.baseDir == "" {
-		// Since we asked from inside a
-		if relativeTo != "" {
-			base := filepath.Dir(relativeTo)
+		if base == "" {
+			base, err = os.Getwd()
+			if err != nil {
+				panic(err)
+			}
 			return filepath.Join(base, name)
 		}
-		return name
+
+		return filepath.Join(filepath.Dir(base), name)
 	}
 
-	// Base directory given
 	return filepath.Join(fs.baseDir, name)
-
 }
 
 type SandboxedFilesystemLoader struct {
 	*LocalFilesystemLoader
 }
 
-func NewSandboxedFilesystemLoader(baseDir string) *SandboxedFilesystemLoader {
-	return &SandboxedFilesystemLoader{
-		LocalFilesystemLoader: NewLocalFileSystemLoader(baseDir),
+func NewSandboxedFilesystemLoader(baseDir string) (*SandboxedFilesystemLoader, error) {
+	fs, err := NewLocalFileSystemLoader(baseDir)
+	if err != nil {
+		return nil, err
 	}
+	return &SandboxedFilesystemLoader{
+		LocalFilesystemLoader: fs,
+	}, nil
 }
 
 // Move sandbox to a virtual fs

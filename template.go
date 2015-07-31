@@ -47,24 +47,26 @@ type Template struct {
 	root *nodeDocument
 }
 
-func newTemplateString(set *TemplateSet, tpl string) (*Template, error) {
+func newTemplateString(set *TemplateSet, tpl []byte) (*Template, error) {
 	return newTemplate(set, "<string>", true, tpl)
 }
 
-func newTemplate(set *TemplateSet, name string, isTplString bool, tpl string) (*Template, error) {
+func newTemplate(set *TemplateSet, name string, isTplString bool, tpl []byte) (*Template, error) {
+	strTpl := string(tpl)
+
 	// Create the template
 	t := &Template{
 		set:            set,
 		isTplString:    isTplString,
 		name:           name,
-		tpl:            tpl,
-		size:           len(tpl),
+		tpl:            strTpl,
+		size:           len(strTpl),
 		blocks:         make(map[string]*NodeWrapper),
 		exportedMacros: make(map[string]*tagMacroNode),
 	}
 
 	// Tokenize it
-	tokens, err := lex(name, tpl)
+	tokens, err := lex(name, strTpl)
 	if err != nil {
 		return nil, err
 	}

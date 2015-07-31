@@ -11,9 +11,8 @@ import (
 )
 
 type TemplateLoader interface {
-	Abs(relativeTo, name string) string
-	Exists(name string) bool
-	Open(name string) (io.ReadCloser, error)
+	Abs(base, name string) string
+	Get(path string) (io.Reader, error)
 }
 
 // A template set allows you to create your own group of templates with their own global context (which is shared
@@ -43,10 +42,6 @@ type TemplateSet struct {
 	// For efficiency reasons you can ban tags/filters only *before* you have added your first
 	// template to the set (restrictions are statically checked). After you added one, it's not possible anymore
 	// (for your personal security).
-	//
-	// SandboxDirectories can be changed at runtime. Please synchronize the access to it if you need to change it
-	// after you've added your first template to the set. You *must* use this match pattern for your directories:
-	// http://golang.org/pkg/path/filepath/#Match
 	firstTemplateCreated bool
 	bannedTags           map[string]bool
 	bannedFilters        map[string]bool
@@ -67,6 +62,17 @@ func NewSet(name string, loader TemplateLoader) *TemplateSet {
 		bannedFilters: make(map[string]bool),
 		templateCache: make(map[string]*Template),
 	}
+}
+
+func (set *TemplateSet) resolveFilename(tpl *Template, path string) string {
+	name := ""
+	if tpl != nil && tpl.isTplString {
+		return path
+	}
+	if tpl != nil {
+		name = tpl.name
+	}
+	return set.loader.Abs(name, path)
 }
 
 // BanTag bans a specific tag for this template set. See more in the documentation for TemplateSet.
@@ -118,7 +124,7 @@ func (set *TemplateSet) FromCache(filename string) (*Template, error) {
 		return set.FromFile(filename)
 	}
 	// Cache the template
-	cleanedFilename := set.loader.Abs("", filename)
+	cleanedFilename := set.resolveFilename(nil, filename)
 
 	set.templateCacheMutex.Lock()
 	defer set.templateCacheMutex.Unlock()
@@ -143,7 +149,7 @@ func (set *TemplateSet) FromCache(filename string) (*Template, error) {
 func (set *TemplateSet) FromString(tpl string) (*Template, error) {
 	set.firstTemplateCreated = true
 
-	return newTemplateString(set, tpl)
+	return newTemplateString(set, []byte(tpl))
 }
 
 // FromFile loads a template from a filename and returns a Template instance.
@@ -153,12 +159,14 @@ func (set *TemplateSet) FromString(tpl string) (*Template, error) {
 func (set *TemplateSet) FromFile(filename string) (*Template, error) {
 	set.firstTemplateCreated = true
 
-	fd, err := set.loader.Open(set.loader.Abs("", filename))
+	fd, err := set.loader.Get(set.resolveFilename(nil, filename))
 	if err != nil {
-		return nil, err
+		return nil, &Error{
+			Filename: filename,
+			Sender:   "fromfile",
+			ErrorMsg: err.Error(),
+		}
 	}
-	defer fd.Close()
-
 	buf, err := ioutil.ReadAll(fd)
 	if err != nil {
 		return nil, &Error{
@@ -167,7 +175,8 @@ func (set *TemplateSet) FromFile(filename string) (*Template, error) {
 			ErrorMsg: err.Error(),
 		}
 	}
-	return newTemplate(set, filename, false, string(buf))
+
+	return newTemplate(set, filename, false, buf)
 }
 
 // RenderTemplateString is a shortcut and renders a template string directly.
@@ -214,7 +223,8 @@ var (
 	logger = log.New(os.Stdout, "[pongo2] ", log.LstdFlags|log.Lshortfile)
 
 	// Creating a default set
-	DefaultSet = NewSet("default", NewLocalFileSystemLoader(""))
+	DefaultLoader = MustNewLocalFileSystemLoader("")
+	DefaultSet    = NewSet("default", DefaultLoader)
 
 	// Methods on the default set
 	FromString           = DefaultSet.FromString
