@@ -10,10 +10,15 @@ import (
 	"path/filepath"
 )
 
+// LocalFilesystemLoader represents a local filesystem loader with basic
+// BaseDirectory capabilities. The access to the local filesystem is unrestricted.
 type LocalFilesystemLoader struct {
 	baseDir string
 }
 
+// MustNewLocalFileSystemLoader creates a new LocalFilesystemLoader instance
+// and panics if there's any error during instantiation. The parameters
+// are the same like NewLocalFileSystemLoader.
 func MustNewLocalFileSystemLoader(baseDir string) *LocalFilesystemLoader {
 	fs, err := NewLocalFileSystemLoader(baseDir)
 	if err != nil {
@@ -22,6 +27,11 @@ func MustNewLocalFileSystemLoader(baseDir string) *LocalFilesystemLoader {
 	return fs
 }
 
+// NewLocalFileSystemLoader creates a new LocalFilesystemLoader and allows
+// templatesto be loaded from disk (unrestricted). If any base directory
+// is given (or being set using SetBaseDir), this base directory is being used
+// for path calculation in template inclusions/imports. Otherwise the path
+// is calculated based relatively to the including template's path.
 func NewLocalFileSystemLoader(baseDir string) (*LocalFilesystemLoader, error) {
 	fs := &LocalFilesystemLoader{}
 	if baseDir != "" {
@@ -32,9 +42,9 @@ func NewLocalFileSystemLoader(baseDir string) (*LocalFilesystemLoader, error) {
 	return fs, nil
 }
 
-// Use this function to set your template's base directory. This directory will
+// SetBaseDir sets the template's base directory. This directory will
 // be used for any relative path in filters, tags and From*-functions to determine
-// your template.
+// your template. See the comment for NewLocalFileSystemLoader as well.
 func (fs *LocalFilesystemLoader) SetBaseDir(path string) error {
 	// Make the path absolute
 	if !filepath.IsAbs(path) {
@@ -58,6 +68,7 @@ func (fs *LocalFilesystemLoader) SetBaseDir(path string) error {
 	return nil
 }
 
+// Get reads the path's content from your local filesystem.
 func (fs *LocalFilesystemLoader) Get(path string) (io.Reader, error) {
 	buf, err := ioutil.ReadFile(path)
 	if err != nil {
