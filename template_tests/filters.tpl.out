@@ -105,7 +105,7 @@ h
 
 first
 T
-<pongo2.comment Value>
+<pongo2_test.comment Value>
 
 
 
@@ -113,7 +113,7 @@ T
 
 last
 t
-<pongo2.comment Value>
+<pongo2_test.comment Value>
 
 
 
