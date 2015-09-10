@@ -1,9 +1,9 @@
 # [pongo](https://en.wikipedia.org/wiki/Pongo_%28genus%29)2
 
 [![Join the chat at https://gitter.im/flosch/pongo2](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/flosch/pongo2)
-[![GoDoc](https://godoc.org/github.com/flosch/pongo2?status.png)](https://godoc.org/github.com/flosch/pongo2)
+[![GoDoc](https://godoc.org/github.com/flosch/pongo2?status.svg)](https://godoc.org/github.com/flosch/pongo2)
 [![Build Status](https://travis-ci.org/flosch/pongo2.svg?branch=master)](https://travis-ci.org/flosch/pongo2)
-[![Coverage Status](https://coveralls.io/repos/flosch/pongo2/badge.png?branch=master)](https://coveralls.io/r/flosch/pongo2?branch=master)
+[![Coverage Status](https://coveralls.io/repos/flosch/pongo2/badge.svg?branch=master)](https://coveralls.io/r/flosch/pongo2?branch=master)
 [![gratipay](http://img.shields.io/badge/gratipay-support%20pongo-brightgreen.svg)](https://gratipay.com/flosch/)
 [![Bountysource](https://www.bountysource.com/badge/tracker?tracker_id=3654947)](https://www.bountysource.com/trackers/3654947-pongo2?utm_source=3654947&utm_medium=shield&utm_campaign=TRACKER_BADGE)
 
