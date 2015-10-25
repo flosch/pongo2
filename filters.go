@@ -4,7 +4,7 @@ import (
 	"fmt"
 )
 
-type FilterFunction func(in *Value, param *Value) (out *Value, err *Error)
+type FilterFunction func(ctx *ExecutionContext, in *Value, param *Value) (out *Value, err *Error)
 
 var filters map[string]FilterFunction
 
@@ -38,8 +38,8 @@ func ReplaceFilter(name string, fn FilterFunction) {
 }
 
 // Like ApplyFilter, but panics on an error
-func MustApplyFilter(name string, value *Value, param *Value) *Value {
-	val, err := ApplyFilter(name, value, param)
+func MustApplyFilter(ctx *ExecutionContext, name string, value *Value, param *Value) *Value {
+	val, err := ApplyFilter(ctx, name, value, param)
 	if err != nil {
 		panic(err)
 	}
@@ -47,7 +47,7 @@ func MustApplyFilter(name string, value *Value, param *Value) *Value {
 }
 
 // Applies a filter to a given value using the given parameters. Returns a *pongo2.Value or an error.
-func ApplyFilter(name string, value *Value, param *Value) (*Value, *Error) {
+func ApplyFilter(ctx *ExecutionContext, name string, value *Value, param *Value) (*Value, *Error) {
 	fn, existing := filters[name]
 	if !existing {
 		return nil, &Error{
@@ -61,7 +61,7 @@ func ApplyFilter(name string, value *Value, param *Value) (*Value, *Error) {
 		param = AsValue(nil)
 	}
 
-	return fn(value, param)
+	return fn(ctx, value, param)
 }
 
 type filterCall struct {
@@ -86,7 +86,7 @@ func (fc *filterCall) Execute(v *Value, ctx *ExecutionContext) (*Value, *Error) 
 		param = AsValue(nil)
 	}
 
-	filteredValue, err := fc.filterFunc(v, param)
+	filteredValue, err := fc.filterFunc(ctx, v, param)
 	if err != nil {
 		return nil, err.updateFromTokenIfNeeded(ctx.template, fc.token)
 	}

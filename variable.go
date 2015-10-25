@@ -1,6 +1,8 @@
 package pongo2
 
 import (
+	"bytes"
+	"errors"
 	"fmt"
 	"reflect"
 	"strconv"
@@ -186,7 +188,7 @@ func (nv *nodeVariable) Execute(ctx *ExecutionContext, writer TemplateWriter) *E
 
 	if !nv.expr.FilterApplied("safe") && !value.safe && value.IsString() && ctx.Autoescape {
 		// apply escape filter
-		value, err = filters["escape"](value, nil)
+		value, err = filters["escape"](ctx, value, nil)
 		if err != nil {
 			return err
 		}
@@ -215,6 +217,18 @@ func (vr *variableResolver) String() string {
 	return strings.Join(parts, ".")
 }
 
+func (vr *variableResolver) IsInvalidate(val reflect.Value) bool {
+	if !val.IsValid() {
+		return true
+	}
+
+	switch val.Kind() {
+	case reflect.Chan, reflect.Func, reflect.Map, reflect.Ptr, reflect.Interface, reflect.Slice:
+		return val.IsNil()
+	}
+	return false
+}
+
 func (vr *variableResolver) resolve(ctx *ExecutionContext) (*Value, error) {
 	var current reflect.Value
 	var isSafe bool
@@ -237,6 +251,16 @@ func (vr *variableResolver) resolve(ctx *ExecutionContext) (*Value, error) {
 			// Problem with resolving the pointer is we're changing the receiver
 			isFunc := false
 			if part.typ == varTypeIdent {
+				if vr.IsInvalidate(current) {
+					var nameBuffer bytes.Buffer
+					for _, pa := range vr.parts[:idx] {
+						nameBuffer.WriteString(pa.s)
+						nameBuffer.WriteString(".")
+					}
+					nameBuffer.Truncate(nameBuffer.Len() - 1)
+					return nil, errors.New("'" + nameBuffer.String() + "' is missing.")
+				}
+
 				funcValue := current.MethodByName(part.s)
 				if funcValue.IsValid() {
 					current = funcValue
