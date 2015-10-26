@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -71,7 +72,7 @@ func tagSandboxDemoTagParser(doc *pongo2.Parser, start *pongo2.Token, arguments 
 	return &tagSandboxDemoTag{}, nil
 }
 
-func BannedFilterFn(in *pongo2.Value, params *pongo2.Value) (*pongo2.Value, *pongo2.Error) {
+func BannedFilterFn(ctx *pongo2.ExecutionContext, in *pongo2.Value, params *pongo2.Value) (*pongo2.Value, *pongo2.Error) {
 	return in, nil
 }
 
@@ -87,6 +88,9 @@ func init() {
 	pongo2.DefaultSet.BanTag("banned_tag")
 
 	f, err := ioutil.TempFile("/tmp/", "pongo2_")
+	if "windows" == runtime.GOOS {
+		f, err = ioutil.TempFile("", "pongo2_")
+	}
 	if err != nil {
 		panic("cannot write to /tmp/")
 	}
@@ -251,6 +255,14 @@ func TestTemplates(t *testing.T) {
 			t.Fatalf("Error on Execute('%s'): %s", match, err.Error())
 		}
 		if bytes.Compare(testOut, tplOut) != 0 {
+
+			if "windows" == runtime.GOOS {
+				tplOut = bytes.Replace(tplOut, []byte("template_tests\\macro.tpl"), []byte("template_tests/macro.tpl"), -1)
+				if bytes.Compare(testOut, tplOut) == 0 {
+					continue
+				}
+			}
+
 			t.Logf("Template (rendered) '%s': '%s'", match, tplOut)
 			errFilename := filepath.Base(fmt.Sprintf("%s.error", match))
 			err := ioutil.WriteFile(errFilename, []byte(tplOut), 0600)
@@ -377,7 +389,11 @@ func TestBaseDirectory(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, match := range matches {
-		match = strings.Replace(match, "template_tests/base_dir_test/", "", -1)
+		if "windows" == runtime.GOOS {
+			match = strings.Replace(match, "template_tests\\base_dir_test\\", "", -1)
+		} else {
+			match = strings.Replace(match, "template_tests/base_dir_test/", "", -1)
+		}
 
 		tpl, err := s.FromFile(match)
 		if err != nil {
