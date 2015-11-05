@@ -233,6 +233,11 @@ func (vr *variableResolver) resolve(ctx *ExecutionContext) (*Value, error) {
 		} else {
 			// Next parts, resolve it from current
 
+			//Eliminate panic in case when we access a nil pointer passed via include from parent template
+			if current.Kind() == reflect.Invalid {
+				return nil, fmt.Errorf("Nil pointer reference Access Error")
+			}
+
 			// Before resolving the pointer, let's see if we have a method to call
 			// Problem with resolving the pointer is we're changing the receiver
 			isFunc := false
