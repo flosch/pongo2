@@ -235,7 +235,7 @@ func (vr *variableResolver) resolve(ctx *ExecutionContext) (*Value, error) {
 
 			//Eliminate panic in case when we access a nil pointer passed via include from parent template
 			if current.Kind() == reflect.Invalid {
-				return nil, fmt.Errorf("Nil pointer reference Access Error")
+				return nil, fmt.Errorf("Nil pointer dereference Access Error on %s", vr.String())
 			}
 
 			// Before resolving the pointer, let's see if we have a method to call
