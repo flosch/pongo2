@@ -233,11 +233,6 @@ func (vr *variableResolver) resolve(ctx *ExecutionContext) (*Value, error) {
 		} else {
 			// Next parts, resolve it from current
 
-			//Eliminate panic in case when we access a nil pointer passed via include from parent template
-			if current.Kind() == reflect.Invalid {
-				return nil, fmt.Errorf("Nil pointer dereference Access Error on %s", vr.String())
-			}
-
 			// Before resolving the pointer, let's see if we have a method to call
 			// Problem with resolving the pointer is we're changing the receiver
 			isFunc := false
@@ -401,11 +396,11 @@ func (vr *variableResolver) resolve(ctx *ExecutionContext) (*Value, error) {
 				isSafe = rv.Interface().(*Value).safe
 			}
 		}
-	}
 
-	if !current.IsValid() {
-		// Value is not valid (e. g. NIL value)
-		return AsValue(nil), nil
+		if !current.IsValid() {
+			// Value is not valid (e. g. NIL value)
+			return AsValue(nil), nil
+		}
 	}
 
 	return &Value{val: current, safe: isSafe}, nil
