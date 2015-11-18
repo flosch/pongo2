@@ -3,3 +3,4 @@
 {{ new_var }}{% for item in simple.misc_list %}
 {% set new_var = item %}{{ new_var }}{% endfor %}
 {{ new_var }}
+{% set car=someUndefinedVar %}{{ car.Drive }}No Panic

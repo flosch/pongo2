@@ -396,11 +396,11 @@ func (vr *variableResolver) resolve(ctx *ExecutionContext) (*Value, error) {
 				isSafe = rv.Interface().(*Value).safe
 			}
 		}
-	}
 
-	if !current.IsValid() {
-		// Value is not valid (e. g. NIL value)
-		return AsValue(nil), nil
+		if !current.IsValid() {
+			// Value is not valid (e. g. NIL value)
+			return AsValue(nil), nil
+		}
 	}
 
 	return &Value{val: current, safe: isSafe}, nil
