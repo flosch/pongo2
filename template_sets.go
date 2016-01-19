@@ -153,6 +153,13 @@ func (set *TemplateSet) FromString(tpl string) (*Template, error) {
 	return newTemplateString(set, []byte(tpl))
 }
 
+// FromBytes loads a template from bytes and returns a Template instance.
+func (set *TemplateSet) FromBytes(tpl []byte) (*Template, error) {
+	set.firstTemplateCreated = true
+
+	return newTemplateString(set, tpl)
+}
+
 // FromFile loads a template from a filename and returns a Template instance.
 func (set *TemplateSet) FromFile(filename string) (*Template, error) {
 	set.firstTemplateCreated = true
@@ -183,6 +190,19 @@ func (set *TemplateSet) RenderTemplateString(s string, ctx Context) string {
 	set.firstTemplateCreated = true
 
 	tpl := Must(set.FromString(s))
+	result, err := tpl.Execute(ctx)
+	if err != nil {
+		panic(err)
+	}
+	return result
+}
+
+// RenderTemplateBytes is a shortcut and renders template bytes directly.
+// Panics when providing a malformed template or an error occurs during execution.
+func (set *TemplateSet) RenderTemplateBytes(b []byte, ctx Context) string {
+	set.firstTemplateCreated = true
+
+	tpl := Must(set.FromBytes(b))
 	result, err := tpl.Execute(ctx)
 	if err != nil {
 		panic(err)
@@ -229,6 +249,7 @@ var (
 
 	// Methods on the default set
 	FromString           = DefaultSet.FromString
+	FromBytes            = DefaultSet.FromBytes
 	FromFile             = DefaultSet.FromFile
 	FromCache            = DefaultSet.FromCache
 	RenderTemplateString = DefaultSet.RenderTemplateString

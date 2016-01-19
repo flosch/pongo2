@@ -302,6 +302,11 @@ func TestExecutionErrors(t *testing.T) {
 				t.Fatalf("Error on FromString('%s'): %s", test, err.Error())
 			}
 
+			tpl, err = pongo2.FromBytes([]byte(test))
+			if err != nil {
+				t.Fatalf("Error on FromBytes('%s'): %s", test, err.Error())
+			}
+
 			_, err = tpl.ExecuteBytes(tplContext)
 			if err == nil {
 				t.Fatalf("[%s Line %d] Expected error for (got none): %s",
