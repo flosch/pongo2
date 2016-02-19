@@ -263,3 +263,45 @@ func (p *Parser) WrapUntilTag(names ...string) (*NodeWrapper, *Parser, *Error) {
 	return nil, nil, p.Error(fmt.Sprintf("Unexpected EOF, expected tag %s.", strings.Join(names, " or ")),
 		p.lastToken)
 }
+
+// Skips all nodes between starting tag and "{% endtag %}"
+func (p *Parser) SkipUntilTag(names ...string) *Error {
+	for p.Remaining() > 0 {
+		// New tag, check whether we have to stop wrapping here
+		if p.Peek(TokenSymbol, "{%") != nil {
+			tagIdent := p.PeekTypeN(1, TokenIdentifier)
+
+			if tagIdent != nil {
+				// We've found a (!) end-tag
+
+				found := false
+				for _, n := range names {
+					if tagIdent.Val == n {
+						found = true
+						break
+					}
+				}
+
+				// We only process the tag if we've found an end tag
+				if found {
+					// Okay, endtag found.
+					p.ConsumeN(2) // '{%' tagname
+
+					for {
+						if p.Match(TokenSymbol, "%}") != nil {
+							// Done skipping, exit.
+							return nil
+						}
+					}
+				}
+			}
+		}
+		t := p.Current()
+		p.Consume()
+		if t == nil {
+			return p.Error("Unexpected EOF.", p.lastToken)
+		}
+	}
+
+	return p.Error(fmt.Sprintf("Unexpected EOF, expected tag %s.", strings.Join(names, " or ")), p.lastToken)
+}
