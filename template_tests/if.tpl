@@ -9,6 +9,7 @@
 {% if 5 in simple.intmap %}5 in simple.intmap{% endif %}
 {% if !0.0 %}!0.0{% endif %}
 {% if !0 %}!0{% endif %}
+{% if not complex.post %}true{% else %}false{% endif %}
 {% if simple.number == 43 %}no{% else %}42{% endif %}
 {% if simple.number < 42 %}false{% elif simple.number > 42 %}no{% elif simple.number >= 42 %}yes{% else %}no{% endif %}
 {% if simple.number < 42 %}false{% elif simple.number > 42 %}no{% elif simple.number != 42 %}no{% else %}yes{% endif %}
