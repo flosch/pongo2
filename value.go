@@ -240,6 +240,8 @@ func (v *Value) Negate() *Value {
 		return AsValue(v.getResolvedValue().Len() == 0)
 	case reflect.Bool:
 		return AsValue(!v.getResolvedValue().Bool())
+	case reflect.Struct:
+		return AsValue(false)
 	default:
 		logf("Value.IsTrue() not available for type: %s\n", v.getResolvedValue().Kind().String())
 		return AsValue(true)
