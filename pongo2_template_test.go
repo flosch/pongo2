@@ -308,8 +308,6 @@ func TestExecutionErrors(t *testing.T) {
 					match, idx+1, tests[idx])
 			}
 
-			println(checks[idx])
-			println(err.Error())
 			re := regexp.MustCompile(fmt.Sprintf("^%s$", checks[idx]))
 			if !re.MatchString(err.Error()) {
 				t.Fatalf("[%s Line %d] Error for '%s' (err = '%s') does not match the (regexp-)check: %s",
