@@ -1,0 +1,3 @@
+{{ simple.one_item_list.2 }}
+{{ simple.fixed_item_list.5 }}
+{{ simple.str.10 }}

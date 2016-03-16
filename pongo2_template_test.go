@@ -124,6 +124,7 @@ Yep!`,
 		"one_item_list":      []int{99},
 		"multiple_item_list": []int{1, 1, 2, 3, 5, 8, 13, 21, 34, 55},
 		"unsorted_int_list":  []int{192, 581, 22, 1, 249, 9999, 1828591, 8271},
+		"fixed_item_list":    [...]int{1, 2, 3, 4},
 		"misc_list":          []interface{}{"Hello", 99, 3.14, "good"},
 		"escape_text":        "This is \\a Test. \"Yep\". 'Yep'.",
 		"xss":                "<script>alert(\"uh oh\");</script>",
@@ -307,6 +308,8 @@ func TestExecutionErrors(t *testing.T) {
 					match, idx+1, tests[idx])
 			}
 
+			println(checks[idx])
+			println(err.Error())
 			re := regexp.MustCompile(fmt.Sprintf("^%s$", checks[idx]))
 			if !re.MatchString(err.Error()) {
 				t.Fatalf("[%s Line %d] Error for '%s' (err = '%s') does not match the (regexp-)check: %s",
