@@ -261,7 +261,7 @@ func (vr *variableResolver) resolve(ctx *ExecutionContext) (*Value, error) {
 					// * slices/arrays/strings
 					switch current.Kind() {
 					case reflect.String, reflect.Array, reflect.Slice:
-						if  part.i >= 0 && current.Len() > part.i {
+						if part.i >= 0 && current.Len() > part.i {
 							current = current.Index(part.i)
 						} else {
 							// Access to non-existed index will cause an error
