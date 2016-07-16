@@ -160,7 +160,8 @@ You can access pongo2's API documentation on [godoc](https://godoc.org/github.co
  * [pongo2gin](https://github.com/robvdl/pongo2gin) - alternative renderer for [gin](github.com/gin-gonic/gin) to use pongo2 templates
  * [pongo2-trans](https://github.com/fromYukki/pongo2trans) - `trans`-tag implementation for internationalization
  * [tpongo2](https://github.com/tango-contrib/tpongo2) - pongo2 support for [Tango](https://github.com/lunny/tango), a micro-kernel & pluggable web framework.
-
+ * [p2cli](https://github.com/wrouesnel/p2cli) - command line templating utility based on pongo2
+ 
 Please add your project to this list and send me a pull request when you've developed something nice for pongo2.
 
 # API-usage examples
