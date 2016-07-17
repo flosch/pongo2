@@ -1,6 +1,7 @@
 package pongo2
 
 import (
+	"bytes"
 	"fmt"
 )
 
@@ -8,17 +9,19 @@ type tagBlockNode struct {
 	name string
 }
 
-func (node *tagBlockNode) getBlockWrapperByName(tpl *Template) *NodeWrapper {
+func (node *tagBlockNode) getBlockWrappers(tpl *Template) []*NodeWrapper {
+	nodeWrappers := make([]*NodeWrapper, 0)
 	var t *NodeWrapper
-	if tpl.child != nil {
-		// First ask the child for the block
-		t = node.getBlockWrapperByName(tpl.child)
-	}
-	if t == nil {
-		// Child has no block, lets look up here at parent
+
+	for tpl != nil {
 		t = tpl.blocks[node.name]
+		if t != nil {
+			nodeWrappers = append(nodeWrappers, t)
+		}
+		tpl = tpl.child
 	}
-	return t
+
+	return nodeWrappers
 }
 
 func (node *tagBlockNode) Execute(ctx *ExecutionContext, writer TemplateWriter) *Error {
@@ -27,19 +30,52 @@ func (node *tagBlockNode) Execute(ctx *ExecutionContext, writer TemplateWriter) 
 		panic("internal error: tpl == nil")
 	}
 	// Determine the block to execute
-	blockWrapper := node.getBlockWrapperByName(tpl)
-	if blockWrapper == nil {
+	blockWrappers := node.getBlockWrappers(tpl)
+	lenBlockWrappers := len(blockWrappers)
+
+	if lenBlockWrappers == 0 {
 		// fmt.Printf("could not find: %s\n", node.name)
-		return ctx.Error("internal error: block_wrapper == nil in tagBlockNode.Execute()", nil)
+		return ctx.Error("internal error: len(block_wrappers) == 0 in tagBlockNode.Execute()", nil)
+	}
+
+	blockWrapper := blockWrappers[lenBlockWrappers-1]
+	ctx.Private["block"] = tagBlockInformation{
+		ctx:      ctx,
+		wrappers: blockWrappers[0 : lenBlockWrappers-1],
 	}
 	err := blockWrapper.Execute(ctx, writer)
 	if err != nil {
 		return err
 	}
 
-	// TODO: Add support for {{ block.super }}
-
 	return nil
+}
+
+type tagBlockInformation struct {
+	ctx      *ExecutionContext
+	wrappers []*NodeWrapper
+}
+
+func (t tagBlockInformation) Super() string {
+	lenWrappers := len(t.wrappers)
+
+	if lenWrappers == 0 {
+		return ""
+	}
+
+	superCtx := NewChildExecutionContext(t.ctx)
+	superCtx.Private["block"] = tagBlockInformation{
+		ctx:      t.ctx,
+		wrappers: t.wrappers[0 : lenWrappers-1],
+	}
+
+	blockWrapper := t.wrappers[lenWrappers-1]
+	buf := bytes.NewBufferString("")
+	err := blockWrapper.Execute(superCtx, &templateWriter{buf})
+	if err != nil {
+		return ""
+	}
+	return buf.String()
 }
 
 func tagBlockParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, *Error) {
