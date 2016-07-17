@@ -10,7 +10,7 @@ func tagCommentParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, *
 	commentNode := &tagCommentNode{}
 
 	// TODO: Process the endtag's arguments (see django 'comment'-tag documentation)
-	_, _, err := doc.WrapUntilTag("endcomment")
+	err := doc.SkipUntilTag("endcomment")
 	if err != nil {
 		return nil, err
 	}

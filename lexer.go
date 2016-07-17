@@ -348,10 +348,6 @@ outer_loop:
 			}
 		}
 
-		if l.pos < len(l.input) {
-			return l.errorf("Unknown character: %q (%d)", l.peek(), l.peek())
-		}
-
 		break
 	}
 
