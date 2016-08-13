@@ -73,6 +73,7 @@ func init() {
 	RegisterFilter("removetags", filterRemovetags)
 	RegisterFilter("rjust", filterRjust)
 	RegisterFilter("slice", filterSlice)
+	RegisterFilter("split", filterSplit)
 	RegisterFilter("stringformat", filterStringformat)
 	RegisterFilter("striptags", filterStriptags)
 	RegisterFilter("time", filterDate) // time uses filterDate (same golang-format)
@@ -609,6 +610,12 @@ func filterLinebreaks(in *Value, param *Value) (*Value, *Error) {
 	}
 
 	return AsValue(b.String()), nil
+}
+
+func filterSplit(in *Value, param *Value) (*Value, *Error) {
+	chunks := strings.Split(in.String(), param.String())
+
+	return AsValue(chunks), nil
 }
 
 func filterLinebreaksbr(in *Value, param *Value) (*Value, *Error) {
