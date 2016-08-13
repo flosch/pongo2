@@ -176,6 +176,9 @@ floatformat
 join
 {{ simple.misc_list|join:", " }}
 
+split
+{{ "Hello, 99, 3.140000, good"|split:", "|join:", " }}
+
 stringformat
 {{ simple.float|stringformat:"%.2f" }}
 {{ simple.uint|stringformat:"Test: %d" }}

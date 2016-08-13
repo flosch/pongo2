@@ -176,6 +176,9 @@ floatformat
 join
 Hello, 99, 3.140000, good
 
+split
+Hello, 99, 3.140000, good
+
 stringformat
 3.14
 Test: 8
