@@ -70,16 +70,16 @@ func (s *TestSuite) TestMisc(c *C) {
 }
 
 func (s *TestSuite) TestImplicitExecCtx(c *C) {
-	tpl, err := FromString("{{ ImplicitExec }}")
+	tpl, err := pongo2.FromString("{{ ImplicitExec }}")
 	if err != nil {
 		c.Fatalf("Error in FromString: %v", err)
 	}
 
 	val := "a stringy thing"
 
-	res, err := tpl.Execute(Context{
+	res, err := tpl.Execute(pongo2.Context{
 		"Value": val,
-		"ImplicitExec": func(ctx *ExecutionContext) string {
+		"ImplicitExec": func(ctx *pongo2.ExecutionContext) string {
 			return ctx.Public["Value"].(string)
 		},
 	})
@@ -91,7 +91,7 @@ func (s *TestSuite) TestImplicitExecCtx(c *C) {
 	c.Check(res, Equals, val)
 
 	// The implicit ctx should not be persisted from call-to-call
-	res, err = tpl.Execute(Context{
+	res, err = tpl.Execute(pongo2.Context{
 		"ImplicitExec": func() string {
 			return val
 		},
