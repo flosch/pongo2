@@ -68,3 +68,38 @@ func (s *TestSuite) TestMisc(c *C) {
 		}
 	}, PanicMatches, `\[Error \(where: applyfilter\)\] Filter with name 'doesnotexist' not found.`)
 }
+
+func (s *TestSuite) TestImplicitExecCtx(c *C) {
+	tpl, err := pongo2.FromString("{{ ImplicitExec }}")
+	if err != nil {
+		c.Fatalf("Error in FromString: %v", err)
+	}
+
+	val := "a stringy thing"
+
+	res, err := tpl.Execute(pongo2.Context{
+		"Value": val,
+		"ImplicitExec": func(ctx *pongo2.ExecutionContext) string {
+			return ctx.Public["Value"].(string)
+		},
+	})
+
+	if err != nil {
+		c.Fatalf("Error executing template: %v", err)
+	}
+
+	c.Check(res, Equals, val)
+
+	// The implicit ctx should not be persisted from call-to-call
+	res, err = tpl.Execute(pongo2.Context{
+		"ImplicitExec": func() string {
+			return val
+		},
+	})
+
+	if err != nil {
+		c.Fatalf("Error executing template: %v", err)
+	}
+
+	c.Check(res, Equals, val)
+}
