@@ -12,7 +12,7 @@ type tagIncludeNode struct {
 
 func (node *tagIncludeNode) Execute(ctx *ExecutionContext, writer TemplateWriter) *Error {
 	// Building the context for the template
-	includeCtx := make(Context)
+	includeCtx := NewContext()
 
 	// Fill the context with all data from the parent
 	if !node.only {
@@ -26,7 +26,7 @@ func (node *tagIncludeNode) Execute(ctx *ExecutionContext, writer TemplateWriter
 		if err != nil {
 			return err
 		}
-		includeCtx[key] = val
+		includeCtx.Set(key, val)
 	}
 
 	// Execute the template

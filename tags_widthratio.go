@@ -33,7 +33,7 @@ func (node *tagWidthratioNode) Execute(ctx *ExecutionContext, writer TemplateWri
 	if node.ctxName == "" {
 		writer.WriteString(fmt.Sprintf("%d", value))
 	} else {
-		ctx.Private[node.ctxName] = value
+		ctx.Private.Set(node.ctxName, value)
 	}
 
 	return nil

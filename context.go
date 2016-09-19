@@ -3,9 +3,12 @@ package pongo2
 import (
 	"fmt"
 	"regexp"
+	"sync"
 )
 
 var reIdentifiers = regexp.MustCompile("^[a-zA-Z0-9_]+$")
+
+type ContextMap map[string]interface{}
 
 // A Context type provides constants, variables, instances or functions to a template.
 //
@@ -18,10 +21,13 @@ var reIdentifiers = regexp.MustCompile("^[a-zA-Z0-9_]+$")
 //     {{ myfunc("test", 42) }}
 //     {{ user.name }}
 //     {{ pongo2.version }}
-type Context map[string]interface{}
+type Context struct {
+	context ContextMap
+	mut     *sync.RWMutex
+}
 
-func (c Context) checkForValidIdentifiers() *Error {
-	for k, v := range c {
+func (c *Context) checkForValidIdentifiers() *Error {
+	for k, v := range c.context {
 		if !reIdentifiers.MatchString(k) {
 			return &Error{
 				Sender:   "checkForValidIdentifiers",
@@ -33,10 +39,12 @@ func (c Context) checkForValidIdentifiers() *Error {
 }
 
 // Update updates this context with the key/value-pairs from another context.
-func (c Context) Update(other Context) Context {
-	for k, v := range other {
-		c[k] = v
+func (c *Context) Update(other *Context) *Context {
+	c.mut.Lock()
+	for k, v := range other.context {
+		c.context[k] = v
 	}
+	c.mut.Unlock()
 	return c
 }
 
@@ -59,20 +67,49 @@ type ExecutionContext struct {
 	template *Template
 
 	Autoescape bool
-	Public     Context
-	Private    Context
-	Shared     Context
+	Public     *Context
+	Private    *Context
+	Shared     *Context
 }
 
-var pongo2MetaContext = Context{
-	"version": Version,
+func NewContext() *Context {
+	context := make(ContextMap)
+	return &Context{context, &sync.RWMutex{}}
 }
 
-func newExecutionContext(tpl *Template, ctx Context) *ExecutionContext {
-	privateCtx := make(Context)
+func (c *Context) Set(key string, value interface{}) *Context {
+	c.mut.Lock()
+	c.context[key] = value
+	c.mut.Unlock()
+	return c
+}
+
+func (c *Context) SetMap(context ContextMap) *Context {
+	c.mut.Lock()
+	c.context = context
+	c.mut.Unlock()
+	return c
+}
+
+func (c *Context) GetMap() ContextMap {
+	return c.context
+}
+
+func (c *Context) Get(key string) interface{} {
+	return c.context[key]
+}
+
+func (c *Context) GetString(key string) string {
+	return c.context[key].(string)
+}
+
+var pongo2MetaMap = ContextMap{"version": Version}
+
+func newExecutionContext(tpl *Template, ctx *Context) *ExecutionContext {
+	privateCtx := NewContext()
 
 	// Make the pongo2-related funcs/vars available to the context
-	privateCtx["pongo2"] = pongo2MetaContext
+	privateCtx.Set("pongo2", pongo2MetaMap)
 
 	return &ExecutionContext{
 		template: tpl,
@@ -88,7 +125,7 @@ func NewChildExecutionContext(parent *ExecutionContext) *ExecutionContext {
 		template: parent.template,
 
 		Public:     parent.Public,
-		Private:    make(Context),
+		Private:    NewContext(),
 		Autoescape: parent.Autoescape,
 	}
 	newctx.Shared = parent.Shared

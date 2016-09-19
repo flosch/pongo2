@@ -53,7 +53,7 @@ func (node *tagCycleNode) Execute(ctx *ExecutionContext, writer TemplateWriter) 
 		}
 
 		if node.asName != "" {
-			ctx.Private[node.asName] = cycleValue
+			ctx.Private.Set(node.asName, cycleValue)
 		}
 		if !node.silent {
 			writer.WriteString(val.String())

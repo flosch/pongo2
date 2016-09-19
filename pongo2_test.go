@@ -4,7 +4,6 @@ import (
 	"testing"
 
 	"github.com/flosch/pongo2"
-
 	. "gopkg.in/check.v1"
 )
 
@@ -21,7 +20,7 @@ var (
 	testSuite2 = pongo2.NewSet("test suite 2", pongo2.MustNewLocalFileSystemLoader(""))
 )
 
-func parseTemplate(s string, c pongo2.Context) string {
+func parseTemplate(s string, c *pongo2.Context) string {
 	t, err := testSuite2.FromString(s)
 	if err != nil {
 		panic(err)
@@ -33,7 +32,7 @@ func parseTemplate(s string, c pongo2.Context) string {
 	return out
 }
 
-func parseTemplateFn(s string, c pongo2.Context) func() {
+func parseTemplateFn(s string, c *pongo2.Context) func() {
 	return func() {
 		parseTemplate(s, c)
 	}
@@ -49,7 +48,8 @@ func (s *TestSuite) TestMisc(c *C) {
 	)
 
 	// Context
-	c.Check(parseTemplateFn("", pongo2.Context{"'illegal": nil}), PanicMatches, ".*not a valid identifier.*")
+	context := pongo2.NewContext().Set("'illegal", nil)
+	c.Check(parseTemplateFn("", context), PanicMatches, ".*not a valid identifier.*")
 
 	// Registers
 	c.Check(func() { pongo2.RegisterFilter("escape", nil) }, PanicMatches, ".*is already registered.*")
@@ -77,12 +77,12 @@ func (s *TestSuite) TestImplicitExecCtx(c *C) {
 
 	val := "a stringy thing"
 
-	res, err := tpl.Execute(pongo2.Context{
+	res, err := tpl.Execute(pongo2.NewContext().SetMap(pongo2.ContextMap{
 		"Value": val,
 		"ImplicitExec": func(ctx *pongo2.ExecutionContext) string {
-			return ctx.Public["Value"].(string)
+			return ctx.Public.GetString("Value")
 		},
-	})
+	}))
 
 	if err != nil {
 		c.Fatalf("Error executing template: %v", err)
@@ -91,11 +91,11 @@ func (s *TestSuite) TestImplicitExecCtx(c *C) {
 	c.Check(res, Equals, val)
 
 	// The implicit ctx should not be persisted from call-to-call
-	res, err = tpl.Execute(pongo2.Context{
+	res, err = tpl.Execute(pongo2.NewContext().SetMap(pongo2.ContextMap{
 		"ImplicitExec": func() string {
 			return val
 		},
-	})
+	}))
 
 	if err != nil {
 		c.Fatalf("Error executing template: %v", err)

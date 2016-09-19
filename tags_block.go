@@ -39,10 +39,10 @@ func (node *tagBlockNode) Execute(ctx *ExecutionContext, writer TemplateWriter) 
 	}
 
 	blockWrapper := blockWrappers[lenBlockWrappers-1]
-	ctx.Private["block"] = tagBlockInformation{
+	ctx.Private.Set("block", tagBlockInformation{
 		ctx:      ctx,
 		wrappers: blockWrappers[0 : lenBlockWrappers-1],
-	}
+	})
 	err := blockWrapper.Execute(ctx, writer)
 	if err != nil {
 		return err
@@ -64,10 +64,10 @@ func (t tagBlockInformation) Super() string {
 	}
 
 	superCtx := NewChildExecutionContext(t.ctx)
-	superCtx.Private["block"] = tagBlockInformation{
+	superCtx.Private.Set("block", tagBlockInformation{
 		ctx:      t.ctx,
 		wrappers: t.wrappers[0 : lenWrappers-1],
-	}
+	})
 
 	blockWrapper := t.wrappers[lenWrappers-1]
 	buf := bytes.NewBufferString("")

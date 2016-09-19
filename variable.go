@@ -235,10 +235,10 @@ func (vr *variableResolver) resolve(ctx *ExecutionContext) (*Value, error) {
 			// We're looking up the first part of the variable.
 			// First we're having a look in our private
 			// context (e. g. information provided by tags, like the forloop)
-			val, inPrivate := ctx.Private[vr.parts[0].s]
+			val, inPrivate := ctx.Private.context[vr.parts[0].s]
 			if !inPrivate {
 				// Nothing found? Then have a final lookup in the public context
-				val = ctx.Public[vr.parts[0].s]
+				val = ctx.Public.Get(vr.parts[0].s)
 			}
 			current = reflect.ValueOf(val) // Get the initial value
 		} else {
@@ -336,7 +336,7 @@ func (vr *variableResolver) resolve(ctx *ExecutionContext) (*Value, error) {
 
 			// If an implicit ExecCtx is needed
 			if t.NumIn() > 0 && t.In(0) == typeOfExecCtxPtr {
-				 currArgs = append([]functionCallArgument{executionCtxEval{}}, currArgs...)
+				currArgs = append([]functionCallArgument{executionCtxEval{}}, currArgs...)
 			}
 
 			// Input arguments
