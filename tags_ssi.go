@@ -46,8 +46,8 @@ func tagSSIParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, *Erro
 			buf, err := ioutil.ReadFile(doc.template.set.resolveFilename(doc.template, fileToken.Val))
 			if err != nil {
 				return nil, (&Error{
-					Sender:   "tag:ssi",
-					ErrorMsg: err.Error(),
+					Sender:    "tag:ssi",
+					OrigError: err,
 				}).updateFromTokenIfNeeded(doc.template, fileToken)
 			}
 			SSINode.content = string(buf)

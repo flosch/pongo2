@@ -51,8 +51,8 @@ func ApplyFilter(name string, value *Value, param *Value) (*Value, *Error) {
 	fn, existing := filters[name]
 	if !existing {
 		return nil, &Error{
-			Sender:   "applyfilter",
-			ErrorMsg: fmt.Sprintf("Filter with name '%s' not found.", name),
+			Sender:    "applyfilter",
+			OrigError: fmt.Errorf("Filter with name '%s' not found.", name),
 		}
 	}
 

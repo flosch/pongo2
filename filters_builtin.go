@@ -27,6 +27,7 @@ package pongo2
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"math/rand"
 	"net/url"
@@ -553,8 +554,8 @@ func filterDate(in *Value, param *Value) (*Value, *Error) {
 	t, isTime := in.Interface().(time.Time)
 	if !isTime {
 		return nil, &Error{
-			Sender:   "filter:date",
-			ErrorMsg: "Filter input argument must be of type 'time.Time'.",
+			Sender:    "filter:date",
+			OrigError: errors.New("Filter input argument must be of type 'time.Time'."),
 		}
 	}
 	return AsValue(t.Format(param.String())), nil
@@ -752,8 +753,8 @@ func filterPluralize(in *Value, param *Value) (*Value, *Error) {
 			endings := strings.Split(param.String(), ",")
 			if len(endings) > 2 {
 				return nil, &Error{
-					Sender:   "filter:pluralize",
-					ErrorMsg: "You cannot pass more than 2 arguments to filter 'pluralize'.",
+					Sender:    "filter:pluralize",
+					OrigError: errors.New("You cannot pass more than 2 arguments to filter 'pluralize'."),
 				}
 			}
 			if len(endings) == 1 {
@@ -778,8 +779,8 @@ func filterPluralize(in *Value, param *Value) (*Value, *Error) {
 		return AsValue(""), nil
 	}
 	return nil, &Error{
-		Sender:   "filter:pluralize",
-		ErrorMsg: "Filter 'pluralize' does only work on numbers.",
+		Sender:    "filter:pluralize",
+		OrigError: errors.New("Filter 'pluralize' does only work on numbers."),
 	}
 }
 
@@ -812,8 +813,8 @@ func filterSlice(in *Value, param *Value) (*Value, *Error) {
 	comp := strings.Split(param.String(), ":")
 	if len(comp) != 2 {
 		return nil, &Error{
-			Sender:   "filter:slice",
-			ErrorMsg: "Slice string must have the format 'from:to' [from/to can be omitted, but the ':' is required]",
+			Sender:    "filter:slice",
+			OrigError: errors.New("Slice string must have the format 'from:to' [from/to can be omitted, but the ':' is required]"),
 		}
 	}
 
@@ -874,14 +875,14 @@ func filterYesno(in *Value, param *Value) (*Value, *Error) {
 	if len(paramString) > 0 {
 		if len(customChoices) > 3 {
 			return nil, &Error{
-				Sender:   "filter:yesno",
-				ErrorMsg: fmt.Sprintf("You cannot pass more than 3 options to the 'yesno'-filter (got: '%s').", paramString),
+				Sender:    "filter:yesno",
+				OrigError: fmt.Errorf("You cannot pass more than 3 options to the 'yesno'-filter (got: '%s').", paramString),
 			}
 		}
 		if len(customChoices) < 2 {
 			return nil, &Error{
-				Sender:   "filter:yesno",
-				ErrorMsg: fmt.Sprintf("You must pass either no or at least 2 arguments to the 'yesno'-filter (got: '%s').", paramString),
+				Sender:    "filter:yesno",
+				OrigError: fmt.Errorf("You must pass either no or at least 2 arguments to the 'yesno'-filter (got: '%s').", paramString),
 			}
 		}
 
