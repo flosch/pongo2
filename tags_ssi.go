@@ -13,7 +13,7 @@ type tagSSINode struct {
 func (node *tagSSINode) Execute(ctx *ExecutionContext, writer TemplateWriter) *Error {
 	if node.template != nil {
 		// Execute the template within the current context
-		includeCtx := make(Context)
+		includeCtx := NewContext()
 		includeCtx.Update(ctx.Public)
 		includeCtx.Update(ctx.Private)
 

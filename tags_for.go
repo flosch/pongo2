@@ -24,7 +24,7 @@ type tagForLoopInformation struct {
 func (node *tagForNode) Execute(ctx *ExecutionContext, writer TemplateWriter) (forError *Error) {
 	// Backup forloop (as parentloop in public context), key-name and value-name
 	forCtx := NewChildExecutionContext(ctx)
-	parentloop := forCtx.Private["forloop"]
+	parentloop := forCtx.Private.Get("forloop")
 
 	// Create loop struct
 	loopInfo := &tagForLoopInformation{
@@ -37,7 +37,7 @@ func (node *tagForNode) Execute(ctx *ExecutionContext, writer TemplateWriter) (f
 	}
 
 	// Register loopInfo in public context
-	forCtx.Private["forloop"] = loopInfo
+	forCtx.Private.Set("forloop", loopInfo)
 
 	obj, err := node.objectEvaluator.Evaluate(forCtx)
 	if err != nil {
@@ -48,9 +48,9 @@ func (node *tagForNode) Execute(ctx *ExecutionContext, writer TemplateWriter) (f
 		// There's something to iterate over (correct type and at least 1 item)
 
 		// Update loop infos and public context
-		forCtx.Private[node.key] = key
+		forCtx.Private.Set(node.key, key)
 		if value != nil {
-			forCtx.Private[node.value] = value
+			forCtx.Private.Set(node.value, value)
 		}
 		loopInfo.Counter = idx + 1
 		loopInfo.Counter0 = idx

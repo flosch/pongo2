@@ -91,16 +91,16 @@ func init() {
 		panic("cannot write to /tmp/")
 	}
 	f.Write([]byte("Hello from pongo2"))
-	pongo2.DefaultSet.Globals["temp_file"] = f.Name()
+	pongo2.DefaultSet.Globals.Set("temp_file", f.Name())
 }
 
 /*
  * End setup sandbox
  */
 
-var tplContext = pongo2.Context{
+var tplContext = pongo2.NewContext().SetMap(pongo2.ContextMap{
 	"number": 11,
-	"simple": map[string]interface{}{
+	"simple": pongo2.ContextMap{
 		"number":                   42,
 		"name":                     "john doe",
 		"included_file":            "INCLUDES.helper",
@@ -167,7 +167,7 @@ Yep!`,
 			return pongo2.AsValue(s)
 		},
 	},
-	"complex": map[string]interface{}{
+	"complex": pongo2.ContextMap{
 		"is_admin": isAdmin,
 		"post": post{
 			Text:    "<h2>Hello!</h2><p>Welcome to my new blog page. I'm using pongo2 which supports {{ variables }} and {% tags %}.</p>",
@@ -226,11 +226,11 @@ Yep!`,
 			},
 		},
 	},
-}
+})
 
 func TestTemplates(t *testing.T) {
 	// Add a global to the default set
-	pongo2.Globals["this_is_a_global_variable"] = "this is a global text"
+	pongo2.Globals.Set("this_is_a_global_variable", "this is a global text")
 
 	matches, err := filepath.Glob("./template_tests/*.tpl")
 	if err != nil {
@@ -373,8 +373,8 @@ func TestBaseDirectory(t *testing.T) {
 
 	fs := pongo2.MustNewLocalFileSystemLoader("")
 	s := pongo2.NewSet("test set with base directory", fs)
-	s.Globals["base_directory"] = "template_tests/base_dir_test/"
-	if err := fs.SetBaseDir(s.Globals["base_directory"].(string)); err != nil {
+	s.Globals.Set("base_directory", "template_tests/base_dir_test/")
+	if err := fs.SetBaseDir(s.Globals.GetString("base_directory")); err != nil {
 		t.Fatal(err)
 	}
 
