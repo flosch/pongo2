@@ -112,9 +112,9 @@ func (tpl *Template) execute(context Context, writer TemplateWriter) error {
 				_, has := tpl.exportedMacros[k]
 				if has {
 					return &Error{
-						Filename: tpl.name,
-						Sender:   "execution",
-						ErrorMsg: fmt.Sprintf("Context key name '%s' clashes with macro '%s'.", k, k),
+						Filename:  tpl.name,
+						Sender:    "execution",
+						OrigError: fmt.Errorf("Context key name '%s' clashes with macro '%s'.", k, k),
 					}
 				}
 			}

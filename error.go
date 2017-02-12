@@ -13,13 +13,13 @@ import (
 // a filter, make Sender equals 'filter:yourfilter'; same goes for tags: 'tag:mytag').
 // It's okay if you only fill in ErrorMsg if you don't have any other details at hand.
 type Error struct {
-	Template *Template
-	Filename string
-	Line     int
-	Column   int
-	Token    *Token
-	Sender   string
-	ErrorMsg string
+	Template  *Template
+	Filename  string
+	Line      int
+	Column    int
+	Token     *Token
+	Sender    string
+	OrigError error
 }
 
 func (e *Error) updateFromTokenIfNeeded(template *Template, t *Token) *Error {
@@ -54,7 +54,7 @@ func (e *Error) Error() string {
 		}
 	}
 	s += "] "
-	s += e.ErrorMsg
+	s += e.OrigError.Error()
 	return s
 }
 

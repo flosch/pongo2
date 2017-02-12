@@ -1,6 +1,7 @@
 package pongo2
 
 import (
+	"errors"
 	"fmt"
 	"regexp"
 )
@@ -24,8 +25,8 @@ func (c Context) checkForValidIdentifiers() *Error {
 	for k, v := range c {
 		if !reIdentifiers.MatchString(k) {
 			return &Error{
-				Sender:   "checkForValidIdentifiers",
-				ErrorMsg: fmt.Sprintf("Context-key '%s' (value: '%+v') is not a valid identifier.", k, v),
+				Sender:    "checkForValidIdentifiers",
+				OrigError: fmt.Errorf("Context-key '%s' (value: '%+v') is not a valid identifier.", k, v),
 			}
 		}
 	}
@@ -110,13 +111,13 @@ func (ctx *ExecutionContext) Error(msg string, token *Token) *Error {
 		col = token.Col
 	}
 	return &Error{
-		Template: ctx.template,
-		Filename: filename,
-		Line:     line,
-		Column:   col,
-		Token:    token,
-		Sender:   "execution",
-		ErrorMsg: msg,
+		Template:  ctx.template,
+		Filename:  filename,
+		Line:      line,
+		Column:    col,
+		Token:     token,
+		Sender:    "execution",
+		OrigError: errors.New(msg),
 	}
 }
 

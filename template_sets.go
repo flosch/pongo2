@@ -167,17 +167,17 @@ func (set *TemplateSet) FromFile(filename string) (*Template, error) {
 	fd, err := set.loader.Get(set.resolveFilename(nil, filename))
 	if err != nil {
 		return nil, &Error{
-			Filename: filename,
-			Sender:   "fromfile",
-			ErrorMsg: err.Error(),
+			Filename:  filename,
+			Sender:    "fromfile",
+			OrigError: err,
 		}
 	}
 	buf, err := ioutil.ReadAll(fd)
 	if err != nil {
 		return nil, &Error{
-			Filename: filename,
-			Sender:   "fromfile",
-			ErrorMsg: err.Error(),
+			Filename:  filename,
+			Sender:    "fromfile",
+			OrigError: err,
 		}
 	}
 
