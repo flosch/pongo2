@@ -370,6 +370,11 @@ func (l *lexer) stateIdentifier() lexerStateFn {
 
 func (l *lexer) stateNumber() lexerStateFn {
 	l.acceptRun(tokenDigits)
+	if l.accept(tokenIdentifierCharsWithDigits) {
+		// This seems to be an identifier starting with a number.
+		// See https://github.com/flosch/pongo2/issues/151
+		return l.stateIdentifier()
+	}
 	/*
 		Maybe context-sensitive number lexing?
 		* comments.0.Text // first comment

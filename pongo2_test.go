@@ -4,12 +4,10 @@ import (
 	"testing"
 
 	"github.com/flosch/pongo2"
-
 	. "gopkg.in/check.v1"
 )
 
 // Hook up gocheck into the "go test" runner.
-
 func Test(t *testing.T) { TestingT(t) }
 
 type TestSuite struct {

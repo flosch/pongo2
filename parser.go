@@ -174,7 +174,7 @@ func (p *Parser) GetR(shift int) *Token {
 	return p.Get(i)
 }
 
-// Produces a nice error message and returns an error-object.
+// Error produces a nice error message and returns an error-object.
 // The 'token'-argument is optional. If provided, it will take
 // the token's position information. If not provided, it will
 // automatically use the CURRENT token's position information.
