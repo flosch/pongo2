@@ -1,10 +1,11 @@
 package pongo2
 
 import (
-	"errors"
 	"fmt"
 	"strings"
 	"unicode/utf8"
+
+	"github.com/juju/errors"
 )
 
 const (

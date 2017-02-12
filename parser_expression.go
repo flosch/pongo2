@@ -146,7 +146,7 @@ func (expr *Expression) Evaluate(ctx *ExecutionContext) (*Value, *Error) {
 		case "or", "||":
 			return AsValue(v1.IsTrue() || v2.IsTrue()), nil
 		default:
-			panic(fmt.Sprintf("unimplemented: %s", expr.opToken.Val))
+			return nil, ctx.Error(fmt.Sprintf("unimplemented: %s", expr.opToken.Val), expr.opToken)
 		}
 	} else {
 		return v1, nil
@@ -191,7 +191,7 @@ func (expr *relationalExpression) Evaluate(ctx *ExecutionContext) (*Value, *Erro
 		case "in":
 			return AsValue(v2.Contains(v1)), nil
 		default:
-			panic(fmt.Sprintf("unimplemented: %s", expr.opToken.Val))
+			return nil, ctx.Error(fmt.Sprintf("unimplemented: %s", expr.opToken.Val), expr.opToken)
 		}
 	} else {
 		return v1, nil
@@ -217,7 +217,7 @@ func (expr *simpleExpression) Evaluate(ctx *ExecutionContext) (*Value, *Error) {
 			case result.IsInteger():
 				result = AsValue(-1 * result.Integer())
 			default:
-				panic("not possible")
+				return nil, ctx.Error("Operation between a number and a non-(float/integer) is not possible", nil)
 			}
 		} else {
 			return nil, ctx.Error("Negative sign on a non-number expression", expr.GetPositionToken())
@@ -245,7 +245,7 @@ func (expr *simpleExpression) Evaluate(ctx *ExecutionContext) (*Value, *Error) {
 			// Result will be an integer
 			return AsValue(result.Integer() - t2.Integer()), nil
 		default:
-			panic("unimplemented")
+			return nil, ctx.Error("Unimplemented", expr.GetPositionToken())
 		}
 	}
 
@@ -281,7 +281,7 @@ func (expr *term) Evaluate(ctx *ExecutionContext) (*Value, *Error) {
 			// Result will be int
 			return AsValue(f1.Integer() % f2.Integer()), nil
 		default:
-			panic("unimplemented")
+			return nil, ctx.Error("unimplemented", expr.opToken)
 		}
 	} else {
 		return f1, nil

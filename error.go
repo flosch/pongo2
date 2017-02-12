@@ -59,9 +59,9 @@ func (e *Error) Error() string {
 }
 
 // RawLine returns the affected line from the original template, if available.
-func (e *Error) RawLine() (line string, available bool) {
+func (e *Error) RawLine() (line string, available bool, outErr error) {
 	if e.Line <= 0 || e.Filename == "<string>" {
-		return "", false
+		return "", false, nil
 	}
 
 	filename := e.Filename
@@ -70,12 +70,12 @@ func (e *Error) RawLine() (line string, available bool) {
 	}
 	file, err := os.Open(filename)
 	if err != nil {
-		panic(err)
+		return "", false, err
 	}
 	defer func() {
 		err := file.Close()
-		if err != nil {
-			panic(err)
+		if err != nil && outErr == nil {
+			outErr = err
 		}
 	}()
 
@@ -84,8 +84,8 @@ func (e *Error) RawLine() (line string, available bool) {
 	for scanner.Scan() {
 		l++
 		if l == e.Line {
-			return scanner.Text(), true
+			return scanner.Text(), true, nil
 		}
 	}
-	return "", false
+	return "", false, nil
 }

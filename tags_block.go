@@ -29,12 +29,12 @@ func (node *tagBlockNode) Execute(ctx *ExecutionContext, writer TemplateWriter) 
 	if tpl == nil {
 		panic("internal error: tpl == nil")
 	}
+
 	// Determine the block to execute
 	blockWrappers := node.getBlockWrappers(tpl)
 	lenBlockWrappers := len(blockWrappers)
 
 	if lenBlockWrappers == 0 {
-		// fmt.Printf("could not find: %s\n", node.name)
 		return ctx.Error("internal error: len(block_wrappers) == 0 in tagBlockNode.Execute()", nil)
 	}
 

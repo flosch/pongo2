@@ -5,6 +5,8 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
+
+	"github.com/pkg/errors"
 )
 
 const (
@@ -276,11 +278,11 @@ func (vr *variableResolver) resolve(ctx *ExecutionContext) (*Value, error) {
 							current = current.Index(part.i)
 						} else {
 							// Access to non-existed index will cause an error
-							return nil, fmt.Errorf("%s is out of range (type: %s, length: %d)",
+							return nil, errors.Errorf("%s is out of range (type: %s, length: %d)",
 								vr.String(), current.Kind().String(), current.Len())
 						}
 					default:
-						return nil, fmt.Errorf("Can't access an index on type %s (variable %s)",
+						return nil, errors.Errorf("Can't access an index on type %s (variable %s)",
 							current.Kind().String(), vr.String())
 					}
 				case varTypeIdent:
@@ -294,7 +296,7 @@ func (vr *variableResolver) resolve(ctx *ExecutionContext) (*Value, error) {
 					case reflect.Map:
 						current = current.MapIndex(reflect.ValueOf(part.s))
 					default:
-						return nil, fmt.Errorf("Can't access a field by name on type %s (variable %s)",
+						return nil, errors.Errorf("Can't access a field by name on type %s (variable %s)",
 							current.Kind().String(), vr.String())
 					}
 				default:
@@ -326,7 +328,7 @@ func (vr *variableResolver) resolve(ctx *ExecutionContext) (*Value, error) {
 		if part.isFunctionCall || current.Kind() == reflect.Func {
 			// Check for callable
 			if current.Kind() != reflect.Func {
-				return nil, fmt.Errorf("'%s' is not a function (it is %s)", vr.String(), current.Kind().String())
+				return nil, errors.Errorf("'%s' is not a function (it is %s)", vr.String(), current.Kind().String())
 			}
 
 			// Check for correct function syntax and types
@@ -336,19 +338,19 @@ func (vr *variableResolver) resolve(ctx *ExecutionContext) (*Value, error) {
 
 			// If an implicit ExecCtx is needed
 			if t.NumIn() > 0 && t.In(0) == typeOfExecCtxPtr {
-				 currArgs = append([]functionCallArgument{executionCtxEval{}}, currArgs...)
+				currArgs = append([]functionCallArgument{executionCtxEval{}}, currArgs...)
 			}
 
 			// Input arguments
 			if len(currArgs) != t.NumIn() && !(len(currArgs) >= t.NumIn()-1 && t.IsVariadic()) {
 				return nil,
-					fmt.Errorf("Function input argument count (%d) of '%s' must be equal to the calling argument count (%d).",
+					errors.Errorf("Function input argument count (%d) of '%s' must be equal to the calling argument count (%d).",
 						t.NumIn(), vr.String(), len(currArgs))
 			}
 
 			// Output arguments
 			if t.NumOut() != 1 {
-				return nil, fmt.Errorf("'%s' must have exactly 1 output argument", vr.String())
+				return nil, errors.Errorf("'%s' must have exactly 1 output argument", vr.String())
 			}
 
 			// Evaluate all parameters
@@ -378,14 +380,14 @@ func (vr *variableResolver) resolve(ctx *ExecutionContext) (*Value, error) {
 					// Function's argument is not a *pongo2.Value, then we have to check whether input argument is of the same type as the function's argument
 					if !isVariadic {
 						if fnArg != reflect.TypeOf(pv.Interface()) && fnArg.Kind() != reflect.Interface {
-							return nil, fmt.Errorf("Function input argument %d of '%s' must be of type %s or *pongo2.Value (not %T).",
+							return nil, errors.Errorf("Function input argument %d of '%s' must be of type %s or *pongo2.Value (not %T).",
 								idx, vr.String(), fnArg.String(), pv.Interface())
 						}
 						// Function's argument has another type, using the interface-value
 						parameters = append(parameters, reflect.ValueOf(pv.Interface()))
 					} else {
 						if fnArg != reflect.TypeOf(pv.Interface()) && fnArg.Kind() != reflect.Interface {
-							return nil, fmt.Errorf("Function variadic input argument of '%s' must be of type %s or *pongo2.Value (not %T).",
+							return nil, errors.Errorf("Function variadic input argument of '%s' must be of type %s or *pongo2.Value (not %T).",
 								vr.String(), fnArg.String(), pv.Interface())
 						}
 						// Function's argument has another type, using the interface-value
@@ -400,7 +402,7 @@ func (vr *variableResolver) resolve(ctx *ExecutionContext) (*Value, error) {
 			// Check if any of the values are invalid
 			for _, p := range parameters {
 				if p.Kind() == reflect.Invalid {
-					return nil, fmt.Errorf("Calling a function using an invalid parameter")
+					return nil, errors.Errorf("Calling a function using an invalid parameter")
 				}
 			}
 

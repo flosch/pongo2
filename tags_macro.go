@@ -136,7 +136,7 @@ func tagMacroParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, *Er
 		// Now register the macro if it wants to be exported
 		_, has := doc.template.exportedMacros[macroNode.name]
 		if has {
-			return nil, doc.Error(fmt.Sprintf("Another macro with name '%s' already exported.", macroNode.name), start)
+			return nil, doc.Error(fmt.Sprintf("another macro with name '%s' already exported", macroNode.name), start)
 		}
 		doc.template.exportedMacros[macroNode.name] = macroNode
 	}

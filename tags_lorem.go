@@ -4,6 +4,8 @@ import (
 	"math/rand"
 	"strings"
 	"time"
+
+	"github.com/pkg/errors"
 )
 
 var (
@@ -80,7 +82,7 @@ func (node *tagLoremNode) Execute(ctx *ExecutionContext, writer TemplateWriter) 
 			}
 		}
 	default:
-		panic("unsupported method")
+		return ctx.OrigError(errors.Errorf("unsupported method: %s", node.method), nil)
 	}
 
 	return nil

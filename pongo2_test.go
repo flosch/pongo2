@@ -50,8 +50,8 @@ func (s *TestSuite) TestMisc(c *C) {
 	c.Check(parseTemplateFn("", pongo2.Context{"'illegal": nil}), PanicMatches, ".*not a valid identifier.*")
 
 	// Registers
-	c.Check(func() { pongo2.RegisterFilter("escape", nil) }, PanicMatches, ".*is already registered.*")
-	c.Check(func() { pongo2.RegisterTag("for", nil) }, PanicMatches, ".*is already registered.*")
+	c.Check(pongo2.RegisterFilter("escape", nil).Error(), Matches, ".*is already registered")
+	c.Check(pongo2.RegisterTag("for", nil).Error(), Matches, ".*is already registered")
 
 	// ApplyFilter
 	v, err := pongo2.ApplyFilter("title", pongo2.AsValue("this is a title"), nil)

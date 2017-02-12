@@ -27,7 +27,6 @@ package pongo2
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 	"math/rand"
 	"net/url"
@@ -36,6 +35,8 @@ import (
 	"strings"
 	"time"
 	"unicode/utf8"
+
+	"github.com/juju/errors"
 )
 
 func init() {
@@ -555,7 +556,7 @@ func filterDate(in *Value, param *Value) (*Value, *Error) {
 	if !isTime {
 		return nil, &Error{
 			Sender:    "filter:date",
-			OrigError: errors.New("Filter input argument must be of type 'time.Time'."),
+			OrigError: errors.New("filter input argument must be of type 'time.Time'"),
 		}
 	}
 	return AsValue(t.Format(param.String())), nil
@@ -648,7 +649,8 @@ func filterUrlencode(in *Value, param *Value) (*Value, *Error) {
 var filterUrlizeURLRegexp = regexp.MustCompile(`((((http|https)://)|www\.|((^|[ ])[0-9A-Za-z_\-]+(\.com|\.net|\.org|\.info|\.biz|\.de))))(?U:.*)([ ]+|$)`)
 var filterUrlizeEmailRegexp = regexp.MustCompile(`(\w+@\w+\.\w{2,4})`)
 
-func filterUrlizeHelper(input string, autoescape bool, trunc int) string {
+func filterUrlizeHelper(input string, autoescape bool, trunc int) (string, error) {
+	var soutErr error
 	sout := filterUrlizeURLRegexp.ReplaceAllStringFunc(input, func(raw_url string) string {
 		var prefix string
 		var suffix string
@@ -663,7 +665,8 @@ func filterUrlizeHelper(input string, autoescape bool, trunc int) string {
 
 		t, err := ApplyFilter("iriencode", AsValue(raw_url), nil)
 		if err != nil {
-			panic(err)
+			soutErr = err
+			return ""
 		}
 		url := t.String()
 
@@ -680,16 +683,19 @@ func filterUrlizeHelper(input string, autoescape bool, trunc int) string {
 		if autoescape {
 			t, err := ApplyFilter("escape", AsValue(title), nil)
 			if err != nil {
-				panic(err)
+				soutErr = err
+				return ""
 			}
 			title = t.String()
 		}
 
 		return fmt.Sprintf(`%s<a href="%s" rel="nofollow">%s</a>%s`, prefix, url, title, suffix)
 	})
+	if soutErr != nil {
+		return "", soutErr
+	}
 
 	sout = filterUrlizeEmailRegexp.ReplaceAllStringFunc(sout, func(mail string) string {
-
 		title := mail
 
 		if trunc > 3 && len(title) > trunc {
@@ -699,7 +705,7 @@ func filterUrlizeHelper(input string, autoescape bool, trunc int) string {
 		return fmt.Sprintf(`<a href="mailto:%s">%s</a>`, mail, title)
 	})
 
-	return sout
+	return sout, nil
 }
 
 func filterUrlize(in *Value, param *Value) (*Value, *Error) {
@@ -708,11 +714,23 @@ func filterUrlize(in *Value, param *Value) (*Value, *Error) {
 		autoescape = param.Bool()
 	}
 
-	return AsValue(filterUrlizeHelper(in.String(), autoescape, -1)), nil
+	s, err := filterUrlizeHelper(in.String(), autoescape, -1)
+	if err != nil {
+
+	}
+
+	return AsValue(s), nil
 }
 
 func filterUrlizetrunc(in *Value, param *Value) (*Value, *Error) {
-	return AsValue(filterUrlizeHelper(in.String(), true, param.Integer())), nil
+	s, err := filterUrlizeHelper(in.String(), true, param.Integer())
+	if err != nil {
+		return nil, &Error{
+			Sender:    "filter:urlizetrunc",
+			OrigError: errors.New("you cannot pass more than 2 arguments to filter 'pluralize'"),
+		}
+	}
+	return AsValue(s), nil
 }
 
 func filterStringformat(in *Value, param *Value) (*Value, *Error) {
@@ -754,7 +772,7 @@ func filterPluralize(in *Value, param *Value) (*Value, *Error) {
 			if len(endings) > 2 {
 				return nil, &Error{
 					Sender:    "filter:pluralize",
-					OrigError: errors.New("You cannot pass more than 2 arguments to filter 'pluralize'."),
+					OrigError: errors.New("you cannot pass more than 2 arguments to filter 'pluralize'"),
 				}
 			}
 			if len(endings) == 1 {
@@ -780,7 +798,7 @@ func filterPluralize(in *Value, param *Value) (*Value, *Error) {
 	}
 	return nil, &Error{
 		Sender:    "filter:pluralize",
-		OrigError: errors.New("Filter 'pluralize' does only work on numbers."),
+		OrigError: errors.New("filter 'pluralize' does only work on numbers"),
 	}
 }
 
@@ -876,13 +894,13 @@ func filterYesno(in *Value, param *Value) (*Value, *Error) {
 		if len(customChoices) > 3 {
 			return nil, &Error{
 				Sender:    "filter:yesno",
-				OrigError: fmt.Errorf("You cannot pass more than 3 options to the 'yesno'-filter (got: '%s').", paramString),
+				OrigError: errors.Errorf("You cannot pass more than 3 options to the 'yesno'-filter (got: '%s').", paramString),
 			}
 		}
 		if len(customChoices) < 2 {
 			return nil, &Error{
 				Sender:    "filter:yesno",
-				OrigError: fmt.Errorf("You must pass either no or at least 2 arguments to the 'yesno'-filter (got: '%s').", paramString),
+				OrigError: errors.Errorf("You must pass either no or at least 2 arguments to the 'yesno'-filter (got: '%s').", paramString),
 			}
 		}
 
