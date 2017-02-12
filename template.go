@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"io"
 
-	"github.com/pkg/errors"
+	"github.com/juju/errors"
 )
 
 type TemplateWriter interface {

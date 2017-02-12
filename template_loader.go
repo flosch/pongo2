@@ -8,7 +8,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/pkg/errors"
+	"github.com/juju/errors"
 )
 
 // LocalFilesystemLoader represents a local filesystem loader with basic
