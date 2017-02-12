@@ -40,23 +40,23 @@ func (v *Value) getResolvedValue() reflect.Value {
 	return v.val
 }
 
-// Checks whether the underlying value is a string
+// IsString checks whether the underlying value is a string
 func (v *Value) IsString() bool {
 	return v.getResolvedValue().Kind() == reflect.String
 }
 
-// Checks whether the underlying value is a bool
+// IsBool checks whether the underlying value is a bool
 func (v *Value) IsBool() bool {
 	return v.getResolvedValue().Kind() == reflect.Bool
 }
 
-// Checks whether the underlying value is a float
+// IsFloat checks whether the underlying value is a float
 func (v *Value) IsFloat() bool {
 	return v.getResolvedValue().Kind() == reflect.Float32 ||
 		v.getResolvedValue().Kind() == reflect.Float64
 }
 
-// Checks whether the underlying value is an integer
+// IsInteger checks whether the underlying value is an integer
 func (v *Value) IsInteger() bool {
 	return v.getResolvedValue().Kind() == reflect.Int ||
 		v.getResolvedValue().Kind() == reflect.Int8 ||
@@ -70,19 +70,19 @@ func (v *Value) IsInteger() bool {
 		v.getResolvedValue().Kind() == reflect.Uint64
 }
 
-// Checks whether the underlying value is either an integer
+// IsNumber checks whether the underlying value is either an integer
 // or a float.
 func (v *Value) IsNumber() bool {
 	return v.IsInteger() || v.IsFloat()
 }
 
-// Checks whether the underlying value is NIL
+// IsNil checks whether the underlying value is NIL
 func (v *Value) IsNil() bool {
 	//fmt.Printf("%+v\n", v.getResolvedValue().Type().String())
 	return !v.getResolvedValue().IsValid()
 }
 
-// Returns a string for the underlying value. If this value is not
+// String returns a string for the underlying value. If this value is not
 // of type string, pongo2 tries to convert it. Currently the following
 // types for underlying values are supported:
 //
@@ -124,7 +124,7 @@ func (v *Value) String() string {
 	return v.getResolvedValue().String()
 }
 
-// Returns the underlying value as an integer (converts the underlying
+// Integer returns the underlying value as an integer (converts the underlying
 // value, if necessary). If it's not possible to convert the underlying value,
 // it will return 0.
 func (v *Value) Integer() int {
@@ -148,7 +148,7 @@ func (v *Value) Integer() int {
 	}
 }
 
-// Returns the underlying value as a float (converts the underlying
+// Float returns the underlying value as a float (converts the underlying
 // value, if necessary). If it's not possible to convert the underlying value,
 // it will return 0.0.
 func (v *Value) Float() float64 {
@@ -172,7 +172,7 @@ func (v *Value) Float() float64 {
 	}
 }
 
-// Returns the underlying value as bool. If the value is not bool, false
+// Bool returns the underlying value as bool. If the value is not bool, false
 // will always be returned. If you're looking for true/false-evaluation of the
 // underlying value, have a look on the IsTrue()-function.
 func (v *Value) Bool() bool {
@@ -185,7 +185,7 @@ func (v *Value) Bool() bool {
 	}
 }
 
-// Tries to evaluate the underlying value the Pythonic-way:
+// IsTrue tries to evaluate the underlying value the Pythonic-way:
 //
 // Returns TRUE in one the following cases:
 //
@@ -217,7 +217,7 @@ func (v *Value) IsTrue() bool {
 	}
 }
 
-// Tries to negate the underlying value. It's mainly used for
+// Negate tries to negate the underlying value. It's mainly used for
 // the NOT-operator and in conjunction with a call to
 // return_value.IsTrue() afterwards.
 //
@@ -248,7 +248,7 @@ func (v *Value) Negate() *Value {
 	}
 }
 
-// Returns the length for an array, chan, map, slice or string.
+// Len returns the length for an array, chan, map, slice or string.
 // Otherwise it will return 0.
 func (v *Value) Len() int {
 	switch v.getResolvedValue().Kind() {
@@ -263,7 +263,7 @@ func (v *Value) Len() int {
 	}
 }
 
-// Slices an array, slice or string. Otherwise it will
+// Slice slices an array, slice or string. Otherwise it will
 // return an empty []int.
 func (v *Value) Slice(i, j int) *Value {
 	switch v.getResolvedValue().Kind() {
@@ -278,7 +278,7 @@ func (v *Value) Slice(i, j int) *Value {
 	}
 }
 
-// Get the i-th item of an array, slice or string. Otherwise
+// Index gets the i-th item of an array, slice or string. Otherwise
 // it will return NIL.
 func (v *Value) Index(i int) *Value {
 	switch v.getResolvedValue().Kind() {
@@ -343,7 +343,7 @@ func (v *Value) Contains(other *Value) bool {
 	}
 }
 
-// Checks whether the underlying value is of type array, slice or string.
+// CanSlice checks whether the underlying value is of type array, slice or string.
 // You normally would use CanSlice() before using the Slice() operation.
 func (v *Value) CanSlice() bool {
 	switch v.getResolvedValue().Kind() {
@@ -353,7 +353,7 @@ func (v *Value) CanSlice() bool {
 	return false
 }
 
-// Iterates over a map, array, slice or a string. It calls the
+// Iterate iterates over a map, array, slice or a string. It calls the
 // function's first argument for every value with the following arguments:
 //
 //     idx      current 0-index
@@ -367,7 +367,7 @@ func (v *Value) Iterate(fn func(idx, count int, key, value *Value) bool, empty f
 	v.IterateOrder(fn, empty, false, false)
 }
 
-// IterateOrder is like Value.Iterate, but can iterate through an array/slice/string in reverse. Does
+// IterateOrder behaves like Value.Iterate, but can iterate through an array/slice/string in reverse. Does
 // not affect the iteration through a map because maps don't have any particular order.
 // However, you can force an order using the `sorted` keyword (and even use `reversed sorted`).
 func (v *Value) IterateOrder(fn func(idx, count int, key, value *Value) bool, empty func(), reverse bool, sorted bool) {
@@ -456,7 +456,7 @@ func (v *Value) IterateOrder(fn func(idx, count int, key, value *Value) bool, em
 	empty()
 }
 
-// Gives you access to the underlying value.
+// Interface gives you access to the underlying value.
 func (v *Value) Interface() interface{} {
 	if v.val.IsValid() {
 		return v.val.Interface()
@@ -464,7 +464,7 @@ func (v *Value) Interface() interface{} {
 	return nil
 }
 
-// Checks whether two values are containing the same value or object.
+// EqualValueTo checks whether two values are containing the same value or object.
 func (v *Value) EqualValueTo(other *Value) bool {
 	// comparison of uint with int fails using .Interface()-comparison (see issue #64)
 	if v.IsInteger() && other.IsInteger() {
