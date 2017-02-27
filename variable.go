@@ -277,9 +277,8 @@ func (vr *variableResolver) resolve(ctx *ExecutionContext) (*Value, error) {
 						if part.i >= 0 && current.Len() > part.i {
 							current = current.Index(part.i)
 						} else {
-							// Access to non-existed index will cause an error
-							return nil, errors.Errorf("%s is out of range (type: %s, length: %d)",
-								vr.String(), current.Kind().String(), current.Len())
+							// In Django, exceeding the length of a list is just empty.
+							return AsValue(nil), nil
 						}
 					default:
 						return nil, errors.Errorf("Can't access an index on type %s (variable %s)",
