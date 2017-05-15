@@ -166,9 +166,9 @@ type HttpFilesystemLoader struct {
 	fs http.FileSystem
 }
 
-// MustNewLocalFileSystemLoader creates a new LocalFilesystemLoader instance
+// MustNewHttpFileSystemLoader creates a new HttpFilesystemLoader instance
 // and panics if there's any error during instantiation. The parameters
-// are the same like NewLocalFileSystemLoader.
+// are the same like NewHttpFilesystemLoader.
 func MustNewHttpFileSystemLoader(httpfs http.FileSystem) *HttpFilesystemLoader {
 	fs, err := NewHttpFileSystemLoader(httpfs)
 	if err != nil {
@@ -177,11 +177,9 @@ func MustNewHttpFileSystemLoader(httpfs http.FileSystem) *HttpFilesystemLoader {
 	return fs
 }
 
-// NewLocalFileSystemLoader creates a new LocalFilesystemLoader and allows
-// templatesto be loaded from disk (unrestricted). If any base directory
-// is given (or being set using SetBaseDir), this base directory is being used
-// for path calculation in template inclusions/imports. Otherwise the path
-// is calculated based relatively to the including template's path.
+// NewHttpFileSystemLoader creates a new HttpFileSystemLoader and allows
+// templates to be loaded from the virtual filesystem. The path
+// is calculated based relatively from the root of the http.Filesystem.
 func NewHttpFileSystemLoader(httpfs http.FileSystem) (*HttpFilesystemLoader, error) {
 	hfs := &HttpFilesystemLoader{
 		fs: httpfs,
@@ -193,6 +191,8 @@ func NewHttpFileSystemLoader(httpfs http.FileSystem) (*HttpFilesystemLoader, err
 	return hfs, nil
 }
 
+// Abs in this instance simply returns the filename, since
+// there's no potential for an unexpanded path in an http.FileSystem
 func (h *HttpFilesystemLoader) Abs(base, name string) string {
 	return name
 }
