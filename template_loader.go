@@ -8,6 +8,8 @@ import (
 	"os"
 	"path/filepath"
 
+	"net/http"
+
 	"github.com/juju/errors"
 )
 
@@ -155,3 +157,47 @@ if len(set.SandboxDirectories) > 0 {
     }()
 }
 */
+
+// HttpFilesystemLoader supports loading templates
+// from an http.FileSystem - useful for using one of several
+// file-to-code generators that packs static files into
+// a go binary (ex: https://github.com/jteeuwen/go-bindata)
+type HttpFilesystemLoader struct {
+	fs http.FileSystem
+}
+
+// MustNewLocalFileSystemLoader creates a new LocalFilesystemLoader instance
+// and panics if there's any error during instantiation. The parameters
+// are the same like NewLocalFileSystemLoader.
+func MustNewHttpFileSystemLoader(httpfs http.FileSystem) *HttpFilesystemLoader {
+	fs, err := NewHttpFileSystemLoader(httpfs)
+	if err != nil {
+		log.Panic(err)
+	}
+	return fs
+}
+
+// NewLocalFileSystemLoader creates a new LocalFilesystemLoader and allows
+// templatesto be loaded from disk (unrestricted). If any base directory
+// is given (or being set using SetBaseDir), this base directory is being used
+// for path calculation in template inclusions/imports. Otherwise the path
+// is calculated based relatively to the including template's path.
+func NewHttpFileSystemLoader(httpfs http.FileSystem) (*HttpFilesystemLoader, error) {
+	hfs := &HttpFilesystemLoader{
+		fs: httpfs,
+	}
+	if httpfs == nil {
+		err := errors.New("httpfs cannot be nil")
+		return nil, err
+	}
+	return hfs, nil
+}
+
+func (h *HttpFilesystemLoader) Abs(base, name string) string {
+	return name
+}
+
+// Get returns an io.Reader where the template's content can be read from.
+func (h HttpFilesystemLoader) Get(path string) (io.Reader, error) {
+	return h.fs.Open(path)
+}
