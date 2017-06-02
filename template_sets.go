@@ -39,6 +39,8 @@ type TemplateSet struct {
 	// variable during program execution (and template compilation/execution).
 	Debug bool
 
+	// Options allow you to change the behavior of template-engine.
+	// You can change the options before calling the Execute method.
 	Options *Options
 
 	// Sandbox features

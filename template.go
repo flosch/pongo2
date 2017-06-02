@@ -48,6 +48,8 @@ type Template struct {
 	// Output
 	root *nodeDocument
 
+	// Options allow you to change the behavior of template-engine.
+	// You can change the options before calling the Execute method.
 	Options *Options
 }
 
