@@ -16,3 +16,11 @@ func newOptions() *Options {
 		LStripBlocks: false,
 	}
 }
+
+// Update updates this options from another options.
+func (opt *Options) Update(other *Options) *Options {
+	opt.TrimBlocks = other.TrimBlocks
+	opt.LStripBlocks = other.LStripBlocks
+
+	return opt
+}

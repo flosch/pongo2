@@ -69,8 +69,10 @@ func newTemplate(set *TemplateSet, name string, isTplString bool, tpl []byte) (*
 		size:           len(strTpl),
 		blocks:         make(map[string]*NodeWrapper),
 		exportedMacros: make(map[string]*tagMacroNode),
-		Options:        set.Options,
+		Options:        newOptions(),
 	}
+	// Copy all settings from another Options.
+	t.Options.Update(set.Options)
 
 	// Tokenize it
 	tokens, err := lex(name, strTpl)
