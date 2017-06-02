@@ -3,6 +3,7 @@ package pongo2
 import (
 	"bytes"
 	"io"
+	"strings"
 
 	"github.com/juju/errors"
 )
@@ -46,6 +47,8 @@ type Template struct {
 
 	// Output
 	root *nodeDocument
+
+	Options *Options
 }
 
 func newTemplateString(set *TemplateSet, tpl []byte) (*Template, error) {
@@ -64,6 +67,7 @@ func newTemplate(set *TemplateSet, name string, isTplString bool, tpl []byte) (*
 		size:           len(strTpl),
 		blocks:         make(map[string]*NodeWrapper),
 		exportedMacros: make(map[string]*tagMacroNode),
+		Options:        set.Options,
 	}
 
 	// Tokenize it
@@ -88,6 +92,39 @@ func newTemplate(set *TemplateSet, name string, isTplString bool, tpl []byte) (*
 }
 
 func (tpl *Template) execute(context Context, writer TemplateWriter) error {
+	if tpl.Options.TrimBlocks || tpl.Options.LStripBlocks {
+		// Issue #94 https://github.com/flosch/pongo2/issues/94
+		// If an application configures pongo2 template to trim_blocks,
+		// the first newline after a template tag is removed automatically (like in PHP).
+		prev := &Token{
+			Typ: TokenHTML,
+			Val: "\n",
+		}
+
+		for _, t := range tpl.tokens {
+			if tpl.Options.LStripBlocks {
+				if prev.Typ == TokenHTML && t.Typ != TokenHTML && t.Val == "{%" {
+					prev.Val = strings.TrimRight(prev.Val, "\t ")
+				}
+			}
+
+			if tpl.Options.TrimBlocks {
+				if prev.Typ != TokenHTML && t.Typ == TokenHTML && prev.Val == "%}" {
+					if len(t.Val) > 0 && t.Val[0] == '\n' {
+						t.Val = t.Val[1:len(t.Val)]
+					}
+				}
+			}
+
+			prev = t
+		}
+
+		// For debugging purposes, show all tokens:
+		/*for i, t := range tpl.tokens {
+			fmt.Printf("%3d. %s\n", i, t)
+		}*/
+	}
+
 	// Determine the parent to be executed (for template inheritance)
 	parent := tpl
 	for parent.parent != nil {

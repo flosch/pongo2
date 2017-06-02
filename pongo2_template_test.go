@@ -237,11 +237,20 @@ func TestTemplates(t *testing.T) {
 		t.Fatal(err)
 	}
 	for idx, match := range matches {
+		// Read options from file
+		optsStr, _ := ioutil.ReadFile(fmt.Sprintf("%s.options", match))
+		trimBlocks := strings.Contains(string(optsStr), "TrimBlocks=true")
+		lStripBlocks := strings.Contains(string(optsStr), "LStripBlocks=true")
+
 		t.Logf("[Template %3d] Testing '%s'", idx+1, match)
 		tpl, err := pongo2.FromFile(match)
 		if err != nil {
 			t.Fatalf("Error on FromFile('%s'): %s", match, err.Error())
 		}
+
+		tpl.Options.TrimBlocks = trimBlocks
+		tpl.Options.LStripBlocks = lStripBlocks
+
 		testFilename := fmt.Sprintf("%s.out", match)
 		testOut, rerr := ioutil.ReadFile(testFilename)
 		if rerr != nil {

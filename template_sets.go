@@ -39,6 +39,8 @@ type TemplateSet struct {
 	// variable during program execution (and template compilation/execution).
 	Debug bool
 
+	Options *Options
+
 	// Sandbox features
 	// - Disallow access to specific tags and/or filters (using BanTag() and BanFilter())
 	//
@@ -65,6 +67,7 @@ func NewSet(name string, loader TemplateLoader) *TemplateSet {
 		bannedTags:    make(map[string]bool),
 		bannedFilters: make(map[string]bool),
 		templateCache: make(map[string]*Template),
+		Options:       newOptions(),
 	}
 }
 
