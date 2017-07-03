@@ -330,7 +330,7 @@ outer_loop:
 			return l.stateIdentifier
 		case l.accept(tokenDigits):
 			return l.stateNumber
-		case l.accept(`"`):
+		case l.accept(`"'`):
 			return l.stateString
 		}
 
@@ -396,9 +396,10 @@ func (l *lexer) stateNumber() lexerStateFn {
 }
 
 func (l *lexer) stateString() lexerStateFn {
+	quotationMark := l.value()
 	l.ignore()
 	l.startcol-- // we're starting the position at the first "
-	for !l.accept(`"`) {
+	for !l.accept(quotationMark) {
 		switch l.next() {
 		case '\\':
 			// escape sequence
