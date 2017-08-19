@@ -27,8 +27,8 @@ type TemplateLoader interface {
 // It's useful for a separation of different kind of templates
 // (e. g. web templates vs. mail templates).
 type TemplateSet struct {
-	name   string
-	loader TemplateLoader
+	name    string
+	loaders []TemplateLoader
 
 	// Globals will be provided to all templates created within this template set
 	Globals Context
@@ -57,10 +57,14 @@ type TemplateSet struct {
 // NewSet can be used to create sets with different kind of templates
 // (e. g. web from mail templates), with different globals or
 // other configurations.
-func NewSet(name string, loader TemplateLoader) *TemplateSet {
+func NewSet(name string, loaders ...TemplateLoader) *TemplateSet {
+	if len(loaders) == 0 {
+		panic(fmt.Errorf("at least one template loader must be specified"))
+	}
+
 	return &TemplateSet{
 		name:          name,
-		loader:        loader,
+		loaders:       loaders,
 		Globals:       make(Context),
 		bannedTags:    make(map[string]bool),
 		bannedFilters: make(map[string]bool),
@@ -68,7 +72,15 @@ func NewSet(name string, loader TemplateLoader) *TemplateSet {
 	}
 }
 
+func (set *TemplateSet) AddLoader(loaders ...TemplateLoader) {
+	set.loaders = append(set.loaders, loaders...)
+}
+
 func (set *TemplateSet) resolveFilename(tpl *Template, path string) string {
+	return set.resolveFilenameForLoader(set.loaders[0], tpl, path)
+}
+
+func (set *TemplateSet) resolveFilenameForLoader(loader TemplateLoader, tpl *Template, path string) string {
 	name := ""
 	if tpl != nil && tpl.isTplString {
 		return path
@@ -76,7 +88,8 @@ func (set *TemplateSet) resolveFilename(tpl *Template, path string) string {
 	if tpl != nil {
 		name = tpl.name
 	}
-	return set.loader.Abs(name, path)
+
+	return loader.Abs(name, path)
 }
 
 // BanTag bans a specific tag for this template set. See more in the documentation for TemplateSet.
@@ -113,6 +126,19 @@ func (set *TemplateSet) BanFilter(name string) error {
 	set.bannedFilters[name] = true
 
 	return nil
+}
+
+func (set *TemplateSet) resolveTemplate(tpl *Template, path string) (name string, loader TemplateLoader, fd io.Reader, err error) {
+	// iterate over loaders until we appear to have a valid template
+	for _, loader = range set.loaders {
+		name = set.resolveFilenameForLoader(loader, tpl, path)
+		fd, err = loader.Get(name)
+		if err == nil {
+			return
+		}
+	}
+
+	return path, nil, nil, fmt.Errorf("unable to resolve template")
 }
 
 // FromCache is a convenient method to cache templates. It is thread-safe
@@ -165,7 +191,7 @@ func (set *TemplateSet) FromBytes(tpl []byte) (*Template, error) {
 func (set *TemplateSet) FromFile(filename string) (*Template, error) {
 	set.firstTemplateCreated = true
 
-	fd, err := set.loader.Get(set.resolveFilename(nil, filename))
+	_, _, fd, err := set.resolveTemplate(nil, filename)
 	if err != nil {
 		return nil, &Error{
 			Filename:  filename,
