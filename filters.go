@@ -18,11 +18,7 @@ func init() {
 // FilterExists returns true if the given filter is already registered
 func FilterExists(name string) bool {
 	_, existing := filters[name]
-	if existing {
-		return true
-	}
-
-	return false
+	return existing
 }
 
 // RegisterFilter registers a new filter. If there's already a filter with the same
