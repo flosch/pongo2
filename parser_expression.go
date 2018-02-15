@@ -273,7 +273,13 @@ func (expr *term) Evaluate(ctx *ExecutionContext) (*Value, *Error) {
 		case "/":
 			if f1.IsFloat() || f2.IsFloat() {
 				// Result will be float
+				if f2.Float() == 0 {
+					return AsValue(0), nil
+				}
 				return AsValue(f1.Float() / f2.Float()), nil
+			}
+			if f2.Integer() == 0 {
+				return AsValue(0), nil
 			}
 			// Result will be int
 			return AsValue(f1.Integer() / f2.Integer()), nil
