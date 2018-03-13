@@ -6,8 +6,17 @@ func (p *Parser) parseDocElement() (INode, *Error) {
 
 	switch t.Typ {
 	case TokenHTML:
+		n := &nodeHTML{token: t}
+		left := p.PeekTypeN(-1, TokenSymbol)
+		right := p.PeekTypeN(1, TokenSymbol)
+		if left != nil && left.TrimWhitespaces {
+			n.trimLeft = true
+		}
+		if right != nil && right.TrimWhitespaces {
+			n.trimRight = true
+		}
 		p.Consume() // consume HTML element
-		return &nodeHTML{token: t}, nil
+		return n, nil
 	case TokenSymbol:
 		switch t.Val {
 		case "{{":
