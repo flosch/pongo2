@@ -45,11 +45,11 @@ var (
 
 type TokenType int
 type Token struct {
-	Filename string
-	Typ      TokenType
-	Val      string
-	Line     int
-	Col      int
+	Filename        string
+	Typ             TokenType
+	Val             string
+	Line            int
+	Col             int
 	TrimWhitespaces bool
 }
 
@@ -150,7 +150,8 @@ func (l *lexer) emit(t TokenType) {
 
 	if t == TokenSymbol && len(tok.Val) == 3 && (strings.HasSuffix(tok.Val, "-") || strings.HasPrefix(tok.Val, "-")) {
 		tok.TrimWhitespaces = true
-		tok.Val = strings.Replace(tok.Val, "-", "", -1)	}
+		tok.Val = strings.Replace(tok.Val, "-", "", -1)
+	}
 
 	l.tokens = append(l.tokens, tok)
 	l.start = l.pos
