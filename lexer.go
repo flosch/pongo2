@@ -30,6 +30,7 @@ var (
 	// Available symbols in pongo2 (within filters/tag)
 	TokenSymbols = []string{
 		// 3-Char symbols
+		"{{-", "-}}", "{%-", "-%}",
 
 		// 2-Char symbols
 		"==", ">=", "<=", "&&", "||", "{{", "}}", "{%", "%}", "!=", "<>",
@@ -44,11 +45,12 @@ var (
 
 type TokenType int
 type Token struct {
-	Filename string
-	Typ      TokenType
-	Val      string
-	Line     int
-	Col      int
+	Filename        string
+	Typ             TokenType
+	Val             string
+	Line            int
+	Col             int
+	TrimWhitespaces bool
 }
 
 type lexerStateFn func() lexerStateFn
@@ -95,8 +97,8 @@ func (t *Token) String() string {
 		typ = "Unknown"
 	}
 
-	return fmt.Sprintf("<Token Typ=%s (%d) Val='%s' Line=%d Col=%d>",
-		typ, t.Typ, val, t.Line, t.Col)
+	return fmt.Sprintf("<Token Typ=%s (%d) Val='%s' Line=%d Col=%d, WT=%t>",
+		typ, t.Typ, val, t.Line, t.Col, t.TrimWhitespaces)
 }
 
 func lex(name string, input string) ([]*Token, *Error) {
@@ -144,6 +146,11 @@ func (l *lexer) emit(t TokenType) {
 		// Escape sequence \" in strings
 		tok.Val = strings.Replace(tok.Val, `\"`, `"`, -1)
 		tok.Val = strings.Replace(tok.Val, `\\`, `\`, -1)
+	}
+
+	if t == TokenSymbol && len(tok.Val) == 3 && (strings.HasSuffix(tok.Val, "-") || strings.HasPrefix(tok.Val, "-")) {
+		tok.TrimWhitespaces = true
+		tok.Val = strings.Replace(tok.Val, "-", "", -1)
 	}
 
 	l.tokens = append(l.tokens, tok)
@@ -341,7 +348,7 @@ outer_loop:
 				l.col += l.length()
 				l.emit(TokenSymbol)
 
-				if sym == "%}" || sym == "}}" {
+				if sym == "%}" || sym == "-%}" || sym == "}}" || sym == "-}}" {
 					// Tag/variable end, return after emit
 					return nil
 				}
