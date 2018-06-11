@@ -158,7 +158,7 @@ You can access pongo2's API documentation on [godoc](https://godoc.org/github.co
  * [macaron-pongo2](https://github.com/macaron-contrib/pongo2) - pongo2 support for [Macaron](https://github.com/Unknwon/macaron), a modular web framework.
  * [ginpongo2](https://github.com/ngerakines/ginpongo2) - middleware for [gin](github.com/gin-gonic/gin) to use pongo2 templates
  * [Build'n support for Iris' template engine](https://github.com/kataras/iris) 
- * [pongo2gin](https://github.com/robvdl/pongo2gin) - alternative renderer for [gin](github.com/gin-gonic/gin) to use pongo2 templates
+ * [pongo2gin](https://gitlab.com/go-box/pongo2gin) - alternative renderer for [gin](github.com/gin-gonic/gin) to use pongo2 templates
  * [pongo2-trans](https://github.com/digitalcrab/pongo2trans) - `trans`-tag implementation for internationalization
  * [tpongo2](https://github.com/tango-contrib/tpongo2) - pongo2 support for [Tango](https://github.com/lunny/tango), a micro-kernel & pluggable web framework.
  * [p2cli](https://github.com/wrouesnel/p2cli) - command line templating utility based on pongo2
