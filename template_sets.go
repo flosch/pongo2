@@ -115,26 +115,20 @@ func (set *TemplateSet) BanFilter(name string) error {
 	return nil
 }
 
-// CleanCache cleans the template cache and returns whether or not to clean
-// successfully.
-//
-// If filename is not empty, it will remove the template cache of that filename.
+// CleanCache cleans the template cache. If filenames is not empty,
+// it will remove the template caches of those filenames.
 // Or it will empty the whole template cache. It is thread-safe.
-func (set *TemplateSet) CleanCache(filename string) bool {
+func (set *TemplateSet) CleanCache(filenames ...string) {
 	set.templateCacheMutex.Lock()
 	defer set.templateCacheMutex.Unlock()
 
-	if filename == "" {
+	if len(filenames) == 0 {
 		set.templateCache = make(map[string]*Template, len(set.templateCache))
-		return true
 	}
 
-	cleanedFilename := set.resolveFilename(nil, filename)
-	_, ok := set.templateCache[cleanedFilename]
-	if ok {
-		delete(set.templateCache, cleanedFilename)
+	for _, filename := range filenames {
+		delete(set.templateCache, set.resolveFilename(nil, filename))
 	}
-	return ok
 }
 
 // FromCache is a convenient method to cache templates. It is thread-safe
