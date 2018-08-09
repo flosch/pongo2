@@ -2,6 +2,7 @@ package pongo2_test
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"path/filepath"
@@ -11,6 +12,7 @@ import (
 	"time"
 
 	"github.com/flosch/pongo2"
+	"github.com/juju/errors"
 )
 
 var adminList = []string{"user2"}
@@ -226,6 +228,94 @@ Yep!`,
 			},
 		},
 	},
+}
+
+func TestTemplate_Functions(t *testing.T) {
+	mydict := map[string]interface{}{
+		"foo":    "bar",
+		"foobar": 8379,
+	}
+
+	tests := []struct {
+		name         string
+		template     string
+		context      pongo2.Context
+		want         string
+		errorMessage string
+		wantErr      bool
+	}{
+		{
+			name:     "NoError",
+			template: "{{ testFunc(mydict) }}",
+			context: pongo2.Context{
+				"mydict": mydict,
+				"testFunc": func(i interface{}) (string, error) {
+					d, err := json.Marshal(i)
+					return string(d), err
+				},
+			},
+			want:    `{&quot;foo&quot;:&quot;bar&quot;,&quot;foobar&quot;:8379}`,
+			wantErr: false,
+		},
+		{
+			name:     "WithError",
+			template: "{{ testFunc(mydict) }}",
+			context: pongo2.Context{
+				"mydict": mydict,
+				"testFunc": func(i interface{}) (string, error) {
+					return "", errors.New("something went wrong")
+				},
+			},
+			errorMessage: "[Error (where: execution) in <string> | Line 1 Col 4 near 'testFunc'] something went wrong",
+			wantErr:      true,
+		},
+		{
+			name:     "TooMuchArguments",
+			template: "{{ testFunc(mydict) }}",
+			context: pongo2.Context{
+				"mydict": mydict,
+				"testFunc": func(i interface{}) (string, int, error) {
+					return "", 0, nil
+				},
+			},
+			errorMessage: "[Error (where: execution) in <string> | Line 1 Col 4 near 'testFunc'] 'testFunc' must have exactly 1 or 2 output arguments, the second argument must be of type error",
+			wantErr:      true,
+		},
+		{
+			name:     "InvalidArguments",
+			template: "{{ testFunc(mydict) }}",
+			context: pongo2.Context{
+				"mydict": map[string]interface{}{
+					"foo":    "bar",
+					"foobar": 8379,
+				},
+				"testFunc": func(i interface{}) (string, int) {
+					return "", 0
+				},
+			},
+			errorMessage: "[Error (where: execution) in <string> | Line 1 Col 4 near 'testFunc'] The second return value is not an error",
+			wantErr:      true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tpl, _ := pongo2.FromString("{{ testFunc(mydict) }}")
+			got, err := tpl.Execute(tt.context)
+			if err != nil {
+				if !tt.wantErr {
+					t.Errorf("Template.Execute() error = %v, wantErr %v", err, tt.wantErr)
+					return
+				}
+				if err.Error() != tt.errorMessage {
+					t.Errorf("Template.Execute() error = %v, expected error %v", err, tt.errorMessage)
+					return
+				}
+			}
+			if got != tt.want {
+				t.Errorf("Template.Execute() = %v, want %v", got, tt.want)
+			}
+		})
+	}
 }
 
 func TestTemplates(t *testing.T) {
