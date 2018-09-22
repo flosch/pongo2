@@ -511,7 +511,7 @@ func (vl valuesList) Less(i, j int) bool {
 	case vi.IsFloat() && vj.IsFloat():
 		return vi.Float() < vj.Float()
 	default:
-		return vi.String() < vj.String()
+		return fmt.Sprint(vi.Interface()) < fmt.Sprint(vi.Interface())
 	}
 }
 
