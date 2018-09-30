@@ -554,10 +554,17 @@ func filterCenter(in *Value, param *Value) (*Value, *Error) {
 func filterDate(in *Value, param *Value) (*Value, *Error) {
 	t, isTime := in.Interface().(time.Time)
 	if !isTime {
-		return nil, &Error{
-			Sender:    "filter:date",
-			OrigError: errors.New("filter input argument must be of type 'time.Time'"),
+		t2, isTime := in.Interface().(*time.Time)
+		if !isTime {
+			return nil, &Error{
+				Sender:    "filter:date",
+				OrigError: errors.New("filter input argument must be of type 'time.Time'"),
+			}
 		}
+		if t2 == nil {
+			return AsValue(nil), nil
+		}
+		return AsValue(t2.Format(param.String())), nil
 	}
 	return AsValue(t.Format(param.String())), nil
 }
