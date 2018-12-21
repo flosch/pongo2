@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -88,11 +89,15 @@ func init() {
 	pongo2.DefaultSet.BanFilter("banned_filter")
 	pongo2.DefaultSet.BanTag("banned_tag")
 
-	f, err := ioutil.TempFile("/tmp/", "pongo2_")
+	f, err := ioutil.TempFile(os.TempDir(), "pongo2_")
 	if err != nil {
-		panic("cannot write to /tmp/")
+		panic(fmt.Sprintf("cannot write to %s", os.TempDir()))
 	}
-	f.Write([]byte("Hello from pongo2"))
+	defer f.Close()
+	_, err = f.Write([]byte("Hello from pongo2"))
+	if err != nil {
+		panic(fmt.Sprintf("cannot write to %s", os.TempDir()))
+	}
 	pongo2.DefaultSet.Globals["temp_file"] = f.Name()
 }
 
@@ -107,13 +112,13 @@ var tplContext = pongo2.Context{
 		"name":                     "john doe",
 		"included_file":            "INCLUDES.helper",
 		"included_file_not_exists": "INCLUDES.helper.not_exists",
-		"nil":   nil,
-		"uint":  uint(8),
-		"float": float64(3.1415),
-		"str":   "string",
-		"chinese_hello_world": "你好世界",
-		"bool_true":           true,
-		"bool_false":          false,
+		"nil":                      nil,
+		"uint":                     uint(8),
+		"float":                    float64(3.1415),
+		"str":                      "string",
+		"chinese_hello_world":      "你好世界",
+		"bool_true":                true,
+		"bool_false":               false,
 		"newline_text": `this is a text
 with a new line in it`,
 		"long_text": `This is a simple text.
@@ -327,31 +332,52 @@ func TestTemplates(t *testing.T) {
 		t.Fatal(err)
 	}
 	for idx, match := range matches {
-		t.Logf("[Template %3d] Testing '%s'", idx+1, match)
-		tpl, err := pongo2.FromFile(match)
-		if err != nil {
-			t.Fatalf("Error on FromFile('%s'): %s", match, err.Error())
-		}
-		testFilename := fmt.Sprintf("%s.out", match)
-		testOut, rerr := ioutil.ReadFile(testFilename)
-		if rerr != nil {
-			t.Fatalf("Error on ReadFile('%s'): %s", testFilename, rerr.Error())
-		}
-		tplOut, err := tpl.ExecuteBytes(tplContext)
-		if err != nil {
-			t.Fatalf("Error on Execute('%s'): %s", match, err.Error())
-		}
-		if bytes.Compare(testOut, tplOut) != 0 {
-			t.Logf("Template (rendered) '%s': '%s'", match, tplOut)
-			errFilename := filepath.Base(fmt.Sprintf("%s.error", match))
-			err := ioutil.WriteFile(errFilename, []byte(tplOut), 0600)
+		t.Run(fmt.Sprintf("%03d-%s", idx+1, match), func(t *testing.T) {
+			tpl, err := pongo2.FromFile(match)
 			if err != nil {
-				t.Fatalf(err.Error())
+				t.Fatalf("Error on FromFile('%s'): %s", match, err.Error())
 			}
-			t.Logf("get a complete diff with command: 'diff -ya %s %s'", testFilename, errFilename)
-			t.Errorf("Failed: test_out != tpl_out for %s", match)
+			testFilename := fmt.Sprintf("%s.out", match)
+			testOut, rerr := ioutil.ReadFile(testFilename)
+			if rerr != nil {
+				t.Fatalf("Error on ReadFile('%s'): %s", testFilename, rerr.Error())
+			}
+			tplOut, err := tpl.ExecuteBytes(tplContext)
+			if err != nil {
+				t.Fatalf("Error on Execute('%s'): %s", match, err.Error())
+			}
+			tplOut = testTemplateFixes.fixIfNeeded(match, tplOut)
+			if bytes.Compare(testOut, tplOut) != 0 {
+				t.Logf("Template (rendered) '%s': '%s'", match, tplOut)
+				errFilename := filepath.Base(fmt.Sprintf("%s.error", match))
+				err := ioutil.WriteFile(errFilename, []byte(tplOut), 0600)
+				if err != nil {
+					t.Fatalf(err.Error())
+				}
+				t.Logf("get a complete diff with command: 'diff -ya %s %s'", testFilename, errFilename)
+				t.Errorf("Failed: test_out != tpl_out for %s", match)
+			}
+		})
+	}
+}
+
+type testTemplateFixesT map[*regexp.Regexp]func(string) string
+
+func (instance testTemplateFixesT) fixIfNeeded(name string, in []byte) []byte {
+	out := string(in)
+	for r, f := range instance {
+		if r.MatchString(name) {
+			out = f(out)
 		}
 	}
+	return []byte(out)
+}
+
+var testTemplateFixes = testTemplateFixesT{
+	regexp.MustCompile(`.*template_tests[/\\]macro\.tpl`): func(in string) string {
+		out := regexp.MustCompile(`(?:\.[/\\]|)(template_tests)[/\\](macro\.tpl)`).ReplaceAllString(in, "$1/$2")
+		return out
+	},
 }
 
 func TestExecutionErrors(t *testing.T) {
@@ -362,53 +388,53 @@ func TestExecutionErrors(t *testing.T) {
 		t.Fatal(err)
 	}
 	for idx, match := range matches {
-		t.Logf("[Errors %3d] Testing '%s'", idx+1, match)
+		t.Run(fmt.Sprintf("%03d-%s", idx+1, match), func(t *testing.T) {
+			testData, err := ioutil.ReadFile(match)
+			tests := strings.Split(string(testData), "\n")
 
-		testData, err := ioutil.ReadFile(match)
-		tests := strings.Split(string(testData), "\n")
-
-		checkFilename := fmt.Sprintf("%s.out", match)
-		checkData, err := ioutil.ReadFile(checkFilename)
-		if err != nil {
-			t.Fatalf("Error on ReadFile('%s'): %s", checkFilename, err.Error())
-		}
-		checks := strings.Split(string(checkData), "\n")
-
-		if len(checks) != len(tests) {
-			t.Fatal("Template lines != Checks lines")
-		}
-
-		for idx, test := range tests {
-			if strings.TrimSpace(test) == "" {
-				continue
-			}
-			if strings.TrimSpace(checks[idx]) == "" {
-				t.Fatalf("[%s Line %d] Check is empty (must contain an regular expression).",
-					match, idx+1)
-			}
-
-			tpl, err := pongo2.FromString(test)
+			checkFilename := fmt.Sprintf("%s.out", match)
+			checkData, err := ioutil.ReadFile(checkFilename)
 			if err != nil {
-				t.Fatalf("Error on FromString('%s'): %s", test, err.Error())
+				t.Fatalf("Error on ReadFile('%s'): %s", checkFilename, err.Error())
+			}
+			checks := strings.Split(string(checkData), "\n")
+
+			if len(checks) != len(tests) {
+				t.Fatal("Template lines != Checks lines")
 			}
 
-			tpl, err = pongo2.FromBytes([]byte(test))
-			if err != nil {
-				t.Fatalf("Error on FromBytes('%s'): %s", test, err.Error())
-			}
+			for idx, test := range tests {
+				if strings.TrimSpace(test) == "" {
+					continue
+				}
+				if strings.TrimSpace(checks[idx]) == "" {
+					t.Fatalf("[%s Line %d] Check is empty (must contain an regular expression).",
+						match, idx+1)
+				}
 
-			_, err = tpl.ExecuteBytes(tplContext)
-			if err == nil {
-				t.Fatalf("[%s Line %d] Expected error for (got none): %s",
-					match, idx+1, tests[idx])
-			}
+				tpl, err := pongo2.FromString(test)
+				if err != nil {
+					t.Fatalf("Error on FromString('%s'): %s", test, err.Error())
+				}
 
-			re := regexp.MustCompile(fmt.Sprintf("^%s$", checks[idx]))
-			if !re.MatchString(err.Error()) {
-				t.Fatalf("[%s Line %d] Error for '%s' (err = '%s') does not match the (regexp-)check: %s",
-					match, idx+1, test, err.Error(), checks[idx])
+				tpl, err = pongo2.FromBytes([]byte(test))
+				if err != nil {
+					t.Fatalf("Error on FromBytes('%s'): %s", test, err.Error())
+				}
+
+				_, err = tpl.ExecuteBytes(tplContext)
+				if err == nil {
+					t.Fatalf("[%s Line %d] Expected error for (got none): %s",
+						match, idx+1, tests[idx])
+				}
+
+				re := regexp.MustCompile(fmt.Sprintf("^%s$", checks[idx]))
+				if !re.MatchString(err.Error()) {
+					t.Fatalf("[%s Line %d] Error for '%s' (err = '%s') does not match the (regexp-)check: %s",
+						match, idx+1, test, err.Error(), checks[idx])
+				}
 			}
-		}
+		})
 	}
 }
 
@@ -420,41 +446,42 @@ func TestCompilationErrors(t *testing.T) {
 		t.Fatal(err)
 	}
 	for idx, match := range matches {
-		t.Logf("[Errors %3d] Testing '%s'", idx+1, match)
+		t.Run(fmt.Sprintf("%03d-%s", idx+1, match), func(t *testing.T) {
 
-		testData, err := ioutil.ReadFile(match)
-		tests := strings.Split(string(testData), "\n")
+			testData, err := ioutil.ReadFile(match)
+			tests := strings.Split(string(testData), "\n")
 
-		checkFilename := fmt.Sprintf("%s.out", match)
-		checkData, err := ioutil.ReadFile(checkFilename)
-		if err != nil {
-			t.Fatalf("Error on ReadFile('%s'): %s", checkFilename, err.Error())
-		}
-		checks := strings.Split(string(checkData), "\n")
-
-		if len(checks) != len(tests) {
-			t.Fatal("Template lines != Checks lines")
-		}
-
-		for idx, test := range tests {
-			if strings.TrimSpace(test) == "" {
-				continue
+			checkFilename := fmt.Sprintf("%s.out", match)
+			checkData, err := ioutil.ReadFile(checkFilename)
+			if err != nil {
+				t.Fatalf("Error on ReadFile('%s'): %s", checkFilename, err.Error())
 			}
-			if strings.TrimSpace(checks[idx]) == "" {
-				t.Fatalf("[%s Line %d] Check is empty (must contain an regular expression).",
-					match, idx+1)
+			checks := strings.Split(string(checkData), "\n")
+
+			if len(checks) != len(tests) {
+				t.Fatal("Template lines != Checks lines")
 			}
 
-			_, err = pongo2.FromString(test)
-			if err == nil {
-				t.Fatalf("[%s | Line %d] Expected error for (got none): %s", match, idx+1, tests[idx])
+			for idx, test := range tests {
+				if strings.TrimSpace(test) == "" {
+					continue
+				}
+				if strings.TrimSpace(checks[idx]) == "" {
+					t.Fatalf("[%s Line %d] Check is empty (must contain an regular expression).",
+						match, idx+1)
+				}
+
+				_, err = pongo2.FromString(test)
+				if err == nil {
+					t.Fatalf("[%s | Line %d] Expected error for (got none): %s", match, idx+1, tests[idx])
+				}
+				re := regexp.MustCompile(fmt.Sprintf("^%s$", checks[idx]))
+				if !re.MatchString(err.Error()) {
+					t.Fatalf("[%s | Line %d] Error for '%s' (err = '%s') does not match the (regexp-)check: %s",
+						match, idx+1, test, err.Error(), checks[idx])
+				}
 			}
-			re := regexp.MustCompile(fmt.Sprintf("^%s$", checks[idx]))
-			if !re.MatchString(err.Error()) {
-				t.Fatalf("[%s | Line %d] Error for '%s' (err = '%s') does not match the (regexp-)check: %s",
-					match, idx+1, test, err.Error(), checks[idx])
-			}
-		}
+		})
 	}
 }
 
@@ -473,7 +500,7 @@ func TestBaseDirectory(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, match := range matches {
-		match = strings.Replace(match, "template_tests/base_dir_test/", "", -1)
+		match = strings.Replace(match, fmt.Sprintf("template_tests%cbase_dir_test%c", filepath.Separator, filepath.Separator), "", -1)
 
 		tpl, err := s.FromFile(match)
 		if err != nil {

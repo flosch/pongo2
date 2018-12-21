@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/flosch/pongo2"
-	. "gopkg.in/check.v1"
+	. "github.com/go-check/check"
 )
 
 // Hook up gocheck into the "go test" runner.
@@ -43,7 +43,7 @@ func (s *TestSuite) TestMisc(c *C) {
 	c.Check(
 		func() { pongo2.Must(testSuite2.FromFile("template_tests/inheritance/base2.tpl")) },
 		PanicMatches,
-		`\[Error \(where: fromfile\) in .*template_tests/inheritance/doesnotexist.tpl | Line 1 Col 12 near 'doesnotexist.tpl'\] open .*template_tests/inheritance/doesnotexist.tpl: no such file or directory`,
+		`\[Error \(where: fromfile\) in .*template_tests[/\\]inheritance[/\\]doesnotexist.tpl | Line 1 Col 12 near 'doesnotexist.tpl'\] open .*template_tests[/\\]inheritance[/\\]doesnotexist.tpl: no such file or directory`,
 	)
 
 	// Context
