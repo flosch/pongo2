@@ -5,7 +5,9 @@ os:
   - osx
 go:
   - 1.11.4
-  - tip
+env:
+  global:
+    - GO111MODULE=on
 install:
   - go mod download
   - go get github.com/mattn/goveralls
