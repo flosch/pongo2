@@ -1,6 +1,7 @@
 package pongo2_test
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -337,21 +338,19 @@ func TestTemplates(t *testing.T) {
 				t.Fatalf("Error on FromFile('%s'): %s", match, err.Error())
 			}
 			testFilename := fmt.Sprintf("%s.out", match)
-			expectedBytes, rerr := ioutil.ReadFile(testFilename)
+			testOut, rerr := ioutil.ReadFile(testFilename)
 			if rerr != nil {
 				t.Fatalf("Error on ReadFile('%s'): %s", testFilename, rerr.Error())
 			}
-			expected := fixLineFeeds(string(expectedBytes))
-			givenBytes, err := tpl.ExecuteBytes(tplContext)
+			tplOut, err := tpl.ExecuteBytes(tplContext)
 			if err != nil {
 				t.Fatalf("Error on Execute('%s'): %s", match, err.Error())
 			}
-			given := fixLineFeeds(string(givenBytes))
-			given = testTemplateFixes.fixIfNeeded(match, given)
-			if expected != given {
-				t.Logf("Template (rendered) '%s': '%s'", match, given)
+			tplOut = testTemplateFixes.fixIfNeeded(match, tplOut)
+			if bytes.Compare(testOut, tplOut) != 0 {
+				t.Logf("Template (rendered) '%s': '%s'", match, tplOut)
 				errFilename := filepath.Base(fmt.Sprintf("%s.error", match))
-				err := ioutil.WriteFile(errFilename, []byte(given), 0600)
+				err := ioutil.WriteFile(errFilename, []byte(tplOut), 0600)
 				if err != nil {
 					t.Fatalf(err.Error())
 				}
@@ -362,30 +361,19 @@ func TestTemplates(t *testing.T) {
 	}
 }
 
-func fixLineFeeds(str string) string {
-	str = strings.Replace(str, "\r\n", "\n", -1)
-	str = strings.Replace(str, "\r", "\n", -1)
-	return str
-}
-
 type testTemplateFixesT map[*regexp.Regexp]func(string) string
 
-func (instance testTemplateFixesT) fixIfNeeded(name string, in string) string {
-	out := in
+func (instance testTemplateFixesT) fixIfNeeded(name string, in []byte) []byte {
+	out := string(in)
 	for r, f := range instance {
 		if r.MatchString(name) {
 			out = f(out)
 		}
 	}
-	return out
+	return []byte(out)
 }
 
 var testTemplateFixes = testTemplateFixesT{
-	regexp.MustCompile(`.*`): func(in string) string {
-
-		out := regexp.MustCompile(`(?:\.[/\\]|)(template_tests)[/\\](macro\.tpl)`).ReplaceAllString(in, "$1/$2")
-		return out
-	},
 	regexp.MustCompile(`.*template_tests[/\\]macro\.tpl`): func(in string) string {
 		out := regexp.MustCompile(`(?:\.[/\\]|)(template_tests)[/\\](macro\.tpl)`).ReplaceAllString(in, "$1/$2")
 		return out
