@@ -6,6 +6,8 @@
 [![Coverage Status](https://coveralls.io/repos/flosch/pongo2/badge.svg?branch=master)](https://coveralls.io/r/flosch/pongo2?branch=master)
 [![gratipay](http://img.shields.io/badge/gratipay-support%20pongo-brightgreen.svg)](https://gratipay.com/flosch/)
 [![Bountysource](https://www.bountysource.com/badge/tracker?tracker_id=3654947)](https://www.bountysource.com/trackers/3654947-pongo2?utm_source=3654947&utm_medium=shield&utm_campaign=TRACKER_BADGE)
+[![Backers on Open Collective](https://opencollective.com/pongo2/backers/badge.svg)](#backers) 
+[![Sponsors on Open Collective](https://opencollective.com/pongo2/sponsors/badge.svg)](#sponsors)
 
 pongo2 is the successor of [pongo](https://github.com/flosch/pongo), a Django-syntax like templating-language.
 
@@ -253,3 +255,33 @@ The results are:
     BenchmarkParallelExecuteComplexWithoutSandbox-8        100000             18034 ns/op
 
 Benchmarked on October 2nd 2014.
+
+## Contributors
+
+This project exists thanks to all the people who contribute. 
+<a href="https://github.com/flosch/pongo2/graphs/contributors"><img src="https://opencollective.com/pongo2/contributors.svg?width=890&button=false" /></a>
+
+
+## Backers
+
+Thank you to all our backers! 🙏 [[Become a backer](https://opencollective.com/pongo2#backer)]
+
+<a href="https://opencollective.com/pongo2#backers" target="_blank"><img src="https://opencollective.com/pongo2/backers.svg?width=890"></a>
+
+
+## Sponsors
+
+Support this project by becoming a sponsor. Your logo will show up here with a link to your website. [[Become a sponsor](https://opencollective.com/pongo2#sponsor)]
+
+<a href="https://opencollective.com/pongo2/sponsor/0/website" target="_blank"><img src="https://opencollective.com/pongo2/sponsor/0/avatar.svg"></a>
+<a href="https://opencollective.com/pongo2/sponsor/1/website" target="_blank"><img src="https://opencollective.com/pongo2/sponsor/1/avatar.svg"></a>
+<a href="https://opencollective.com/pongo2/sponsor/2/website" target="_blank"><img src="https://opencollective.com/pongo2/sponsor/2/avatar.svg"></a>
+<a href="https://opencollective.com/pongo2/sponsor/3/website" target="_blank"><img src="https://opencollective.com/pongo2/sponsor/3/avatar.svg"></a>
+<a href="https://opencollective.com/pongo2/sponsor/4/website" target="_blank"><img src="https://opencollective.com/pongo2/sponsor/4/avatar.svg"></a>
+<a href="https://opencollective.com/pongo2/sponsor/5/website" target="_blank"><img src="https://opencollective.com/pongo2/sponsor/5/avatar.svg"></a>
+<a href="https://opencollective.com/pongo2/sponsor/6/website" target="_blank"><img src="https://opencollective.com/pongo2/sponsor/6/avatar.svg"></a>
+<a href="https://opencollective.com/pongo2/sponsor/7/website" target="_blank"><img src="https://opencollective.com/pongo2/sponsor/7/avatar.svg"></a>
+<a href="https://opencollective.com/pongo2/sponsor/8/website" target="_blank"><img src="https://opencollective.com/pongo2/sponsor/8/avatar.svg"></a>
+<a href="https://opencollective.com/pongo2/sponsor/9/website" target="_blank"><img src="https://opencollective.com/pongo2/sponsor/9/avatar.svg"></a>
+
+
