@@ -1,6 +1,5 @@
 language: go
 os:
-  - windows
   - linux
   - osx
 go:
