@@ -3,9 +3,6 @@
 [![Join the chat at https://gitter.im/flosch/pongo2](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/flosch/pongo2)
 [![GoDoc](https://godoc.org/github.com/flosch/pongo2?status.svg)](https://godoc.org/github.com/flosch/pongo2)
 [![Build Status](https://travis-ci.org/flosch/pongo2.svg?branch=master)](https://travis-ci.org/flosch/pongo2)
-[![Coverage Status](https://coveralls.io/repos/flosch/pongo2/badge.svg?branch=master)](https://coveralls.io/r/flosch/pongo2?branch=master)
-[![gratipay](http://img.shields.io/badge/gratipay-support%20pongo-brightgreen.svg)](https://gratipay.com/flosch/)
-[![Bountysource](https://www.bountysource.com/badge/tracker?tracker_id=3654947)](https://www.bountysource.com/trackers/3654947-pongo2?utm_source=3654947&utm_medium=shield&utm_campaign=TRACKER_BADGE)
 [![Backers on Open Collective](https://opencollective.com/pongo2/backers/badge.svg)](#backers) 
 [![Sponsors on Open Collective](https://opencollective.com/pongo2/sponsors/badge.svg)](#sponsors)
 
@@ -16,9 +13,7 @@ Install/update using `go get` (no dependencies required by pongo2):
 go get -u github.com/flosch/pongo2
 ```
 
-Please use the [issue tracker](https://github.com/flosch/pongo2/issues) if you're encountering any problems with pongo2 or if you need help with implementing tags or filters ([create a ticket!](https://github.com/flosch/pongo2/issues/new)). If possible, please use [playground](https://www.florian-schlachter.de/pongo2/) to create a short test case on what's wrong and include the link to the snippet in your issue.
-
-**New**: [Try pongo2 out in the pongo2 playground.](https://www.florian-schlachter.de/pongo2/)
+Please use the [issue tracker](https://github.com/flosch/pongo2/issues) if you're encountering any problems with pongo2 or if you need help with implementing tags or filters ([create a ticket!](https://github.com/flosch/pongo2/issues/new)). 
 
 ## First impression of a template
 
@@ -68,7 +63,7 @@ Please use the [issue tracker](https://github.com/flosch/pongo2/issues) if you'r
 
 ## Development status
 
-**Latest stable release**: v3.0 (`go get -u gopkg.in/flosch/pongo2.v3` / [`v3`](https://github.com/flosch/pongo2/tree/v3)-branch) [[read the announcement](https://www.florian-schlachter.de/post/pongo2-v3/)]
+**Latest stable release**: v3.0 (`go get -u gopkg.in/flosch/pongo2.v3` / [`v3`](https://github.com/flosch/pongo2/tree/v3)-branch)
 
 **Current development**: v4 (`master`-branch)
 
@@ -107,7 +102,7 @@ If you're using the `master`-branch of pongo2, you might be interested in this s
 
 ## How you can help
 
- * Write [filters](https://github.com/flosch/pongo2/blob/master/filters_builtin.go#L3) / [tags](https://github.com/flosch/pongo2/blob/master/tags.go#L4) (see [tutorial](https://www.florian-schlachter.de/post/pongo2/)) by forking pongo2 and sending pull requests
+ * Write [filters](https://github.com/flosch/pongo2/blob/master/filters_builtin.go#L3) / [tags] by forking pongo2 and sending pull requests
  * Write/improve code tests (use the following command to see what tests are missing: `go test -v -cover -covermode=count -coverprofile=cover.out && go tool cover -html=cover.out` or have a look on [gocover.io/github.com/flosch/pongo2](http://gocover.io/github.com/flosch/pongo2))
  * Write/improve template tests (see the `template_tests/` directory)
  * Write middleware, libraries and websites using pongo2. :-)
@@ -117,15 +112,6 @@ If you're using the `master`-branch of pongo2, you might be interested in this s
 For a documentation on how the templating language works you can [head over to the Django documentation](https://docs.djangoproject.com/en/dev/topics/templates/). pongo2 aims to be compatible with it.
 
 You can access pongo2's API documentation on [godoc](https://godoc.org/github.com/flosch/pongo2).
-
-## Blog post series
- 
- * [pongo2 v3 released](https://www.florian-schlachter.de/post/pongo2-v3/)
- * [pongo2 v2 released](https://www.florian-schlachter.de/post/pongo2-v2/)
- * [pongo2 1.0 released](https://www.florian-schlachter.de/post/pongo2-10/) [August 8th 2014]
- * [pongo2 playground](https://www.florian-schlachter.de/post/pongo2-playground/) [August 1st 2014]
- * [Release of pongo2 1.0-rc1 + pongo2-addons](https://www.florian-schlachter.de/post/pongo2-10-rc1/) [July 30th 2014]
- * [Introduction to pongo2 + migration- and "how to write tags/filters"-tutorial.](https://www.florian-schlachter.de/post/pongo2/) [June 29th 2014]
 
 ## Caveats 
 
