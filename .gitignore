@@ -39,3 +39,4 @@ tpl-error.out
 /profile
 /coverage.out
 /pongo2_internal_test.ignore
+go.sum

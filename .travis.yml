@@ -1,13 +1,16 @@
 language: go
-
+os:
+  - windows
+  - linux
+  - osx
 go:
-  - 1.7
-  - tip
+  - 1.11.4
+env:
+  global:
+    - GO111MODULE=on
 install:
-  - go get golang.org/x/tools/cmd/cover
+  - go mod download
   - go get github.com/mattn/goveralls
-  - go get gopkg.in/check.v1
-  - go get github.com/juju/errors
 script:
   - go test -v -covermode=count -coverprofile=coverage.out -bench . -cpu 1,4
   - '[ "${TRAVIS_PULL_REQUEST}" = "false" ] && $HOME/gopath/bin/goveralls -coverprofile=coverage.out -service=travis-ci -repotoken $COVERALLS_TOKEN || true'

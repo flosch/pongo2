@@ -141,6 +141,22 @@ func (set *TemplateSet) resolveTemplate(tpl *Template, path string) (name string
 	return path, nil, nil, fmt.Errorf("unable to resolve template")
 }
 
+// CleanCache cleans the template cache. If filenames is not empty,
+// it will remove the template caches of those filenames.
+// Or it will empty the whole template cache. It is thread-safe.
+func (set *TemplateSet) CleanCache(filenames ...string) {
+	set.templateCacheMutex.Lock()
+	defer set.templateCacheMutex.Unlock()
+
+	if len(filenames) == 0 {
+		set.templateCache = make(map[string]*Template, len(set.templateCache))
+	}
+
+	for _, filename := range filenames {
+		delete(set.templateCache, set.resolveFilename(nil, filename))
+	}
+}
+
 // FromCache is a convenient method to cache templates. It is thread-safe
 // and will only compile the template associated with a filename once.
 // If TemplateSet.Debug is true (for example during development phase),
