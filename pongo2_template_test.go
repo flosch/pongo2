@@ -333,10 +333,21 @@ func TestTemplates(t *testing.T) {
 	}
 	for idx, match := range matches {
 		t.Run(fmt.Sprintf("%03d-%s", idx+1, match), func(t *testing.T) {
+
+			t.Logf("[Template %3d] Testing '%s'", idx+1, match)
 			tpl, err := pongo2.FromFile(match)
 			if err != nil {
 				t.Fatalf("Error on FromFile('%s'): %s", match, err.Error())
 			}
+
+			// Read options from file
+			optsStr, _ := ioutil.ReadFile(fmt.Sprintf("%s.options", match))
+			trimBlocks := strings.Contains(string(optsStr), "TrimBlocks=true")
+			lStripBlocks := strings.Contains(string(optsStr), "LStripBlocks=true")
+
+			tpl.Options.TrimBlocks = trimBlocks
+			tpl.Options.LStripBlocks = lStripBlocks
+
 			testFilename := fmt.Sprintf("%s.out", match)
 			testOut, rerr := ioutil.ReadFile(testFilename)
 			if rerr != nil {
@@ -375,10 +386,11 @@ func TestBlockTemplates(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Error on FromFile('%s'): %s", match, err.Error())
 		}
-		test_filename := fmt.Sprintf("%s.out", match)
-		test_out, rerr := ioutil.ReadFile(test_filename)
+
+		testFilename := fmt.Sprintf("%s.out", match)
+		testOut, rerr := ioutil.ReadFile(testFilename)
 		if rerr != nil {
-			t.Fatalf("Error on ReadFile('%s'): %s", test_filename, rerr.Error())
+			t.Fatalf("Error on ReadFile('%s'): %s", testFilename, rerr.Error())
 		}
 		tpl_out, err := tpl.ExecuteBlocks(tplContext, []string{"content", "more_content"})
 		if err != nil {
@@ -391,16 +403,16 @@ func TestBlockTemplates(t *testing.T) {
 		if _, ok := tpl_out["more_content"]; !ok {
 			t.Errorf("Failed: more_content not in tpl_out for %s", match)
 		}
-		test_string := string(test_out[:])
-		joined_string := strings.Join([]string{tpl_out["content"], tpl_out["more_content"]}, "")
-		if test_string != joined_string {
+		testString := string(testOut[:])
+		joinedString := strings.Join([]string{tpl_out["content"], tpl_out["more_content"]}, "")
+		if testString != joinedString {
 			t.Logf("BlockTemplate (rendered) '%s': '%s'", match, tpl_out["content"])
-			err_filename := filepath.Base(fmt.Sprintf("%s.error", match))
-			err := ioutil.WriteFile(err_filename, []byte(joined_string), 0600)
+			errFilename := filepath.Base(fmt.Sprintf("%s.error", match))
+			err := ioutil.WriteFile(errFilename, []byte(joinedString), 0600)
 			if err != nil {
 				t.Fatalf(err.Error())
 			}
-			t.Logf("get a complete diff with command: 'diff -ya %s %s'", test_filename, err_filename)
+			t.Logf("get a complete diff with command: 'diff -ya %s %s'", testFilename, errFilename)
 			t.Errorf("Failed: test_out != tpl_out for %s", match)
 		}
 	}
