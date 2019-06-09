@@ -101,6 +101,27 @@ func init() {
 	pongo2.DefaultSet.Globals["temp_file"] = f.Name()
 }
 
+
+type ParentStruct struct {
+	name string
+	/* changing struct to capital letter causing another issue: <main.ChildStruct Value>
+	https://github.com/flosch/pongo2/issues/206 */
+	Child *ChildStruct `json:"child"`
+}
+
+type ChildStruct struct {
+	name string
+}
+
+func (p *ParentStruct) String() string {
+	return fmt.Sprintf("<div>%s<div>", p.name)
+}
+
+func (c *ChildStruct) String() string {
+	return fmt.Sprintf("<p>%s<p>", c.name)
+}
+
+
 /*
  * End setup sandbox
  */
@@ -231,6 +252,12 @@ Yep!`,
 				Date: time1,
 				Text: "<b>hello!</b> there",
 			},
+		},
+	},
+	"parent": &ParentStruct{
+		name: "Parent",
+		Child: &ChildStruct{
+			name: "Child",
 		},
 	},
 }

@@ -291,7 +291,23 @@ func (vr *variableResolver) resolve(ctx *ExecutionContext) (*Value, error) {
 					// Calling a field or key
 					switch current.Kind() {
 					case reflect.Struct:
-						current = current.FieldByName(part.s)
+						field := current.FieldByName(part.s)
+						if !field.IsValid() && current.NumField() > 0 {
+							for i := 0; i < current.NumField(); i++ {
+								f := current.Type().Field(i)
+								tag := f.Tag.Get("json")
+								if tag != "-" {
+									if idx := strings.Index(tag, ","); idx != -1 {
+										tag = tag[:idx]
+									}
+								}
+								if tag == part.s {
+									field = current.FieldByName(f.Name)
+									break
+								}
+							}
+						}
+						current = field
 					case reflect.Map:
 						current = current.MapIndex(reflect.ValueOf(part.s))
 					default:
