@@ -6,6 +6,8 @@ float != 0.0
 !simple.uint
 !simple.float
 text field in complex.post
+Hello string is in complex.post.Text
+World string is not in complex.post.Text
 5 in simple.intmap
 !0.0
 !0

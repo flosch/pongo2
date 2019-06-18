@@ -201,6 +201,13 @@ func (expr *relationalExpression) Evaluate(ctx *ExecutionContext) (*Value, *Erro
 		case "!=", "<>":
 			return AsValue(!v1.EqualValueTo(v2)), nil
 		case "in":
+			val, ok := expr.expr1.(*simpleExpression)
+			if ok && val.negate {
+				t1, err := val.term1.Evaluate(ctx)
+				if err == nil {
+					return AsValue(!v2.Contains(t1)), nil
+				}
+			}
 			return AsValue(v2.Contains(v1)), nil
 		default:
 			return nil, ctx.Error(fmt.Sprintf("unimplemented: %s", expr.opToken.Val), expr.opToken)

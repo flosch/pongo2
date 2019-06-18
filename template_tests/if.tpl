@@ -6,6 +6,8 @@
 {% if !simple.uint %}false{% else %}!simple.uint{% endif %}
 {% if !simple.float %}false{% else %}!simple.float{% endif %}
 {% if "Text" in complex.post %}text field in complex.post{% endif %}
+Hello string {% if not "Hello" in complex.post.Text %}is not{% else %}is{% endif %} in complex.post.Text
+World string {% if not "World" in complex.post.Text %}is not{% else %}is{% endif %} in complex.post.Text
 {% if 5 in simple.intmap %}5 in simple.intmap{% endif %}
 {% if !0.0 %}!0.0{% endif %}
 {% if !0 %}!0{% endif %}
