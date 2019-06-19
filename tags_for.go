@@ -19,6 +19,7 @@ type tagForLoopInformation struct {
 	First       bool
 	Last        bool
 	Parentloop  *tagForLoopInformation
+	TagNode 	*tagForNode
 }
 
 func (node *tagForNode) Execute(ctx *ExecutionContext, writer TemplateWriter) (forError *Error) {
@@ -29,6 +30,7 @@ func (node *tagForNode) Execute(ctx *ExecutionContext, writer TemplateWriter) (f
 	// Create loop struct
 	loopInfo := &tagForLoopInformation{
 		First: true,
+		TagNode: node,
 	}
 
 	// Is it a loop in a loop?
