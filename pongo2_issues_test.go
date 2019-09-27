@@ -3,7 +3,7 @@ package pongo2_test
 import (
 	"testing"
 
-	"github.com/flosch/pongo2"
+	"github.com/Flyclops/pongo2"
 )
 
 func TestIssue151(t *testing.T) {
