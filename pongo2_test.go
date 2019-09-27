@@ -3,7 +3,7 @@ package pongo2_test
 import (
 	"testing"
 
-	"github.com/Flyclops/pongo2"
+	"github.com/Flyclops/pongo2/v3"
 	. "github.com/go-check/check"
 )
 

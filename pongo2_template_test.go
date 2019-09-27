@@ -12,7 +12,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Flyclops/pongo2"
+	"github.com/Flyclops/pongo2/v3"
 	"github.com/juju/errors"
 )
 

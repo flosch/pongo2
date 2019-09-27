@@ -1,4 +1,4 @@
-module github.com/Flyclops/pongo2
+module github.com/Flyclops/pongo2/v3
 
 require (
 	github.com/go-check/check v0.0.0-20180628173108-788fd7840127
