@@ -143,6 +143,7 @@ You can access pongo2's API documentation on [godoc](https://godoc.org/github.co
 
  * [beego-pongo2](https://github.com/oal/beego-pongo2) - A tiny little helper for using Pongo2 with [Beego](https://github.com/astaxie/beego).
  * [beego-pongo2.v2](https://github.com/ipfans/beego-pongo2.v2) - Same as `beego-pongo2`, but for pongo2 v2.
+ * [beego-pongo2.v3](https://github.com/Michael2008S/beego-pongo2.v3) - Same as `beego-pongo2`, but for pongo2 v3.
  * [macaron-pongo2](https://github.com/macaron-contrib/pongo2) - pongo2 support for [Macaron](https://github.com/Unknwon/macaron), a modular web framework.
  * [ginpongo2](https://github.com/ngerakines/ginpongo2) - middleware for [gin](github.com/gin-gonic/gin) to use pongo2 templates
  * [Build'n support for Iris' template engine](https://github.com/kataras/iris) 
