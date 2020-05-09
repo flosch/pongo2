@@ -3,7 +3,8 @@
 [![Join the chat at https://gitter.im/flosch/pongo2](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/flosch/pongo2)
 [![GoDoc](https://godoc.org/github.com/flosch/pongo2?status.svg)](https://godoc.org/github.com/flosch/pongo2)
 [![Build Status](https://travis-ci.org/flosch/pongo2.svg?branch=master)](https://travis-ci.org/flosch/pongo2)
-[![Backers on Open Collective](https://opencollective.com/pongo2/backers/badge.svg)](#backers) 
+[![Backers on Open Collective](https://opencollective.com/pongo2/backers/badge.svg)](#backers) [![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2Fflosch%2Fpongo2.svg?type=shield)](https://app.fossa.io/projects/git%2Bgithub.com%2Fflosch%2Fpongo2?ref=badge_shield)
+
 [![Sponsors on Open Collective](https://opencollective.com/pongo2/sponsors/badge.svg)](#sponsors)
 
 pongo2 is the successor of [pongo](https://github.com/flosch/pongo), a Django-syntax like templating-language.
@@ -271,3 +272,7 @@ Support this project by becoming a sponsor. Your logo will show up here with a l
 <a href="https://opencollective.com/pongo2/sponsor/9/website" target="_blank"><img src="https://opencollective.com/pongo2/sponsor/9/avatar.svg"></a>
 
 
+
+
+## License
+[![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2Fflosch%2Fpongo2.svg?type=large)](https://app.fossa.io/projects/git%2Bgithub.com%2Fflosch%2Fpongo2?ref=badge_large)
