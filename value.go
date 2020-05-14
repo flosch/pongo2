@@ -6,6 +6,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 )
 
 type Value struct {
@@ -74,6 +75,12 @@ func (v *Value) IsInteger() bool {
 // or a float.
 func (v *Value) IsNumber() bool {
 	return v.IsInteger() || v.IsFloat()
+}
+
+// IsTime checks whether the underlying value is a time.Time.
+func (v *Value) IsTime() bool {
+	_, ok := v.Interface().(time.Time)
+	return ok
 }
 
 // IsNil checks whether the underlying value is NIL
@@ -183,6 +190,16 @@ func (v *Value) Bool() bool {
 		logf("Value.Bool() not available for type: %s\n", v.getResolvedValue().Kind().String())
 		return false
 	}
+}
+
+// Time returns the underlying value as time.Time.
+// If the underlying value is not a time.Time, it returns the zero value of time.Time.
+func (v *Value) Time() time.Time {
+	tm, ok := v.Interface().(time.Time)
+	if ok {
+		return tm
+	}
+	return time.Time{}
 }
 
 // IsTrue tries to evaluate the underlying value the Pythonic-way:
@@ -469,6 +486,9 @@ func (v *Value) EqualValueTo(other *Value) bool {
 	// comparison of uint with int fails using .Interface()-comparison (see issue #64)
 	if v.IsInteger() && other.IsInteger() {
 		return v.Integer() == other.Integer()
+	}
+	if v.IsTime() && other.IsTime() {
+		return v.Time().Equal(other.Time())
 	}
 	return v.Interface() == other.Interface()
 }

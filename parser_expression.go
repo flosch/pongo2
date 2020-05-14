@@ -180,10 +180,18 @@ func (expr *relationalExpression) Evaluate(ctx *ExecutionContext) (*Value, *Erro
 			if v1.IsFloat() || v2.IsFloat() {
 				return AsValue(v1.Float() <= v2.Float()), nil
 			}
+			if v1.IsTime() && v2.IsTime() {
+				tm1, tm2 := v1.Time(), v2.Time()
+				return AsValue(tm1.Before(tm2) || tm1.Equal(tm2)), nil
+			}
 			return AsValue(v1.Integer() <= v2.Integer()), nil
 		case ">=":
 			if v1.IsFloat() || v2.IsFloat() {
 				return AsValue(v1.Float() >= v2.Float()), nil
+			}
+			if v1.IsTime() && v2.IsTime() {
+				tm1, tm2 := v1.Time(), v2.Time()
+				return AsValue(tm1.After(tm2) || tm1.Equal(tm2)), nil
 			}
 			return AsValue(v1.Integer() >= v2.Integer()), nil
 		case "==":
@@ -192,10 +200,16 @@ func (expr *relationalExpression) Evaluate(ctx *ExecutionContext) (*Value, *Erro
 			if v1.IsFloat() || v2.IsFloat() {
 				return AsValue(v1.Float() > v2.Float()), nil
 			}
+			if v1.IsTime() && v2.IsTime() {
+				return AsValue(v1.Time().After(v2.Time())), nil
+			}
 			return AsValue(v1.Integer() > v2.Integer()), nil
 		case "<":
 			if v1.IsFloat() || v2.IsFloat() {
 				return AsValue(v1.Float() < v2.Float()), nil
+			}
+			if v1.IsTime() && v2.IsTime() {
+				return AsValue(v1.Time().Before(v2.Time())), nil
 			}
 			return AsValue(v1.Integer() < v2.Integer()), nil
 		case "!=", "<>":

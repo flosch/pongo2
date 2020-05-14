@@ -135,6 +135,8 @@ Yep!`,
 		"misc_list":          []interface{}{"Hello", 99, 3.14, "good"},
 		"escape_text":        "This is \\a Test. \"Yep\". 'Yep'.",
 		"xss":                "<script>alert(\"uh oh\");</script>",
+		"time1":              time1,
+		"time2":              time2,
 		"intmap": map[int]string{
 			1: "one",
 			5: "five",
