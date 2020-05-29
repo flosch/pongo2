@@ -1,11 +1,10 @@
 package pongo2
 
 import (
+	"fmt"
 	"math/rand"
 	"strings"
 	"time"
-
-	"github.com/juju/errors"
 )
 
 var (
@@ -82,7 +81,7 @@ func (node *tagLoremNode) Execute(ctx *ExecutionContext, writer TemplateWriter) 
 			}
 		}
 	default:
-		return ctx.OrigError(errors.Errorf("unsupported method: %s", node.method), nil)
+		return ctx.OrigError(fmt.Errorf("unsupported method: %s", node.method), nil)
 	}
 
 	return nil
