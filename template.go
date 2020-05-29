@@ -2,10 +2,9 @@ package pongo2
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 	"strings"
-
-	"github.com/juju/errors"
 )
 
 type TemplateWriter interface {
@@ -151,7 +150,7 @@ func (tpl *Template) newContextForExecution(context Context) (*Template, *Execut
 					return parent, nil, &Error{
 						Filename:  tpl.name,
 						Sender:    "execution",
-						OrigError: errors.Errorf("context key name '%s' clashes with macro '%s'", k, k),
+						OrigError: fmt.Errorf("context key name '%s' clashes with macro '%s'", k, k),
 					}
 				}
 			}

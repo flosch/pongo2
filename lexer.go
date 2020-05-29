@@ -5,7 +5,7 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"github.com/juju/errors"
+	"errors"
 )
 
 const (

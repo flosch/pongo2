@@ -3,6 +3,7 @@ package pongo2_test
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -13,7 +14,6 @@ import (
 	"time"
 
 	"github.com/flosch/pongo2"
-	"github.com/juju/errors"
 )
 
 var adminList = []string{"user2"}

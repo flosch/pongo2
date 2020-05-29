@@ -8,7 +8,7 @@ import (
 	"os"
 	"sync"
 
-	"github.com/juju/errors"
+	"errors"
 )
 
 // TemplateLoader allows to implement a virtual file system.
@@ -101,14 +101,14 @@ func (set *TemplateSet) resolveFilenameForLoader(loader TemplateLoader, tpl *Tem
 func (set *TemplateSet) BanTag(name string) error {
 	_, has := tags[name]
 	if !has {
-		return errors.Errorf("tag '%s' not found", name)
+		return fmt.Errorf("tag '%s' not found", name)
 	}
 	if set.firstTemplateCreated {
 		return errors.New("you cannot ban any tags after you've added your first template to your template set")
 	}
 	_, has = set.bannedTags[name]
 	if has {
-		return errors.Errorf("tag '%s' is already banned", name)
+		return fmt.Errorf("tag '%s' is already banned", name)
 	}
 	set.bannedTags[name] = true
 
@@ -119,14 +119,14 @@ func (set *TemplateSet) BanTag(name string) error {
 func (set *TemplateSet) BanFilter(name string) error {
 	_, has := filters[name]
 	if !has {
-		return errors.Errorf("filter '%s' not found", name)
+		return fmt.Errorf("filter '%s' not found", name)
 	}
 	if set.firstTemplateCreated {
 		return errors.New("you cannot ban any filters after you've added your first template to your template set")
 	}
 	_, has = set.bannedFilters[name]
 	if has {
-		return errors.Errorf("filter '%s' is already banned", name)
+		return fmt.Errorf("filter '%s' is already banned", name)
 	}
 	set.bannedFilters[name] = true
 

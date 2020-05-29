@@ -2,8 +2,6 @@ package pongo2
 
 import (
 	"fmt"
-
-	"github.com/juju/errors"
 )
 
 // FilterFunction is the type filter functions must fulfil
@@ -30,7 +28,7 @@ func FilterExists(name string) bool {
 // writing filters and tags.
 func RegisterFilter(name string, fn FilterFunction) error {
 	if FilterExists(name) {
-		return errors.Errorf("filter with name '%s' is already registered", name)
+		return fmt.Errorf("filter with name '%s' is already registered", name)
 	}
 	filters[name] = fn
 	return nil
@@ -40,7 +38,7 @@ func RegisterFilter(name string, fn FilterFunction) error {
 // function with caution since it allows you to change existing filter behaviour.
 func ReplaceFilter(name string, fn FilterFunction) error {
 	if !FilterExists(name) {
-		return errors.Errorf("filter with name '%s' does not exist (therefore cannot be overridden)", name)
+		return fmt.Errorf("filter with name '%s' does not exist (therefore cannot be overridden)", name)
 	}
 	filters[name] = fn
 	return nil
@@ -62,7 +60,7 @@ func ApplyFilter(name string, value *Value, param *Value) (*Value, *Error) {
 	if !existing {
 		return nil, &Error{
 			Sender:    "applyfilter",
-			OrigError: errors.Errorf("Filter with name '%s' not found.", name),
+			OrigError: fmt.Errorf("Filter with name '%s' not found.", name),
 		}
 	}
 

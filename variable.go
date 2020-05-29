@@ -5,8 +5,6 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
-
-	"github.com/juju/errors"
 )
 
 const (
@@ -281,7 +279,7 @@ func (vr *variableResolver) resolve(ctx *ExecutionContext) (*Value, error) {
 							return AsValue(nil), nil
 						}
 					default:
-						return nil, errors.Errorf("Can't access an index on type %s (variable %s)",
+						return nil, fmt.Errorf("Can't access an index on type %s (variable %s)",
 							current.Kind().String(), vr.String())
 					}
 				case varTypeIdent:
@@ -295,7 +293,7 @@ func (vr *variableResolver) resolve(ctx *ExecutionContext) (*Value, error) {
 					case reflect.Map:
 						current = current.MapIndex(reflect.ValueOf(part.s))
 					default:
-						return nil, errors.Errorf("Can't access a field by name on type %s (variable %s)",
+						return nil, fmt.Errorf("Can't access a field by name on type %s (variable %s)",
 							current.Kind().String(), vr.String())
 					}
 				default:
@@ -327,7 +325,7 @@ func (vr *variableResolver) resolve(ctx *ExecutionContext) (*Value, error) {
 		if part.isFunctionCall || current.Kind() == reflect.Func {
 			// Check for callable
 			if current.Kind() != reflect.Func {
-				return nil, errors.Errorf("'%s' is not a function (it is %s)", vr.String(), current.Kind().String())
+				return nil, fmt.Errorf("'%s' is not a function (it is %s)", vr.String(), current.Kind().String())
 			}
 
 			// Check for correct function syntax and types
@@ -343,13 +341,13 @@ func (vr *variableResolver) resolve(ctx *ExecutionContext) (*Value, error) {
 			// Input arguments
 			if len(currArgs) != t.NumIn() && !(len(currArgs) >= t.NumIn()-1 && t.IsVariadic()) {
 				return nil,
-					errors.Errorf("Function input argument count (%d) of '%s' must be equal to the calling argument count (%d).",
+					fmt.Errorf("Function input argument count (%d) of '%s' must be equal to the calling argument count (%d).",
 						t.NumIn(), vr.String(), len(currArgs))
 			}
 
 			// Output arguments
 			if t.NumOut() != 1 && t.NumOut() != 2 {
-				return nil, errors.Errorf("'%s' must have exactly 1 or 2 output arguments, the second argument must be of type error", vr.String())
+				return nil, fmt.Errorf("'%s' must have exactly 1 or 2 output arguments, the second argument must be of type error", vr.String())
 			}
 
 			// Evaluate all parameters
@@ -379,14 +377,14 @@ func (vr *variableResolver) resolve(ctx *ExecutionContext) (*Value, error) {
 					// Function's argument is not a *pongo2.Value, then we have to check whether input argument is of the same type as the function's argument
 					if !isVariadic {
 						if fnArg != reflect.TypeOf(pv.Interface()) && fnArg.Kind() != reflect.Interface {
-							return nil, errors.Errorf("Function input argument %d of '%s' must be of type %s or *pongo2.Value (not %T).",
+							return nil, fmt.Errorf("Function input argument %d of '%s' must be of type %s or *pongo2.Value (not %T).",
 								idx, vr.String(), fnArg.String(), pv.Interface())
 						}
 						// Function's argument has another type, using the interface-value
 						parameters = append(parameters, reflect.ValueOf(pv.Interface()))
 					} else {
 						if fnArg != reflect.TypeOf(pv.Interface()) && fnArg.Kind() != reflect.Interface {
-							return nil, errors.Errorf("Function variadic input argument of '%s' must be of type %s or *pongo2.Value (not %T).",
+							return nil, fmt.Errorf("Function variadic input argument of '%s' must be of type %s or *pongo2.Value (not %T).",
 								vr.String(), fnArg.String(), pv.Interface())
 						}
 						// Function's argument has another type, using the interface-value
@@ -401,7 +399,7 @@ func (vr *variableResolver) resolve(ctx *ExecutionContext) (*Value, error) {
 			// Check if any of the values are invalid
 			for _, p := range parameters {
 				if p.Kind() == reflect.Invalid {
-					return nil, errors.Errorf("Calling a function using an invalid parameter")
+					return nil, fmt.Errorf("Calling a function using an invalid parameter")
 				}
 			}
 
@@ -413,7 +411,7 @@ func (vr *variableResolver) resolve(ctx *ExecutionContext) (*Value, error) {
 				if e != nil {
 					err, ok := e.(error)
 					if !ok {
-						return nil, errors.Errorf("The second return value is not an error")
+						return nil, fmt.Errorf("The second return value is not an error")
 					}
 					if err != nil {
 						return nil, err
