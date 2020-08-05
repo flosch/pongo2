@@ -72,11 +72,11 @@ Please use the [issue tracker](https://github.com/flosch/pongo2/issues) if you'r
 
 **Deprecated versions** (not supported anymore): v1
 
-| Topic                                | Status                                                                                 |
-| ------------------------------------ | -------------------------------------------------------------------------------------- |       
-| Django version compatibility:        | [1.7](https://docs.djangoproject.com/en/1.7/ref/templates/builtins/)                  |
-| *Missing* (planned) **filters**:     | none ([hints](https://github.com/flosch/pongo2/blob/master/filters_builtin.go#L3))     | 
-| *Missing* (planned) **tags**:        | none ([hints](https://github.com/flosch/pongo2/blob/master/tags.go#L3))                |
+| Topic                                | Status                                                                                                                                                                      |
+| ------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Django version compatibility:        | [1.7](https://docs.djangoproject.com/en/1.7/ref/templates/builtins/) ([cached docs](https://web.archive.org/web/20171025050612/https://docs.djangoproject.com/en/1.7/ref/)) |
+| *Missing* (planned) **filters**:     | none ([hints](https://github.com/flosch/pongo2/blob/master/filters_builtin.go#L3))                                                                                          |
+| *Missing* (planned) **tags**:        | none ([hints](https://github.com/flosch/pongo2/blob/master/tags.go#L3))                                                                                                     |
 
 Please also have a look on the [caveats](https://github.com/flosch/pongo2#caveats) and on the [official add-ons](https://github.com/flosch/pongo2#official).
 
@@ -110,7 +110,7 @@ If you're using the `master`-branch of pongo2, you might be interested in this s
 
 # Documentation
 
-For a documentation on how the templating language works you can [head over to the Django documentation](https://docs.djangoproject.com/en/dev/topics/templates/). pongo2 aims to be compatible with it.
+For a documentation on how the templating language works you can [head over to the Django documentation](https://docs.djangoproject.com/en/dev/topics/templates/) ([cached v1.7 docs here](https://web.archive.org/web/20171025050612/https://docs.djangoproject.com/en/1.7/ref/)). pongo2 aims to be compatible with it.
 
 You can access pongo2's API documentation on [godoc](https://godoc.org/github.com/flosch/pongo2).
 
