@@ -183,7 +183,7 @@ Yep!`,
 			Created: time2,
 		},
 		"comments": []*comment{
-			&comment{
+			{
 				Author: &user{
 					Name:      "user1",
 					Validated: true,
@@ -191,7 +191,7 @@ Yep!`,
 				Date: time1,
 				Text: "\"pongo2 is nice!\"",
 			},
-			&comment{
+			{
 				Author: &user{
 					Name:      "user2",
 					Validated: true,
@@ -199,7 +199,7 @@ Yep!`,
 				Date: time2,
 				Text: "comment2 with <script>unsafe</script> tags in it",
 			},
-			&comment{
+			{
 				Author: &user{
 					Name:      "user3",
 					Validated: false,
@@ -209,7 +209,7 @@ Yep!`,
 			},
 		},
 		"comments2": []*comment{
-			&comment{
+			{
 				Author: &user{
 					Name:      "user1",
 					Validated: true,
@@ -217,7 +217,7 @@ Yep!`,
 				Date: time2,
 				Text: "\"pongo2 is nice!\"",
 			},
-			&comment{
+			{
 				Author: &user{
 					Name:      "user1",
 					Validated: true,
@@ -225,7 +225,7 @@ Yep!`,
 				Date: time1,
 				Text: "comment2 with <script>unsafe</script> tags in it",
 			},
-			&comment{
+			{
 				Author: &user{
 					Name:      "user3",
 					Validated: false,

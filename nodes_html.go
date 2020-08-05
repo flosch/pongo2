@@ -5,8 +5,8 @@ import (
 )
 
 type nodeHTML struct {
-	token *Token
-	trimLeft bool
+	token     *Token
+	trimLeft  bool
 	trimRight bool
 }
 
