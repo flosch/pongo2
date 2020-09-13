@@ -3,7 +3,7 @@ package pongo2_test
 import (
 	"testing"
 
-	"github.com/flosch/pongo2"
+	"github.com/flosch/pongo2/v4"
 	. "gopkg.in/check.v1"
 )
 

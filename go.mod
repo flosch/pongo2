@@ -1,4 +1,4 @@
-module github.com/flosch/pongo2
+module github.com/flosch/pongo2/v4
 
 go 1.14
 
