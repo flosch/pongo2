@@ -110,6 +110,10 @@ Please use the [issue tracker](https://github.com/flosch/pongo2/issues) if you'r
 
 Please add your project to this list and send me a pull request when you've developed something nice for pongo2.
 
+## Who's using pongo2
+
+[I'm compiling a list of pongo2 users](https://github.com/flosch/pongo2/issues/241). Add your project or company!
+
 ## API-usage examples
 
 Please see the documentation for a full list of provided API methods.
