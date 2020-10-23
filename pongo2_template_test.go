@@ -3,6 +3,7 @@ package pongo2_test
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -12,8 +13,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Flyclops/pongo2/v3"
-	"github.com/juju/errors"
+	"github.com/flosch/pongo2/v4"
 )
 
 var adminList = []string{"user2"}
@@ -135,6 +135,8 @@ Yep!`,
 		"misc_list":          []interface{}{"Hello", 99, 3.14, "good"},
 		"escape_text":        "This is \\a Test. \"Yep\". 'Yep'.",
 		"xss":                "<script>alert(\"uh oh\");</script>",
+		"time1":              time1,
+		"time2":              time2,
 		"intmap": map[int]string{
 			1: "one",
 			5: "five",
@@ -181,7 +183,7 @@ Yep!`,
 			Created: time2,
 		},
 		"comments": []*comment{
-			&comment{
+			{
 				Author: &user{
 					Name:      "user1",
 					Validated: true,
@@ -189,7 +191,7 @@ Yep!`,
 				Date: time1,
 				Text: "\"pongo2 is nice!\"",
 			},
-			&comment{
+			{
 				Author: &user{
 					Name:      "user2",
 					Validated: true,
@@ -197,7 +199,7 @@ Yep!`,
 				Date: time2,
 				Text: "comment2 with <script>unsafe</script> tags in it",
 			},
-			&comment{
+			{
 				Author: &user{
 					Name:      "user3",
 					Validated: false,
@@ -207,7 +209,7 @@ Yep!`,
 			},
 		},
 		"comments2": []*comment{
-			&comment{
+			{
 				Author: &user{
 					Name:      "user1",
 					Validated: true,
@@ -215,7 +217,7 @@ Yep!`,
 				Date: time2,
 				Text: "\"pongo2 is nice!\"",
 			},
-			&comment{
+			{
 				Author: &user{
 					Name:      "user1",
 					Validated: true,
@@ -223,7 +225,7 @@ Yep!`,
 				Date: time1,
 				Text: "comment2 with <script>unsafe</script> tags in it",
 			},
-			&comment{
+			{
 				Author: &user{
 					Name:      "user3",
 					Validated: false,

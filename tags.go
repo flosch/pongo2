@@ -21,8 +21,6 @@ package pongo2
 
 import (
 	"fmt"
-
-	"github.com/juju/errors"
 )
 
 type INodeTag interface {
@@ -64,7 +62,7 @@ func init() {
 func RegisterTag(name string, parserFn TagParser) error {
 	_, existing := tags[name]
 	if existing {
-		return errors.Errorf("tag with name '%s' is already registered", name)
+		return fmt.Errorf("tag with name '%s' is already registered", name)
 	}
 	tags[name] = &tag{
 		name:   name,
@@ -78,7 +76,7 @@ func RegisterTag(name string, parserFn TagParser) error {
 func ReplaceTag(name string, parserFn TagParser) error {
 	_, existing := tags[name]
 	if !existing {
-		return errors.Errorf("tag with name '%s' does not exist (therefore cannot be overridden)", name)
+		return fmt.Errorf("tag with name '%s' does not exist (therefore cannot be overridden)", name)
 	}
 	tags[name] = &tag{
 		name:   name,

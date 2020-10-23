@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/juju/errors"
+	"errors"
 )
 
 type INode interface {

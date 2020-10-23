@@ -2,17 +2,14 @@ package pongo2
 
 import (
 	"bytes"
+	"errors"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"log"
+	"net/http"
 	"os"
 	"path/filepath"
-
-	"net/http"
-
-	"fmt"
-
-	"github.com/juju/errors"
 )
 
 // LocalFilesystemLoader represents a local filesystem loader with basic
@@ -66,7 +63,7 @@ func (fs *LocalFilesystemLoader) SetBaseDir(path string) error {
 		return err
 	}
 	if !fi.IsDir() {
-		return errors.Errorf("The given path '%s' is not a directory.", path)
+		return fmt.Errorf("The given path '%s' is not a directory.", path)
 	}
 
 	fs.baseDir = path

@@ -3,8 +3,8 @@ package pongo2_test
 import (
 	"testing"
 
-	"github.com/Flyclops/pongo2/v3"
-	. "github.com/go-check/check"
+	"github.com/flosch/pongo2/v4"
+	. "gopkg.in/check.v1"
 )
 
 // Hook up gocheck into the "go test" runner.

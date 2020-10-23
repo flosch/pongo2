@@ -5,7 +5,7 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"github.com/juju/errors"
+	"errors"
 )
 
 const (
@@ -74,7 +74,7 @@ type lexer struct {
 func (t *Token) String() string {
 	val := t.Val
 	if len(val) > 1000 {
-		val = fmt.Sprintf("%s...%s", val[:10], val[len(val)-5:len(val)])
+		val = fmt.Sprintf("%s...%s", val[:10], val[len(val)-5:])
 	}
 
 	typ := ""

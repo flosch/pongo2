@@ -36,7 +36,7 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"github.com/juju/errors"
+	"errors"
 )
 
 func init() {
@@ -894,13 +894,13 @@ func filterYesno(in *Value, param *Value) (*Value, *Error) {
 		if len(customChoices) > 3 {
 			return nil, &Error{
 				Sender:    "filter:yesno",
-				OrigError: errors.Errorf("You cannot pass more than 3 options to the 'yesno'-filter (got: '%s').", paramString),
+				OrigError: fmt.Errorf("You cannot pass more than 3 options to the 'yesno'-filter (got: '%s').", paramString),
 			}
 		}
 		if len(customChoices) < 2 {
 			return nil, &Error{
 				Sender:    "filter:yesno",
-				OrigError: errors.Errorf("You must pass either no or at least 2 arguments to the 'yesno'-filter (got: '%s').", paramString),
+				OrigError: fmt.Errorf("You must pass either no or at least 2 arguments to the 'yesno'-filter (got: '%s').", paramString),
 			}
 		}
 
