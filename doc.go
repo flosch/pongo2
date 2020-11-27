@@ -1,4 +1,4 @@
-// A Django-syntax like template-engine
+// Package pongo2 is a Django-syntax like template-engine
 //
 // Blog posts about pongo2 (including introduction and migration):
 // https://www.florian-schlachter.de/?tag=pongo2
