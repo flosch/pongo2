@@ -3,7 +3,7 @@
 [![PkgGoDev](https://pkg.go.dev/badge/github.com/flosch/pongo2)](https://pkg.go.dev/github.com/flosch/pongo2)
 [![Build Status](https://travis-ci.org/flosch/pongo2.svg?branch=master)](https://travis-ci.org/flosch/pongo2)
 
-pongo2 is a Django-syntax like templating-language.
+pongo2 is a Django-syntax like templating-language ([official website](https://www.schlachter.tech/solutions/pongo2-template-engine/)).
 
 Install/update using `go get` (no dependencies required by pongo2):
 
