@@ -7,6 +7,7 @@
 {% if !simple.float %}false{% else %}!simple.float{% endif %}
 {% if "Text" in complex.post %}text field in complex.post{% endif %}
 {% if 5 in simple.intmap %}5 in simple.intmap{% endif %}
+{% if simple.uint in simple.multiple_item_list %}simple.uint in simple.multiple_item_list{% endif %}
 {% if !0.0 %}!0.0{% endif %}
 {% if !0 %}!0{% endif %}
 {% if not complex.post %}true{% else %}false{% endif %}
