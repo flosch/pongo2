@@ -348,7 +348,7 @@ func (v *Value) Contains(other *Value) bool {
 	case reflect.Slice, reflect.Array:
 		for i := 0; i < v.getResolvedValue().Len(); i++ {
 			item := v.getResolvedValue().Index(i)
-			if other.Interface() == item.Interface() {
+			if other.EqualValueTo(AsValue(item.Interface())) {
 				return true
 			}
 		}

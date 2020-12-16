@@ -7,6 +7,7 @@ float != 0.0
 !simple.float
 text field in complex.post
 5 in simple.intmap
+simple.uint in simple.multiple_item_list
 !0.0
 !0
 false
