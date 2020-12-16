@@ -1,7 +1,7 @@
 package pongo2
 
 // Version string
-const Version = "4.0.1"
+const Version = "4.0.2"
 
 // Must panics, if a Template couldn't successfully parsed. This is how you
 // would use it:
