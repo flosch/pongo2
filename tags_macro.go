@@ -16,14 +16,14 @@ type tagMacroNode struct {
 }
 
 func (node *tagMacroNode) Execute(ctx *ExecutionContext, writer TemplateWriter) *Error {
-	ctx.Private[node.name] = func(args ...*Value) *Value {
+	ctx.Private[node.name] = func(args ...*Value) (*Value, error) {
 		return node.call(ctx, args...)
 	}
 
 	return nil
 }
 
-func (node *tagMacroNode) call(ctx *ExecutionContext, args ...*Value) *Value {
+func (node *tagMacroNode) call(ctx *ExecutionContext, args ...*Value) (*Value, error) {
 	argsCtx := make(Context)
 
 	for k, v := range node.args {
@@ -35,7 +35,7 @@ func (node *tagMacroNode) call(ctx *ExecutionContext, args ...*Value) *Value {
 			valueExpr, err := v.Evaluate(ctx)
 			if err != nil {
 				ctx.Logf(err.Error())
-				return AsSafeValue(err.Error())
+				return AsSafeValue(""), err
 			}
 
 			argsCtx[k] = valueExpr
@@ -47,8 +47,7 @@ func (node *tagMacroNode) call(ctx *ExecutionContext, args ...*Value) *Value {
 		err := ctx.Error(fmt.Sprintf("Macro '%s' called with too many arguments (%d instead of %d).",
 			node.name, len(args), len(node.argsOrder)), nil).updateFromTokenIfNeeded(ctx.template, node.position)
 
-		ctx.Logf(err.Error()) // TODO: This is a workaround, because the error is not returned yet to the Execution()-methods
-		return AsSafeValue(err.Error())
+		return AsSafeValue(""), err
 	}
 
 	// Make a context for the macro execution
@@ -64,10 +63,10 @@ func (node *tagMacroNode) call(ctx *ExecutionContext, args ...*Value) *Value {
 	var b bytes.Buffer
 	err := node.wrapper.Execute(macroCtx, &b)
 	if err != nil {
-		return AsSafeValue(err.updateFromTokenIfNeeded(ctx.template, node.position).Error())
+		return AsSafeValue(""), err.updateFromTokenIfNeeded(ctx.template, node.position)
 	}
 
-	return AsSafeValue(b.String())
+	return AsSafeValue(b.String()), nil
 }
 
 func tagMacroParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, *Error) {

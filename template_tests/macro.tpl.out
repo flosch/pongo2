@@ -15,7 +15,6 @@ Greetings to john from michelle. Howdy, anonymous guest!
 
 Greetings to john from michelle. Howdy, johann!
 
-[Error (where: execution) in template_tests/macro.tpl | Line 2 Col 4 near 'macro'] Macro 'greetings' called with too many arguments (4 instead of 3).
 
 
 

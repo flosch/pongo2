@@ -1,1 +1,2 @@
 {% macro number() export %}No number here.{% endmacro %}{{ number() }}
+{% macro greetings(to, from=simple.name, name2="guest") %}{{ to }}{{ from }}{{ name2 }}{% endmacro %}{{ greetings("john", "michelle", "johann", "foobar") }}
