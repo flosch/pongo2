@@ -13,7 +13,7 @@ type tagImportNode struct {
 func (node *tagImportNode) Execute(ctx *ExecutionContext, writer TemplateWriter) *Error {
 	for name, macro := range node.macros {
 		func(name string, macro *tagMacroNode) {
-			ctx.Private[name] = func(args ...*Value) *Value {
+			ctx.Private[name] = func(args ...*Value) (*Value, error) {
 				return macro.call(ctx, args...)
 			}
 		}(name, macro)
