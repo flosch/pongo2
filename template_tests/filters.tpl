@@ -46,6 +46,7 @@ safe
 
 escape
 {{ "<script>"|safe|escape }}
+{{ "<script>"|safe|e }}
 
 title
 {{ ""|title }}
