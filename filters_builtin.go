@@ -43,6 +43,7 @@ func init() {
 	rand.Seed(time.Now().Unix())
 
 	RegisterFilter("escape", filterEscape)
+	RegisterFilter("e", filterEscape)	// alias of `escape`
 	RegisterFilter("safe", filterSafe)
 	RegisterFilter("escapejs", filterEscapejs)
 
