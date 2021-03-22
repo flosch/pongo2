@@ -6,6 +6,7 @@ TODO:
 Implemented filters so far which needs documentation:
 
 * escape
+* e (alias of `escape`)
 * safe
 * escapejs
 * add
