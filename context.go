@@ -87,7 +87,7 @@ func newExecutionContext(tpl *Template, ctx Context) *ExecutionContext {
 
 		Public:     ctx,
 		Private:    privateCtx,
-		Autoescape: autoescape,
+		Autoescape: tpl.Options.AutoEscape,
 	}
 }
 
