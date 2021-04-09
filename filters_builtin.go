@@ -851,6 +851,8 @@ func filterSlice(in *Value, param *Value) (*Value, *Error) {
 	vto := AsValue(comp[1]).Integer()
 	if vto >= from && vto <= in.Len() {
 		to = vto
+	} else if vto < 0 && (from-in.Len()) < vto {
+		to = in.Len() + vto
 	}
 
 	return in.Slice(from, to), nil
