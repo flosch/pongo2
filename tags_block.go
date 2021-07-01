@@ -25,7 +25,7 @@ func (node *tagBlockNode) getBlockWrappers(tpl *Template) []*NodeWrapper {
 }
 
 func (node *tagBlockNode) Execute(ctx *ExecutionContext, writer TemplateWriter) *Error {
-	tpl := ctx.template
+	tpl := ctx.Template
 	if tpl == nil {
 		panic("internal error: tpl == nil")
 	}

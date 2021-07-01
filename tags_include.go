@@ -42,9 +42,9 @@ func (node *tagIncludeNode) Execute(ctx *ExecutionContext, writer TemplateWriter
 		}
 
 		// Get include-filename
-		includedFilename := ctx.template.Set.resolveFilename(ctx.template, filename.String())
+		includedFilename := ctx.Template.Set.resolveFilename(ctx.Template, filename.String())
 
-		includedTpl, err2 := ctx.template.Set.FromFile(includedFilename)
+		includedTpl, err2 := ctx.Template.Set.FromFile(includedFilename)
 		if err2 != nil {
 			// if this is ReadFile error, and "if_exists" flag is enabled
 			if node.ifExists && err2.(*Error).Sender == "fromfile" {
