@@ -25,7 +25,7 @@ func (tw *templateWriter) Write(b []byte) (int, error) {
 }
 
 type Template struct {
-	set *TemplateSet
+	Set *TemplateSet
 
 	// Input
 	isTplString bool
@@ -61,7 +61,7 @@ func newTemplate(set *TemplateSet, name string, isTplString bool, tpl []byte) (*
 
 	// Create the template
 	t := &Template{
-		set:            set,
+		Set:            set,
 		isTplString:    isTplString,
 		name:           name,
 		tpl:            strTpl,
@@ -131,7 +131,7 @@ func (tpl *Template) newContextForExecution(context Context) (*Template, *Execut
 
 	// Create context if none is given
 	newContext := make(Context)
-	newContext.Update(tpl.set.Globals)
+	newContext.Update(tpl.Set.Globals)
 
 	if context != nil {
 		newContext.Update(context)

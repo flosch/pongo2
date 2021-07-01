@@ -103,7 +103,7 @@ func (p *Parser) parseTagElement() (INodeTag, *Error) {
 	}
 
 	// Check sandbox tag restriction
-	if _, isBanned := p.Template.set.bannedTags[tokenName.Val]; isBanned {
+	if _, isBanned := p.Template.Set.bannedTags[tokenName.Val]; isBanned {
 		return nil, p.Error(fmt.Sprintf("Usage of tag '%s' is not allowed (sandbox restriction active).", tokenName.Val), tokenName)
 	}
 

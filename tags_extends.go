@@ -24,10 +24,10 @@ func tagExtendsParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, *
 		// prepared, static template
 
 		// Get parent's filename
-		parentFilename := doc.Template.set.resolveFilename(doc.Template, filenameToken.Val)
+		parentFilename := doc.Template.Set.resolveFilename(doc.Template, filenameToken.Val)
 
 		// Parse the parent
-		parentTemplate, err := doc.Template.set.FromFile(parentFilename)
+		parentTemplate, err := doc.Template.Set.FromFile(parentFilename)
 		if err != nil {
 			return nil, err.(*Error)
 		}

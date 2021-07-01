@@ -42,9 +42,9 @@ func (node *tagIncludeNode) Execute(ctx *ExecutionContext, writer TemplateWriter
 		}
 
 		// Get include-filename
-		includedFilename := ctx.template.set.resolveFilename(ctx.template, filename.String())
+		includedFilename := ctx.template.Set.resolveFilename(ctx.template, filename.String())
 
-		includedTpl, err2 := ctx.template.set.FromFile(includedFilename)
+		includedTpl, err2 := ctx.template.Set.FromFile(includedFilename)
 		if err2 != nil {
 			// if this is ReadFile error, and "if_exists" flag is enabled
 			if node.ifExists && err2.(*Error).Sender == "fromfile" {
@@ -84,11 +84,11 @@ func tagIncludeParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, *
 		ifExists := arguments.Match(TokenIdentifier, "if_exists") != nil
 
 		// Get include-filename
-		includedFilename := doc.Template.set.resolveFilename(doc.Template, filenameToken.Val)
+		includedFilename := doc.Template.Set.resolveFilename(doc.Template, filenameToken.Val)
 
 		// Parse the parent
 		includeNode.filename = includedFilename
-		includedTpl, err := doc.Template.set.FromFile(includedFilename)
+		includedTpl, err := doc.Template.Set.FromFile(includedFilename)
 		if err != nil {
 			// if this is ReadFile error, and "if_exists" token presents we should create and empty node
 			if err.(*Error).Sender == "fromfile" && ifExists {

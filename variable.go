@@ -660,7 +660,7 @@ filterLoop:
 		}
 
 		// Check sandbox filter restriction
-		if _, isBanned := p.Template.set.bannedFilters[filter.name]; isBanned {
+		if _, isBanned := p.Template.Set.bannedFilters[filter.name]; isBanned {
 			return nil, p.Error(fmt.Sprintf("Usage of filter '%s' is not allowed (sandbox restriction active).", filter.name), nil)
 		}
 
