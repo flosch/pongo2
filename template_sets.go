@@ -81,7 +81,7 @@ func (set *TemplateSet) AddLoader(loaders ...TemplateLoader) {
 	set.loaders = append(set.loaders, loaders...)
 }
 
-func (set *TemplateSet) resolveFilename(tpl *Template, path string) string {
+func (set *TemplateSet) ResolveFilename(tpl *Template, path string) string {
 	return set.resolveFilenameForLoader(set.loaders[0], tpl, path)
 }
 
@@ -158,7 +158,7 @@ func (set *TemplateSet) CleanCache(filenames ...string) {
 	}
 
 	for _, filename := range filenames {
-		delete(set.templateCache, set.resolveFilename(nil, filename))
+		delete(set.templateCache, set.ResolveFilename(nil, filename))
 	}
 }
 
@@ -173,7 +173,7 @@ func (set *TemplateSet) FromCache(filename string) (*Template, error) {
 		return set.FromFile(filename)
 	}
 	// Cache the template
-	cleanedFilename := set.resolveFilename(nil, filename)
+	cleanedFilename := set.ResolveFilename(nil, filename)
 
 	set.templateCacheMutex.Lock()
 	defer set.templateCacheMutex.Unlock()

@@ -32,7 +32,7 @@ func tagImportParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, *E
 		return nil, arguments.Error("Import-tag needs a filename as string.", nil)
 	}
 
-	importNode.filename = doc.Template.Set.resolveFilename(doc.Template, filenameToken.Val)
+	importNode.filename = doc.Template.Set.ResolveFilename(doc.Template, filenameToken.Val)
 
 	if arguments.Remaining() == 0 {
 		return nil, arguments.Error("You must at least specify one macro to import.", nil)
