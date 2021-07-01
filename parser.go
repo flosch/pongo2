@@ -35,7 +35,7 @@ type Parser struct {
 
 	// if the parser parses a template document, here will be
 	// a reference to it (needed to access the template through Tags)
-	template *Template
+	Template *Template
 }
 
 // Creates a new parser to parse tokens.
@@ -45,7 +45,7 @@ func newParser(name string, tokens []*Token, template *Template) *Parser {
 	p := &Parser{
 		name:     name,
 		tokens:   tokens,
-		template: template,
+		Template: template,
 	}
 	if len(tokens) > 0 {
 		p.lastToken = tokens[len(tokens)-1]
@@ -197,7 +197,7 @@ func (p *Parser) Error(msg string, token *Token) *Error {
 		col = token.Col
 	}
 	return &Error{
-		Template:  p.template,
+		Template:  p.Template,
 		Filename:  p.name,
 		Sender:    "parser",
 		Line:      line,
@@ -240,7 +240,7 @@ func (p *Parser) WrapUntilTag(names ...string) (*NodeWrapper, *Parser, *Error) {
 						if p.Match(TokenSymbol, "%}") != nil {
 							// Okay, end the wrapping here
 							wrapper.Endtag = tagIdent.Val
-							return wrapper, newParser(p.template.name, tagArgs, p.template), nil
+							return wrapper, newParser(p.Template.name, tagArgs, p.Template), nil
 						}
 						t := p.Current()
 						p.Consume()

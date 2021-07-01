@@ -103,7 +103,7 @@ func (p *Parser) parseTagElement() (INodeTag, *Error) {
 	}
 
 	// Check sandbox tag restriction
-	if _, isBanned := p.template.set.bannedTags[tokenName.Val]; isBanned {
+	if _, isBanned := p.Template.set.bannedTags[tokenName.Val]; isBanned {
 		return nil, p.Error(fmt.Sprintf("Usage of tag '%s' is not allowed (sandbox restriction active).", tokenName.Val), tokenName)
 	}
 
@@ -121,13 +121,13 @@ func (p *Parser) parseTagElement() (INodeTag, *Error) {
 
 	p.Match(TokenSymbol, "%}")
 
-	argParser := newParser(p.name, argsToken, p.template)
+	argParser := newParser(p.name, argsToken, p.Template)
 	if len(argsToken) == 0 {
 		// This is done to have nice EOF error messages
 		argParser.lastToken = tokenName
 	}
 
-	p.template.level++
-	defer func() { p.template.level-- }()
+	p.Template.level++
+	defer func() { p.Template.level-- }()
 	return tag.parser(p, tokenName, argParser)
 }

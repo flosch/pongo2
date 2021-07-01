@@ -11,11 +11,11 @@ func (node *tagExtendsNode) Execute(ctx *ExecutionContext, writer TemplateWriter
 func tagExtendsParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, *Error) {
 	extendsNode := &tagExtendsNode{}
 
-	if doc.template.level > 1 {
+	if doc.Template.level > 1 {
 		return nil, arguments.Error("The 'extends' tag can only defined on root level.", start)
 	}
 
-	if doc.template.parent != nil {
+	if doc.Template.parent != nil {
 		// Already one parent
 		return nil, arguments.Error("This template has already one parent.", start)
 	}
@@ -24,17 +24,17 @@ func tagExtendsParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, *
 		// prepared, static template
 
 		// Get parent's filename
-		parentFilename := doc.template.set.resolveFilename(doc.template, filenameToken.Val)
+		parentFilename := doc.Template.set.resolveFilename(doc.Template, filenameToken.Val)
 
 		// Parse the parent
-		parentTemplate, err := doc.template.set.FromFile(parentFilename)
+		parentTemplate, err := doc.Template.set.FromFile(parentFilename)
 		if err != nil {
 			return nil, err.(*Error)
 		}
 
 		// Keep track of things
-		parentTemplate.child = doc.template
-		doc.template.parent = parentTemplate
+		parentTemplate.child = doc.Template
+		doc.Template.parent = parentTemplate
 		extendsNode.filename = parentFilename
 	} else {
 		return nil, arguments.Error("Tag 'extends' requires a template filename as string.", nil)
