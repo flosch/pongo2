@@ -45,7 +45,7 @@ func (node *tagMacroNode) call(ctx *ExecutionContext, args ...*Value) (*Value, e
 	if len(args) > len(node.argsOrder) {
 		// Too many arguments, we're ignoring them and just logging into debug mode.
 		err := ctx.Error(fmt.Sprintf("Macro '%s' called with too many arguments (%d instead of %d).",
-			node.name, len(args), len(node.argsOrder)), nil).updateFromTokenIfNeeded(ctx.template, node.position)
+			node.name, len(args), len(node.argsOrder)), nil).updateFromTokenIfNeeded(ctx.Template, node.position)
 
 		return AsSafeValue(""), err
 	}
@@ -63,7 +63,7 @@ func (node *tagMacroNode) call(ctx *ExecutionContext, args ...*Value) (*Value, e
 	var b bytes.Buffer
 	err := node.wrapper.Execute(macroCtx, &b)
 	if err != nil {
-		return AsSafeValue(""), err.updateFromTokenIfNeeded(ctx.template, node.position)
+		return AsSafeValue(""), err.updateFromTokenIfNeeded(ctx.Template, node.position)
 	}
 
 	return AsSafeValue(b.String()), nil
@@ -133,11 +133,11 @@ func tagMacroParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, *Er
 
 	if macroNode.exported {
 		// Now register the macro if it wants to be exported
-		_, has := doc.template.exportedMacros[macroNode.name]
+		_, has := doc.Template.exportedMacros[macroNode.name]
 		if has {
 			return nil, doc.Error(fmt.Sprintf("another macro with name '%s' already exported", macroNode.name), start)
 		}
-		doc.template.exportedMacros[macroNode.name] = macroNode
+		doc.Template.exportedMacros[macroNode.name] = macroNode
 	}
 
 	return macroNode, nil

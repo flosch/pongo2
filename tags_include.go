@@ -42,9 +42,9 @@ func (node *tagIncludeNode) Execute(ctx *ExecutionContext, writer TemplateWriter
 		}
 
 		// Get include-filename
-		includedFilename := ctx.template.set.resolveFilename(ctx.template, filename.String())
+		includedFilename := ctx.Template.Set.ResolveFilename(ctx.Template, filename.String())
 
-		includedTpl, err2 := ctx.template.set.FromFile(includedFilename)
+		includedTpl, err2 := ctx.Template.Set.FromFile(includedFilename)
 		if err2 != nil {
 			// if this is ReadFile error, and "if_exists" flag is enabled
 			if node.ifExists && err2.(*Error).Sender == "fromfile" {
@@ -84,24 +84,24 @@ func tagIncludeParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, *
 		ifExists := arguments.Match(TokenIdentifier, "if_exists") != nil
 
 		// Get include-filename
-		includedFilename := doc.template.set.resolveFilename(doc.template, filenameToken.Val)
+		includedFilename := doc.Template.Set.ResolveFilename(doc.Template, filenameToken.Val)
 
 		// Parse the parent
 		includeNode.filename = includedFilename
-		includedTpl, err := doc.template.set.FromFile(includedFilename)
+		includedTpl, err := doc.Template.Set.FromFile(includedFilename)
 		if err != nil {
 			// if this is ReadFile error, and "if_exists" token presents we should create and empty node
 			if err.(*Error).Sender == "fromfile" && ifExists {
 				return &tagIncludeEmptyNode{}, nil
 			}
-			return nil, err.(*Error).updateFromTokenIfNeeded(doc.template, filenameToken)
+			return nil, err.(*Error).updateFromTokenIfNeeded(doc.Template, filenameToken)
 		}
 		includeNode.tpl = includedTpl
 	} else {
 		// No String, then the user wants to use lazy-evaluation (slower, but possible)
 		filenameEvaluator, err := arguments.ParseExpression()
 		if err != nil {
-			return nil, err.updateFromTokenIfNeeded(doc.template, filenameToken)
+			return nil, err.updateFromTokenIfNeeded(doc.Template, filenameToken)
 		}
 		includeNode.filenameEvaluator = filenameEvaluator
 		includeNode.lazy = true
@@ -121,7 +121,7 @@ func tagIncludeParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, *
 			}
 			valueExpr, err := arguments.ParseExpression()
 			if err != nil {
-				return nil, err.updateFromTokenIfNeeded(doc.template, keyToken)
+				return nil, err.updateFromTokenIfNeeded(doc.Template, keyToken)
 			}
 
 			includeNode.withPairs[keyToken.Val] = valueExpr
