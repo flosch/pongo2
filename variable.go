@@ -269,7 +269,7 @@ func (vr *variableResolver) resolve(ctx *ExecutionContext) (*Value, error) {
 				switch part.typ {
 				case varTypeInt:
 					// Calling an index is only possible for:
-					// * slices/arrays/strings
+					// * slices/arrays/strings/maps
 					switch current.Kind() {
 					case reflect.String, reflect.Array, reflect.Slice:
 						if part.i >= 0 && current.Len() > part.i {
@@ -278,6 +278,8 @@ func (vr *variableResolver) resolve(ctx *ExecutionContext) (*Value, error) {
 							// In Django, exceeding the length of a list is just empty.
 							return AsValue(nil), nil
 						}
+					case reflect.Map:
+						current = current.MapIndex(reflect.ValueOf(strconv.Itoa(part.i)))
 					default:
 						return nil, fmt.Errorf("Can't access an index on type %s (variable %s)",
 							current.Kind().String(), vr.String())

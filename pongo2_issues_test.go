@@ -27,3 +27,24 @@ func TestIssue151(t *testing.T) {
 		t.Fatalf("Expected output 'foobarbaz', but got '%s'.", str)
 	}
 }
+
+func TestNumericMapKey(t *testing.T) {
+	tpl, err := pongo2.FromString("{{ mydict.0 }}{{ mydict.2 }}")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	str, err := tpl.Execute(pongo2.Context{
+		"mydict": map[string]interface{}{
+			"0": "foo",
+			"1": "bar",
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if str != "foo" {
+		t.Fatalf("Expected output 'foo', but got '%s'.", str)
+	}
+}
