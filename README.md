@@ -109,7 +109,9 @@ Please use the [issue tracker](https://github.com/flosch/pongo2/issues) if you'r
 - [p2cli](https://github.com/wrouesnel/p2cli) - command line templating utility based on pongo2
 - [Pongo2echo](https://github.com/stnc/pongo2echo) - pongo2 echo framework stability renderer [stnc]
 - [Pongo2gin](https://github.com/stnc/pongo2gin) - pongo2 gin minimal framework stability renderer [stnc]
-
+   ## pongo v4 Compatible gin and echo 
+ - [Pongo4gin](https://github.com/stnc/pongo4gin) - pongo2 gin minimal framework stability renderer / Compatible with pongo version 4 [stnc]
+ - [Pongo4echo](https://github.com/stnc/pongo4echo) - pongo2 echo framework stability renderer / Compatible with pongo version 4 [stnc]
 
 Please add your project to this list and send me a pull request when you've developed something nice for pongo2.
 
