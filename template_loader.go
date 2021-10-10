@@ -232,8 +232,7 @@ func MustNewEmbededLoader(fs *embed.FS) *EmbededLoader {
 }
 
 // NewEmbededLoader creates a new EmbededLoader and allows
-// templates to be loaded from the embed.FS. The path
-// is calculated based relatively baseDir
+// templates to be loaded from the embed.FS.
 func NewEmbededLoader(fs *embed.FS) (*EmbededLoader, error) {
 	if fs == nil {
 		err := errors.New("fs cannot be nil")
