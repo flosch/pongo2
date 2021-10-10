@@ -168,3 +168,36 @@ func main() {
     http.ListenAndServe(":8080", nil)
 }
 ```
+
+## Example using embed.FS
+
+Suppose we have this file in `templates/hello.html`
+```html
+<body>
+    Hello {{ name }}
+</body>
+</html>
+```
+
+To access the template use the relative path `templates/{path_to_file}`
+```go
+//go:embed templates
+var tplEmbed embed.FS
+
+func main() {
+	tplSet := pongo2.NewSet("mytemplate", pongo2.MustNewEmbededLoader(&tplEmbed))
+	tpl, err := tplSet.FromFile("templates/hello.html")
+	panicErr(err)
+
+	out, err := tpl.Execute(pongo2.Context{"name": "john"})
+	panicErr(err)
+
+	fmt.Println(out)
+}
+
+func panicErr(err error) {
+	if err != nil {
+		panic(err)
+	}
+}
+```
