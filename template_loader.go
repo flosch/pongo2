@@ -2,10 +2,10 @@ package pongo2
 
 import (
 	"bytes"
-	"embed"
 	"errors"
 	"fmt"
 	"io"
+	"io/fs"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -217,13 +217,13 @@ func (h *HttpFilesystemLoader) Get(path string) (io.Reader, error) {
 // embed.FS file names pattern are limited check https://pkg.go.dev/embed#hdr-Directives
 // and https://github.com/golang/go/issues/43854
 type EmbededLoader struct {
-	fs embed.FS
+	fs fs.FS
 }
 
 // MustNewEmbededLoader create new instance of EmbededLoader instance
 // and panics if there's any error during instantiation. The parameters
 // are the same like NewEmbededLoader.
-func MustNewEmbededLoader(fs *embed.FS) *EmbededLoader {
+func MustNewEmbededLoader(fs fs.FS) *EmbededLoader {
 	loader, err := NewEmbededLoader(fs)
 	if err != nil {
 		panic(err)
@@ -233,14 +233,14 @@ func MustNewEmbededLoader(fs *embed.FS) *EmbededLoader {
 
 // NewEmbededLoader creates a new EmbededLoader and allows
 // templates to be loaded from the embed.FS.
-func NewEmbededLoader(fs *embed.FS) (*EmbededLoader, error) {
+func NewEmbededLoader(fs fs.FS) (*EmbededLoader, error) {
 	if fs == nil {
 		err := errors.New("fs cannot be nil")
 		return nil, err
 	}
 
 	loader := &EmbededLoader{
-		fs: *fs,
+		fs: fs,
 	}
 	return loader, nil
 }
@@ -252,10 +252,16 @@ func (e *EmbededLoader) Abs(base, name string) string {
 
 // Get returns an io.Reader where the template's content can be read from.
 func (e *EmbededLoader) Get(path string) (reader io.Reader, err error) {
-	bt, err := e.fs.ReadFile(path)
+	f, err := e.fs.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+
+	bt, err := io.ReadAll(f)
 	if err != nil {
 		return nil, err
 	}
 
-	return bytes.NewReader(bt), nil
+	return bytes.NewBuffer(bt), nil
 }
