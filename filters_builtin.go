@@ -841,17 +841,40 @@ func filterSlice(in *Value, param *Value) (*Value, *Error) {
 		return in, nil
 	}
 
+	// start with [x:len]
 	from := AsValue(comp[0]).Integer()
 	to := in.Len()
 
+	// handle negative x
+	if from < 0 {
+		from = max(in.Len() + from, 0)
+	}
+
+	// handle x over bounds
 	if from > to {
 		from = to
 	}
 
 	vto := AsValue(comp[1]).Integer()
+	// handle missing y
+	if strings.TrimSpace(comp[1]) == "" {
+		vto = in.Len()
+	}
+
+	// handle negative y
+	if vto < 0 {
+		vto = max(in.Len() + vto, 0)
+	}
+
+	// handle y < x
+	if vto < from {
+		vto = from
+	}
+
+	// y is within bounds, return the [x, y] slice
 	if vto >= from && vto <= in.Len() {
 		to = vto
-	}
+	} // otherwise, the slice remains [x, len]
 
 	return in.Slice(from, to), nil
 }
