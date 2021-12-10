@@ -1,9 +1,8 @@
 # [pongo](https://en.wikipedia.org/wiki/Pongo_%28genus%29)2
 
-[![Run on Repl.it](https://repl.it/badge/github/flosch/pongo2)](https://repl.it/github/flosch/pongo2)
-
 [![PkgGoDev](https://pkg.go.dev/badge/github.com/flosch/pongo2)](https://pkg.go.dev/github.com/flosch/pongo2)
 [![Build Status](https://travis-ci.org/flosch/pongo2.svg?branch=master)](https://travis-ci.org/flosch/pongo2)
+[![Run on Repl.it](https://repl.it/badge/github/flosch/pongo2)](https://repl.it/github/flosch/pongo2)
 
 pongo2 is a Django-syntax like templating-language.
 
