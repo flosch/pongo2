@@ -857,7 +857,7 @@ func filterSlice(in *Value, param *Value) (*Value, *Error) {
 
 	vto := AsValue(comp[1]).Integer()
 	// handle missing y
-	if len(comp[1]) == 0 {
+	if strings.TrimSpace(comp[1]) == "" {
 		vto = in.Len()
 	}
 
