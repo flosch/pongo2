@@ -67,3 +67,8 @@ issue #64 (uint comparison with int const)
 {{ simple.uint <= 8 }}
 {{ simple.uint < 8 }}
 {{ simple.uint > 8 }}
+
+string concatenation
+{{ "a" + "b" }}
+{{ 1 + "a" }}
+{{ "a" + "1" }}
