@@ -5,12 +5,32 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/fs"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
 	"path/filepath"
 )
+
+// FSLoader supports the fs.FS interface for loading templates
+type FSLoader struct {
+	fs fs.FS
+}
+
+func NewFSLoader(fs fs.FS) *FSLoader {
+	return &FSLoader{
+		fs: fs,
+	}
+}
+
+func (l *FSLoader) Abs(base, name string) string {
+	return filepath.Join(filepath.Dir(base), name)
+}
+
+func (l *FSLoader) Get(path string) (io.Reader, error) {
+	return l.fs.Open(path)
+}
 
 // LocalFilesystemLoader represents a local filesystem loader with basic
 // BaseDirectory capabilities. The access to the local filesystem is unrestricted.
