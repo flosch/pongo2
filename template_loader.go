@@ -63,7 +63,7 @@ func (fs *LocalFilesystemLoader) SetBaseDir(path string) error {
 		return err
 	}
 	if !fi.IsDir() {
-		return fmt.Errorf("The given path '%s' is not a directory.", path)
+		return fmt.Errorf("the given path '%s' is not a directory", path)
 	}
 
 	fs.baseDir = path

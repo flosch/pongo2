@@ -64,7 +64,7 @@ func (s *TestSuite) TestMisc(c *C) {
 		if err != nil {
 			panic(err)
 		}
-	}, PanicMatches, `\[Error \(where: applyfilter\)\] Filter with name 'doesnotexist' not found.`)
+	}, PanicMatches, `\[Error \(where: applyfilter\)\] filter with name 'doesnotexist' not found`)
 }
 
 func (s *TestSuite) TestImplicitExecCtx(c *C) {
@@ -81,7 +81,6 @@ func (s *TestSuite) TestImplicitExecCtx(c *C) {
 			return ctx.Public["Value"].(string)
 		},
 	})
-
 	if err != nil {
 		c.Fatalf("Error executing template: %v", err)
 	}

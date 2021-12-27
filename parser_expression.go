@@ -449,7 +449,7 @@ func (p *Parser) parseSimpleExpression() (IEvaluator, *Error) {
 		expr.opToken = op
 	}
 
-	if expr.negate == false && expr.negativeSign == false && expr.term2 == nil {
+	if !expr.negate && !expr.negativeSign && expr.term2 == nil {
 		// Shortcut for faster evaluation
 		return expr.term1, nil
 	}

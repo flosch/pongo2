@@ -1,11 +1,10 @@
 package pongo2
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 	"unicode/utf8"
-
-	"errors"
 )
 
 const (
@@ -43,33 +42,37 @@ var (
 	TokenKeywords = []string{"in", "and", "or", "not", "true", "false", "as", "export"}
 )
 
-type TokenType int
-type Token struct {
-	Filename        string
-	Typ             TokenType
-	Val             string
-	Line            int
-	Col             int
-	TrimWhitespaces bool
-}
+type (
+	TokenType int
+	Token     struct {
+		Filename        string
+		Typ             TokenType
+		Val             string
+		Line            int
+		Col             int
+		TrimWhitespaces bool
+	}
+)
 
-type lexerStateFn func() lexerStateFn
-type lexer struct {
-	name      string
-	input     string
-	start     int // start pos of the item
-	pos       int // current pos
-	width     int // width of last rune
-	tokens    []*Token
-	errored   bool
-	startline int
-	startcol  int
-	line      int
-	col       int
+type (
+	lexerStateFn func() lexerStateFn
+	lexer        struct {
+		name      string
+		input     string
+		start     int // start pos of the item
+		pos       int // current pos
+		width     int // width of last rune
+		tokens    []*Token
+		errored   bool
+		startline int
+		startcol  int
+		line      int
+		col       int
 
-	inVerbatim   bool
-	verbatimName string
-}
+		inVerbatim   bool
+		verbatimName string
+	}
+)
 
 func (t *Token) String() string {
 	val := t.Val
@@ -189,7 +192,7 @@ func (l *lexer) ignore() {
 }
 
 func (l *lexer) accept(what string) bool {
-	if strings.IndexRune(what, l.next()) >= 0 {
+	if strings.ContainsRune(what, l.next()) {
 		return true
 	}
 	l.backup()
@@ -197,7 +200,7 @@ func (l *lexer) accept(what string) bool {
 }
 
 func (l *lexer) acceptRun(what string) {
-	for strings.IndexRune(what, l.next()) >= 0 {
+	for strings.ContainsRune(what, l.next()) {
 	}
 	l.backup()
 }
@@ -215,10 +218,6 @@ func (l *lexer) errorf(format string, args ...interface{}) lexerStateFn {
 	l.startline = l.line
 	l.startcol = l.col
 	return nil
-}
-
-func (l *lexer) eof() bool {
-	return l.start >= len(l.input)-1
 }
 
 func (l *lexer) run() {
