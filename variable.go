@@ -1,11 +1,36 @@
 package pongo2
 
 import (
+	"errors"
 	"fmt"
 	"reflect"
 	"strconv"
 	"strings"
 )
+
+var (
+	ErrNoSuchField = errors.New("no such field")
+)
+
+// NamedFieldResolver can be implemented by every value inside a Context.
+// By default, reflection is used to resolve fields of a struct or a map.
+type NamedFieldResolver interface {
+	// GetNamedField will be called with the requested field name.
+	// Any error will lead to the immediate interruption of the evaluation;
+	// except in ErrNoSuchField: In this case the default evaluation process will
+	// continue (reflection).
+	GetNamedField(string) (interface{}, error)
+}
+
+// IndexedFieldResolver can be implemented by every value inside a Context.
+// By default, reflection is used to resolve index of a slice.
+type IndexedFieldResolver interface {
+	// GetIndexedField will be called with the requested field index.
+	// Any error will lead to the immediate interruption of the evaluation;
+	// except in ErrNoSuchField: In this case the default evaluation process will
+	// continue (reflection).
+	GetIndexedField(int) (interface{}, error)
+}
 
 const (
 	varTypeInt = iota
@@ -266,38 +291,25 @@ func (vr *variableResolver) resolve(ctx *ExecutionContext) (*Value, error) {
 				}
 
 				// Look up which part must be called now
+				var resolver func(reflect.Value, *variablePart) (_ reflect.Value, done bool, _ error)
 				switch part.typ {
 				case varTypeInt:
-					// Calling an index is only possible for:
-					// * slices/arrays/strings
-					switch current.Kind() {
-					case reflect.String, reflect.Array, reflect.Slice:
-						if part.i >= 0 && current.Len() > part.i {
-							current = current.Index(part.i)
-						} else {
-							// In Django, exceeding the length of a list is just empty.
-							return AsValue(nil), nil
-						}
-					default:
-						return nil, fmt.Errorf("can't access an index on type %s (variable %s)",
-							current.Kind().String(), vr.String())
-					}
+					resolver = vr.resolveIndexedField
 				case varTypeIdent:
 					// debugging:
 					// fmt.Printf("now = %s (kind: %s)\n", part.s, current.Kind().String())
 
-					// Calling a field or key
-					switch current.Kind() {
-					case reflect.Struct:
-						current = current.FieldByName(part.s)
-					case reflect.Map:
-						current = current.MapIndex(reflect.ValueOf(part.s))
-					default:
-						return nil, fmt.Errorf("can't access a field by name on type %s (variable %s)",
-							current.Kind().String(), vr.String())
-					}
+					resolver = vr.resolveNamedField
 				default:
 					panic("unimplemented")
+				}
+
+				if v, done, err := resolver(current, part); err != nil {
+					return nil, err
+				} else if done {
+					return &Value{val: v}, nil
+				} else {
+					current = v
 				}
 			}
 		}
@@ -443,6 +455,95 @@ func (vr *variableResolver) Evaluate(ctx *ExecutionContext) (*Value, *Error) {
 		return AsValue(nil), ctx.Error(err.Error(), vr.locationToken)
 	}
 	return value, nil
+}
+
+func (vr *variableResolver) resolveNamedField(of reflect.Value, by *variablePart) (_ reflect.Value, done bool, _ error) {
+	// If current does implement NamedFieldResolver, call it with the actual field name.
+	if fr, ok := of.Interface().(NamedFieldResolver); ok {
+		if val, err := fr.GetNamedField(by.s); err == ErrNoSuchField {
+			// Continue with reflection, below...
+		} else if err != nil {
+			return reflect.Value{}, false, fmt.Errorf("can't access field %s on type %s (variable %s): %w",
+				by.s, of.Kind().String(), vr.String(), err)
+		} else {
+			return reflect.ValueOf(val), false, nil
+		}
+	}
+
+	// Calling a field or key
+	switch of.Kind() {
+	case reflect.Struct:
+		return vr.resolveStructField(of, by.s), false, nil
+	case reflect.Map:
+		return of.MapIndex(reflect.ValueOf(by.s)), false, nil
+	default:
+		return reflect.Value{}, false, fmt.Errorf("can't access a field by name on type %s (variable %s)",
+			of.Kind().String(), vr.String())
+	}
+}
+
+func (vr *variableResolver) resolveStructField(of reflect.Value, name string) reflect.Value {
+	t := of.Type()
+	nf := t.NumField()
+	var byAliasIndex, byNameIndex []int
+	for i := 0; i < nf; i++ {
+		f := t.Field(i)
+		// Only respect exported field to prevent security issues in templates.
+		if f.IsExported() {
+			// We remember this field if its name matches.
+			if f.Name == name {
+				byNameIndex = f.Index
+			}
+			alias := vr.resolveStructFieldTag(f)
+			// We remember this field if its alias via tag matches.
+			if alias == name {
+				byAliasIndex = f.Index
+			}
+		}
+	}
+
+	if byAliasIndex != nil {
+		return of.FieldByIndex(byAliasIndex)
+	}
+	if byNameIndex != nil {
+		return of.FieldByIndex(byNameIndex)
+	}
+	return reflect.Value{}
+}
+
+func (vr *variableResolver) resolveStructFieldTag(of reflect.StructField) (alias string) {
+	plain := of.Tag.Get("pongo2")
+	plainParts := strings.SplitN(plain, ",", 2)
+	return strings.TrimSpace(plainParts[0])
+}
+
+func (vr *variableResolver) resolveIndexedField(of reflect.Value, by *variablePart) (_ reflect.Value, done bool, _ error) {
+	// If current does implement IndexedFieldResolver, call it with the actual index.
+	if fr, ok := of.Interface().(IndexedFieldResolver); ok {
+		if val, err := fr.GetIndexedField(by.i); err == ErrNoSuchField {
+			// Continue with reflection, below...
+		} else if err != nil {
+			return reflect.Value{}, false, fmt.Errorf("can't access index %d on type %s (variable %s): %w",
+				by.i, of.Kind().String(), vr.String(), err)
+		} else {
+			return reflect.ValueOf(val), false, nil
+		}
+	}
+
+	// Calling an index is only possible for:
+	// * slices/arrays/strings
+	switch of.Kind() {
+	case reflect.String, reflect.Array, reflect.Slice:
+		if by.i >= 0 && of.Len() > by.i {
+			return of.Index(by.i), false, nil
+		} else {
+			// In Django, exceeding the length of a list is just empty.
+			return reflect.ValueOf(nil), true, nil
+		}
+	default:
+		return reflect.Value{}, false, fmt.Errorf("can't access an index on type %s (variable %s)",
+			of.Kind().String(), vr.String())
+	}
 }
 
 func (v *nodeFilteredVariable) FilterApplied(name string) bool {
