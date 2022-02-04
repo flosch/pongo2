@@ -13,130 +13,102 @@ func TestVariables_Named(t *testing.T) {
 		want          string
 		wantErr       string
 	}{
-		"ByReflection": {
+		"Named_ByReflection": {
 			template:      "[{{ obj.Foo }}]",
 			contextObject: testVariablesStructSimple{Foo: "someFoo"},
 			want:          "[someFoo]",
 		},
-		"ByReflectionMethod": {
+		"Named_ByReflectionMethod": {
 			template:      "[{{ obj.GetBar }}]",
 			contextObject: testVariablesStructSimple{hiddenBar: "someBar"},
 			want:          "[someBar]",
 		},
-		"ByReflectionFunc": {
+		"Named_ByReflectionFunc": {
 			template:      "[{{ obj.SomeFuncVar }}]",
 			contextObject: testVariablesStructSimple{SomeFuncVar: func() string { return "fromFunc" }},
 			want:          "[fromFunc]",
 		},
-		"ByReflectionNotExported": {
+		"Named_ByReflectionNotExported": {
 			template:      "[{{ obj.hiddenBar }}]",
 			contextObject: testVariablesStructSimple{hiddenBar: "someBar"},
 			want:          "[]",
 		},
-		"ByReflectionMethodNotExported": {
+		"Named_ByReflectionMethodNotExported": {
 			template:      "[{{ obj.hiddenGetBar }}]",
 			contextObject: testVariablesStructSimple{hiddenBar: "someBar"},
 			want:          "[]",
 		},
-		"ByNamed": {
+		"Named_ByNamed": {
 			template:      "[{{ obj.foo }}]",
 			contextObject: testVariablesStructNamed{hiddenFoo: "someFoo"},
 			want:          "[someFoo]",
 		},
-		"ByNamedFallback": {
+		"Named_ByNamedFallback": {
 			template:      "[{{ obj.Bar }}]",
 			contextObject: testVariablesStructNamed{Bar: "someBar"},
 			want:          "[someBar]",
 		},
-		"ByNamedFailing": {
+		"Named_ByNamedFailing": {
 			template:      "[{{ obj.explode }}]",
 			contextObject: testVariablesStructNamed{},
 			wantErr:       "[Error (where: execution) in <string> | Line 1 Col 5 near 'obj'] can't access field explode on type struct (variable obj.explode): expected",
 		},
-		"ByNamedFunc": {
+		"Named_ByNamedFunc": {
 			template:      "[{{ obj.func }}]",
 			contextObject: testVariablesStructNamed{},
 			want:          "[fromFunc]",
 		},
-		"ByNamedAliased": {
+		"Named_ByNamedAliased": {
 			template:      "[{{ obj.aliased }}]",
 			contextObject: testVariablesStructNamed{Aliased1: "expected"},
 			want:          "[expected]",
 		},
-		"ByNamedAliasedConflicting": {
+		"Named_ByNamedAliasedConflicting": {
 			template:      "[{{ obj.AliasedConflicting }}]",
 			contextObject: testVariablesStructNamed{Aliased2: "expected", AliasedConflicting: "not expected, because overwritten by Aliased2"},
 			want:          "[expected]",
 		},
-	}
-
-	for name, tt := range tests {
-		t.Run(name, func(t *testing.T) {
-			tpl, _ := pongo2.FromString(tt.template)
-			got, err := tpl.Execute(map[string]interface{}{
-				"obj": tt.contextObject,
-			})
-			if err != nil {
-				if err.Error() != tt.wantErr {
-					t.Errorf("Template.Execute() error = %v, expected error: %v", err, tt.wantErr)
-					return
-				}
-			}
-			if got != tt.want {
-				t.Errorf("Template.Execute() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
-func TestVariables_Indexed(t *testing.T) {
-	tests := map[string]struct {
-		template      string
-		contextObject interface{}
-		want          string
-		wantErr       string
-	}{
-		"ByReflection": {
+		"Indexed_ByReflection": {
 			template:      "[{{ obj.1 }}]",
 			contextObject: []string{"a", "b", "c"},
 			want:          "[b]",
 		},
-		"ByReflectionFunc": {
+		"Indexed_ByReflectionFunc": {
 			template:      "[{{ obj.0 }}]",
 			contextObject: []interface{}{func() string { return "fromFunc" }},
 			want:          "[fromFunc]",
 		},
-		"ByIndexedOnSlice": {
+		"Indexed_ByIndexedOnSlice": {
 			template:      "[{{ obj.1 }}]",
 			contextObject: testVariablesSliceIndexed{"a", "b", "c"},
 			want:          "[theField]",
 		},
-		"ByIndexedFallbackOnSlice": {
+		"Indexed_ByIndexedFallbackOnSlice": {
 			template:      "[{{ obj.0 }}]",
 			contextObject: testVariablesSliceIndexed{"a", "b", "c"},
 			want:          "[a]",
 		},
-		"ByIndexedFailingOnSlice": {
+		"Indexed_ByIndexedFailingOnSlice": {
 			template:      "[{{ obj.2 }}]",
 			contextObject: testVariablesSliceIndexed{"a", "b", "c"},
 			wantErr:       "[Error (where: execution) in <string> | Line 1 Col 5 near 'obj'] can't access index 2 on type slice (variable obj.2): expected",
 		},
-		"ByIndexedOnStruct": {
+		"Indexed_ByIndexedOnStruct": {
 			template:      "[{{ obj.1 }}]",
 			contextObject: testVariablesStructIndexed{hiddenFoo: "someFoo"},
 			want:          "[someFoo]",
 		},
-		"ByIndexedFallbackDoesNotWorkOnStruct": {
+		"Indexed_ByIndexedFallbackDoesNotWorkOnStruct": {
 			template:      "[{{ obj.0 }}]",
 			contextObject: testVariablesStructIndexed{hiddenFoo: "someFoo"},
 			wantErr:       "[Error (where: execution) in <string> | Line 1 Col 5 near 'obj'] can't access an index on type struct (variable obj.0)",
 		},
-		"ByIndexedFailingOnStruct": {
+		"Indexed_ByIndexedFailingOnStruct": {
 			template:      "[{{ obj.2 }}]",
 			contextObject: testVariablesStructIndexed{hiddenFoo: "someFoo"},
 			wantErr:       "[Error (where: execution) in <string> | Line 1 Col 5 near 'obj'] can't access index 2 on type struct (variable obj.2): expected",
 		},
-		"ByIndexedFunc": {
+		"Indexed_ByIndexedFunc": {
 			template:      "[{{ obj.3 }}]",
 			contextObject: testVariablesStructIndexed{},
 			want:          "[fromFunc]",
