@@ -106,8 +106,6 @@ Please use the [issue tracker](https://github.com/flosch/pongo2/issues) if you'r
 - [pongo2-trans](https://github.com/digitalcrab/pongo2trans) - `trans`-tag implementation for internationalization
 - [tpongo2](https://github.com/tango-contrib/tpongo2) - pongo2 support for [Tango](https://github.com/lunny/tango), a micro-kernel & pluggable web framework.
 - [p2cli](https://github.com/wrouesnel/p2cli) - command line templating utility based on pongo2
-- [Pongo2echo](https://github.com/stnc/pongo2echo) - pongo2 echo framework stability renderer [stnc]
-- [Pongo2gin](https://github.com/stnc/pongo2gin) - pongo2 gin minimal framework stability renderer (support for [v4](https://github.com/stnc/pongo4gin)) [stnc]
 
 Please add your project to this list and send me a pull request when you've developed something nice for pongo2.
 
