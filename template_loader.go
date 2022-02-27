@@ -252,11 +252,11 @@ func (e *EmbededLoader) Abs(base, name string) string {
 
 // Get returns an io.Reader where the template's content can be read from.
 func (e *EmbededLoader) Get(path string) (reader io.Reader, err error) {
+	// no call to fs.Close, because it did nothing
 	f, err := e.fs.Open(path)
 	if err != nil {
 		return nil, err
 	}
-	defer f.Close()
 
 	bt, err := io.ReadAll(f)
 	if err != nil {
