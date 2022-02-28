@@ -108,6 +108,7 @@ Please use the [issue tracker](https://github.com/flosch/pongo2/issues) if you'r
 - [p2cli](https://github.com/wrouesnel/p2cli) - command line templating utility based on pongo2
 - [Pongo2echo](https://github.com/stnc/pongo2echo) - pongo2 echo framework stability renderer [stnc]
 - [Pongo2gin](https://github.com/stnc/pongo2gin) - pongo2 gin minimal framework stability renderer (support for [v4](https://github.com/stnc/pongo4gin)) [stnc]
+- [pongo2gcloud](https://github.com/dieselburner/pongo2gcloud) - Google Cloud Storage loader for pongo2 template files
 
 Please add your project to this list and send me a pull request when you've developed something nice for pongo2.
 
