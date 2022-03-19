@@ -107,6 +107,7 @@ Please use the [issue tracker](https://github.com/flosch/pongo2/issues) if you'r
 - [tpongo2](https://github.com/tango-contrib/tpongo2) - pongo2 support for [Tango](https://github.com/lunny/tango), a micro-kernel & pluggable web framework.
 - [p2cli](https://github.com/wrouesnel/p2cli) - command line templating utility based on pongo2
 - [pongorenderer](https://github.com/siredwin/pongorenderer) - minimal pongo2 renderer for [Echo](https://github.com/labstack/echo) web framework
+- [pongo2gcloud](https://github.com/dieselburner/pongo2gcloud) - Google Cloud Storage loader for pongo2 template files
 
 Please add your project to this list and send me a pull request when you've developed something nice for pongo2.
 
