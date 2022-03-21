@@ -56,9 +56,6 @@ func init() {
 // Registers a new tag. You usually want to call this
 // function in the tag's init() function:
 // http://golang.org/doc/effective_go.html#init
-//
-// See http://www.florian-schlachter.de/post/pongo2/ for more about
-// writing filters and tags.
 func RegisterTag(name string, parserFn TagParser) error {
 	_, existing := tags[name]
 	if existing {
