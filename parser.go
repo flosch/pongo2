@@ -1,10 +1,9 @@
 package pongo2
 
 import (
+	"errors"
 	"fmt"
 	"strings"
-
-	"errors"
 )
 
 type INode interface {

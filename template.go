@@ -243,21 +243,36 @@ func (tpl *Template) ExecuteBlocks(context Context, blocks []string) (map[string
 
 	parent := tpl
 	for parent != nil {
-		parents = append(parents, parent)
+		// We only want to execute the template if it has a block we want
+		for _, block := range blocks {
+			if _, ok := tpl.blocks[block]; ok {
+				parents = append(parents, parent)
+				break
+			}
+		}
 		parent = parent.parent
 	}
 
 	for _, t := range parents {
-		buffer := bytes.NewBuffer(make([]byte, 0, int(float64(t.size)*1.3)))
-		_, ctx, err := t.newContextForExecution(context)
-		if err != nil {
-			return nil, err
-		}
+		var buffer *bytes.Buffer
+		var ctx *ExecutionContext
+		var err error
 		for _, blockName := range blocks {
 			if _, ok := result[blockName]; ok {
 				continue
 			}
 			if blockWrapper, ok := t.blocks[blockName]; ok {
+				// assign the buffer if we haven't done so
+				if buffer == nil {
+					buffer = bytes.NewBuffer(make([]byte, 0, int(float64(t.size)*1.3)))
+				}
+				// assign the context if we haven't done so
+				if ctx == nil {
+					_, ctx, err = t.newContextForExecution(context)
+					if err != nil {
+						return nil, err
+					}
+				}
 				bErr := blockWrapper.Execute(ctx, buffer)
 				if bErr != nil {
 					return nil, bErr

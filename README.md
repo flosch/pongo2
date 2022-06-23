@@ -2,13 +2,14 @@
 
 [![PkgGoDev](https://pkg.go.dev/badge/github.com/flosch/pongo2)](https://pkg.go.dev/github.com/flosch/pongo2)
 [![Build Status](https://travis-ci.org/flosch/pongo2.svg?branch=master)](https://travis-ci.org/flosch/pongo2)
+[![Run on Repl.it](https://repl.it/badge/github/flosch/pongo2)](https://repl.it/github/flosch/pongo2)
 
 pongo2 is a Django-syntax like templating-language ([official website](https://www.schlachter.tech/solutions/pongo2-template-engine/)).
 
 Install/update using `go get` (no dependencies required by pongo2):
 
 ```sh
-go get -u github.com/flosch/pongo2/v4
+go get -u github.com/flosch/pongo2/v5
 ```
 
 Please use the [issue tracker](https://github.com/flosch/pongo2/issues) if you're encountering any problems with pongo2 or if you need help with implementing tags or filters ([create a ticket!](https://github.com/flosch/pongo2/issues/new)).
@@ -105,9 +106,8 @@ Please use the [issue tracker](https://github.com/flosch/pongo2/issues) if you'r
 - [pongo2-trans](https://github.com/digitalcrab/pongo2trans) - `trans`-tag implementation for internationalization
 - [tpongo2](https://github.com/tango-contrib/tpongo2) - pongo2 support for [Tango](https://github.com/lunny/tango), a micro-kernel & pluggable web framework.
 - [p2cli](https://github.com/wrouesnel/p2cli) - command line templating utility based on pongo2
-- [Pongo2echo](https://github.com/stnc/pongo2echo) - pongo2 echo framework stability renderer [stnc]
-- [Pongo2gin](https://github.com/stnc/pongo2gin) - pongo2 gin minimal framework stability renderer [stnc]
-
+- [pongorenderer](https://github.com/siredwin/pongorenderer) - minimal pongo2 renderer for [Echo](https://github.com/labstack/echo) web framework
+- [pongo2gcloud](https://github.com/dieselburner/pongo2gcloud) - Google Cloud Storage loader for pongo2 template files
 
 Please add your project to this list and send me a pull request when you've developed something nice for pongo2.
 
@@ -142,7 +142,7 @@ fmt.Println(out) // Output: Hello Florian!
 package main
 
 import (
-    "github.com/flosch/pongo2/v4"
+    "github.com/flosch/pongo2/v5"
     "net/http"
 )
 

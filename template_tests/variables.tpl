@@ -17,3 +17,5 @@
 {{ simple.intmap[simple.uint - 7] }}
 {{ simple.strmap["ab" + "c"] }}
 {{ complex.comments.0["Tex" + "t"]|safe }}
+{{ simple.stringer }}
+{{ simple.stringerPtr }}

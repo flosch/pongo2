@@ -6,6 +6,6 @@ os:
   - linux
   - osx
 go:
-  - 1.12
+  - 1.18
 script:
   - go test -v

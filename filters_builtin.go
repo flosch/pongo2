@@ -27,6 +27,7 @@ package pongo2
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"math/rand"
 	"net/url"
@@ -35,15 +36,13 @@ import (
 	"strings"
 	"time"
 	"unicode/utf8"
-
-	"errors"
 )
 
 func init() {
 	rand.Seed(time.Now().Unix())
 
 	RegisterFilter("escape", filterEscape)
-	RegisterFilter("e", filterEscape)	// alias of `escape`
+	RegisterFilter("e", filterEscape) // alias of `escape`
 	RegisterFilter("safe", filterSafe)
 	RegisterFilter("escapejs", filterEscapejs)
 
@@ -482,7 +481,7 @@ func filterIriencode(in *Value, param *Value) (*Value, *Error) {
 
 	sin := in.String()
 	for _, r := range sin {
-		if strings.IndexRune(filterIRIChars, r) >= 0 {
+		if strings.ContainsRune(filterIRIChars, r) {
 			b.WriteRune(r)
 		} else {
 			b.WriteString(url.QueryEscape(string(r)))
@@ -647,8 +646,10 @@ func filterUrlencode(in *Value, param *Value) (*Value, *Error) {
 }
 
 // TODO: This regexp could do some work
-var filterUrlizeURLRegexp = regexp.MustCompile(`((((http|https)://)|www\.|((^|[ ])[0-9A-Za-z_\-]+(\.com|\.net|\.org|\.info|\.biz|\.de))))(?U:.*)([ ]+|$)`)
-var filterUrlizeEmailRegexp = regexp.MustCompile(`(\w+@\w+\.\w{2,4})`)
+var (
+	filterUrlizeURLRegexp   = regexp.MustCompile(`((((http|https)://)|www\.|((^|[ ])[0-9A-Za-z_\-]+(\.com|\.net|\.org|\.info|\.biz|\.de))))(?U:.*)([ ]+|$)`)
+	filterUrlizeEmailRegexp = regexp.MustCompile(`(\w+@\w+\.\w{2,4})`)
+)
 
 func filterUrlizeHelper(input string, autoescape bool, trunc int) (string, error) {
 	var soutErr error
@@ -717,7 +718,10 @@ func filterUrlize(in *Value, param *Value) (*Value, *Error) {
 
 	s, err := filterUrlizeHelper(in.String(), autoescape, -1)
 	if err != nil {
-
+		return nil, &Error{
+			Sender:    "filter:urlize",
+			OrigError: err,
+		}
 	}
 
 	return AsValue(s), nil
@@ -728,7 +732,7 @@ func filterUrlizetrunc(in *Value, param *Value) (*Value, *Error) {
 	if err != nil {
 		return nil, &Error{
 			Sender:    "filter:urlizetrunc",
-			OrigError: errors.New("you cannot pass more than 2 arguments to filter 'pluralize'"),
+			OrigError: err,
 		}
 	}
 	return AsValue(s), nil
@@ -841,17 +845,40 @@ func filterSlice(in *Value, param *Value) (*Value, *Error) {
 		return in, nil
 	}
 
+	// start with [x:len]
 	from := AsValue(comp[0]).Integer()
 	to := in.Len()
 
+	// handle negative x
+	if from < 0 {
+		from = max(in.Len()+from, 0)
+	}
+
+	// handle x over bounds
 	if from > to {
 		from = to
 	}
 
 	vto := AsValue(comp[1]).Integer()
+	// handle missing y
+	if strings.TrimSpace(comp[1]) == "" {
+		vto = in.Len()
+	}
+
+	// handle negative y
+	if vto < 0 {
+		vto = max(in.Len()+vto, 0)
+	}
+
+	// handle y < x
+	if vto < from {
+		vto = from
+	}
+
+	// y is within bounds, return the [x, y] slice
 	if vto >= from && vto <= in.Len() {
 		to = vto
-	}
+	} // otherwise, the slice remains [x, len]
 
 	return in.Slice(from, to), nil
 }
@@ -895,13 +922,13 @@ func filterYesno(in *Value, param *Value) (*Value, *Error) {
 		if len(customChoices) > 3 {
 			return nil, &Error{
 				Sender:    "filter:yesno",
-				OrigError: fmt.Errorf("You cannot pass more than 3 options to the 'yesno'-filter (got: '%s').", paramString),
+				OrigError: fmt.Errorf("you cannot pass more than 3 options to the 'yesno'-filter (got: '%s')", paramString),
 			}
 		}
 		if len(customChoices) < 2 {
 			return nil, &Error{
 				Sender:    "filter:yesno",
-				OrigError: fmt.Errorf("You must pass either no or at least 2 arguments to the 'yesno'-filter (got: '%s').", paramString),
+				OrigError: fmt.Errorf("you must either pass no or at least 2 arguments to the 'yesno'-filter (got: '%s')", paramString),
 			}
 		}
 

@@ -287,6 +287,20 @@ slice
 {{ simple.multiple_item_list|slice:"2:"|join:"," }}
 {{ simple.multiple_item_list|slice:"2:3"|join:"," }}
 {{ simple.multiple_item_list|slice:"2:1"|join:"," }}
+{{ simple.multiple_item_list|slice:"-1:"|join:"," }}
+{{ simple.multiple_item_list|slice:":-1"|join:"," }}
+{{ simple.multiple_item_list|slice:"-3:"|join:"," }}
+{{ simple.multiple_item_list|slice:":-3"|join:"," }}
+{{ simple.multiple_item_list|slice:"-100:"|join:"," }}
+{{ simple.multiple_item_list|slice:":-100"|join:"," }}
+{{ simple.multiple_item_list|slice:"-100:-1"|join:"," }}
+{{ simple.multiple_item_list|slice:"-100:1"|join:"," }}
+{{ simple.multiple_item_list|slice:"-100:-99"|join:"," }}
+{{ simple.multiple_item_list|slice:"-100:99"|join:"," }}
+{{ simple.multiple_item_list|slice:"-1:3"|join:"," }}
+{{ simple.multiple_item_list|slice:"1:-3"|join:"," }}
+{{ simple.multiple_item_list|slice:"-1:-3"|join:"," }}
+{{ simple.multiple_item_list|slice:"-3:-1"|join:"," }}
 {{ "Test"|slice:"1:3" }}
 {{ simple.chinese_hello_world|slice:"1:3" }}
 

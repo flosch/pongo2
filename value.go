@@ -85,7 +85,7 @@ func (v *Value) IsTime() bool {
 
 // IsNil checks whether the underlying value is NIL
 func (v *Value) IsNil() bool {
-	//fmt.Printf("%+v\n", v.getResolvedValue().Type().String())
+	// fmt.Printf("%+v\n", v.getResolvedValue().Type().String())
 	return !v.getResolvedValue().IsValid()
 }
 
@@ -107,6 +107,10 @@ func (v *Value) String() string {
 		return ""
 	}
 
+	if t, ok := v.Interface().(fmt.Stringer); ok {
+		return t.String()
+	}
+
 	switch v.getResolvedValue().Kind() {
 	case reflect.String:
 		return v.getResolvedValue().String()
@@ -121,10 +125,6 @@ func (v *Value) String() string {
 			return "True"
 		}
 		return "False"
-	case reflect.Struct:
-		if t, ok := v.Interface().(fmt.Stringer); ok {
-			return t.String()
-		}
 	}
 
 	logf("Value.String() not implemented for type: %s\n", v.getResolvedValue().Kind().String())
@@ -305,7 +305,7 @@ func (v *Value) Index(i int) *Value {
 		}
 		return AsValue(v.getResolvedValue().Index(i).Interface())
 	case reflect.String:
-		//return AsValue(v.getResolvedValue().Slice(i, i+1).Interface())
+		// return AsValue(v.getResolvedValue().Slice(i, i+1).Interface())
 		s := v.getResolvedValue().String()
 		runes := []rune(s)
 		if i < len(runes) {

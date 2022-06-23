@@ -60,7 +60,7 @@ func ApplyFilter(name string, value *Value, param *Value) (*Value, *Error) {
 	if !existing {
 		return nil, &Error{
 			Sender:    "applyfilter",
-			OrigError: fmt.Errorf("Filter with name '%s' not found.", name),
+			OrigError: fmt.Errorf("filter with name '%s' not found", name),
 		}
 	}
 
