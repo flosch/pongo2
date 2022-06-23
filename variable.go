@@ -10,6 +10,7 @@ import (
 const (
 	varTypeInt = iota
 	varTypeIdent
+	varTypeSubscript
 )
 
 var (
@@ -18,9 +19,10 @@ var (
 )
 
 type variablePart struct {
-	typ int
-	s   string
-	i   int
+	typ       int
+	s         string
+	i         int
+	subscript IEvaluator
 
 	isFunctionCall bool
 	callingArgs    []functionCallArgument // needed for a function call, represents all argument nodes (INode supports nested function calls)
@@ -296,6 +298,39 @@ func (vr *variableResolver) resolve(ctx *ExecutionContext) (*Value, error) {
 						return nil, fmt.Errorf("can't access a field by name on type %s (variable %s)",
 							current.Kind().String(), vr.String())
 					}
+				case varTypeSubscript:
+					// Calling an index is only possible for:
+					// * slices/arrays/strings
+					switch current.Kind() {
+					case reflect.String, reflect.Array, reflect.Slice:
+						sv, err := part.subscript.Evaluate(ctx)
+						if err != nil {
+							return nil, err
+						}
+						si := sv.Integer()
+						if si >= 0 && current.Len() > si {
+							current = current.Index(si)
+						} else {
+							// In Django, exceeding the length of a list is just empty.
+							return AsValue(nil), nil
+						}
+					// Calling a field or key
+					case reflect.Struct:
+						sv, err := part.subscript.Evaluate(ctx)
+						if err != nil {
+							return nil, err
+						}
+						current = current.FieldByName(sv.String())
+					case reflect.Map:
+						sv, err := part.subscript.Evaluate(ctx)
+						if err != nil {
+							return nil, err
+						}
+						current = current.MapIndex(sv.val)
+					default:
+						return nil, fmt.Errorf("Can't access an index on type %s (variable %s)",
+							current.Kind().String(), vr.String())
+					}
 				default:
 					panic("unimplemented")
 				}
@@ -470,7 +505,7 @@ func (v *nodeFilteredVariable) Evaluate(ctx *ExecutionContext) (*Value, *Error) 
 	return value, nil
 }
 
-// IDENT | IDENT.(IDENT|NUMBER)...
+// IDENT | IDENT.(IDENT|NUMBER)... | IDENT[expr]...
 func (p *Parser) parseVariableOrLiteral() (IEvaluator, *Error) {
 	t := p.Current()
 
@@ -592,6 +627,22 @@ variableLoop:
 				return nil, p.Error("Unexpected EOF, expected either IDENTIFIER or NUMBER after DOT.",
 					p.lastToken)
 			}
+		} else if p.Match(TokenSymbol, "[") != nil {
+			// Variable subscript
+			if p.Remaining() == 0 {
+				return nil, p.Error("Unexpected EOF, expected subscript subscript.", p.lastToken)
+			}
+			exprSubscript, err := p.ParseExpression()
+			if err != nil {
+				return nil, err
+			}
+			resolver.parts = append(resolver.parts, &variablePart{
+				typ:       varTypeSubscript,
+				subscript: exprSubscript,
+			})
+			if p.Match(TokenSymbol, "]") == nil {
+				return nil, p.Error("Missing closing bracket after subscript argument.", nil)
+			}
 		} else if p.Match(TokenSymbol, "(") != nil {
 			// Function call
 			// FunctionName '(' Comma-separated list of expressions ')'
@@ -631,7 +682,7 @@ variableLoop:
 			continue variableLoop
 		}
 
-		// No dot or function call? Then we're done with the variable parsing
+		// No dot, subscript or function call? Then we're done with the variable parsing
 		break
 	}
 
