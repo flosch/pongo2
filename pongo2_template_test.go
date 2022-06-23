@@ -394,41 +394,43 @@ func TestBlockTemplates(t *testing.T) {
 		t.Fatal(err)
 	}
 	for idx, match := range matches {
-		t.Logf("[BlockTemplate %3d] Testing '%s'", idx+1, match)
+		t.Run(fmt.Sprintf("%03d-%s", idx+1, match), func(t *testing.T) {
+			t.Logf("[BlockTemplate %3d] Testing '%s'", idx+1, match)
 
-		tpl, err := pongo2.FromFile(match)
-		if err != nil {
-			t.Fatalf("Error on FromFile('%s'): %s", match, err.Error())
-		}
-
-		testFilename := fmt.Sprintf("%s.out", match)
-		testOut, rerr := ioutil.ReadFile(testFilename)
-		if rerr != nil {
-			t.Fatalf("Error on ReadFile('%s'): %s", testFilename, rerr.Error())
-		}
-		tpl_out, err := tpl.ExecuteBlocks(tplContext, []string{"content", "more_content"})
-		if err != nil {
-			t.Fatalf("Error on ExecuteBlocks('%s'): %s", match, err.Error())
-		}
-
-		if _, ok := tpl_out["content"]; !ok {
-			t.Errorf("Failed: content not in tpl_out for %s", match)
-		}
-		if _, ok := tpl_out["more_content"]; !ok {
-			t.Errorf("Failed: more_content not in tpl_out for %s", match)
-		}
-		testString := string(testOut[:])
-		joinedString := strings.Join([]string{tpl_out["content"], tpl_out["more_content"]}, "")
-		if testString != joinedString {
-			t.Logf("BlockTemplate (rendered) '%s': '%s'", match, tpl_out["content"])
-			errFilename := filepath.Base(fmt.Sprintf("%s.error", match))
-			err := ioutil.WriteFile(errFilename, []byte(joinedString), 0600)
+			tpl, err := pongo2.FromFile(match)
 			if err != nil {
-				t.Fatalf(err.Error())
+				t.Fatalf("Error on FromFile('%s'): %s", match, err.Error())
 			}
-			t.Logf("get a complete diff with command: 'diff -ya %s %s'", testFilename, errFilename)
-			t.Errorf("Failed: test_out != tpl_out for %s", match)
-		}
+
+			testFilename := fmt.Sprintf("%s.out", match)
+			testOut, rerr := ioutil.ReadFile(testFilename)
+			if rerr != nil {
+				t.Fatalf("Error on ReadFile('%s'): %s", testFilename, rerr.Error())
+			}
+			tpl_out, err := tpl.ExecuteBlocks(tplContext, []string{"content", "more_content"})
+			if err != nil {
+				t.Fatalf("Error on ExecuteBlocks('%s'): %s", match, err.Error())
+			}
+
+			if _, ok := tpl_out["content"]; !ok {
+				t.Errorf("Failed: content not in tpl_out for %s", match)
+			}
+			if _, ok := tpl_out["more_content"]; !ok {
+				t.Errorf("Failed: more_content not in tpl_out for %s", match)
+			}
+			testString := string(testOut[:])
+			joinedString := strings.Join([]string{tpl_out["content"], tpl_out["more_content"]}, "")
+			if testString != joinedString {
+				t.Logf("BlockTemplate (rendered) '%s': '%s'", match, tpl_out["content"])
+				errFilename := filepath.Base(fmt.Sprintf("%s.error", match))
+				err := ioutil.WriteFile(errFilename, []byte(joinedString), 0600)
+				if err != nil {
+					t.Fatalf(err.Error())
+				}
+				t.Logf("get a complete diff with command: 'diff -ya %s %s'", testFilename, errFilename)
+				t.Errorf("Failed: test_out != tpl_out for %s", match)
+			}
+		})
 	}
 }
 
@@ -728,6 +730,36 @@ func BenchmarkParallelExecuteComplexWithoutSandbox(b *testing.B) {
 
 func BenchmarkExecuteBlocksWithSandboxActive(b *testing.B) {
 	blockNames := []string{"content", "more_content"}
+	tpl, err := pongo2.FromFile("template_tests/block_render/block.tpl")
+	if err != nil {
+		b.Fatal(err)
+	}
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_, err = tpl.ExecuteBlocks(tplContext, blockNames)
+		if err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
+func BenchmarkExecuteBlocksDeepWithSandboxActive(b *testing.B) {
+	blockNames := []string{"body", "more_content"}
+	tpl, err := pongo2.FromFile("template_tests/block_render/deep.tpl")
+	if err != nil {
+		b.Fatal(err)
+	}
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_, err = tpl.ExecuteBlocks(tplContext, blockNames)
+		if err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
+func BenchmarkExecuteBlocksWithEmptyBlocksSandboxActive(b *testing.B) {
+	blockNames := []string{}
 	tpl, err := pongo2.FromFile("template_tests/block_render/block.tpl")
 	if err != nil {
 		b.Fatal(err)
