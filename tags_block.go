@@ -56,11 +56,11 @@ type tagBlockInformation struct {
 	wrappers []*NodeWrapper
 }
 
-func (t tagBlockInformation) Super() string {
+func (t tagBlockInformation) Super() (*Value, error) {
 	lenWrappers := len(t.wrappers)
 
 	if lenWrappers == 0 {
-		return ""
+		return AsSafeValue(""), nil
 	}
 
 	superCtx := NewChildExecutionContext(t.ctx)
@@ -73,9 +73,9 @@ func (t tagBlockInformation) Super() string {
 	buf := bytes.NewBufferString("")
 	err := blockWrapper.Execute(superCtx, &templateWriter{buf})
 	if err != nil {
-		return ""
+		return AsSafeValue(""), err
 	}
-	return buf.String()
+	return AsSafeValue(buf.String()), nil
 }
 
 func tagBlockParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, *Error) {
