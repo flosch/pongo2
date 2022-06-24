@@ -326,9 +326,13 @@ func (vr *variableResolver) resolve(ctx *ExecutionContext) (*Value, error) {
 						if err != nil {
 							return nil, err
 						}
-						current = current.MapIndex(sv.val)
+						if sv.val.Type().AssignableTo(current.Type().Key()) {
+							current = current.MapIndex(sv.val)
+						} else {
+							return AsValue(nil), nil
+						}
 					default:
-						return nil, fmt.Errorf("Can't access an index on type %s (variable %s)",
+						return nil, fmt.Errorf("can't access an index on type %s (variable %s)",
 							current.Kind().String(), vr.String())
 					}
 				default:
