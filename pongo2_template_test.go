@@ -29,8 +29,8 @@ var (
 )
 
 var (
-	time1 = time.Date(2014, 06, 10, 15, 30, 15, 0, time.UTC)
-	time2 = time.Date(2011, 03, 21, 8, 37, 56, 12, time.UTC)
+	time1 = time.Date(2014, 0o6, 10, 15, 30, 15, 0, time.UTC)
+	time2 = time.Date(2011, 0o3, 21, 8, 37, 56, 12, time.UTC)
 )
 
 type post struct {
@@ -118,7 +118,7 @@ func init() {
 
 var tplContext = pongo2.Context{
 	"number": 11,
-	"simple": map[string]interface{}{
+	"simple": map[string]any{
 		"number":                   42,
 		"name":                     "john doe",
 		"included_file":            "INCLUDES.helper",
@@ -143,7 +143,7 @@ Yep!`,
 		"multiple_item_list": []int{1, 1, 2, 3, 5, 8, 13, 21, 34, 55},
 		"unsorted_int_list":  []int{192, 581, 22, 1, 249, 9999, 1828591, 8271},
 		"fixed_item_list":    [...]int{1, 2, 3, 4},
-		"misc_list":          []interface{}{"Hello", 99, 3.14, "good"},
+		"misc_list":          []any{"Hello", 99, 3.14, "good"},
 		"escape_text":        "This is \\a Test. \"Yep\". 'Yep'.",
 		"xss":                "<script>alert(\"uh oh\");</script>",
 		"time1":              time1,
@@ -166,10 +166,10 @@ Yep!`,
 		"func_add": func(a, b int) int {
 			return a + b
 		},
-		"func_add_iface": func(a, b interface{}) interface{} {
+		"func_add_iface": func(a, b any) any {
 			return a.(int) + b.(int)
 		},
-		"func_variadic": func(msg string, args ...interface{}) string {
+		"func_variadic": func(msg string, args ...any) string {
 			return fmt.Sprintf(msg, args...)
 		},
 		"func_variadic_sum_int": func(args ...int) int {
@@ -189,7 +189,7 @@ Yep!`,
 			return pongo2.AsValue(s)
 		},
 	},
-	"complex": map[string]interface{}{
+	"complex": map[string]any{
 		"is_admin": isAdmin,
 		"post": post{
 			Text:    "<h2>Hello!</h2><p>Welcome to my new blog page. I'm using pongo2 which supports {{ variables }} and {% tags %}.</p>",
@@ -251,7 +251,7 @@ Yep!`,
 }
 
 func TestTemplate_Functions(t *testing.T) {
-	mydict := map[string]interface{}{
+	mydict := map[string]any{
 		"foo":    "bar",
 		"foobar": 8379,
 	}
@@ -269,7 +269,7 @@ func TestTemplate_Functions(t *testing.T) {
 			template: "{{ testFunc(mydict) }}",
 			context: pongo2.Context{
 				"mydict": mydict,
-				"testFunc": func(i interface{}) (string, error) {
+				"testFunc": func(i any) (string, error) {
 					d, err := json.Marshal(i)
 					return string(d), err
 				},
@@ -282,7 +282,7 @@ func TestTemplate_Functions(t *testing.T) {
 			template: "{{ testFunc(mydict) }}",
 			context: pongo2.Context{
 				"mydict": mydict,
-				"testFunc": func(i interface{}) (string, error) {
+				"testFunc": func(i any) (string, error) {
 					return "", errors.New("something went wrong")
 				},
 			},
@@ -294,7 +294,7 @@ func TestTemplate_Functions(t *testing.T) {
 			template: "{{ testFunc(mydict) }}",
 			context: pongo2.Context{
 				"mydict": mydict,
-				"testFunc": func(i interface{}) (string, int, error) {
+				"testFunc": func(i any) (string, int, error) {
 					return "", 0, nil
 				},
 			},
@@ -305,11 +305,11 @@ func TestTemplate_Functions(t *testing.T) {
 			name:     "InvalidArguments",
 			template: "{{ testFunc(mydict) }}",
 			context: pongo2.Context{
-				"mydict": map[string]interface{}{
+				"mydict": map[string]any{
 					"foo":    "bar",
 					"foobar": 8379,
 				},
-				"testFunc": func(i interface{}) (string, int) {
+				"testFunc": func(i any) (string, int) {
 					return "", 0
 				},
 			},
@@ -375,7 +375,7 @@ func TestTemplates(t *testing.T) {
 			if !bytes.Equal(testOut, tplOut) {
 				t.Logf("Template (rendered) '%s': '%s'", match, tplOut)
 				errFilename := filepath.Base(fmt.Sprintf("%s.error", match))
-				err := ioutil.WriteFile(errFilename, []byte(tplOut), 0600)
+				err := ioutil.WriteFile(errFilename, []byte(tplOut), 0o600)
 				if err != nil {
 					t.Fatalf(err.Error())
 				}
@@ -423,7 +423,7 @@ func TestBlockTemplates(t *testing.T) {
 			if testString != joinedString {
 				t.Logf("BlockTemplate (rendered) '%s': '%s'", match, tpl_out["content"])
 				errFilename := filepath.Base(fmt.Sprintf("%s.error", match))
-				err := ioutil.WriteFile(errFilename, []byte(joinedString), 0600)
+				err := ioutil.WriteFile(errFilename, []byte(joinedString), 0o600)
 				if err != nil {
 					t.Fatalf(err.Error())
 				}

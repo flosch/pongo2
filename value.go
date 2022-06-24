@@ -20,14 +20,14 @@ type Value struct {
 //
 // Example:
 //     AsValue("my string")
-func AsValue(i interface{}) *Value {
+func AsValue(i any) *Value {
 	return &Value{
 		val: reflect.ValueOf(i),
 	}
 }
 
 // AsSafeValue works like AsValue, but does not apply the 'escape' filter.
-func AsSafeValue(i interface{}) *Value {
+func AsSafeValue(i any) *Value {
 	return &Value{
 		val:  reflect.ValueOf(i),
 		safe: true,
@@ -474,7 +474,7 @@ func (v *Value) IterateOrder(fn func(idx, count int, key, value *Value) bool, em
 }
 
 // Interface gives you access to the underlying value.
-func (v *Value) Interface() interface{} {
+func (v *Value) Interface() any {
 	if v.val.IsValid() {
 		return v.val.Interface()
 	}

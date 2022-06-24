@@ -205,7 +205,7 @@ func (l *lexer) acceptRun(what string) {
 	l.backup()
 }
 
-func (l *lexer) errorf(format string, args ...interface{}) lexerStateFn {
+func (l *lexer) errorf(format string, args ...any) lexerStateFn {
 	t := &Token{
 		Filename: l.name,
 		Typ:      TokenError,

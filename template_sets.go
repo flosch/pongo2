@@ -1,14 +1,13 @@
 package pongo2
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"log"
 	"os"
 	"sync"
-
-	"errors"
 )
 
 // TemplateLoader allows to implement a virtual file system.
@@ -268,14 +267,14 @@ func (set *TemplateSet) RenderTemplateFile(fn string, ctx Context) (string, erro
 	return result, nil
 }
 
-func (set *TemplateSet) logf(format string, args ...interface{}) {
+func (set *TemplateSet) logf(format string, args ...any) {
 	if set.Debug {
 		logger.Printf(fmt.Sprintf("[template set: %s] %s", set.name, format), args...)
 	}
 }
 
 // Logging function (internally used)
-func logf(format string, items ...interface{}) {
+func logf(format string, items ...any) {
 	if debug {
 		logger.Printf(format, items...)
 	}
