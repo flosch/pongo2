@@ -1,0 +1,12 @@
+# Changelog
+
+## v6.0.0
+
+- Go 1.18 is now the minimum required Go version.
+- Improved block performance (#293).
+- Support for variable subscript syntax (for maps/arrays/slices), such as `mymap["foo"]` or
+  `myarray[0]` (#281).
+- Backwards-incompatible change: `block.Super` won't be escaped anymore by default (#301).
+- `nil` is now supported in function calls (#277).
+
+Thanks to all contributors.
