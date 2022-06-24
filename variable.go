@@ -11,6 +11,7 @@ const (
 	varTypeInt = iota
 	varTypeIdent
 	varTypeSubscript
+	varTypeNil
 )
 
 var (
@@ -23,6 +24,7 @@ type variablePart struct {
 	s         string
 	i         int
 	subscript IEvaluator
+	isNil     bool
 
 	isFunctionCall bool
 	callingArgs    []functionCallArgument // needed for a function call, represents all argument nodes (INode supports nested function calls)
@@ -419,14 +421,18 @@ func (vr *variableResolver) resolve(ctx *ExecutionContext) (*Value, error) {
 							return nil, fmt.Errorf("function input argument %d of '%s' must be of type %s or *pongo2.Value (not %T)",
 								idx, vr.String(), fnArg.String(), pv.Interface())
 						}
-						// Function's argument has another type, using the interface-value
-						parameters = append(parameters, reflect.ValueOf(pv.Interface()))
 					} else {
 						if fnArg != reflect.TypeOf(pv.Interface()) && fnArg.Kind() != reflect.Interface {
 							return nil, fmt.Errorf("function variadic input argument of '%s' must be of type %s or *pongo2.Value (not %T)",
 								vr.String(), fnArg.String(), pv.Interface())
 						}
-						// Function's argument has another type, using the interface-value
+					}
+
+					if pv.IsNil() {
+						// Workaround to present an interface nil as reflect.Value
+						var empty any = nil
+						parameters = append(parameters, reflect.ValueOf(&empty).Elem())
+					} else {
 						parameters = append(parameters, reflect.ValueOf(pv.Interface()))
 					}
 				} else {
@@ -622,6 +628,13 @@ variableLoop:
 						i:   i,
 					})
 					p.Consume() // consume: NUMBER
+					continue variableLoop
+				case TokenNil:
+					resolver.parts = append(resolver.parts, &variablePart{
+						typ:   varTypeNil,
+						isNil: true,
+					})
+					p.Consume() // consume: NIL
 					continue variableLoop
 				default:
 					return nil, p.Error("This token is not allowed within a variable name.", t2)

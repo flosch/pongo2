@@ -188,6 +188,17 @@ Yep!`,
 			}
 			return pongo2.AsValue(s)
 		},
+		"func_ensure_nil": func(x any) bool {
+			return x == nil
+		},
+		"func_ensure_nil_variadic": func(args ...any) bool {
+			for _, i := range args {
+				if i != nil {
+					return false
+				}
+			}
+			return true
+		},
 	},
 	"complex": map[string]any{
 		"is_admin": isAdmin,
@@ -314,6 +325,17 @@ func TestTemplate_Functions(t *testing.T) {
 				},
 			},
 			errorMessage: "[Error (where: execution) in <string> | Line 1 Col 4 near 'testFunc'] the second return value is not an error",
+			wantErr:      true,
+		},
+		{
+			name:     "NilToNonNilParameter",
+			template: "{{ testFunc(nil) }}",
+			context: pongo2.Context{
+				"testFunc": func(i int) int {
+					return 1
+				},
+			},
+			errorMessage: "[Error (where: execution) in <string> | Line 1 Col 4 near 'testFunc'] function input argument 0 of 'testFunc' must be of type int or *pongo2.Value (not <nil>)",
 			wantErr:      true,
 		},
 	}

@@ -9,3 +9,8 @@ hello, john doe
 0
 2
 108
+eqnil: True
+neqnil: False
+v1: True
+v2: True
+v3: False

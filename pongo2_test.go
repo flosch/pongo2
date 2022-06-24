@@ -10,9 +10,7 @@ import (
 // Hook up gocheck into the "go test" runner.
 func Test(t *testing.T) { TestingT(t) }
 
-type TestSuite struct {
-	tpl *pongo2.Template
-}
+type TestSuite struct{}
 
 var (
 	_          = Suite(&TestSuite{})
