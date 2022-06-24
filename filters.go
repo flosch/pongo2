@@ -19,13 +19,9 @@ func FilterExists(name string) bool {
 	return existing
 }
 
-// RegisterFilter registers a new filter. If there's already a filter with the same
-// name, RegisterFilter will panic. You usually want to call this
-// function in the filter's init() function:
-// http://golang.org/doc/effective_go.html#init
-//
-// See http://www.florian-schlachter.de/post/pongo2/ for more about
-// writing filters and tags.
+// RegisterFilter registers a new filter. If there's already a filter with the same. You usually
+// want to call this function in the filter's init() function:
+//   http://golang.org/doc/effective_go.html#init
 func RegisterFilter(name string, fn FilterFunction) error {
 	if FilterExists(name) {
 		return fmt.Errorf("filter with name '%s' is already registered", name)
