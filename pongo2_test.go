@@ -98,3 +98,18 @@ func (s *TestSuite) TestImplicitExecCtx(c *C) {
 
 	c.Check(res, Equals, val)
 }
+
+func FuzzSimpleExecution(f *testing.F) {
+	f.Add("{{ foobar }}", "test123")
+	f.Fuzz(func(t *testing.T, tpl, contextValue string) {
+		out, err := pongo2.FromString(tpl)
+		if err != nil && out != nil {
+			t.Errorf("%v", err)
+		}
+		if err == nil {
+			out.Execute(pongo2.Context{
+				"foobar": contextValue,
+			})
+		}
+	})
+}
