@@ -97,6 +97,9 @@ func init() {
 }
 
 func filterTruncatecharsHelper(s string, newLen int) string {
+	if newLen <= 0 {
+		return s
+	}
 	runes := []rune(s)
 	if newLen < len(runes) {
 		if newLen >= 3 {
