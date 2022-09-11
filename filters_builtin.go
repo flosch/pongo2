@@ -840,13 +840,28 @@ func filterRandom(in *Value, param *Value) (*Value, *Error) {
 	return in.Index(i), nil
 }
 
+var reTag = regexp.MustCompile(`^[a-zA-Z]$`)
+
 func filterRemovetags(in *Value, param *Value) (*Value, *Error) {
 	s := in.String()
 	tags := strings.Split(param.String(), ",")
 
 	// Strip only specific tags
 	for _, tag := range tags {
-		re := regexp.MustCompile(fmt.Sprintf("</?%s/?>", tag))
+		if !reTag.MatchString(tag) {
+			return nil, &Error{
+				Sender:    "filter:removetags",
+				OrigError: fmt.Errorf("invalid tag '%s'", tag),
+			}
+		}
+
+		re, err := regexp.Compile(fmt.Sprintf("</?%s/?>", tag))
+		if err != nil {
+			return nil, &Error{
+				Sender:    "filter:removetags",
+				OrigError: fmt.Errorf("removetags-filter regexp error with tag '%s': %v", tag, err),
+			}
+		}
 		s = re.ReplaceAllString(s, "")
 	}
 
