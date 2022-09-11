@@ -129,6 +129,8 @@ func FuzzSimpleExecution(f *testing.F) {
 		f.Add(string(buf), "test-value")
 	}
 
+	f.Add("{{ foobar }}", "00000000")
+
 	f.Fuzz(func(t *testing.T, tpl, contextValue string) {
 		ts := pongo2.NewSet("fuzz-test", &DummyLoader{})
 		out, err := ts.FromString(tpl)
@@ -136,9 +138,11 @@ func FuzzSimpleExecution(f *testing.F) {
 			t.Errorf("%v", err)
 		}
 		if err == nil {
-			out.Execute(pongo2.Context{
+			mycontext := pongo2.Context{
 				"foobar": contextValue,
-			})
+			}
+			mycontext.Update(tplContext)
+			out.Execute(mycontext)
 		}
 	})
 }

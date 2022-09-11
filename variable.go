@@ -328,6 +328,9 @@ func (vr *variableResolver) resolve(ctx *ExecutionContext) (*Value, error) {
 						if err != nil {
 							return nil, err
 						}
+						if sv.IsNil() {
+							return AsValue(nil), nil
+						}
 						if sv.val.Type().AssignableTo(current.Type().Key()) {
 							current = current.MapIndex(sv.val)
 						} else {
