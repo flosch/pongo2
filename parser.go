@@ -273,7 +273,7 @@ func (p *Parser) SkipUntilTag(names ...string) *Error {
 			tagIdent := p.PeekTypeN(1, TokenIdentifier)
 
 			if tagIdent != nil {
-				// We've found a (!) end-tag
+				// We've found an (!) end-tag
 
 				found := false
 				for _, n := range names {
@@ -292,6 +292,13 @@ func (p *Parser) SkipUntilTag(names ...string) *Error {
 						if p.Match(TokenSymbol, "%}") != nil {
 							// Done skipping, exit.
 							return nil
+						}
+						// If we haven't encountered '%}', we consume whatever
+						// there might be.
+						p.Consume()
+						if p.Current() == nil {
+							// EOF encountered
+							return p.Error("Unexpected EOF, expected '%}'", p.lastToken)
 						}
 					}
 				}
