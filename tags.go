@@ -33,7 +33,7 @@ type INodeTag interface {
 // 'doc' is providing access to the whole document while 'arguments'
 // is providing access to the user's arguments to the tag:
 //
-//     {% your_tag_name some "arguments" 123 %}
+//	{% your_tag_name some "arguments" 123 %}
 //
 // start_token will be the *Token with the tag's name in it (here: your_tag_name).
 //

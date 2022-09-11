@@ -234,7 +234,6 @@ func (tpl *Template) Execute(context Context) (string, error) {
 	}
 
 	return buffer.String(), nil
-
 }
 
 func (tpl *Template) ExecuteBlocks(context Context, blocks []string) (map[string]string, error) {

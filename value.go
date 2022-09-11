@@ -19,7 +19,8 @@ type Value struct {
 // through a Context or within filter functions.
 //
 // Example:
-//     AsValue("my string")
+//
+//	AsValue("my string")
 func AsValue(i any) *Value {
 	return &Value{
 		val: reflect.ValueOf(i),
@@ -93,12 +94,12 @@ func (v *Value) IsNil() bool {
 // of type string, pongo2 tries to convert it. Currently the following
 // types for underlying values are supported:
 //
-//     1. string
-//     2. int/uint (any size)
-//     3. float (any precision)
-//     4. bool
-//     5. time.Time
-//     6. String() will be called on the underlying value if provided
+//  1. string
+//  2. int/uint (any size)
+//  3. float (any precision)
+//  4. bool
+//  5. time.Time
+//  6. String() will be called on the underlying value if provided
 //
 // NIL values will lead to an empty string. Unsupported types are leading
 // to their respective type name.
@@ -206,12 +207,12 @@ func (v *Value) Time() time.Time {
 //
 // Returns TRUE in one the following cases:
 //
-//     * int != 0
-//     * uint != 0
-//     * float != 0.0
-//     * len(array/chan/map/slice/string) > 0
-//     * bool == true
-//     * underlying value is a struct
+//   - int != 0
+//   - uint != 0
+//   - float != 0.0
+//   - len(array/chan/map/slice/string) > 0
+//   - bool == true
+//   - underlying value is a struct
 //
 // Otherwise returns always FALSE.
 func (v *Value) IsTrue() bool {
@@ -239,7 +240,8 @@ func (v *Value) IsTrue() bool {
 // return_value.IsTrue() afterwards.
 //
 // Example:
-//     AsValue(1).Negate().IsTrue() == false
+//
+//	AsValue(1).Negate().IsTrue() == false
 func (v *Value) Negate() *Value {
 	switch v.getResolvedValue().Kind() {
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
@@ -323,7 +325,8 @@ func (v *Value) Index(i int) *Value {
 // whether a struct contains of a specific field or a map contains a specific key).
 //
 // Example:
-//     AsValue("Hello, World!").Contains(AsValue("World")) == true
+//
+//	AsValue("Hello, World!").Contains(AsValue("World")) == true
 func (v *Value) Contains(other *Value) bool {
 	switch v.getResolvedValue().Kind() {
 	case reflect.Struct:
@@ -373,10 +376,10 @@ func (v *Value) CanSlice() bool {
 // Iterate iterates over a map, array, slice or a string. It calls the
 // function's first argument for every value with the following arguments:
 //
-//     idx      current 0-index
-//     count    total amount of items
-//     key      *Value for the key or item
-//     value    *Value (only for maps, the respective value for a specific key)
+//	idx      current 0-index
+//	count    total amount of items
+//	key      *Value for the key or item
+//	value    *Value (only for maps, the respective value for a specific key)
 //
 // If the underlying value has no items or is not one of the types above,
 // the empty function (function's second argument) will be called.
