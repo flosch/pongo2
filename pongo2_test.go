@@ -1,6 +1,10 @@
 package pongo2_test
 
 import (
+	"errors"
+	"io"
+	"io/ioutil"
+	"path/filepath"
 	"testing"
 
 	"github.com/flosch/pongo2/v6"
@@ -99,10 +103,35 @@ func (s *TestSuite) TestImplicitExecCtx(c *C) {
 	c.Check(res, Equals, val)
 }
 
+type DummyLoader struct{}
+
+func (l *DummyLoader) Abs(base, name string) string {
+	return filepath.Join(filepath.Dir(base), name)
+}
+
+func (l *DummyLoader) Get(path string) (io.Reader, error) {
+	return nil, errors.New("dummy not found")
+}
+
 func FuzzSimpleExecution(f *testing.F) {
-	f.Add("{{ foobar }}", "test123")
+	tpls, err := filepath.Glob("template_tests/*.tpl")
+	if err != nil {
+		f.Fatalf("glob: %v", err)
+	}
+	files := []string{"README.md"}
+	files = append(files, tpls...)
+
+	for _, tplPath := range files {
+		buf, err := ioutil.ReadFile(tplPath)
+		if err != nil {
+			f.Fatalf("could not read file '%v': %v", tplPath, err)
+		}
+		f.Add(string(buf), "test-value")
+	}
+
 	f.Fuzz(func(t *testing.T, tpl, contextValue string) {
-		out, err := pongo2.FromString(tpl)
+		ts := pongo2.NewSet("fuzz-test", &DummyLoader{})
+		out, err := ts.FromString(tpl)
 		if err != nil && out != nil {
 			t.Errorf("%v", err)
 		}
