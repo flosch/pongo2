@@ -167,7 +167,12 @@ Yep!`,
 			return a + b
 		},
 		"func_add_iface": func(a, b any) any {
-			return a.(int) + b.(int)
+			x, is1 := a.(int)
+			y, is2 := b.(int)
+			if is1 && is2 {
+				return x + y
+			}
+			return 0
 		},
 		"func_variadic": func(msg string, args ...any) string {
 			return fmt.Sprintf(msg, args...)
