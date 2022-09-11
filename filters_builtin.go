@@ -435,6 +435,8 @@ func filterFirst(in *Value, param *Value) (*Value, *Error) {
 	return AsValue(""), nil
 }
 
+const maxFloatFormatDecimals = 1000
+
 func filterFloatformat(in *Value, param *Value) (*Value, *Error) {
 	val := in.Float()
 
@@ -459,6 +461,13 @@ func filterFloatformat(in *Value, param *Value) (*Value, *Error) {
 		// Remove zeroes
 		if float64(int(val)) == val {
 			return AsValue(in.Integer()), nil
+		}
+	}
+
+	if decimals > maxFloatFormatDecimals {
+		return nil, &Error{
+			Sender:    "filter:floatformat",
+			OrigError: fmt.Errorf("filter floatformat doesn't support more than %v decimals", maxFloatFormatDecimals),
 		}
 	}
 
@@ -536,6 +545,8 @@ func filterCapfirst(in *Value, param *Value) (*Value, *Error) {
 	return AsValue(strings.ToUpper(string(r)) + t[size:]), nil
 }
 
+const maxCharPadding = 10000
+
 func filterCenter(in *Value, param *Value) (*Value, *Error) {
 	width := param.Integer()
 	slen := in.Len()
@@ -544,6 +555,14 @@ func filterCenter(in *Value, param *Value) (*Value, *Error) {
 	}
 
 	spaces := width - slen
+
+	if spaces > maxCharPadding {
+		return nil, &Error{
+			Sender:    "filter:center",
+			OrigError: fmt.Errorf("filter center doesn't support more than %v padding chars", maxCharPadding),
+		}
+	}
+
 	left := spaces/2 + spaces%2
 	right := spaces / 2
 
@@ -637,6 +656,12 @@ func filterLjust(in *Value, param *Value) (*Value, *Error) {
 	times := param.Integer() - in.Len()
 	if times < 0 {
 		times = 0
+	}
+	if times > maxCharPadding {
+		return nil, &Error{
+			Sender:    "filter:ljust",
+			OrigError: fmt.Errorf("ljust doesn't support more padding than %c chars", maxCharPadding),
+		}
 	}
 	return AsValue(fmt.Sprintf("%s%s", in.String(), strings.Repeat(" ", times))), nil
 }
@@ -829,7 +854,14 @@ func filterRemovetags(in *Value, param *Value) (*Value, *Error) {
 }
 
 func filterRjust(in *Value, param *Value) (*Value, *Error) {
-	return AsValue(fmt.Sprintf(fmt.Sprintf("%%%ds", param.Integer()), in.String())), nil
+	padding := param.Integer()
+	if padding > maxCharPadding {
+		return nil, &Error{
+			Sender:    "filter:rjust",
+			OrigError: fmt.Errorf("rjust doesn't support more padding than %c chars", maxCharPadding),
+		}
+	}
+	return AsValue(fmt.Sprintf(fmt.Sprintf("%%%ds", padding), in.String())), nil
 }
 
 func filterSlice(in *Value, param *Value) (*Value, *Error) {
