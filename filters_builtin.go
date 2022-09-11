@@ -949,7 +949,10 @@ func filterWordwrap(in *Value, param *Value) (*Value, *Error) {
 		return in, nil
 	}
 
-	linecount := wordsLen/wrapAt + wordsLen%wrapAt
+	linecount := wordsLen / wrapAt
+	if wordsLen%wrapAt > 0 {
+		linecount++
+	}
 	lines := make([]string, 0, linecount)
 	for i := 0; i < linecount; i++ {
 		lines = append(lines, strings.Join(words[wrapAt*i:min(wrapAt*(i+1), wordsLen)], " "))
