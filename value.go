@@ -307,7 +307,6 @@ func (v *Value) Index(i int) *Value {
 		}
 		return AsValue(v.getResolvedValue().Index(i).Interface())
 	case reflect.String:
-		// return AsValue(v.getResolvedValue().Slice(i, i+1).Interface())
 		s := v.getResolvedValue().String()
 		runes := []rune(s)
 		if i < len(runes) {

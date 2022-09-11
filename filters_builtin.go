@@ -31,6 +31,7 @@ import (
 	"fmt"
 	"math/rand"
 	"net/url"
+	"reflect"
 	"regexp"
 	"strconv"
 	"strings"
@@ -508,10 +509,26 @@ func filterJoin(in *Value, param *Value) (*Value, *Error) {
 		return in, nil
 	}
 	sep := param.String()
-	sl := make([]string, 0, in.Len())
-	for i := 0; i < in.Len(); i++ {
-		sl = append(sl, in.Index(i).String())
+	if sep == "" {
+		// An empty string separator returns the input string.
+		return AsValue(in.String()), nil
 	}
+
+	sl := make([]string, 0, in.Len())
+
+	// This is an optimization for very long strings. Index() splits `in` into runes with each
+	// function invocation which hurts performance. Hence we're doing it just once (with ranging
+	// over the string) and speeding things up.
+	if in.getResolvedValue().Kind() == reflect.String {
+		for _, i := range in.String() {
+			sl = append(sl, string(i))
+		}
+	} else {
+		for i := 0; i < in.Len(); i++ {
+			sl = append(sl, in.Index(i).String())
+		}
+	}
+
 	return AsValue(strings.Join(sl, sep)), nil
 }
 
