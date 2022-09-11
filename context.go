@@ -21,10 +21,11 @@ func SetAutoescape(newValue bool) {
 //  1. version: returns the version string
 //
 // Template examples for accessing items from your context:
-//     {{ myconstant }}
-//     {{ myfunc("test", 42) }}
-//     {{ user.name }}
-//     {{ pongo2.version }}
+//
+//	{{ myconstant }}
+//	{{ myfunc("test", 42) }}
+//	{{ user.name }}
+//	{{ pongo2.version }}
 type Context map[string]any
 
 func (c Context) checkForValidIdentifiers() *Error {
@@ -63,7 +64,8 @@ func (c Context) Update(other Context) Context {
 // To create your own execution context within tags, use the
 // NewChildExecutionContext(parent) function.
 type ExecutionContext struct {
-	template *Template
+	template   *Template
+	macroDepth int
 
 	Autoescape bool
 	Public     Context
