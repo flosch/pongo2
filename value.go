@@ -333,6 +333,10 @@ func (v *Value) Contains(other *Value) bool {
 		fieldValue := baseValue.FieldByName(other.String())
 		return fieldValue.IsValid()
 	case reflect.Map:
+		// We can't check against invalid types
+		if !other.val.IsValid() {
+			return false
+		}
 		// Ensure that map key type is equal to other's type.
 		if baseValue.Type().Key() != other.val.Type() {
 			return false
