@@ -327,17 +327,23 @@ func (v *Value) Index(i int) *Value {
 //
 //	AsValue("Hello, World!").Contains(AsValue("World")) == true
 func (v *Value) Contains(other *Value) bool {
-	switch v.getResolvedValue().Kind() {
+	baseValue := v.getResolvedValue()
+	switch baseValue.Kind() {
 	case reflect.Struct:
-		fieldValue := v.getResolvedValue().FieldByName(other.String())
+		fieldValue := baseValue.FieldByName(other.String())
 		return fieldValue.IsValid()
 	case reflect.Map:
+		// Ensure that map key type is equal to other's type.
+		if baseValue.Type().Key() != other.val.Type() {
+			return false
+		}
+
 		var mapValue reflect.Value
 		switch other.Interface().(type) {
 		case int:
-			mapValue = v.getResolvedValue().MapIndex(other.getResolvedValue())
+			mapValue = baseValue.MapIndex(other.getResolvedValue())
 		case string:
-			mapValue = v.getResolvedValue().MapIndex(other.getResolvedValue())
+			mapValue = baseValue.MapIndex(other.getResolvedValue())
 		default:
 			logf("Value.Contains() does not support lookup type '%s'\n", other.getResolvedValue().Kind().String())
 			return false
@@ -348,8 +354,8 @@ func (v *Value) Contains(other *Value) bool {
 		return strings.Contains(v.getResolvedValue().String(), other.String())
 
 	case reflect.Slice, reflect.Array:
-		for i := 0; i < v.getResolvedValue().Len(); i++ {
-			item := v.getResolvedValue().Index(i)
+		for i := 0; i < baseValue.Len(); i++ {
+			item := baseValue.Index(i)
 			if other.EqualValueTo(AsValue(item.Interface())) {
 				return true
 			}
@@ -357,7 +363,7 @@ func (v *Value) Contains(other *Value) bool {
 		return false
 
 	default:
-		logf("Value.Contains() not available for type: %s\n", v.getResolvedValue().Kind().String())
+		logf("Value.Contains() not available for type: %s\n", baseValue.Kind().String())
 		return false
 	}
 }
