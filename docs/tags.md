@@ -10,6 +10,7 @@ Implemented tags so far which needs documentation:
 * comment
 * cycle
 * extends
+* exec
 * filter
 * firstof
 * for
