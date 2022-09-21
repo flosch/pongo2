@@ -1,0 +1,1 @@
+{% macro m4(arg) export %}{{arg}}{% endmacro %}
