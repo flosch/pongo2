@@ -1,6 +1,7 @@
 package pongo2
 
 import (
+	"errors"
 	"fmt"
 	"reflect"
 	"strconv"
@@ -11,6 +12,7 @@ const (
 	varTypeInt = iota
 	varTypeIdent
 	varTypeSubscript
+	varTypeArray
 	varTypeNil
 )
 
@@ -233,6 +235,29 @@ func (vr *variableResolver) String() string {
 func (vr *variableResolver) resolve(ctx *ExecutionContext) (*Value, error) {
 	var current reflect.Value
 	var isSafe bool
+
+	// we are resolving an in-template array definition
+	if len(vr.parts) > 0 && vr.parts[0].typ == varTypeArray {
+		items := make([]*Value, 0)
+		for _, part := range vr.parts {
+			switch v := part.subscript.(type) {
+			case *nodeFilteredVariable:
+				item, err := v.resolver.Evaluate(ctx)
+				if err != nil {
+					return nil, err
+				}
+
+				items = append(items, item)
+			default:
+				return nil, errors.New("unknown variable type is given")
+			}
+		}
+
+		return &Value{
+			val:  reflect.ValueOf(items),
+			safe: true,
+		}, nil
+	}
 
 	for idx, part := range vr.parts {
 		if idx == 0 {
@@ -593,17 +618,21 @@ func (p *Parser) parseVariableOrLiteral() (IEvaluator, *Error) {
 		locationToken: t,
 	}
 
-	// First part of a variable MUST be an identifier
-	if t.Typ != TokenIdentifier {
+	isArrayDefinition := false
+	if t.Typ == TokenSymbol && t.Val != "}}" {
+		isArrayDefinition = true
+	} else if t.Typ != TokenIdentifier {
+		// First part of a variable MUST be an identifier
 		return nil, p.Error("Expected either a number, string, keyword or identifier.", t)
 	}
 
-	resolver.parts = append(resolver.parts, &variablePart{
-		typ: varTypeIdent,
-		s:   t.Val,
-	})
-
-	p.Consume() // we consumed the first identifier of the variable name
+	if t.Typ == TokenIdentifier {
+		resolver.parts = append(resolver.parts, &variablePart{
+			typ: varTypeIdent,
+			s:   t.Val,
+		})
+		p.Consume() // we consumed the first identifier of the variable name
+	}
 
 variableLoop:
 	for p.Remaining() > 0 {
@@ -652,17 +681,59 @@ variableLoop:
 			if p.Remaining() == 0 {
 				return nil, p.Error("Unexpected EOF, expected subscript subscript.", p.lastToken)
 			}
-			exprSubscript, err := p.ParseExpression()
-			if err != nil {
-				return nil, err
+
+			if !isArrayDefinition {
+				exprSubscript, err := p.ParseExpression()
+				if err != nil {
+					return nil, err
+				}
+				resolver.parts = append(resolver.parts, &variablePart{
+					typ:       varTypeSubscript,
+					subscript: exprSubscript,
+				})
+				if p.Match(TokenSymbol, "]") == nil {
+					return nil, p.Error("Missing closing bracket after subscript argument.", nil)
+				}
+			} else {
+				// parsing an array declaration
+			arrayLoop:
+				for {
+					if p.Remaining() == 0 {
+						return nil, p.Error("Unexpected EOF, expected function call argument list.", p.lastToken)
+					}
+
+					if p.Peek(TokenSymbol, "]") != nil {
+						// We got a closing bracket, so stop parsing arguments
+						p.Consume()
+						break arrayLoop
+					}
+
+					// No closing bracket, so we're parsing an expression
+					exprArg, err := p.ParseExpression()
+					if err != nil {
+						return nil, err
+					}
+
+					resolver.parts = append(resolver.parts, &variablePart{
+						typ:       varTypeArray,
+						subscript: exprArg,
+					})
+
+					if p.Match(TokenSymbol, "]") != nil {
+						// If there's a closing bracket after an expression, we will stop parsing the arguments
+						break arrayLoop
+					} else {
+						// If there's NO closing bracket, there MUST be an comma
+						if p.Match(TokenSymbol, ",") == nil {
+							return nil, p.Error("Missing comma or closing bracket after argument.", nil)
+						}
+					}
+
+				}
+
+				continue variableLoop
 			}
-			resolver.parts = append(resolver.parts, &variablePart{
-				typ:       varTypeSubscript,
-				subscript: exprSubscript,
-			})
-			if p.Match(TokenSymbol, "]") == nil {
-				return nil, p.Error("Missing closing bracket after subscript argument.", nil)
-			}
+
 		} else if p.Match(TokenSymbol, "(") != nil {
 			// Function call
 			// FunctionName '(' Comma-separated list of expressions ')'
