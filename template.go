@@ -56,6 +56,10 @@ func newTemplateString(set *TemplateSet, tpl []byte) (*Template, error) {
 	return newTemplate(set, "<string>", true, tpl)
 }
 
+func (tpl *Template) GetExportedMacros() map[string]*tagMacroNode {
+	return tpl.exportedMacros
+}
+
 func newTemplate(set *TemplateSet, name string, isTplString bool, tpl []byte) (*Template, error) {
 	strTpl := string(tpl)
 
