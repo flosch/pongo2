@@ -95,6 +95,7 @@ func init() {
 
 	RegisterFilter("float", filterFloat)     // pongo-specific
 	RegisterFilter("integer", filterInteger) // pongo-specific
+	RegisterFilter("range", Range)           // additional
 }
 
 func filterTruncatecharsHelper(s string, newLen int) string {
