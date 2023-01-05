@@ -1,5 +1,7 @@
 package pongo2
 
+import "fmt"
+
 type tagCycleValue struct {
 	node  *tagCycleNode
 	value *Value
@@ -81,7 +83,7 @@ func tagCycleParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, *Er
 
 			nameToken := arguments.MatchType(TokenIdentifier)
 			if nameToken == nil {
-				return nil, arguments.Error("Name (identifier) expected after 'as'.", nil)
+				return nil, arguments.Error(fmt.Errorf("Name (identifier) expected after 'as'."), nil)
 			}
 			cycleNode.asName = nameToken.Val
 
@@ -95,7 +97,7 @@ func tagCycleParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, *Er
 	}
 
 	if arguments.Remaining() > 0 {
-		return nil, arguments.Error("Malformed cycle-tag.", nil)
+		return nil, arguments.Error(fmt.Errorf("Malformed cycle-tag."), nil)
 	}
 
 	return cycleNode, nil

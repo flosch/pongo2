@@ -1,5 +1,7 @@
 package pongo2
 
+import "fmt"
+
 // Doc = { ( Filter | Tag | HTML ) }
 func (p *Parser) parseDocElement() (INode, *Error) {
 	t := p.Current()
@@ -31,7 +33,7 @@ func (p *Parser) parseDocElement() (INode, *Error) {
 			return tag, nil
 		}
 	}
-	return nil, p.Error("Unexpected token (only HTML/tags/filters in templates allowed)", t)
+	return nil, p.Error(fmt.Errorf("Unexpected token (only HTML/tags/filters in templates allowed)"), t)
 }
 
 func (tpl *Template) parse() *Error {

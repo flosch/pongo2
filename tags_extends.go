@@ -1,5 +1,7 @@
 package pongo2
 
+import "fmt"
+
 type tagExtendsNode struct {
 	filename string
 }
@@ -12,12 +14,12 @@ func tagExtendsParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, *
 	extendsNode := &tagExtendsNode{}
 
 	if doc.template.level > 1 {
-		return nil, arguments.Error("The 'extends' tag can only defined on root level.", start)
+		return nil, arguments.Error(fmt.Errorf("The 'extends' tag can only defined on root level."), start)
 	}
 
 	if doc.template.parent != nil {
 		// Already one parent
-		return nil, arguments.Error("This template has already one parent.", start)
+		return nil, arguments.Error(fmt.Errorf("This template has already one parent."), start)
 	}
 
 	if filenameToken := arguments.MatchType(TokenString); filenameToken != nil {
@@ -37,11 +39,11 @@ func tagExtendsParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, *
 		doc.template.parent = parentTemplate
 		extendsNode.filename = parentFilename
 	} else {
-		return nil, arguments.Error("Tag 'extends' requires a template filename as string.", nil)
+		return nil, arguments.Error(fmt.Errorf("Tag 'extends' requires a template filename as string."), nil)
 	}
 
 	if arguments.Remaining() > 0 {
-		return nil, arguments.Error("Tag 'extends' does only take 1 argument.", nil)
+		return nil, arguments.Error(fmt.Errorf("Tag 'extends' does only take 1 argument."), nil)
 	}
 
 	return extendsNode, nil

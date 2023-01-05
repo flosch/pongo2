@@ -1,5 +1,7 @@
 package pongo2
 
+import "fmt"
+
 type tagCommentNode struct{}
 
 func (node *tagCommentNode) Execute(ctx *ExecutionContext, writer TemplateWriter) *Error {
@@ -16,7 +18,7 @@ func tagCommentParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, *
 	}
 
 	if arguments.Count() != 0 {
-		return nil, arguments.Error("Tag 'comment' does not take any argument.", nil)
+		return nil, arguments.Error(fmt.Errorf("Tag 'comment' does not take any argument."), nil)
 	}
 
 	return commentNode, nil

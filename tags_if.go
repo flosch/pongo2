@@ -1,5 +1,7 @@
 package pongo2
 
+import "fmt"
+
 type tagIfNode struct {
 	conditions []IEvaluator
 	wrappers   []*NodeWrapper
@@ -34,7 +36,7 @@ func tagIfParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, *Error
 	ifNode.conditions = append(ifNode.conditions, condition)
 
 	if arguments.Remaining() > 0 {
-		return nil, arguments.Error("If-condition is malformed.", nil)
+		return nil, arguments.Error(fmt.Errorf("If-condition is malformed."), nil)
 	}
 
 	// Check the rest
@@ -54,12 +56,12 @@ func tagIfParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, *Error
 			ifNode.conditions = append(ifNode.conditions, condition)
 
 			if tagArgs.Remaining() > 0 {
-				return nil, tagArgs.Error("Elif-condition is malformed.", nil)
+				return nil, tagArgs.Error(fmt.Errorf("Elif-condition is malformed."), nil)
 			}
 		} else {
 			if tagArgs.Count() > 0 {
 				// else/endif can't take any conditions
-				return nil, tagArgs.Error("Arguments not allowed here.", nil)
+				return nil, tagArgs.Error(fmt.Errorf("Arguments not allowed here."), nil)
 			}
 		}
 

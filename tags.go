@@ -89,19 +89,19 @@ func (p *Parser) parseTagElement() (INodeTag, *Error) {
 
 	// Check for identifier
 	if tokenName == nil {
-		return nil, p.Error("Tag name must be an identifier.", nil)
+		return nil, p.Error(fmt.Errorf("Tag name must be an identifier."), nil)
 	}
 
 	// Check for the existing tag
 	tag, exists := tags[tokenName.Val]
 	if !exists {
 		// Does not exists
-		return nil, p.Error(fmt.Sprintf("Tag '%s' not found (or beginning tag not provided)", tokenName.Val), tokenName)
+		return nil, p.Error(fmt.Errorf("Tag '%s' not found (or beginning tag not provided)", tokenName.Val), tokenName)
 	}
 
 	// Check sandbox tag restriction
 	if _, isBanned := p.template.set.bannedTags[tokenName.Val]; isBanned {
-		return nil, p.Error(fmt.Sprintf("Usage of tag '%s' is not allowed (sandbox restriction active).", tokenName.Val), tokenName)
+		return nil, p.Error(fmt.Errorf("Usage of tag '%s' is not allowed (sandbox restriction active).", tokenName.Val), tokenName)
 	}
 
 	var argsToken []*Token
@@ -113,7 +113,7 @@ func (p *Parser) parseTagElement() (INodeTag, *Error) {
 
 	// EOF?
 	if p.Remaining() == 0 {
-		return nil, p.Error("Unexpectedly reached EOF, no tag end found.", p.lastToken)
+		return nil, p.Error(fmt.Errorf("Unexpectedly reached EOF, no tag end found."), p.lastToken)
 	}
 
 	p.Match(TokenSymbol, "%}")

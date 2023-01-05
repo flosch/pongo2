@@ -1,5 +1,7 @@
 package pongo2
 
+import "fmt"
+
 type tagTemplateTagNode struct {
 	content string
 }
@@ -26,15 +28,15 @@ func tagTemplateTagParser(doc *Parser, start *Token, arguments *Parser) (INodeTa
 	if argToken := arguments.MatchType(TokenIdentifier); argToken != nil {
 		output, found := templateTagMapping[argToken.Val]
 		if !found {
-			return nil, arguments.Error("Argument not found", argToken)
+			return nil, arguments.Error(fmt.Errorf("Argument not found"), argToken)
 		}
 		ttNode.content = output
 	} else {
-		return nil, arguments.Error("Identifier expected.", nil)
+		return nil, arguments.Error(fmt.Errorf("Identifier expected."), nil)
 	}
 
 	if arguments.Remaining() > 0 {
-		return nil, arguments.Error("Malformed templatetag-tag argument.", nil)
+		return nil, arguments.Error(fmt.Errorf("Malformed templatetag-tag argument."), nil)
 	}
 
 	return ttNode, nil

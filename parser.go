@@ -1,7 +1,6 @@
 package pongo2
 
 import (
-	"errors"
 	"fmt"
 	"strings"
 )
@@ -179,7 +178,7 @@ func (p *Parser) GetR(shift int) *Token {
 // The 'token'-argument is optional. If provided, it will take
 // the token's position information. If not provided, it will
 // automatically use the CURRENT token's position information.
-func (p *Parser) Error(msg string, token *Token) *Error {
+func (p *Parser) Error(err error, token *Token) *Error {
 	if token == nil {
 		// Set current token
 		token = p.Current()
@@ -202,7 +201,7 @@ func (p *Parser) Error(msg string, token *Token) *Error {
 		Line:      line,
 		Column:    col,
 		Token:     token,
-		OrigError: errors.New(msg),
+		OrigError: err,
 	}
 }
 
@@ -244,7 +243,7 @@ func (p *Parser) WrapUntilTag(names ...string) (*NodeWrapper, *Parser, *Error) {
 						t := p.Current()
 						p.Consume()
 						if t == nil {
-							return nil, nil, p.Error("Unexpected EOF.", p.lastToken)
+							return nil, nil, p.Error(fmt.Errorf("Unexpected EOF."), p.lastToken)
 						}
 						tagArgs = append(tagArgs, t)
 					}
@@ -261,7 +260,7 @@ func (p *Parser) WrapUntilTag(names ...string) (*NodeWrapper, *Parser, *Error) {
 		wrapper.nodes = append(wrapper.nodes, node)
 	}
 
-	return nil, nil, p.Error(fmt.Sprintf("Unexpected EOF, expected tag %s.", strings.Join(names, " or ")),
+	return nil, nil, p.Error(fmt.Errorf("Unexpected EOF, expected tag %s.", strings.Join(names, " or ")),
 		p.lastToken)
 }
 
@@ -298,7 +297,7 @@ func (p *Parser) SkipUntilTag(names ...string) *Error {
 						p.Consume()
 						if p.Current() == nil {
 							// EOF encountered
-							return p.Error("Unexpected EOF, expected '%}'", p.lastToken)
+							return p.Error(fmt.Errorf("Unexpected EOF, expected '%%}'"), p.lastToken)
 						}
 					}
 				}
@@ -307,9 +306,9 @@ func (p *Parser) SkipUntilTag(names ...string) *Error {
 		t := p.Current()
 		p.Consume()
 		if t == nil {
-			return p.Error("Unexpected EOF.", p.lastToken)
+			return p.Error(fmt.Errorf("Unexpected EOF."), p.lastToken)
 		}
 	}
 
-	return p.Error(fmt.Sprintf("Unexpected EOF, expected tag %s.", strings.Join(names, " or ")), p.lastToken)
+	return p.Error(fmt.Errorf("Unexpected EOF, expected tag %s.", strings.Join(names, " or ")), p.lastToken)
 }

@@ -158,7 +158,7 @@ func (expr *Expression) Evaluate(ctx *ExecutionContext) (*Value, *Error) {
 				return AsValue(v2.IsTrue()), nil
 			}
 		default:
-			return nil, ctx.Error(fmt.Sprintf("unimplemented: %s", expr.opToken.Val), expr.opToken)
+			return nil, ctx.Error(fmt.Errorf("unimplemented: %s", expr.opToken.Val), expr.opToken)
 		}
 	} else {
 		return v1, nil
@@ -217,7 +217,7 @@ func (expr *relationalExpression) Evaluate(ctx *ExecutionContext) (*Value, *Erro
 		case "in":
 			return AsValue(v2.Contains(v1)), nil
 		default:
-			return nil, ctx.Error(fmt.Sprintf("unimplemented: %s", expr.opToken.Val), expr.opToken)
+			return nil, ctx.Error(fmt.Errorf("unimplemented: %s", expr.opToken.Val), expr.opToken)
 		}
 	} else {
 		return v1, nil
@@ -243,10 +243,10 @@ func (expr *simpleExpression) Evaluate(ctx *ExecutionContext) (*Value, *Error) {
 			case result.IsInteger():
 				result = AsValue(-1 * result.Integer())
 			default:
-				return nil, ctx.Error("Operation between a number and a non-(float/integer) is not possible", nil)
+				return nil, ctx.Error(fmt.Errorf("Operation between a number and a non-(float/integer) is not possible"), nil)
 			}
 		} else {
-			return nil, ctx.Error("Negative sign on a non-number expression", expr.GetPositionToken())
+			return nil, ctx.Error(fmt.Errorf("Negative sign on a non-number expression"), expr.GetPositionToken())
 		}
 	}
 
@@ -275,7 +275,7 @@ func (expr *simpleExpression) Evaluate(ctx *ExecutionContext) (*Value, *Error) {
 			// Result will be an integer
 			return AsValue(result.Integer() - t2.Integer()), nil
 		default:
-			return nil, ctx.Error("Unimplemented", expr.GetPositionToken())
+			return nil, ctx.Error(fmt.Errorf("Unimplemented"), expr.GetPositionToken())
 		}
 	}
 
@@ -305,25 +305,25 @@ func (expr *term) Evaluate(ctx *ExecutionContext) (*Value, *Error) {
 				// Result will be float
 				divisor := f2.Float()
 				if divisor == 0 {
-					return nil, ctx.Error("float divide by zero", expr.factor2.GetPositionToken())
+					return nil, ctx.Error(fmt.Errorf("float divide by zero"), expr.factor2.GetPositionToken())
 				}
 				return AsValue(f1.Float() / divisor), nil
 			}
 			// Result will be int
 			divisor := f2.Integer()
 			if divisor == 0 {
-				return nil, ctx.Error("integer divide by zero", expr.factor2.GetPositionToken())
+				return nil, ctx.Error(fmt.Errorf("integer divide by zero"), expr.factor2.GetPositionToken())
 			}
 			return AsValue(f1.Integer() / divisor), nil
 		case "%":
 			// Result will be int
 			divisor := f2.Integer()
 			if divisor == 0 {
-				return nil, ctx.Error("integer divide by zero", expr.factor2.GetPositionToken())
+				return nil, ctx.Error(fmt.Errorf("integer divide by zero"), expr.factor2.GetPositionToken())
 			}
 			return AsValue(f1.Integer() % divisor), nil
 		default:
-			return nil, ctx.Error("unimplemented", expr.opToken)
+			return nil, ctx.Error(fmt.Errorf("unimplemented"), expr.opToken)
 		}
 	} else {
 		return f1, nil
@@ -352,7 +352,7 @@ func (p *Parser) parseFactor() (IEvaluator, *Error) {
 			return nil, err
 		}
 		if p.Match(TokenSymbol, ")") == nil {
-			return nil, p.Error("Closing bracket expected after expression", nil)
+			return nil, p.Error(fmt.Errorf("Closing bracket expected after expression"), nil)
 		}
 		return expr, nil
 	}

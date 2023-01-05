@@ -2,6 +2,7 @@ package pongo2
 
 import (
 	"bytes"
+	"fmt"
 )
 
 type tagIfchangedNode struct {
@@ -83,7 +84,7 @@ func tagIfchangedParser(doc *Parser, start *Token, arguments *Parser) (INodeTag,
 	}
 
 	if arguments.Remaining() > 0 {
-		return nil, arguments.Error("Ifchanged-arguments are malformed.", nil)
+		return nil, arguments.Error(fmt.Errorf("Ifchanged-arguments are malformed."), nil)
 	}
 
 	// Wrap then/else-blocks
@@ -94,7 +95,7 @@ func tagIfchangedParser(doc *Parser, start *Token, arguments *Parser) (INodeTag,
 	ifchangedNode.thenWrapper = wrapper
 
 	if endargs.Count() > 0 {
-		return nil, endargs.Error("Arguments not allowed here.", nil)
+		return nil, endargs.Error(fmt.Errorf("Arguments not allowed here."), nil)
 	}
 
 	if wrapper.Endtag == "else" {
@@ -106,7 +107,7 @@ func tagIfchangedParser(doc *Parser, start *Token, arguments *Parser) (INodeTag,
 		ifchangedNode.elseWrapper = wrapper
 
 		if endargs.Count() > 0 {
-			return nil, endargs.Error("Arguments not allowed here.", nil)
+			return nil, endargs.Error(fmt.Errorf("Arguments not allowed here."), nil)
 		}
 	}
 
