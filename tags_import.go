@@ -29,13 +29,13 @@ func tagImportParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, *E
 
 	filenameToken := arguments.MatchType(TokenString)
 	if filenameToken == nil {
-		return nil, arguments.Error("Import-tag needs a filename as string.", nil)
+		return nil, arguments.Error(fmt.Errorf("Import-tag needs a filename as string."), nil)
 	}
 
 	importNode.filename = doc.template.set.resolveFilename(doc.template, filenameToken.Val)
 
 	if arguments.Remaining() == 0 {
-		return nil, arguments.Error("You must at least specify one macro to import.", nil)
+		return nil, arguments.Error(fmt.Errorf("You must at least specify one macro to import."), nil)
 	}
 
 	// Compile the given template
@@ -47,21 +47,21 @@ func tagImportParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, *E
 	for arguments.Remaining() > 0 {
 		macroNameToken := arguments.MatchType(TokenIdentifier)
 		if macroNameToken == nil {
-			return nil, arguments.Error("Expected macro name (identifier).", nil)
+			return nil, arguments.Error(fmt.Errorf("Expected macro name (identifier)."), nil)
 		}
 
 		asName := macroNameToken.Val
 		if arguments.Match(TokenKeyword, "as") != nil {
 			aliasToken := arguments.MatchType(TokenIdentifier)
 			if aliasToken == nil {
-				return nil, arguments.Error("Expected macro alias name (identifier).", nil)
+				return nil, arguments.Error(fmt.Errorf("Expected macro alias name (identifier)."), nil)
 			}
 			asName = aliasToken.Val
 		}
 
 		macroInstance, has := tpl.exportedMacros[macroNameToken.Val]
 		if !has {
-			return nil, arguments.Error(fmt.Sprintf("Macro '%s' not found (or not exported) in '%s'.", macroNameToken.Val,
+			return nil, arguments.Error(fmt.Errorf("Macro '%s' not found (or not exported) in '%s'.", macroNameToken.Val,
 				importNode.filename), macroNameToken)
 		}
 
@@ -72,7 +72,7 @@ func tagImportParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, *E
 		}
 
 		if arguments.Match(TokenSymbol, ",") == nil {
-			return nil, arguments.Error("Expected ','.", nil)
+			return nil, arguments.Error(fmt.Errorf("Expected ','."), nil)
 		}
 	}
 

@@ -2,6 +2,7 @@ package pongo2
 
 import (
 	"bytes"
+	"fmt"
 	"regexp"
 )
 
@@ -43,7 +44,7 @@ func tagSpacelessParser(doc *Parser, start *Token, arguments *Parser) (INodeTag,
 	spacelessNode.wrapper = wrapper
 
 	if arguments.Remaining() > 0 {
-		return nil, arguments.Error("Malformed spaceless-tag arguments.", nil)
+		return nil, arguments.Error(fmt.Errorf("Malformed spaceless-tag arguments."), nil)
 	}
 
 	return spacelessNode, nil

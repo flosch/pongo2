@@ -1,5 +1,7 @@
 package pongo2
 
+import "fmt"
+
 type tagSetNode struct {
 	name       string
 	expression IEvaluator
@@ -22,12 +24,12 @@ func tagSetParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, *Erro
 	// Parse variable name
 	typeToken := arguments.MatchType(TokenIdentifier)
 	if typeToken == nil {
-		return nil, arguments.Error("Expected an identifier.", nil)
+		return nil, arguments.Error(fmt.Errorf("Expected an identifier."), nil)
 	}
 	node.name = typeToken.Val
 
 	if arguments.Match(TokenSymbol, "=") == nil {
-		return nil, arguments.Error("Expected '='.", nil)
+		return nil, arguments.Error(fmt.Errorf("Expected '='."), nil)
 	}
 
 	// Variable expression
@@ -39,7 +41,7 @@ func tagSetParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, *Erro
 
 	// Remaining arguments
 	if arguments.Remaining() > 0 {
-		return nil, arguments.Error("Malformed 'set'-tag arguments.", nil)
+		return nil, arguments.Error(fmt.Errorf("Malformed 'set'-tag arguments."), nil)
 	}
 
 	return node, nil

@@ -1,5 +1,7 @@
 package pongo2
 
+import "fmt"
+
 type tagAutoescapeNode struct {
 	wrapper    *NodeWrapper
 	autoescape bool
@@ -30,18 +32,18 @@ func tagAutoescapeParser(doc *Parser, start *Token, arguments *Parser) (INodeTag
 
 	modeToken := arguments.MatchType(TokenIdentifier)
 	if modeToken == nil {
-		return nil, arguments.Error("A mode is required for autoescape-tag.", nil)
+		return nil, arguments.Error(fmt.Errorf("A mode is required for autoescape-tag."), nil)
 	}
 	if modeToken.Val == "on" {
 		autoescapeNode.autoescape = true
 	} else if modeToken.Val == "off" {
 		autoescapeNode.autoescape = false
 	} else {
-		return nil, arguments.Error("Only 'on' or 'off' is valid as an autoescape-mode.", nil)
+		return nil, arguments.Error(fmt.Errorf("Only 'on' or 'off' is valid as an autoescape-mode."), nil)
 	}
 
 	if arguments.Remaining() > 0 {
-		return nil, arguments.Error("Malformed autoescape-tag arguments.", nil)
+		return nil, arguments.Error(fmt.Errorf("Malformed autoescape-tag arguments."), nil)
 	}
 
 	return autoescapeNode, nil

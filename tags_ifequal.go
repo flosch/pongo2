@@ -1,5 +1,7 @@
 package pongo2
 
+import "fmt"
+
 type tagIfEqualNode struct {
 	var1, var2  IEvaluator
 	thenWrapper *NodeWrapper
@@ -43,7 +45,7 @@ func tagIfEqualParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, *
 	ifequalNode.var2 = var2
 
 	if arguments.Remaining() > 0 {
-		return nil, arguments.Error("ifequal only takes 2 arguments.", nil)
+		return nil, arguments.Error(fmt.Errorf("ifequal only takes 2 arguments."), nil)
 	}
 
 	// Wrap then/else-blocks
@@ -54,7 +56,7 @@ func tagIfEqualParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, *
 	ifequalNode.thenWrapper = wrapper
 
 	if endargs.Count() > 0 {
-		return nil, endargs.Error("Arguments not allowed here.", nil)
+		return nil, endargs.Error(fmt.Errorf("Arguments not allowed here."), nil)
 	}
 
 	if wrapper.Endtag == "else" {
@@ -66,7 +68,7 @@ func tagIfEqualParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, *
 		ifequalNode.elseWrapper = wrapper
 
 		if endargs.Count() > 0 {
-			return nil, endargs.Error("Arguments not allowed here.", nil)
+			return nil, endargs.Error(fmt.Errorf("Arguments not allowed here."), nil)
 		}
 	}
 

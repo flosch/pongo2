@@ -1,6 +1,9 @@
 package pongo2
 
-import "os"
+import (
+	"fmt"
+	"os"
+)
 
 type tagSSINode struct {
 	filename string
@@ -51,11 +54,11 @@ func tagSSIParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, *Erro
 			SSINode.content = string(buf)
 		}
 	} else {
-		return nil, arguments.Error("First argument must be a string.", nil)
+		return nil, arguments.Error(fmt.Errorf("First argument must be a string."), nil)
 	}
 
 	if arguments.Remaining() > 0 {
-		return nil, arguments.Error("Malformed SSI-tag argument.", nil)
+		return nil, arguments.Error(fmt.Errorf("Malformed SSI-tag argument."), nil)
 	}
 
 	return SSINode, nil

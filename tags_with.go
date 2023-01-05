@@ -1,5 +1,7 @@
 package pongo2
 
+import "fmt"
+
 type tagWithNode struct {
 	withPairs map[string]IEvaluator
 	wrapper   *NodeWrapper
@@ -27,7 +29,7 @@ func tagWithParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, *Err
 	}
 
 	if arguments.Count() == 0 {
-		return nil, arguments.Error("Tag 'with' requires at least one argument.", nil)
+		return nil, arguments.Error(fmt.Errorf("Tag 'with' requires at least one argument."), nil)
 	}
 
 	wrapper, endargs, err := doc.WrapUntilTag("endwith")
@@ -37,7 +39,7 @@ func tagWithParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, *Err
 	withNode.wrapper = wrapper
 
 	if endargs.Count() > 0 {
-		return nil, endargs.Error("Arguments not allowed here.", nil)
+		return nil, endargs.Error(fmt.Errorf("Arguments not allowed here."), nil)
 	}
 
 	// Scan through all arguments to see which style the user uses (old or new style).
@@ -57,20 +59,20 @@ func tagWithParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, *Err
 				return nil, err
 			}
 			if arguments.Match(TokenKeyword, "as") == nil {
-				return nil, arguments.Error("Expected 'as' keyword.", nil)
+				return nil, arguments.Error(fmt.Errorf("Expected 'as' keyword."), nil)
 			}
 			keyToken := arguments.MatchType(TokenIdentifier)
 			if keyToken == nil {
-				return nil, arguments.Error("Expected an identifier", nil)
+				return nil, arguments.Error(fmt.Errorf("Expected an identifier"), nil)
 			}
 			withNode.withPairs[keyToken.Val] = valueExpr
 		} else {
 			keyToken := arguments.MatchType(TokenIdentifier)
 			if keyToken == nil {
-				return nil, arguments.Error("Expected an identifier", nil)
+				return nil, arguments.Error(fmt.Errorf("Expected an identifier"), nil)
 			}
 			if arguments.Match(TokenSymbol, "=") == nil {
-				return nil, arguments.Error("Expected '='.", nil)
+				return nil, arguments.Error(fmt.Errorf("Expected '='."), nil)
 			}
 			valueExpr, err := arguments.ParseExpression()
 			if err != nil {

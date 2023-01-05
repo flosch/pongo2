@@ -23,7 +23,7 @@ type tagLoremNode struct {
 
 func (node *tagLoremNode) Execute(ctx *ExecutionContext, writer TemplateWriter) *Error {
 	if node.count > maxLoremCount {
-		return ctx.Error(fmt.Sprintf("max count for lorem is %d", maxLoremCount), node.position)
+		return ctx.Error(fmt.Errorf("max count for lorem is %d", maxLoremCount), node.position)
 	}
 
 	switch node.method {
@@ -106,7 +106,7 @@ func tagLoremParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, *Er
 
 	if methodToken := arguments.MatchType(TokenIdentifier); methodToken != nil {
 		if methodToken.Val != "w" && methodToken.Val != "p" && methodToken.Val != "b" {
-			return nil, arguments.Error("lorem-method must be either 'w', 'p' or 'b'.", nil)
+			return nil, arguments.Error(fmt.Errorf("lorem-method must be either 'w', 'p' or 'b'."), nil)
 		}
 
 		loremNode.method = methodToken.Val
@@ -117,7 +117,7 @@ func tagLoremParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, *Er
 	}
 
 	if arguments.Remaining() > 0 {
-		return nil, arguments.Error("Malformed lorem-tag arguments.", nil)
+		return nil, arguments.Error(fmt.Errorf("Malformed lorem-tag arguments."), nil)
 	}
 
 	return loremNode, nil

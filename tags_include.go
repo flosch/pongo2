@@ -1,5 +1,7 @@
 package pongo2
 
+import "fmt"
+
 type tagIncludeNode struct {
 	tpl               *Template
 	filenameEvaluator IEvaluator
@@ -38,7 +40,7 @@ func (node *tagIncludeNode) Execute(ctx *ExecutionContext, writer TemplateWriter
 		}
 
 		if filename.String() == "" {
-			return ctx.Error("Filename for 'include'-tag evaluated to an empty string.", nil)
+			return ctx.Error(fmt.Errorf("Filename for 'include'-tag evaluated to an empty string."), nil)
 		}
 
 		// Get include-filename
@@ -114,10 +116,10 @@ func tagIncludeParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, *
 			// We have at least one key=expr pair (because of starting "with")
 			keyToken := arguments.MatchType(TokenIdentifier)
 			if keyToken == nil {
-				return nil, arguments.Error("Expected an identifier", nil)
+				return nil, arguments.Error(fmt.Errorf("Expected an identifier"), nil)
 			}
 			if arguments.Match(TokenSymbol, "=") == nil {
-				return nil, arguments.Error("Expected '='.", nil)
+				return nil, arguments.Error(fmt.Errorf("Expected '='."), nil)
 			}
 			valueExpr, err := arguments.ParseExpression()
 			if err != nil {
@@ -135,7 +137,7 @@ func tagIncludeParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, *
 	}
 
 	if arguments.Remaining() > 0 {
-		return nil, arguments.Error("Malformed 'include'-tag arguments.", nil)
+		return nil, arguments.Error(fmt.Errorf("Malformed 'include'-tag arguments."), nil)
 	}
 
 	return includeNode, nil

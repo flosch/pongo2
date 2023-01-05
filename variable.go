@@ -519,7 +519,7 @@ func (vr *variableResolver) resolve(ctx *ExecutionContext) (*Value, error) {
 func (vr *variableResolver) Evaluate(ctx *ExecutionContext) (*Value, *Error) {
 	value, err := vr.resolve(ctx)
 	if err != nil {
-		return AsValue(nil), ctx.Error(err.Error(), vr.locationToken)
+		return AsValue(nil), ctx.Error(err, vr.locationToken)
 	}
 	return value, nil
 }
@@ -564,7 +564,7 @@ func (p *Parser) parseArray() (IEvaluator, *Error) {
 	// parsing an array declaration with at least one expression
 	for {
 		if p.Remaining() == 0 {
-			return nil, p.Error("Unexpected EOF, unclosed array list.", p.lastToken)
+			return nil, p.Error(fmt.Errorf("Unexpected EOF, unclosed array list."), p.lastToken)
 		}
 
 		// No closing bracket, so we're parsing an expression
@@ -585,7 +585,7 @@ func (p *Parser) parseArray() (IEvaluator, *Error) {
 
 		// If there's NO closing bracket, there MUST be an comma
 		if p.Match(TokenSymbol, ",") == nil {
-			return nil, p.Error("Missing comma or closing bracket after argument.", p.Current())
+			return nil, p.Error(fmt.Errorf("Missing comma or closing bracket after argument."), p.Current())
 		}
 	}
 
@@ -597,7 +597,7 @@ func (p *Parser) parseVariableOrLiteral() (IEvaluator, *Error) {
 	t := p.Current()
 
 	if t == nil {
-		return nil, p.Error("Unexpected EOF, expected a number, string, keyword or identifier.", p.lastToken)
+		return nil, p.Error(fmt.Errorf("Unexpected EOF, expected a number, string, keyword or identifier."), p.lastToken)
 	}
 
 	// Is first part a number or a string, there's nothing to resolve (because there's only to return the value then)
@@ -614,11 +614,11 @@ func (p *Parser) parseVariableOrLiteral() (IEvaluator, *Error) {
 			// float64
 			t2 := p.MatchType(TokenNumber)
 			if t2 == nil {
-				return nil, p.Error("Expected a number after the '.'.", nil)
+				return nil, p.Error(fmt.Errorf("Expected a number after the '.'."), nil)
 			}
 			f, err := strconv.ParseFloat(fmt.Sprintf("%s.%s", t.Val, t2.Val), 64)
 			if err != nil {
-				return nil, p.Error(err.Error(), t)
+				return nil, p.Error(err, t)
 			}
 			fr := &floatResolver{
 				locationToken: t,
@@ -628,7 +628,7 @@ func (p *Parser) parseVariableOrLiteral() (IEvaluator, *Error) {
 		}
 		i, err := strconv.Atoi(t.Val)
 		if err != nil {
-			return nil, p.Error(err.Error(), t)
+			return nil, p.Error(err, t)
 		}
 		nr := &intResolver{
 			locationToken: t,
@@ -658,7 +658,7 @@ func (p *Parser) parseVariableOrLiteral() (IEvaluator, *Error) {
 			}
 			return br, nil
 		default:
-			return nil, p.Error("This keyword is not allowed here.", nil)
+			return nil, p.Error(fmt.Errorf("This keyword is not allowed here."), nil)
 		}
 	case TokenSymbol:
 		if t.Val == "[" {
@@ -673,7 +673,7 @@ func (p *Parser) parseVariableOrLiteral() (IEvaluator, *Error) {
 
 	if t.Typ != TokenIdentifier {
 		// First part of a variable MUST be an identifier
-		return nil, p.Error("Expected either a number, string, keyword or identifier.", t)
+		return nil, p.Error(fmt.Errorf("Expected either a number, string, keyword or identifier."), t)
 	}
 
 	resolver.parts = append(resolver.parts, &variablePart{
@@ -699,7 +699,7 @@ variableLoop:
 				case TokenNumber:
 					i, err := strconv.Atoi(t2.Val)
 					if err != nil {
-						return nil, p.Error(err.Error(), t2)
+						return nil, p.Error(err, t2)
 					}
 					resolver.parts = append(resolver.parts, &variablePart{
 						typ: varTypeInt,
@@ -715,17 +715,17 @@ variableLoop:
 					p.Consume() // consume: NIL
 					continue variableLoop
 				default:
-					return nil, p.Error("This token is not allowed within a variable name.", t2)
+					return nil, p.Error(fmt.Errorf("This token is not allowed within a variable name."), t2)
 				}
 			} else {
 				// EOF
-				return nil, p.Error("Unexpected EOF, expected either IDENTIFIER or NUMBER after DOT.",
+				return nil, p.Error(fmt.Errorf("Unexpected EOF, expected either IDENTIFIER or NUMBER after DOT."),
 					p.lastToken)
 			}
 		} else if p.Match(TokenSymbol, "[") != nil {
 			// Variable subscript
 			if p.Remaining() == 0 {
-				return nil, p.Error("Unexpected EOF, expected subscript subscript.", p.lastToken)
+				return nil, p.Error(fmt.Errorf("Unexpected EOF, expected subscript subscript."), p.lastToken)
 			}
 
 			exprSubscript, err := p.ParseExpression()
@@ -737,7 +737,7 @@ variableLoop:
 				subscript: exprSubscript,
 			})
 			if p.Match(TokenSymbol, "]") == nil {
-				return nil, p.Error("Missing closing bracket after subscript argument.", nil)
+				return nil, p.Error(fmt.Errorf("Missing closing bracket after subscript argument."), nil)
 			}
 
 		} else if p.Match(TokenSymbol, "(") != nil {
@@ -748,7 +748,7 @@ variableLoop:
 		argumentLoop:
 			for {
 				if p.Remaining() == 0 {
-					return nil, p.Error("Unexpected EOF, expected function call argument list.", p.lastToken)
+					return nil, p.Error(fmt.Errorf("Unexpected EOF, expected function call argument list."), p.lastToken)
 				}
 
 				if p.Peek(TokenSymbol, ")") == nil {
@@ -765,7 +765,7 @@ variableLoop:
 					} else {
 						// If there's NO closing bracket, there MUST be an comma
 						if p.Match(TokenSymbol, ",") == nil {
-							return nil, p.Error("Missing comma or closing bracket after argument.", nil)
+							return nil, p.Error(fmt.Errorf("Missing comma or closing bracket after argument."), nil)
 						}
 					}
 				} else {
@@ -809,7 +809,7 @@ filterLoop:
 
 		// Check sandbox filter restriction
 		if _, isBanned := p.template.set.bannedFilters[filter.name]; isBanned {
-			return nil, p.Error(fmt.Sprintf("Usage of filter '%s' is not allowed (sandbox restriction active).", filter.name), nil)
+			return nil, p.Error(fmt.Errorf("Usage of filter '%s' is not allowed (sandbox restriction active).", filter.name), nil)
 		}
 
 		v.filterChain = append(v.filterChain, filter)
@@ -834,7 +834,7 @@ func (p *Parser) parseVariableElement() (INode, *Error) {
 	node.expr = expr
 
 	if p.Match(TokenSymbol, "}}") == nil {
-		return nil, p.Error("'}}' expected", nil)
+		return nil, p.Error(fmt.Errorf("'}}' expected"), nil)
 	}
 
 	return node, nil
