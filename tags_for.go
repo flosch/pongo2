@@ -1,5 +1,7 @@
 package pongo2
 
+import "fmt"
+
 type tagForNode struct {
 	key             string
 	value           string // only for maps: for key, value in map
@@ -90,19 +92,19 @@ func tagForParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, *Erro
 	var valueToken *Token
 	keyToken := arguments.MatchType(TokenIdentifier)
 	if keyToken == nil {
-		return nil, arguments.Error("Expected an key identifier as first argument for 'for'-tag", nil)
+		return nil, arguments.Error(fmt.Errorf("Expected an key identifier as first argument for 'for'-tag"), nil)
 	}
 
 	if arguments.Match(TokenSymbol, ",") != nil {
 		// Value name is provided
 		valueToken = arguments.MatchType(TokenIdentifier)
 		if valueToken == nil {
-			return nil, arguments.Error("Value name must be an identifier.", nil)
+			return nil, arguments.Error(fmt.Errorf("Value name must be an identifier."), nil)
 		}
 	}
 
 	if arguments.Match(TokenKeyword, "in") == nil {
-		return nil, arguments.Error("Expected keyword 'in'.", nil)
+		return nil, arguments.Error(fmt.Errorf("Expected keyword 'in'."), nil)
 	}
 
 	objectEvaluator, err := arguments.ParseExpression()
@@ -124,7 +126,7 @@ func tagForParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, *Erro
 	}
 
 	if arguments.Remaining() > 0 {
-		return nil, arguments.Error("Malformed for-loop arguments.", nil)
+		return nil, arguments.Error(fmt.Errorf("Malformed for-loop arguments."), nil)
 	}
 
 	// Body wrapping
@@ -135,7 +137,7 @@ func tagForParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, *Erro
 	forNode.bodyWrapper = wrapper
 
 	if endargs.Count() > 0 {
-		return nil, endargs.Error("Arguments not allowed here.", nil)
+		return nil, endargs.Error(fmt.Errorf("Arguments not allowed here."), nil)
 	}
 
 	if wrapper.Endtag == "empty" {
@@ -147,7 +149,7 @@ func tagForParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, *Erro
 		forNode.emptyWrapper = wrapper
 
 		if endargs.Count() > 0 {
-			return nil, endargs.Error("Arguments not allowed here.", nil)
+			return nil, endargs.Error(fmt.Errorf("Arguments not allowed here."), nil)
 		}
 	}
 

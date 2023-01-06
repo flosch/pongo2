@@ -66,13 +66,13 @@ func tagWidthratioParser(doc *Parser, start *Token, arguments *Parser) (INodeTag
 		// Name follows
 		nameToken := arguments.MatchType(TokenIdentifier)
 		if nameToken == nil {
-			return nil, arguments.Error("Expected name (identifier).", nil)
+			return nil, arguments.Error(fmt.Errorf("Expected name (identifier)."), nil)
 		}
 		widthratioNode.ctxName = nameToken.Val
 	}
 
 	if arguments.Remaining() > 0 {
-		return nil, arguments.Error("Malformed widthratio-tag arguments.", nil)
+		return nil, arguments.Error(fmt.Errorf("Malformed widthratio-tag arguments."), nil)
 	}
 
 	return widthratioNode, nil

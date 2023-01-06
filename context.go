@@ -1,7 +1,6 @@
 package pongo2
 
 import (
-	"errors"
 	"fmt"
 	"regexp"
 )
@@ -108,8 +107,8 @@ func NewChildExecutionContext(parent *ExecutionContext) *ExecutionContext {
 	return newctx
 }
 
-func (ctx *ExecutionContext) Error(msg string, token *Token) *Error {
-	return ctx.OrigError(errors.New(msg), token)
+func (ctx *ExecutionContext) Error(err error, token *Token) *Error {
+	return ctx.OrigError(err, token)
 }
 
 func (ctx *ExecutionContext) OrigError(err error, token *Token) *Error {

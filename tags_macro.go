@@ -25,7 +25,7 @@ func (node *tagMacroNode) Execute(ctx *ExecutionContext, writer TemplateWriter) 
 		}()
 
 		if ctx.macroDepth > maxMacroDepth {
-			return nil, ctx.Error(fmt.Sprintf("maximum recursive macro call depth reached (max is %v)", maxMacroDepth), node.position)
+			return nil, ctx.Error(fmt.Errorf("maximum recursive macro call depth reached (max is %v)", maxMacroDepth), node.position)
 		}
 
 		return node.call(ctx, args...)
@@ -55,7 +55,7 @@ func (node *tagMacroNode) call(ctx *ExecutionContext, args ...*Value) (*Value, e
 
 	if len(args) > len(node.argsOrder) {
 		// Too many arguments, we're ignoring them and just logging into debug mode.
-		err := ctx.Error(fmt.Sprintf("Macro '%s' called with too many arguments (%d instead of %d).",
+		err := ctx.Error(fmt.Errorf("Macro '%s' called with too many arguments (%d instead of %d).",
 			node.name, len(args), len(node.argsOrder)), nil).updateFromTokenIfNeeded(ctx.template, node.position)
 
 		return AsSafeValue(""), err
@@ -88,18 +88,18 @@ func tagMacroParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, *Er
 
 	nameToken := arguments.MatchType(TokenIdentifier)
 	if nameToken == nil {
-		return nil, arguments.Error("Macro-tag needs at least an identifier as name.", nil)
+		return nil, arguments.Error(fmt.Errorf("Macro-tag needs at least an identifier as name."), nil)
 	}
 	macroNode.name = nameToken.Val
 
 	if arguments.MatchOne(TokenSymbol, "(") == nil {
-		return nil, arguments.Error("Expected '('.", nil)
+		return nil, arguments.Error(fmt.Errorf("Expected '('."), nil)
 	}
 
 	for arguments.Match(TokenSymbol, ")") == nil {
 		argNameToken := arguments.MatchType(TokenIdentifier)
 		if argNameToken == nil {
-			return nil, arguments.Error("Expected argument name as identifier.", nil)
+			return nil, arguments.Error(fmt.Errorf("Expected argument name as identifier."), nil)
 		}
 		macroNode.argsOrder = append(macroNode.argsOrder, argNameToken.Val)
 
@@ -119,7 +119,7 @@ func tagMacroParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, *Er
 			break
 		}
 		if arguments.Match(TokenSymbol, ",") == nil {
-			return nil, arguments.Error("Expected ',' or ')'.", nil)
+			return nil, arguments.Error(fmt.Errorf("Expected ',' or ')'."), nil)
 		}
 	}
 
@@ -128,7 +128,7 @@ func tagMacroParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, *Er
 	}
 
 	if arguments.Remaining() > 0 {
-		return nil, arguments.Error("Malformed macro-tag.", nil)
+		return nil, arguments.Error(fmt.Errorf("Malformed macro-tag."), nil)
 	}
 
 	// Body wrapping
@@ -139,14 +139,14 @@ func tagMacroParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, *Er
 	macroNode.wrapper = wrapper
 
 	if endargs.Count() > 0 {
-		return nil, endargs.Error("Arguments not allowed here.", nil)
+		return nil, endargs.Error(fmt.Errorf("Arguments not allowed here."), nil)
 	}
 
 	if macroNode.exported {
 		// Now register the macro if it wants to be exported
 		_, has := doc.template.exportedMacros[macroNode.name]
 		if has {
-			return nil, doc.Error(fmt.Sprintf("another macro with name '%s' already exported", macroNode.name), start)
+			return nil, doc.Error(fmt.Errorf("another macro with name '%s' already exported", macroNode.name), start)
 		}
 		doc.template.exportedMacros[macroNode.name] = macroNode
 	}

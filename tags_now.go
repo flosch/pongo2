@@ -1,6 +1,7 @@
 package pongo2
 
 import (
+	"fmt"
 	"time"
 )
 
@@ -30,7 +31,7 @@ func tagNowParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, *Erro
 
 	formatToken := arguments.MatchType(TokenString)
 	if formatToken == nil {
-		return nil, arguments.Error("Expected a format string.", nil)
+		return nil, arguments.Error(fmt.Errorf("Expected a format string."), nil)
 	}
 	nowNode.format = formatToken.Val
 
@@ -39,7 +40,7 @@ func tagNowParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, *Erro
 	}
 
 	if arguments.Remaining() > 0 {
-		return nil, arguments.Error("Malformed now-tag arguments.", nil)
+		return nil, arguments.Error(fmt.Errorf("Malformed now-tag arguments."), nil)
 	}
 
 	return nowNode, nil

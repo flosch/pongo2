@@ -2,6 +2,7 @@ package pongo2
 
 import (
 	"bytes"
+	"fmt"
 )
 
 type nodeFilterCall struct {
@@ -37,7 +38,7 @@ func (node *tagFilterNode) Execute(ctx *ExecutionContext, writer TemplateWriter)
 		}
 		value, err = ApplyFilter(call.name, value, param)
 		if err != nil {
-			return ctx.Error(err.Error(), node.position)
+			return ctx.Error(err, node.position)
 		}
 	}
 
@@ -62,7 +63,7 @@ func tagFilterParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, *E
 
 		nameToken := arguments.MatchType(TokenIdentifier)
 		if nameToken == nil {
-			return nil, arguments.Error("Expected a filter name (identifier).", nil)
+			return nil, arguments.Error(fmt.Errorf("Expected a filter name (identifier)."), nil)
 		}
 		filterCall.name = nameToken.Val
 
@@ -84,7 +85,7 @@ func tagFilterParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, *E
 	}
 
 	if arguments.Remaining() > 0 {
-		return nil, arguments.Error("Malformed filter-tag arguments.", nil)
+		return nil, arguments.Error(fmt.Errorf("Malformed filter-tag arguments."), nil)
 	}
 
 	return filterNode, nil
