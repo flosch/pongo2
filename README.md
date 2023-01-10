@@ -9,6 +9,9 @@ pongo2 is a Django-syntax like templating-language ([official website](https://w
 Install/update using `go get` (no dependencies required by pongo2):
 
 ```sh
+# for Go >= 1.18:
+go install github.com/flosch/pongo2@latest
+# for Go < 1.18:
 go get -u github.com/flosch/pongo2/v6
 ```
 
