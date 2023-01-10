@@ -89,3 +89,7 @@ func (e *Error) RawLine() (line string, available bool, outErr error) {
 	}
 	return "", false, nil
 }
+
+func (e *Error) Unwrap() error {
+	return e.OrigError
+}
