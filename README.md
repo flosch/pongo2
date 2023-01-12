@@ -9,10 +9,9 @@ pongo2 is a Django-syntax like templating-language ([official website](https://w
 Install/update using `go get` (no dependencies required by pongo2):
 
 ```sh
-# for Go >= 1.18:
-go install github.com/flosch/pongo2@latest
-# for Go < 1.18:
+cd /path/to/folder_containing_go.mod_file
 go get -u github.com/flosch/pongo2/v6
+go mod tidy
 ```
 
 Please use the [issue tracker](https://github.com/flosch/pongo2/issues) if you're encountering any problems with pongo2 or if you need help with implementing tags or filters ([create a ticket!](https://github.com/flosch/pongo2/issues/new)).
