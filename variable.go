@@ -32,6 +32,21 @@ type variablePart struct {
 	callingArgs    []functionCallArgument // needed for a function call, represents all argument nodes (INode supports nested function calls)
 }
 
+func (p *variablePart) String() string {
+	switch p.typ {
+	case varTypeInt:
+		return strconv.Itoa(p.i)
+	case varTypeIdent:
+		return p.s
+	case varTypeSubscript:
+		return "[subscript]"
+	case varTypeArray:
+		return "[array]"
+	}
+
+	panic("unimplemented")
+}
+
 type functionCallArgument interface {
 	Evaluate(*ExecutionContext) (*Value, *Error)
 }
@@ -220,15 +235,9 @@ func (vr *variableResolver) FilterApplied(name string) bool {
 func (vr *variableResolver) String() string {
 	parts := make([]string, 0, len(vr.parts))
 	for _, p := range vr.parts {
-		switch p.typ {
-		case varTypeInt:
-			parts = append(parts, strconv.Itoa(p.i))
-		case varTypeIdent:
-			parts = append(parts, p.s)
-		default:
-			panic("unimplemented")
-		}
+		parts = append(parts, p.String())
 	}
+
 	return strings.Join(parts, ".")
 }
 
