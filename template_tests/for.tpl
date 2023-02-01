@@ -37,3 +37,9 @@ string iteration sorted
 
 string iteration sorted reversed
 '{% for char in simple.name reversed sorted %}{{ char }}{% endfor %}'
+
+string unicode
+'{% for char in simple.chinese_hello_world %}{{ char }}{% endfor %}'
+
+string unicode sorted reversed
+'{% for char in simple.chinese_hello_world reversed sorted %}{{ char }}{% endfor %}'
