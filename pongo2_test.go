@@ -3,7 +3,7 @@ package pongo2_test
 import (
 	"errors"
 	"io"
-	"io/ioutil"
+	"os"
 	"path/filepath"
 	"testing"
 
@@ -122,7 +122,7 @@ func FuzzSimpleExecution(f *testing.F) {
 	files = append(files, tpls...)
 
 	for _, tplPath := range files {
-		buf, err := ioutil.ReadFile(tplPath)
+		buf, err := os.ReadFile(tplPath)
 		if err != nil {
 			f.Fatalf("could not read file '%v': %v", tplPath, err)
 		}

@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -100,7 +100,7 @@ func init() {
 	pongo2.DefaultSet.BanFilter("banned_filter")
 	pongo2.DefaultSet.BanTag("banned_tag")
 
-	f, err := ioutil.TempFile(os.TempDir(), "pongo2_")
+	f, err := os.CreateTemp(os.TempDir(), "pongo2_")
 	if err != nil {
 		panic(fmt.Sprintf("cannot write to %s", os.TempDir()))
 	}
@@ -382,7 +382,7 @@ func TestTemplates(t *testing.T) {
 			}
 
 			// Read options from file
-			optsStr, _ := ioutil.ReadFile(fmt.Sprintf("%s.options", match))
+			optsStr, _ := os.ReadFile(fmt.Sprintf("%s.options", match))
 			trimBlocks := strings.Contains(string(optsStr), "TrimBlocks=true")
 			lStripBlocks := strings.Contains(string(optsStr), "LStripBlocks=true")
 
@@ -390,7 +390,7 @@ func TestTemplates(t *testing.T) {
 			tpl.Options.LStripBlocks = lStripBlocks
 
 			testFilename := fmt.Sprintf("%s.out", match)
-			testOut, rerr := ioutil.ReadFile(testFilename)
+			testOut, rerr := os.ReadFile(testFilename)
 			if rerr != nil {
 				t.Fatalf("Error on ReadFile('%s'): %s", testFilename, rerr.Error())
 			}
@@ -402,7 +402,7 @@ func TestTemplates(t *testing.T) {
 			if !bytes.Equal(testOut, tplOut) {
 				t.Logf("Template (rendered) '%s': '%s'", match, tplOut)
 				errFilename := filepath.Base(fmt.Sprintf("%s.error", match))
-				err := ioutil.WriteFile(errFilename, []byte(tplOut), 0o600)
+				err := os.WriteFile(errFilename, []byte(tplOut), 0o600)
 				if err != nil {
 					t.Fatalf(err.Error())
 				}
@@ -430,7 +430,7 @@ func TestBlockTemplates(t *testing.T) {
 			}
 
 			testFilename := fmt.Sprintf("%s.out", match)
-			testOut, rerr := ioutil.ReadFile(testFilename)
+			testOut, rerr := os.ReadFile(testFilename)
 			if rerr != nil {
 				t.Fatalf("Error on ReadFile('%s'): %s", testFilename, rerr.Error())
 			}
@@ -450,7 +450,7 @@ func TestBlockTemplates(t *testing.T) {
 			if testString != joinedString {
 				t.Logf("BlockTemplate (rendered) '%s': '%s'", match, tpl_out["content"])
 				errFilename := filepath.Base(fmt.Sprintf("%s.error", match))
-				err := ioutil.WriteFile(errFilename, []byte(joinedString), 0o600)
+				err := os.WriteFile(errFilename, []byte(joinedString), 0o600)
 				if err != nil {
 					t.Fatalf(err.Error())
 				}
@@ -489,14 +489,14 @@ func TestExecutionErrors(t *testing.T) {
 	}
 	for idx, match := range matches {
 		t.Run(fmt.Sprintf("%03d-%s", idx+1, match), func(t *testing.T) {
-			testData, err := ioutil.ReadFile(match)
+			testData, err := os.ReadFile(match)
 			if err != nil {
 				t.Fatalf("could not read file '%v': %v", match, err)
 			}
 			tests := strings.Split(string(testData), "\n")
 
 			checkFilename := fmt.Sprintf("%s.out", match)
-			checkData, err := ioutil.ReadFile(checkFilename)
+			checkData, err := os.ReadFile(checkFilename)
 			if err != nil {
 				t.Fatalf("Error on ReadFile('%s'): %s", checkFilename, err.Error())
 			}
@@ -550,14 +550,14 @@ func TestCompilationErrors(t *testing.T) {
 	}
 	for idx, match := range matches {
 		t.Run(fmt.Sprintf("%03d-%s", idx+1, match), func(t *testing.T) {
-			testData, err := ioutil.ReadFile(match)
+			testData, err := os.ReadFile(match)
 			if err != nil {
 				t.Fatalf("could not read file '%v': %v", match, err)
 			}
 			tests := strings.Split(string(testData), "\n")
 
 			checkFilename := fmt.Sprintf("%s.out", match)
-			checkData, err := ioutil.ReadFile(checkFilename)
+			checkData, err := os.ReadFile(checkFilename)
 			if err != nil {
 				t.Fatalf("error on ReadFile('%s'): %s", checkFilename, err.Error())
 			}
@@ -628,7 +628,7 @@ func BenchmarkCache(b *testing.B) {
 		if err != nil {
 			b.Fatal(err)
 		}
-		err = tpl.ExecuteWriterUnbuffered(tplContext, ioutil.Discard)
+		err = tpl.ExecuteWriterUnbuffered(tplContext, io.Discard)
 		if err != nil {
 			b.Fatal(err)
 		}
@@ -643,7 +643,7 @@ func BenchmarkCacheDebugOn(b *testing.B) {
 		if err != nil {
 			b.Fatal(err)
 		}
-		err = tpl.ExecuteWriterUnbuffered(tplContext, ioutil.Discard)
+		err = tpl.ExecuteWriterUnbuffered(tplContext, io.Discard)
 		if err != nil {
 			b.Fatal(err)
 		}
@@ -657,7 +657,7 @@ func BenchmarkExecuteComplexWithSandboxActive(b *testing.B) {
 	}
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		err = tpl.ExecuteWriterUnbuffered(tplContext, ioutil.Discard)
+		err = tpl.ExecuteWriterUnbuffered(tplContext, io.Discard)
 		if err != nil {
 			b.Fatal(err)
 		}
@@ -665,7 +665,7 @@ func BenchmarkExecuteComplexWithSandboxActive(b *testing.B) {
 }
 
 func BenchmarkCompileAndExecuteComplexWithSandboxActive(b *testing.B) {
-	buf, err := ioutil.ReadFile("template_tests/complex.tpl")
+	buf, err := os.ReadFile("template_tests/complex.tpl")
 	if err != nil {
 		b.Fatal(err)
 	}
@@ -677,7 +677,7 @@ func BenchmarkCompileAndExecuteComplexWithSandboxActive(b *testing.B) {
 			b.Fatal(err)
 		}
 
-		err = tpl.ExecuteWriterUnbuffered(tplContext, ioutil.Discard)
+		err = tpl.ExecuteWriterUnbuffered(tplContext, io.Discard)
 		if err != nil {
 			b.Fatal(err)
 		}
@@ -692,7 +692,7 @@ func BenchmarkParallelExecuteComplexWithSandboxActive(b *testing.B) {
 	b.ResetTimer()
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
-			err := tpl.ExecuteWriterUnbuffered(tplContext, ioutil.Discard)
+			err := tpl.ExecuteWriterUnbuffered(tplContext, io.Discard)
 			if err != nil {
 				b.Fatal(err)
 			}
@@ -708,7 +708,7 @@ func BenchmarkExecuteComplexWithoutSandbox(b *testing.B) {
 	}
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		err = tpl.ExecuteWriterUnbuffered(tplContext, ioutil.Discard)
+		err = tpl.ExecuteWriterUnbuffered(tplContext, io.Discard)
 		if err != nil {
 			b.Fatal(err)
 		}
@@ -716,7 +716,7 @@ func BenchmarkExecuteComplexWithoutSandbox(b *testing.B) {
 }
 
 func BenchmarkCompileAndExecuteComplexWithoutSandbox(b *testing.B) {
-	buf, err := ioutil.ReadFile("template_tests/complex.tpl")
+	buf, err := os.ReadFile("template_tests/complex.tpl")
 	if err != nil {
 		b.Fatal(err)
 	}
@@ -731,7 +731,7 @@ func BenchmarkCompileAndExecuteComplexWithoutSandbox(b *testing.B) {
 			b.Fatal(err)
 		}
 
-		err = tpl.ExecuteWriterUnbuffered(tplContext, ioutil.Discard)
+		err = tpl.ExecuteWriterUnbuffered(tplContext, io.Discard)
 		if err != nil {
 			b.Fatal(err)
 		}
@@ -747,7 +747,7 @@ func BenchmarkParallelExecuteComplexWithoutSandbox(b *testing.B) {
 	b.ResetTimer()
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
-			err := tpl.ExecuteWriterUnbuffered(tplContext, ioutil.Discard)
+			err := tpl.ExecuteWriterUnbuffered(tplContext, io.Discard)
 			if err != nil {
 				b.Fatal(err)
 			}

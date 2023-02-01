@@ -583,7 +583,6 @@ func (p *Parser) parseVariableOrLiteral() (IEvaluator, *Error) {
 			val:           i,
 		}
 		return nr, nil
-
 	case TokenString:
 		p.Consume()
 		sr := &stringResolver{
