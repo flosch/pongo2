@@ -540,7 +540,50 @@ func (v *nodeFilteredVariable) Evaluate(ctx *ExecutionContext) (*Value, *Error) 
 	return value, nil
 }
 
-// IDENT | IDENT.(IDENT|NUMBER)... | IDENT[expr]...
+// "[" [expr {, expr}] "]"
+func (p *Parser) parseArray() (IEvaluator, *Error) {
+	resolver := &variableResolver{
+		locationToken: p.Current(),
+	}
+	p.Consume() // We consume '['
+
+	// We allow an empty list, so check for a closing bracket.
+	if p.Match(TokenSymbol, "]") != nil {
+		return resolver, nil
+	}
+
+	// parsing an array declaration with at least one expression
+	for {
+		if p.Remaining() == 0 {
+			return nil, p.Error("Unexpected EOF, unclosed array list.", p.lastToken)
+		}
+
+		// No closing bracket, so we're parsing an expression
+		exprArg, err := p.ParseExpression()
+		if err != nil {
+			return nil, err
+		}
+
+		resolver.parts = append(resolver.parts, &variablePart{
+			typ:       varTypeArray,
+			subscript: exprArg,
+		})
+
+		if p.Match(TokenSymbol, "]") != nil {
+			// If there's a closing bracket after an expression, we will stop parsing the arguments
+			break
+		}
+
+		// If there's NO closing bracket, there MUST be an comma
+		if p.Match(TokenSymbol, ",") == nil {
+			return nil, p.Error("Missing comma or closing bracket after argument.", p.Current())
+		}
+	}
+
+	return resolver, nil
+}
+
+// IDENT | IDENT.(IDENT|NUMBER)... | IDENT[expr]... | "[" [ expr {, expr}] "]"
 func (p *Parser) parseVariableOrLiteral() (IEvaluator, *Error) {
 	t := p.Current()
 
@@ -608,32 +651,30 @@ func (p *Parser) parseVariableOrLiteral() (IEvaluator, *Error) {
 		default:
 			return nil, p.Error("This keyword is not allowed here.", nil)
 		}
+	case TokenSymbol:
+		if t.Val == "[" {
+			// Parsing an array literal [expr {, expr}]
+			return p.parseArray()
+		}
 	}
 
 	resolver := &variableResolver{
 		locationToken: t,
 	}
 
-	isArrayDefinition := false
-	if t.Typ == TokenSymbol && t.Val != "}}" {
-		isArrayDefinition = true
-	} else if t.Typ != TokenIdentifier {
+	if t.Typ != TokenIdentifier {
 		// First part of a variable MUST be an identifier
 		return nil, p.Error("Expected either a number, string, keyword or identifier.", t)
 	}
 
-	if t.Typ == TokenIdentifier {
-		resolver.parts = append(resolver.parts, &variablePart{
-			typ: varTypeIdent,
-			s:   t.Val,
-		})
-		p.Consume() // we consumed the first identifier of the variable name
-	}
+	resolver.parts = append(resolver.parts, &variablePart{
+		typ: varTypeIdent,
+		s:   t.Val,
+	})
+	p.Consume() // we consumed the first identifier of the variable name
 
 variableLoop:
 	for p.Remaining() > 0 {
-		t = p.Current()
-
 		if p.Match(TokenSymbol, ".") != nil {
 			// Next variable part (can be either NUMBER or IDENT)
 			t2 := p.Current()
@@ -678,56 +719,16 @@ variableLoop:
 				return nil, p.Error("Unexpected EOF, expected subscript subscript.", p.lastToken)
 			}
 
-			if !isArrayDefinition {
-				exprSubscript, err := p.ParseExpression()
-				if err != nil {
-					return nil, err
-				}
-				resolver.parts = append(resolver.parts, &variablePart{
-					typ:       varTypeSubscript,
-					subscript: exprSubscript,
-				})
-				if p.Match(TokenSymbol, "]") == nil {
-					return nil, p.Error("Missing closing bracket after subscript argument.", nil)
-				}
-			} else {
-				// parsing an array declaration
-			arrayLoop:
-				for {
-					if p.Remaining() == 0 {
-						return nil, p.Error("Unexpected EOF, expected function call argument list.", p.lastToken)
-					}
-
-					if p.Peek(TokenSymbol, "]") != nil {
-						// We got a closing bracket, so stop parsing arguments
-						p.Consume()
-						break arrayLoop
-					}
-
-					// No closing bracket, so we're parsing an expression
-					exprArg, err := p.ParseExpression()
-					if err != nil {
-						return nil, err
-					}
-
-					resolver.parts = append(resolver.parts, &variablePart{
-						typ:       varTypeArray,
-						subscript: exprArg,
-					})
-
-					if p.Match(TokenSymbol, "]") != nil {
-						// If there's a closing bracket after an expression, we will stop parsing the arguments
-						break arrayLoop
-					} else {
-						// If there's NO closing bracket, there MUST be an comma
-						if p.Match(TokenSymbol, ",") == nil {
-							return nil, p.Error("Missing comma or closing bracket after argument.", nil)
-						}
-					}
-
-				}
-
-				continue variableLoop
+			exprSubscript, err := p.ParseExpression()
+			if err != nil {
+				return nil, err
+			}
+			resolver.parts = append(resolver.parts, &variablePart{
+				typ:       varTypeSubscript,
+				subscript: exprSubscript,
+			})
+			if p.Match(TokenSymbol, "]") == nil {
+				return nil, p.Error("Missing closing bracket after subscript argument.", nil)
 			}
 
 		} else if p.Match(TokenSymbol, "(") != nil {
