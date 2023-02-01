@@ -493,7 +493,7 @@ func (v *Value) Interface() any {
 	return nil
 }
 
-// EqualValueTo checks whether two values are containing the same value or object.
+// EqualValueTo checks whether two values are containing the same value or object (if comparable).
 func (v *Value) EqualValueTo(other *Value) bool {
 	// comparison of uint with int fails using .Interface()-comparison (see issue #64)
 	if v.IsInteger() && other.IsInteger() {
@@ -502,7 +502,13 @@ func (v *Value) EqualValueTo(other *Value) bool {
 	if v.IsTime() && other.IsTime() {
 		return v.Time().Equal(other.Time())
 	}
-	return v.Interface() == other.Interface()
+	if !v.val.IsValid() || !other.val.IsValid() {
+		return false
+	}
+
+	return v.val.CanInterface() && other.val.CanInterface() &&
+		v.val.Type().Comparable() && other.val.Type().Comparable() &&
+		v.Interface() == other.Interface()
 }
 
 type sortedKeys []reflect.Value
