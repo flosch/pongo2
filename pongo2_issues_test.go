@@ -43,3 +43,53 @@ func TestIssue297(t *testing.T) {
 		t.Fatalf("Expected `Testing: one two three four\nfive six!`, but got `%v`.", str)
 	}
 }
+
+type StructWithoutTag struct {
+	Name string
+	Age  int
+}
+
+type StructWithTag struct {
+	Name string `pongo2:"my_name"`
+	Age  int    `pongo2:"my_age"`
+}
+
+func TestIssue319StrutWithTag(t *testing.T) {
+	s := StructWithTag{
+		Name: "Andy Dufresne",
+		Age:  23,
+	}
+	ctx := pongo2.Context{
+		"mystruct": s,
+	}
+	template := `My name is {{ mystruct.my_name }}, age is {{ mystruct.my_age }}`
+	out, err := pongo2.FromString(template)
+	if err != nil {
+		t.Error(err)
+	}
+	execute, err := out.Execute(ctx)
+	if err != nil {
+		t.Error(err)
+	}
+	mustEqual(t, execute, "My name is Andy Dufresne, age is 23")
+}
+
+func TestIssue319StrutWithoutTag(t *testing.T) {
+	s := StructWithoutTag{
+		Name: "Andy Dufresne",
+		Age:  23,
+	}
+	ctx := pongo2.Context{
+		"mystruct": s,
+	}
+	template := `My name is {{ mystruct.Name }}, age is {{ mystruct.Age }}`
+	out, err := pongo2.FromString(template)
+	if err != nil {
+		t.Error(err)
+	}
+	execute, err := out.Execute(ctx)
+	if err != nil {
+		t.Error(err)
+	}
+	mustEqual(t, execute, "My name is Andy Dufresne, age is 23")
+}
