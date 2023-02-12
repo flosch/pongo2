@@ -274,9 +274,33 @@ func (vr *variableResolver) resolve(ctx *ExecutionContext) (*Value, error) {
 			// First we're having a look in our private
 			// context (e. g. information provided by tags, like the forloop)
 			val, inPrivate := ctx.Private[vr.parts[0].s]
+			valPublic, inPublic := ctx.Public[vr.parts[0].s]
+
 			if !inPrivate {
-				// Nothing found? Then have a final lookup in the public context
-				val = ctx.Public[vr.parts[0].s]
+				if inPublic {
+					// Nothing found? Then have a final lookup in the public context
+					val = valPublic
+				} else {
+					// could be a macro
+					macroNode, template := lookupMacro(ctx.template, vr.parts[0].s)
+					if macroNode != nil {
+						val = func(args ...*Value) (*Value, error) {
+							ctx.macroDepth++
+							thisTemplate := ctx.template
+							defer func() {
+								ctx.macroDepth--
+								ctx.template = thisTemplate
+							}()
+							ctx.template = template
+
+							if ctx.macroDepth > maxMacroDepth {
+								return nil, ctx.Error(fmt.Sprintf("maximum recursive macro call depth reached (max is %v)", maxMacroDepth), macroNode.position)
+							}
+
+							return macroNode.call(ctx, args...)
+						}
+					}
+				}
 			}
 			current = reflect.ValueOf(val) // Get the initial value
 		} else {
@@ -505,6 +529,7 @@ func (vr *variableResolver) resolve(ctx *ExecutionContext) (*Value, error) {
 				current = rv.Interface().(*Value).val
 				isSafe = rv.Interface().(*Value).safe
 			}
+
 		}
 
 		if !current.IsValid() {
@@ -514,6 +539,33 @@ func (vr *variableResolver) resolve(ctx *ExecutionContext) (*Value, error) {
 	}
 
 	return &Value{val: current, safe: isSafe}, nil
+}
+
+// lookupMacro searches for the macro in the current template including imports
+// and returns the macro's call function along with the template it is registered in
+func lookupMacro(template *Template, name string) (*tagMacroNode, *Template) {
+	var macro *tagMacroNode
+	for _, m := range template.ownMacroNodes {
+		if m.name == name {
+			macro = m
+			break
+		}
+	}
+	if macro != nil {
+		return macro, template
+	}
+	for _, importNode := range template.macroImportNodes {
+		for n, m := range importNode.macros {
+			if n == name {
+				macro = m
+				break
+			}
+		}
+		if macro != nil {
+			return macro, importNode.template
+		}
+	}
+	return nil, nil
 }
 
 func (vr *variableResolver) Evaluate(ctx *ExecutionContext) (*Value, *Error) {

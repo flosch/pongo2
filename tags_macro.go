@@ -18,19 +18,18 @@ type tagMacroNode struct {
 }
 
 func (node *tagMacroNode) Execute(ctx *ExecutionContext, writer TemplateWriter) *Error {
-	ctx.Private[node.name] = func(args ...*Value) (*Value, error) {
-		ctx.macroDepth++
-		defer func() {
-			ctx.macroDepth--
-		}()
+	// ctx.Private[node.name] = func(args ...*Value) (*Value, error) {
+	// 	ctx.macroDepth++
+	// 	defer func() {
+	// 		ctx.macroDepth--
+	// 	}()
 
-		if ctx.macroDepth > maxMacroDepth {
-			return nil, ctx.Error(fmt.Sprintf("maximum recursive macro call depth reached (max is %v)", maxMacroDepth), node.position)
-		}
+	// 	if ctx.macroDepth > maxMacroDepth {
+	// 		return nil, ctx.Error(fmt.Sprintf("maximum recursive macro call depth reached (max is %v)", maxMacroDepth), node.position)
+	// 	}
 
-		return node.call(ctx, args...)
-	}
-
+	// 	return node.call(ctx, args...)
+	// }
 	return nil
 }
 
@@ -150,6 +149,8 @@ func tagMacroParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, *Er
 		}
 		doc.template.exportedMacros[macroNode.name] = macroNode
 	}
+
+	doc.template.ownMacroNodes = append(doc.template.ownMacroNodes, macroNode)
 
 	return macroNode, nil
 }

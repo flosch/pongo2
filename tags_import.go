@@ -8,16 +8,17 @@ type tagImportNode struct {
 	position *Token
 	filename string
 	macros   map[string]*tagMacroNode // alias/name -> macro instance
+	template *Template
 }
 
 func (node *tagImportNode) Execute(ctx *ExecutionContext, writer TemplateWriter) *Error {
-	for name, macro := range node.macros {
-		func(name string, macro *tagMacroNode) {
-			ctx.Private[name] = func(args ...*Value) (*Value, error) {
-				return macro.call(ctx, args...)
-			}
-		}(name, macro)
-	}
+	// for name, macro := range node.macros {
+	// 	func(name string, macro *tagMacroNode) {
+	// 		ctx.Private[name] = func(args ...*Value) (*Value, error) {
+	// 			return macro.call(ctx, args...)
+	// 		}
+	// 	}(name, macro)
+	// }
 	return nil
 }
 
@@ -75,6 +76,9 @@ func tagImportParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, *E
 			return nil, arguments.Error("Expected ','.", nil)
 		}
 	}
+
+	doc.template.macroImportNodes = append(doc.template.macroImportNodes, importNode)
+	importNode.template = tpl
 
 	return importNode, nil
 }
