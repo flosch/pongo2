@@ -379,7 +379,9 @@ func (vr *variableResolver) resolve(ctx *ExecutionContext) (*Value, error) {
 
 		if !current.IsValid() {
 			// Value is not valid (anymore)
-			return AsValue(nil), nil
+
+			return AsValue("NOT FOUND"), fmt.Errorf("No value found for %s", vr)
+
 		}
 
 		// If current is a reflect.ValueOf(pongo2.Value), then unpack it
@@ -509,7 +511,7 @@ func (vr *variableResolver) resolve(ctx *ExecutionContext) (*Value, error) {
 
 		if !current.IsValid() {
 			// Value is not valid (e. g. NIL value)
-			return AsValue(nil), nil
+			return AsValue("NOT FOUND"), fmt.Errorf("No value found for %s", vr)
 		}
 	}
 
