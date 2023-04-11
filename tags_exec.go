@@ -2,6 +2,9 @@ package pongo2
 
 import (
 	"bytes"
+
+	"fmt"
+
 )
 
 type tagExecNode struct {
@@ -21,7 +24,13 @@ func (node *tagExecNode) Execute(ctx *ExecutionContext, writer TemplateWriter) *
 	if err2 != nil {
 		return err2.(*Error)
 	}
-	currentTemplate.root.Execute(ctx, writer)
+
+	err = currentTemplate.root.Execute(ctx, writer)
+	if err != nil {
+		err.OrigError = fmt.Errorf("running exec tag: %w", err.OrigError)
+		return err
+	}
+
 	return nil
 }
 
