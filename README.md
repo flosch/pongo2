@@ -14,7 +14,7 @@ go get -u github.com/flosch/pongo2/v6
 
 Please use the [issue tracker](https://github.com/flosch/pongo2/issues) if you're encountering any problems with pongo2 or if you need help with implementing tags or filters ([create a ticket!](https://github.com/flosch/pongo2/issues/new)).
 
-:question: [Looking for a Go developer? I'm available for hire. :man_technologist:](mailto:florian@schlachter.tech )
+:question: [**Looking for a Go developer/consultant?** I'm available for hire. :man_technologist:](mailto:florian@schlachter.tech )
 
 ## First impression of a template
 
