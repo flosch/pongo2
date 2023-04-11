@@ -2,7 +2,7 @@ package pongo2
 
 import (
 	"fmt"
-	"os"
+  "os"
 )
 
 type tagSSINode struct {
