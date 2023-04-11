@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"os"
 	"sync"
@@ -219,7 +218,7 @@ func (set *TemplateSet) FromFile(filename string) (*Template, error) {
 			OrigError: err,
 		}
 	}
-	buf, err := ioutil.ReadAll(fd)
+	buf, err := io.ReadAll(fd)
 	if err != nil {
 		return nil, &Error{
 			Filename:  filename,

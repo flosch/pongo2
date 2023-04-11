@@ -35,3 +35,21 @@ reversed sorted string map
 
 reversed sorted int map
 '5 2 1 '
+
+string iteration
+'john doe'
+
+string iteration reversed
+'eod nhoj'
+
+string iteration sorted
+' dehjnoo'
+
+string iteration sorted reversed
+'oonjhed '
+
+string unicode
+'你好世界'
+
+string unicode sorted reversed
+'界好你世'

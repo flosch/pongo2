@@ -454,25 +454,26 @@ func (v *Value) IterateOrder(fn func(idx, count int, key, value *Value) bool, em
 		}
 		return // done
 	case reflect.String:
-		if sorted {
-			// TODO(flosch): Handle sorted
-			panic("TODO: handle sort for type string")
-		}
+		s := v.getResolvedValue().String()
+		rs := []rune(s)
+		charCount := len(rs)
 
-		// TODO(flosch): Not utf8-compatible (utf8-decoding necessary)
-		charCount := v.getResolvedValue().Len()
 		if charCount > 0 {
+			if sorted {
+				sort.SliceStable(rs, func(i, j int) bool {
+					return rs[i] < rs[j]
+				})
+			}
+
 			if reverse {
-				for i := charCount - 1; i >= 0; i-- {
-					if !fn(i, charCount, &Value{val: v.getResolvedValue().Slice(i, i+1)}, nil) {
-						return
-					}
+				for i, j := 0, charCount-1; i < j; i, j = i+1, j-1 {
+					rs[i], rs[j] = rs[j], rs[i]
 				}
-			} else {
-				for i := 0; i < charCount; i++ {
-					if !fn(i, charCount, &Value{val: v.getResolvedValue().Slice(i, i+1)}, nil) {
-						return
-					}
+			}
+
+			for i := 0; i < charCount; i++ {
+				if !fn(i, charCount, &Value{val: reflect.ValueOf(string(rs[i]))}, nil) {
+					return
 				}
 			}
 		} else {
@@ -493,7 +494,7 @@ func (v *Value) Interface() any {
 	return nil
 }
 
-// EqualValueTo checks whether two values are containing the same value or object.
+// EqualValueTo checks whether two values are containing the same value or object (if comparable).
 func (v *Value) EqualValueTo(other *Value) bool {
 	// comparison of uint with int fails using .Interface()-comparison (see issue #64)
 	if v.IsInteger() && other.IsInteger() {
@@ -502,7 +503,14 @@ func (v *Value) EqualValueTo(other *Value) bool {
 	if v.IsTime() && other.IsTime() {
 		return v.Time().Equal(other.Time())
 	}
-	return v.Interface() == other.Interface()
+	if !v.val.IsValid() || !other.val.IsValid() {
+		return false
+	}
+	// TODO(flosch): As of Go 1.20, reflect supports Comparable() and Equal(). This should potentially
+	// be used here: https://pkg.go.dev/reflect#Value.Comparable
+	return v.val.CanInterface() && other.val.CanInterface() &&
+		v.val.Type().Comparable() && other.val.Type().Comparable() &&
+		v.Interface() == other.Interface()
 }
 
 type sortedKeys []reflect.Value

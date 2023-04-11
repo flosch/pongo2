@@ -2,7 +2,9 @@ package pongo2
 
 import (
 	"fmt"
-	"io/ioutil"
+
+  "os"
+
 )
 
 type tagSSINode struct {
@@ -44,7 +46,7 @@ func tagSSIParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, *Erro
 			SSINode.template = temporaryTpl
 		} else {
 			// plaintext
-			buf, err := ioutil.ReadFile(doc.template.set.resolveFilename(doc.template, fileToken.Val))
+			buf, err := os.ReadFile(doc.template.set.resolveFilename(doc.template, fileToken.Val))
 			if err != nil {
 				return nil, (&Error{
 					Sender:    "tag:ssi",
