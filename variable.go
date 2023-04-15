@@ -324,7 +324,24 @@ func (vr *variableResolver) resolve(ctx *ExecutionContext) (*Value, error) {
 					// Calling a field or key
 					switch current.Kind() {
 					case reflect.Struct:
-						current = current.FieldByName(part.s)
+						//save tag and field name into map
+						tagMap := make(map[string]string)
+						//get all tags of current struct
+						fields := current.NumField()
+						for i := 0; i < fields; i++ {
+							field := current.Type().Field(i)
+							tagMap[field.Tag.Get("pongo2")] = field.Name
+						}
+						//get all tags of current field
+						field := current.FieldByName(part.s)
+						if !field.IsValid() {
+							//if field is not valid, try to get field by tag
+							if tagMap[part.s] != "" {
+								current = current.FieldByName(tagMap[part.s])
+							}
+						} else {
+							current = field
+						}
 					case reflect.Map:
 						current = current.MapIndex(reflect.ValueOf(part.s))
 					default:
