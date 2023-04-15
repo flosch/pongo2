@@ -19,10 +19,10 @@ issue #39 (deactivate auto-escape of macros)
 {{ html_test("Max") }}
 
 Importing macros
-{% import "macro.helper" imported_macro, imported_macro as renamed_macro, imported_macro as html_test %}
+{% import "macro.helper" imported_macro, imported_macro as renamed_macro, imported_macro as html_test2 %}
 {{ imported_macro("User1") }}
 {{ renamed_macro("User2") }}
-{{ html_test("Max") }}
+{{ html_test2("Max") }}
 
 Chaining macros{% import "macro2.helper" greeter_macro %}
 {{ greeter_macro() }}
