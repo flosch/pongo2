@@ -336,6 +336,7 @@ func TestTemplate_Functions(t *testing.T) {
 			name:     "NilToNonNilParameter",
 			template: "{{ testFunc(nil) }}",
 			context: pongo2.Context{
+				"mydict": nil,
 				"testFunc": func(i int) int {
 					return 1
 				},

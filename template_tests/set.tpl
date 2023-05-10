@@ -3,7 +3,7 @@
 {{ new_var }}{% for item in simple.misc_list %}
 {% set new_var = item %}{{ new_var }}{% endfor %}
 {{ new_var }}
-{% set car=someUndefinedVar %}{{ car.Drive }}No Panic
+{%allowmissingval%}{% set car=someUndefinedVar %}{{ car.Drive }}No Panic{%endallowmissingval%}
 
 {% set new_var = ["hello", "val2"] %}
 
@@ -20,8 +20,8 @@
 {% endfor %}
 
 {% set item = "item1" %}
-{% set ref_set = [item, "item2", some_random_variable] %}{% for var in ref_set %}{{ var }}
-{% endfor %}
+{%allowmissingval%}{% set ref_set = [item, "item2", some_random_variable] %}{% for var in ref_set %}{{ var }}
+{% endfor %}{%endallowmissingval%}
 
 {% set nil_item_set = [nil] %}{% for var in nil_item_set %}-{{ var }}-{# printing an additional dash here to show the loop over the array with a nil item  #}
 {% endfor %}

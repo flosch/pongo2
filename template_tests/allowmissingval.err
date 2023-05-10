@@ -1,0 +1,3 @@
+{% macro existing() %} Function is called {% endmacro %}
+This should {{ not_existing() }} error.
+This should throw error {{param.not_existing}}

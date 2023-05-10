@@ -6,6 +6,7 @@ TODO:
 Implemented tags so far which needs documentation:
 
 * autoescape
+* allowmissingval
 * block
 * comment
 * cycle

@@ -66,10 +66,11 @@ type ExecutionContext struct {
 	template   *Template
 	macroDepth int
 
-	Autoescape bool
-	Public     Context
-	Private    Context
-	Shared     Context
+	AllowMissingVal bool
+	Autoescape      bool
+	Public          Context
+	Private         Context
+	Shared          Context
 }
 
 var pongo2MetaContext = Context{
@@ -81,7 +82,7 @@ func newExecutionContext(tpl *Template, ctx Context) *ExecutionContext {
 
 	// Make the pongo2-related funcs/vars available to the context
 	privateCtx["pongo2"] = pongo2MetaContext
-
+	ctx["nil"] = nil
 	return &ExecutionContext{
 		template: tpl,
 

@@ -52,7 +52,7 @@ in/not in
 {{ "Hello" in simple.misc_list }}
 {{ "Hello2" in simple.misc_list }}
 {{ 99 in simple.misc_list }}
-{{ False in simple.misc_list }}
+{%allowmissingval%}{{ False in simple.misc_list }}{%endallowmissingval%}
 
 issue #48 (associativity for infix operators)
 {{ 34/3*3 }}

@@ -1,8 +1,8 @@
 Begin
 {% macro greetings(to, from=simple.name, name2="guest") %}
-Greetings to {{ to }} from {{ from }}. Howdy, {% if name2 == "guest" %}anonymous guest{% else %}{{ name2 }}{% endif %}!
+Greetings to {%allowmissingval%}{{ to }}{%endallowmissingval%} from {{ from }}. Howdy, {% if name2 == "guest" %}anonymous guest{% else %}{{ name2 }}{% endif %}!
 {% endmacro %}
-{{ greetings() }}
+{%allowmissingval%}{{ greetings() }}{%endallowmissingval%}
 {{ greetings(10) }}
 {{ greetings("john") }}
 {{ greetings("john", "michelle") }}

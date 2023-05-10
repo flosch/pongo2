@@ -1,7 +1,7 @@
 add
 {{ 5|add:2 }}
 {{ 5|add:simple.number }}
-{{ 5|add:nothing }}
+{%allowmissingval%}{{ 5|add:nothing }}{%endallowmissingval%}
 {{ 5|add:"test" }}
 {{ "hello "|add:"john doe" }}
 {{ "hello "|add:simple.name }}

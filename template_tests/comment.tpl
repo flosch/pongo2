@@ -26,25 +26,25 @@ empty multi line block comment
 {% endcomment %}
 
 block comment with other tags inside of it
-{% comment %}
+{%allowmissingval%}{% comment %}
   {{ thing_goes_here }}
   {% if stuff %}do stuff{% endif %}
-{% endcomment %}
+{% endcomment %}{%endallowmissingval%}
 
 block comment with invalid tags inside of it
-{% comment %}
+{%allowmissingval%}{% comment %}
   {% if thing %}
-{% endcomment %}
+{% endcomment %}{%endallowmissingval%}
 
 block comment with invalid syntax inside of it
-{% comment %}
+{%allowmissingval%}{% comment %}
   {% thing('') %}
-{% endcomment %}
+{% endcomment %}{%endallowmissingval%}
 
 Regular tags between comments to verify it doesn't break in the lexer
-{% if hello %}
+{%allowmissingval%}{% if hello %}
 {% endif %}
 after if
-{% comment %}All done{% endcomment %}
+{% comment %}All done{% endcomment %}{%endallowmissingval%}
 
 end of file
