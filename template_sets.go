@@ -48,6 +48,8 @@ type TemplateSet struct {
 	// added your first template to the set (restrictions are statically checked).
 	// After you added one, it's not possible anymore (for your personal security).
 	firstTemplateCreated bool
+	tags                 map[string]*tag
+	filters              map[string]FilterFunction
 	bannedTags           map[string]bool
 	bannedFilters        map[string]bool
 
@@ -60,6 +62,19 @@ type TemplateSet struct {
 // (e. g. web from mail templates), with different globals or
 // other configurations.
 func NewSet(name string, loaders ...TemplateLoader) *TemplateSet {
+	set := NewDefaultSet(name, loaders...)
+
+	for name, tag := range DefaultSet.tags {
+		set.tags[name] = tag
+	}
+	for name, filter := range DefaultSet.filters {
+		set.filters[name] = filter
+	}
+	return set
+}
+
+// NewDefaultSet only be used to create default sets without default tags and filters
+func NewDefaultSet(name string, loaders ...TemplateLoader) *TemplateSet {
 	if len(loaders) == 0 {
 		panic(fmt.Errorf("at least one template loader must be specified"))
 	}
@@ -68,6 +83,8 @@ func NewSet(name string, loaders ...TemplateLoader) *TemplateSet {
 		name:          name,
 		loaders:       loaders,
 		Globals:       make(Context),
+		tags:          make(map[string]*tag),
+		filters:       make(map[string]FilterFunction),
 		bannedTags:    make(map[string]bool),
 		bannedFilters: make(map[string]bool),
 		templateCache: make(map[string]*Template),
@@ -97,7 +114,7 @@ func (set *TemplateSet) resolveFilenameForLoader(loader TemplateLoader, tpl *Tem
 
 // BanTag bans a specific tag for this template set. See more in the documentation for TemplateSet.
 func (set *TemplateSet) BanTag(name string) error {
-	_, has := tags[name]
+	_, has := set.tags[name]
 	if !has {
 		return fmt.Errorf("tag '%s' not found", name)
 	}
@@ -115,7 +132,7 @@ func (set *TemplateSet) BanTag(name string) error {
 
 // BanFilter bans a specific filter for this template set. See more in the documentation for TemplateSet.
 func (set *TemplateSet) BanFilter(name string) error {
-	_, has := filters[name]
+	_, has := set.filters[name]
 	if !has {
 		return fmt.Errorf("filter '%s' not found", name)
 	}
@@ -288,7 +305,7 @@ var (
 	DefaultLoader = MustNewLocalFileSystemLoader("")
 
 	// DefaultSet is a set created for you for convinience reasons.
-	DefaultSet = NewSet("default", DefaultLoader)
+	DefaultSet = NewDefaultSet("default", DefaultLoader)
 
 	// Methods on the default set
 	FromString           = DefaultSet.FromString
@@ -297,6 +314,12 @@ var (
 	FromCache            = DefaultSet.FromCache
 	RenderTemplateString = DefaultSet.RenderTemplateString
 	RenderTemplateFile   = DefaultSet.RenderTemplateFile
+	ReplaceTag           = DefaultSet.ReplaceTag
+	RegisterTag          = DefaultSet.RegisterTag
+	ReplaceFilter        = DefaultSet.ReplaceFilter
+	RegisterFilter       = DefaultSet.RegisterFilter
+	ApplyFilter          = DefaultSet.ApplyFilter
+	MustApplyFilter      = DefaultSet.MustApplyFilter
 
 	// Globals for the default set
 	Globals = DefaultSet.Globals

@@ -47,21 +47,15 @@ type tag struct {
 	parser TagParser
 }
 
-var tags map[string]*tag
-
-func init() {
-	tags = make(map[string]*tag)
-}
-
 // Registers a new tag. You usually want to call this
 // function in the tag's init() function:
 // http://golang.org/doc/effective_go.html#init
-func RegisterTag(name string, parserFn TagParser) error {
-	_, existing := tags[name]
+func (set *TemplateSet) RegisterTag(name string, parserFn TagParser) error {
+	_, existing := set.tags[name]
 	if existing {
 		return fmt.Errorf("tag with name '%s' is already registered", name)
 	}
-	tags[name] = &tag{
+	set.tags[name] = &tag{
 		name:   name,
 		parser: parserFn,
 	}
@@ -70,12 +64,12 @@ func RegisterTag(name string, parserFn TagParser) error {
 
 // Replaces an already registered tag with a new implementation. Use this
 // function with caution since it allows you to change existing tag behaviour.
-func ReplaceTag(name string, parserFn TagParser) error {
-	_, existing := tags[name]
+func (set *TemplateSet) ReplaceTag(name string, parserFn TagParser) error {
+	_, existing := set.tags[name]
 	if !existing {
 		return fmt.Errorf("tag with name '%s' does not exist (therefore cannot be overridden)", name)
 	}
-	tags[name] = &tag{
+	set.tags[name] = &tag{
 		name:   name,
 		parser: parserFn,
 	}
@@ -93,7 +87,7 @@ func (p *Parser) parseTagElement() (INodeTag, *Error) {
 	}
 
 	// Check for the existing tag
-	tag, exists := tags[tokenName.Val]
+	tag, exists := p.template.set.tags[tokenName.Val]
 	if !exists {
 		// Does not exists
 		return nil, p.Error(fmt.Sprintf("Tag '%s' not found (or beginning tag not provided)", tokenName.Val), tokenName)

@@ -7,15 +7,9 @@ import (
 // FilterFunction is the type filter functions must fulfil
 type FilterFunction func(in *Value, param *Value) (out *Value, err *Error)
 
-var filters map[string]FilterFunction
-
-func init() {
-	filters = make(map[string]FilterFunction)
-}
-
 // FilterExists returns true if the given filter is already registered
-func FilterExists(name string) bool {
-	_, existing := filters[name]
+func (set *TemplateSet) FilterExists(name string) bool {
+	_, existing := set.filters[name]
 	return existing
 }
 
@@ -23,27 +17,27 @@ func FilterExists(name string) bool {
 // want to call this function in the filter's init() function:
 //
 //	http://golang.org/doc/effective_go.html#init
-func RegisterFilter(name string, fn FilterFunction) error {
-	if FilterExists(name) {
+func (set *TemplateSet) RegisterFilter(name string, fn FilterFunction) error {
+	if set.FilterExists(name) {
 		return fmt.Errorf("filter with name '%s' is already registered", name)
 	}
-	filters[name] = fn
+	set.filters[name] = fn
 	return nil
 }
 
 // ReplaceFilter replaces an already registered filter with a new implementation. Use this
 // function with caution since it allows you to change existing filter behaviour.
-func ReplaceFilter(name string, fn FilterFunction) error {
-	if !FilterExists(name) {
+func (set *TemplateSet) ReplaceFilter(name string, fn FilterFunction) error {
+	if !set.FilterExists(name) {
 		return fmt.Errorf("filter with name '%s' does not exist (therefore cannot be overridden)", name)
 	}
-	filters[name] = fn
+	set.filters[name] = fn
 	return nil
 }
 
 // MustApplyFilter behaves like ApplyFilter, but panics on an error.
-func MustApplyFilter(name string, value *Value, param *Value) *Value {
-	val, err := ApplyFilter(name, value, param)
+func (set *TemplateSet) MustApplyFilter(name string, value *Value, param *Value) *Value {
+	val, err := set.ApplyFilter(name, value, param)
 	if err != nil {
 		panic(err)
 	}
@@ -52,8 +46,8 @@ func MustApplyFilter(name string, value *Value, param *Value) *Value {
 
 // ApplyFilter applies a filter to a given value using the given parameters.
 // Returns a *pongo2.Value or an error.
-func ApplyFilter(name string, value *Value, param *Value) (*Value, *Error) {
-	fn, existing := filters[name]
+func (set *TemplateSet) ApplyFilter(name string, value *Value, param *Value) (*Value, *Error) {
+	fn, existing := set.filters[name]
 	if !existing {
 		return nil, &Error{
 			Sender:    "applyfilter",
@@ -113,7 +107,7 @@ func (p *Parser) parseFilter() (*filterCall, *Error) {
 	}
 
 	// Get the appropriate filter function and bind it
-	filterFn, exists := filters[identToken.Val]
+	filterFn, exists := p.template.set.filters[identToken.Val]
 	if !exists {
 		return nil, p.Error(fmt.Sprintf("Filter '%s' does not exist.", identToken.Val), identToken)
 	}
