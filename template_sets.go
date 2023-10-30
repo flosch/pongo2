@@ -58,23 +58,8 @@ type TemplateSet struct {
 	templateCacheMutex sync.Mutex
 }
 
-// NewSet can be used to create sets with different kind of templates
-// (e. g. web from mail templates), with different globals or
-// other configurations.
-func NewSet(name string, loaders ...TemplateLoader) *TemplateSet {
-	set := NewDefaultSet(name, loaders...)
-
-	for name, tag := range DefaultSet.tags {
-		set.tags[name] = tag
-	}
-	for name, filter := range DefaultSet.filters {
-		set.filters[name] = filter
-	}
-	return set
-}
-
-// NewDefaultSet only be used to create default sets without default tags and filters
-func NewDefaultSet(name string, loaders ...TemplateLoader) *TemplateSet {
+// newSet only be used to create sets without default tags and filters
+func newSet(name string, loaders ...TemplateLoader) *TemplateSet {
 	if len(loaders) == 0 {
 		panic(fmt.Errorf("at least one template loader must be specified"))
 	}
@@ -90,6 +75,21 @@ func NewDefaultSet(name string, loaders ...TemplateLoader) *TemplateSet {
 		templateCache: make(map[string]*Template),
 		Options:       newOptions(),
 	}
+}
+
+// NewSet can be used to create sets with different kind of templates
+// (e. g. web from mail templates), with different globals or
+// other configurations.
+func NewSet(name string, loaders ...TemplateLoader) *TemplateSet {
+	set := newSet(name, loaders...)
+
+	for name, tag := range DefaultSet.tags {
+		set.tags[name] = tag
+	}
+	for name, filter := range DefaultSet.filters {
+		set.filters[name] = filter
+	}
+	return set
 }
 
 func (set *TemplateSet) AddLoader(loaders ...TemplateLoader) {
@@ -305,7 +305,7 @@ var (
 	DefaultLoader = MustNewLocalFileSystemLoader("")
 
 	// DefaultSet is a set created for you for convinience reasons.
-	DefaultSet = NewDefaultSet("default", DefaultLoader)
+	DefaultSet = newSet("default", DefaultLoader)
 
 	// Methods on the default set
 	FromString           = DefaultSet.FromString
