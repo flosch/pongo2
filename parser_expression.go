@@ -27,6 +27,11 @@ type simpleExpression struct {
 	opToken      *Token
 }
 
+type namedTerm struct {
+	name string
+	term IEvaluator
+}
+
 type term struct {
 	// TODO: Add location token?
 	factor1 IEvaluator
@@ -55,6 +60,10 @@ func (expr *simpleExpression) FilterApplied(name string) bool {
 		(expr.term2 != nil && expr.term2.FilterApplied(name)))
 }
 
+func (expr *namedTerm) FilterApplied(name string) bool {
+	return expr.term.FilterApplied(name)
+}
+
 func (expr *term) FilterApplied(name string) bool {
 	return expr.factor1.FilterApplied(name) && (expr.factor2 == nil ||
 		(expr.factor2 != nil && expr.factor2.FilterApplied(name)))
@@ -75,6 +84,10 @@ func (expr *relationalExpression) GetPositionToken() *Token {
 
 func (expr *simpleExpression) GetPositionToken() *Token {
 	return expr.term1.GetPositionToken()
+}
+
+func (expr *namedTerm) GetPositionToken() *Token {
+	return expr.term.GetPositionToken()
 }
 
 func (expr *term) GetPositionToken() *Token {
@@ -104,6 +117,15 @@ func (expr *relationalExpression) Execute(ctx *ExecutionContext, writer Template
 }
 
 func (expr *simpleExpression) Execute(ctx *ExecutionContext, writer TemplateWriter) *Error {
+	value, err := expr.Evaluate(ctx)
+	if err != nil {
+		return err
+	}
+	writer.WriteString(value.String())
+	return nil
+}
+
+func (expr *namedTerm) Execute(ctx *ExecutionContext, writer TemplateWriter) *Error {
 	value, err := expr.Evaluate(ctx)
 	if err != nil {
 		return err
@@ -282,6 +304,15 @@ func (expr *simpleExpression) Evaluate(ctx *ExecutionContext) (*Value, *Error) {
 	return result, nil
 }
 
+func (expr *namedTerm) Evaluate(ctx *ExecutionContext) (*Value, *Error) {
+	t, err := expr.term.Evaluate(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	return AsNamedValue(expr.name, t), nil
+}
+
 func (expr *term) Evaluate(ctx *ExecutionContext) (*Value, *Error) {
 	f1, err := expr.factor1.Evaluate(ctx)
 	if err != nil {
@@ -385,6 +416,27 @@ func (p *Parser) parsePower() (IEvaluator, *Error) {
 	return pw, nil
 }
 
+func (p *Parser) parseNamedTerm() (IEvaluator, *Error) {
+	nt := new(namedTerm)
+
+	nameToken := p.MatchType(TokenIdentifier)
+	if nameToken == nil {
+		return nil, p.Error(fmt.Errorf("no name identifier provided"), nil)
+	}
+	nt.name = nameToken.Val
+	if p.Match(TokenSymbol, "=") == nil {
+		return nil, p.Error(fmt.Errorf("expected '='"), nil)
+	}
+
+	termVal, err := p.ParseExpression()
+	if err != nil {
+		return nil, err
+	}
+
+	nt.term = termVal
+	return nt, nil
+}
+
 func (p *Parser) parseTerm() (IEvaluator, *Error) {
 	returnTerm := new(term)
 
@@ -435,11 +487,21 @@ func (p *Parser) parseSimpleExpression() (IEvaluator, *Error) {
 		expr.negate = true
 	}
 
-	term1, err := p.parseTerm()
-	if err != nil {
-		return nil, err
+	// identifier = term
+	if p.PeekType(TokenIdentifier) != nil && p.PeekN(1, TokenSymbol, "=") != nil {
+		nTerm, err := p.parseNamedTerm()
+		if err != nil {
+			return nil, err
+		}
+
+		expr.term1 = nTerm
+	} else {
+		term1, err := p.parseTerm()
+		if err != nil {
+			return nil, err
+		}
+		expr.term1 = term1
 	}
-	expr.term1 = term1
 
 	for p.PeekOne(TokenSymbol, "+", "-") != nil {
 		if expr.opToken != nil {

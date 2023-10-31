@@ -10,6 +10,7 @@ import (
 )
 
 type Value struct {
+	name string // used for keyword arguments
 	val  reflect.Value
 	safe bool // used to indicate whether a Value needs explicit escaping in the template
 }
@@ -24,6 +25,13 @@ type Value struct {
 func AsValue(i any) *Value {
 	return &Value{
 		val: reflect.ValueOf(i),
+	}
+}
+
+func AsNamedValue(name string, i any) *Value {
+	return &Value{
+		name: name,
+		val:  reflect.ValueOf(i),
 	}
 }
 
