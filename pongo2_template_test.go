@@ -344,10 +344,28 @@ func TestTemplate_Functions(t *testing.T) {
 			errorMessage: "[Error (where: execution) in <string> | Line 1 Col 4 near 'testFunc'] function input argument 0 of 'testFunc' must be of type int or *pongo2.Value (not <nil>)",
 			wantErr:      true,
 		},
+		{
+			name:     "KeywordArguments",
+			template: `{{ testFunc(arg1=1, isEnabled= 2 > 3, "no named arg", cached=true, 10) }}`,
+			context: pongo2.Context{
+				"testFunc": func(args ...*pongo2.Value) string {
+					res := "["
+					for _, arg := range args {
+						if arg.IsKwarg() {
+							res += fmt.Sprintf("%s=", arg.Name())
+						}
+						res += fmt.Sprintf("%v ", arg)
+					}
+					return res + "]"
+				},
+			},
+			want:    `[arg1=1 isEnabled=False no named arg cached=True 10 ]`,
+			wantErr: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			tpl, _ := pongo2.FromString("{{ testFunc(mydict) }}")
+			tpl, _ := pongo2.FromString(tt.template)
 			got, err := tpl.Execute(tt.context)
 			if err != nil {
 				if !tt.wantErr {
