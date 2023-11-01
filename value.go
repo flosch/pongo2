@@ -98,6 +98,15 @@ func (v *Value) IsNil() bool {
 	return !v.getResolvedValue().IsValid()
 }
 
+// IsKwarg checks whether the underlying value is a keyword argument
+func (v *Value) IsKwarg() bool {
+	return v.name != ""
+}
+
+func (v *Value) Name() string {
+	return v.name
+}
+
 // String returns a string for the underlying value. If this value is not
 // of type string, pongo2 tries to convert it. Currently the following
 // types for underlying values are supported:
