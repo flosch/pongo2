@@ -325,7 +325,7 @@ func TestTemplate_Functions(t *testing.T) {
 					"foo":    "bar",
 					"foobar": 8379,
 				},
-				"testFunc": func(i any) (string, int) {
+				"testFunc": func(kwargs map[string]*pongo2.Value, i any) (string, int) {
 					return "", 0
 				},
 			},
@@ -337,7 +337,7 @@ func TestTemplate_Functions(t *testing.T) {
 			template: "{{ testFunc(nil) }}",
 			context: pongo2.Context{
 				"mydict": nil,
-				"testFunc": func(i int) int {
+				"testFunc": func(kwargs map[string]*pongo2.Value, i int) int {
 					return 1
 				},
 			},
@@ -345,21 +345,68 @@ func TestTemplate_Functions(t *testing.T) {
 			wantErr:      true,
 		},
 		{
-			name:     "KeywordArguments",
-			template: `{{ testFunc(arg1=1, isEnabled= 2 > 3, "no named arg", cached=true, 10) }}`,
+			name:     "KeywordArgs",
+			template: `{{ testFunc("no named arg", 10, arg1=7, arg2=2>3) }}`,
 			context: pongo2.Context{
-				"testFunc": func(args ...*pongo2.Value) string {
+				"testFunc": func(kwargs map[string]*pongo2.Value, args ...*pongo2.Value) string {
 					res := "["
 					for _, arg := range args {
-						if arg.IsKwarg() {
-							res += fmt.Sprintf("%s=", arg.Name())
-						}
 						res += fmt.Sprintf("%v ", arg)
+					}
+					arg1, ok := kwargs["arg1"]
+					if !ok {
+						return "no arg1 found"
+					}
+					res += fmt.Sprintf("arg1=%v ", arg1)
+					arg2, ok := kwargs["arg2"]
+					if !ok {
+						return "no arg2 found"
+					}
+					res += fmt.Sprintf("arg2=%v ", arg2)
+					return res + "]"
+				},
+			},
+			want:    `[no named arg 10 arg1=7 arg2=False ]`,
+			wantErr: false,
+		},
+		{
+			name:     "KeywordArgsBeforePositionalArgs",
+			template: `{{ testFunc("no named arg", arg1=7, 10, 2>3) }}`,
+			context: pongo2.Context{
+				"testFunc": func(kwargs map[string]*pongo2.Value, args ...*pongo2.Value) string {
+					return ""
+				},
+			},
+			errorMessage: "[Error (where: execution) in <string> | Line 1 Col 4 near 'testFunc'] calling a function using a positional argument: 10, after a keyword argument",
+			wantErr:      true,
+		},
+		{
+			name:     "KeywordArgsDisabled",
+			template: `{{ testFunc("no named arg", arg1=7, 2>3) }}`,
+			context: pongo2.Context{
+				"testFunc": func(args ...*pongo2.Value) string {
+					return ""
+				},
+			},
+			errorMessage: "[Error (where: execution) in <string> | Line 1 Col 4 near 'testFunc'] calling a function using a keyword argument: arg1=7, but the function does not support kwargs",
+			wantErr:      true,
+		},
+		{
+			name:     "NoKeywordArgs",
+			template: `{{ testFunc("no named arg", 10) }}`,
+			context: pongo2.Context{
+				"testFunc": func(kwargs map[string]*pongo2.Value, args ...*pongo2.Value) string {
+					res := "["
+					for _, arg := range args {
+						res += fmt.Sprintf("%v ", arg)
+					}
+					if len(kwargs) == 0 {
+						res += "(no kwargs)"
 					}
 					return res + "]"
 				},
 			},
-			want:    `[arg1=1 isEnabled=False no named arg cached=True 10 ]`,
+			want:    `[no named arg 10 (no kwargs)]`,
 			wantErr: false,
 		},
 	}

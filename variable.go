@@ -19,6 +19,7 @@ const (
 var (
 	typeOfValuePtr   = reflect.TypeOf(new(Value))
 	typeOfExecCtxPtr = reflect.TypeOf(new(ExecutionContext))
+	typeOfKwargsMap  = reflect.TypeOf(make(map[string]*Value))
 )
 
 type variablePart struct {
@@ -433,11 +434,33 @@ func (vr *variableResolver) resolve(ctx *ExecutionContext) (*Value, error) {
 				currArgs = append([]functionCallArgument{executionCtxEval{}}, currArgs...)
 			}
 
+			// If kwargs map is needed
+			includeKwargsBit := 0
+			if t.NumIn() > 0 && t.In(0) == typeOfKwargsMap {
+				includeKwargsBit = 1
+			}
+
+			evaluatedArgs := make([]*Value, 0)
+			kwargCount := 0
+			for _, arg := range currArgs {
+				v, err := arg.Evaluate(ctx)
+				if err != nil {
+					return nil, err
+				}
+				if v.IsKwarg() {
+					if !(includeKwargsBit == 1) {
+						return nil, fmt.Errorf("calling a function using a keyword argument: %v=%v, but the function does not support kwargs", v.Name(), v)
+					}
+					kwargCount++
+				}
+				evaluatedArgs = append(evaluatedArgs, v)
+			}
+
 			// Input arguments
-			if len(currArgs) != t.NumIn() && !(len(currArgs) >= t.NumIn()-1 && t.IsVariadic()) {
+			if len(currArgs)-kwargCount != t.NumIn()-includeKwargsBit && !(len(currArgs)-kwargCount >= t.NumIn()-1-includeKwargsBit && t.IsVariadic()) {
 				return nil,
 					fmt.Errorf("function input argument count (%d) of '%s' must be equal to the calling argument count (%d)",
-						t.NumIn(), vr.String(), len(currArgs))
+						t.NumIn()-includeKwargsBit, vr.String(), len(currArgs)-kwargCount)
 			}
 
 			// Output arguments
@@ -446,37 +469,36 @@ func (vr *variableResolver) resolve(ctx *ExecutionContext) (*Value, error) {
 			}
 
 			// Evaluate all parameters
-			var parameters []reflect.Value
+			args := make([]reflect.Value, 0)
+			kwargs := make(map[string]*Value)
 
 			numArgs := t.NumIn()
 			isVariadic := t.IsVariadic()
 			var fnArg reflect.Type
 
-			for idx, arg := range currArgs {
-				pv, err := arg.Evaluate(ctx)
-				if err != nil {
-					return nil, err
-				}
-
-				if isVariadic {
-					if idx >= t.NumIn()-1 {
+			for idx, pv := range evaluatedArgs {
+				if pv.IsKwarg() {
+					fnArg = typeOfValuePtr
+				} else if isVariadic {
+					if idx+includeKwargsBit >= t.NumIn()-1 {
 						fnArg = t.In(numArgs - 1).Elem()
 					} else {
-						fnArg = t.In(idx)
+						fnArg = t.In(idx + includeKwargsBit)
 					}
 				} else {
-					fnArg = t.In(idx)
+					fnArg = t.In(idx + includeKwargsBit)
 				}
 
+				var val reflect.Value
 				if fnArg != typeOfValuePtr {
 					// Function's argument is not a *pongo2.Value, then we have to check whether input argument is of the same type as the function's argument
 					if !isVariadic {
-						if fnArg != reflect.TypeOf(pv.Interface()) && fnArg.Kind() != reflect.Interface {
+						if fnArg != reflect.TypeOf(pv.Interface()) && fnArg.Kind() != reflect.Interface && fnArg.Kind() != reflect.ValueOf(kwargs).Kind() {
 							return nil, fmt.Errorf("function input argument %d of '%s' must be of type %s or *pongo2.Value (not %T)",
 								idx, vr.String(), fnArg.String(), pv.Interface())
 						}
 					} else {
-						if fnArg != reflect.TypeOf(pv.Interface()) && fnArg.Kind() != reflect.Interface {
+						if fnArg != reflect.TypeOf(pv.Interface()) && fnArg.Kind() != reflect.Interface && fnArg.Kind() != reflect.ValueOf(kwargs).Kind() {
 							return nil, fmt.Errorf("function variadic input argument of '%s' must be of type %s or *pongo2.Value (not %T)",
 								vr.String(), fnArg.String(), pv.Interface())
 						}
@@ -485,17 +507,34 @@ func (vr *variableResolver) resolve(ctx *ExecutionContext) (*Value, error) {
 					if pv.IsNil() {
 						// Workaround to present an interface nil as reflect.Value
 						var empty any = nil
-						parameters = append(parameters, reflect.ValueOf(&empty).Elem())
+						val = reflect.ValueOf(&empty).Elem()
 					} else {
-						parameters = append(parameters, reflect.ValueOf(pv.Interface()))
+						val = reflect.ValueOf(pv.Interface())
 					}
 				} else {
 					// Function's argument is a *pongo2.Value
-					parameters = append(parameters, reflect.ValueOf(pv))
+					val = reflect.ValueOf(pv)
+				}
+
+				if val.Kind() == reflect.Invalid {
+					return nil, fmt.Errorf("calling a function using an invalid parameter")
+				}
+
+				if pv.IsKwarg() {
+					kwargs[pv.Name()] = pv
+				} else if len(kwargs) == 0 {
+					args = append(args, val)
+				} else {
+					return nil, fmt.Errorf("calling a function using a positional argument: %v, after a keyword argument", pv)
 				}
 			}
 
-			// Check if any of the values are invalid
+			parameters := make([]reflect.Value, 0)
+			if includeKwargsBit == 1 {
+				parameters = append(parameters, reflect.ValueOf(kwargs))
+			}
+			parameters = append(parameters, args...)
+
 			for _, p := range parameters {
 				if p.Kind() == reflect.Invalid {
 					return nil, fmt.Errorf("calling a function using an invalid parameter")
