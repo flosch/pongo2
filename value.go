@@ -10,6 +10,7 @@ import (
 )
 
 type Value struct {
+	name string // used for keyword arguments
 	val  reflect.Value
 	safe bool // used to indicate whether a Value needs explicit escaping in the template
 }
@@ -24,6 +25,13 @@ type Value struct {
 func AsValue(i any) *Value {
 	return &Value{
 		val: reflect.ValueOf(i),
+	}
+}
+
+func AsNamedValue(name string, i any) *Value {
+	return &Value{
+		name: name,
+		val:  reflect.ValueOf(i),
 	}
 }
 
@@ -88,6 +96,15 @@ func (v *Value) IsTime() bool {
 func (v *Value) IsNil() bool {
 	// fmt.Printf("%+v\n", v.getResolvedValue().Type().String())
 	return !v.getResolvedValue().IsValid()
+}
+
+// IsKwarg checks whether the underlying value is a keyword argument
+func (v *Value) IsKwarg() bool {
+	return v.name != ""
+}
+
+func (v *Value) Name() string {
+	return v.name
 }
 
 // String returns a string for the underlying value. If this value is not
