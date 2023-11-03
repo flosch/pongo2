@@ -449,7 +449,7 @@ func (vr *variableResolver) resolve(ctx *ExecutionContext) (*Value, error) {
 				}
 				if v.IsKwarg() {
 					if !(includeKwargsBit == 1) {
-						return nil, fmt.Errorf("calling a function using a keyword argument: %v=%v, but the function does not support kwargs", v.Name(), v)
+						return nil, fmt.Errorf("calling a function using a keyword argument: %v=%v, but the function does not support kwargs. Add map[string]*pongo2.Value as first arg in the function", v.Name(), v)
 					}
 					kwargCount++
 				}

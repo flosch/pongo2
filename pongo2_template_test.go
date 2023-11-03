@@ -388,7 +388,7 @@ func TestTemplate_Functions(t *testing.T) {
 					return ""
 				},
 			},
-			errorMessage: "[Error (where: execution) in <string> | Line 1 Col 4 near 'testFunc'] calling a function using a keyword argument: arg1=7, but the function does not support kwargs",
+			errorMessage: "[Error (where: execution) in <string> | Line 1 Col 4 near 'testFunc'] calling a function using a keyword argument: arg1=7, but the function does not support kwargs. Add map[string]*pongo2.Value as first arg in the function",
 			wantErr:      true,
 		},
 		{
