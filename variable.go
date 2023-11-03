@@ -470,7 +470,7 @@ func (vr *variableResolver) resolve(ctx *ExecutionContext) (*Value, error) {
 
 			// Evaluate all parameters
 			args := make([]reflect.Value, 0)
-			kwargs := make(map[string]*Value)
+			kwargs := make(map[string]reflect.Value)
 
 			numArgs := t.NumIn()
 			isVariadic := t.IsVariadic()
@@ -512,8 +512,12 @@ func (vr *variableResolver) resolve(ctx *ExecutionContext) (*Value, error) {
 						val = reflect.ValueOf(pv.Interface())
 					}
 				} else {
-					// Function's argument is a *pongo2.Value
-					val = reflect.ValueOf(pv)
+					if pv.IsKwarg() {
+						val = reflect.ValueOf(pv.Interface())
+					} else {
+						// Function's argument is a *pongo2.Value
+						val = reflect.ValueOf(pv)
+					}
 				}
 
 				if val.Kind() == reflect.Invalid {
@@ -521,7 +525,7 @@ func (vr *variableResolver) resolve(ctx *ExecutionContext) (*Value, error) {
 				}
 
 				if pv.IsKwarg() {
-					kwargs[pv.Name()] = pv
+					kwargs[pv.Name()] = val
 				} else if len(kwargs) == 0 {
 					args = append(args, val)
 				} else {
@@ -529,9 +533,17 @@ func (vr *variableResolver) resolve(ctx *ExecutionContext) (*Value, error) {
 				}
 			}
 
+			pkwargs := make(map[string]*Value)
+			for k, v := range kwargs {
+				pv, ok := v.Interface().(*Value)
+				if !ok {
+					return nil, fmt.Errorf("calling a function using an invalid parameter")
+				}
+				pkwargs[k] = AsNamedValue(k, pv.Interface())
+			}
 			parameters := make([]reflect.Value, 0)
 			if includeKwargsBit == 1 {
-				parameters = append(parameters, reflect.ValueOf(kwargs))
+				parameters = append(parameters, reflect.ValueOf(pkwargs))
 			}
 			parameters = append(parameters, args...)
 
