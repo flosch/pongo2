@@ -3,10 +3,7 @@ package pongo2
 import (
 	"errors"
 	"fmt"
-	"regexp"
 )
-
-var reIdentifiers = regexp.MustCompile("^[a-zA-Z0-9_]+$")
 
 var autoescape = true
 
@@ -30,7 +27,7 @@ type Context map[string]any
 
 func (c Context) checkForValidIdentifiers() *Error {
 	for k, v := range c {
-		if !reIdentifiers.MatchString(k) {
+		if !isValidIdentifier(k) {
 			return &Error{
 				Sender:    "checkForValidIdentifiers",
 				OrigError: fmt.Errorf("context-key '%s' (value: '%+v') is not a valid identifier", k, v),
@@ -38,6 +35,22 @@ func (c Context) checkForValidIdentifiers() *Error {
 		}
 	}
 	return nil
+}
+
+func isValidIdentifier(s string) bool {
+	for i := range s {
+		if !isValidIdentifierChar(s[i]) {
+			return false
+		}
+	}
+	return true
+}
+
+func isValidIdentifierChar(c byte) bool {
+	return (c >= 'a' && c <= 'z') ||
+		(c >= 'A' && c <= 'Z') ||
+		(c >= '0' && c <= '9') ||
+		c == '_'
 }
 
 // Update updates this context with the key/value-pairs from another context.
