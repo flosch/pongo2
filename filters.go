@@ -2,20 +2,22 @@ package pongo2
 
 import (
 	"fmt"
+	"sync"
 )
 
 // FilterFunction is the type filter functions must fulfil
 type FilterFunction func(in *Value, param *Value) (out *Value, err *Error)
 
-var filters map[string]FilterFunction
+// var filters map[string]FilterFunction
+var filters *sync.Map
 
 func init() {
-	filters = make(map[string]FilterFunction)
+	filters = new(sync.Map)
 }
 
 // FilterExists returns true if the given filter is already registered
 func FilterExists(name string) bool {
-	_, existing := filters[name]
+	_, existing := filters.Load(name)
 	return existing
 }
 
@@ -27,7 +29,8 @@ func RegisterFilter(name string, fn FilterFunction) error {
 	if FilterExists(name) {
 		return fmt.Errorf("filter with name '%s' is already registered", name)
 	}
-	filters[name] = fn
+
+	filters.Store(name, fn)
 	return nil
 }
 
@@ -37,7 +40,7 @@ func ReplaceFilter(name string, fn FilterFunction) error {
 	if !FilterExists(name) {
 		return fmt.Errorf("filter with name '%s' does not exist (therefore cannot be overridden)", name)
 	}
-	filters[name] = fn
+	filters.Store(name, fn)
 	return nil
 }
 
@@ -53,7 +56,7 @@ func MustApplyFilter(name string, value *Value, param *Value) *Value {
 // ApplyFilter applies a filter to a given value using the given parameters.
 // Returns a *pongo2.Value or an error.
 func ApplyFilter(name string, value *Value, param *Value) (*Value, *Error) {
-	fn, existing := filters[name]
+	storedValue, existing := filters.Load(name)
 	if !existing {
 		return nil, &Error{
 			Sender:    "applyfilter",
@@ -66,6 +69,7 @@ func ApplyFilter(name string, value *Value, param *Value) (*Value, *Error) {
 		param = AsValue(nil)
 	}
 
+	fn, _ := storedValue.(FilterFunction)
 	return fn(value, param)
 }
 
@@ -113,10 +117,11 @@ func (p *Parser) parseFilter() (*filterCall, *Error) {
 	}
 
 	// Get the appropriate filter function and bind it
-	filterFn, exists := filters[identToken.Val]
+	storedFunc, exists := filters.Load(identToken.Val)
 	if !exists {
 		return nil, p.Error(fmt.Sprintf("Filter '%s' does not exist.", identToken.Val), identToken)
 	}
+	filterFn, _ := storedFunc.(FilterFunction)
 
 	filter.filterFunc = filterFn
 
