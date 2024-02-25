@@ -115,7 +115,7 @@ func (set *TemplateSet) BanTag(name string) error {
 
 // BanFilter bans a specific filter for this template set. See more in the documentation for TemplateSet.
 func (set *TemplateSet) BanFilter(name string) error {
-	_, has := filters[name]
+	_, has := filters.Load(name)
 	if !has {
 		return fmt.Errorf("filter '%s' not found", name)
 	}
