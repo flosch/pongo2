@@ -214,7 +214,13 @@ func (nv *nodeVariable) Execute(ctx *ExecutionContext, writer TemplateWriter) *E
 
 	if !nv.expr.FilterApplied("safe") && !value.safe && value.IsString() && ctx.Autoescape {
 		// apply escape filter
-		value, err = filters["escape"](value, nil)
+		storedValue, ok := filters.Load("escape")
+		if !ok {
+			return ctx.Error("filter 'escape' not found", nv.locationToken)
+		}
+
+		fn, _ := storedValue.(FilterFunction)
+		value, err = fn(value, nil, ctx.Public)
 		if err != nil {
 			return err
 		}

@@ -35,7 +35,7 @@ func (node *tagFilterNode) Execute(ctx *ExecutionContext, writer TemplateWriter)
 		} else {
 			param = AsValue(nil)
 		}
-		value, err = ApplyFilter(call.name, value, param)
+		value, err = ApplyFilter(call.name, value, param, ctx.Public)
 		if err != nil {
 			return ctx.Error(err.Error(), node.position)
 		}
