@@ -220,7 +220,7 @@ func (nv *nodeVariable) Execute(ctx *ExecutionContext, writer TemplateWriter) *E
 		}
 
 		fn, _ := storedValue.(FilterFunction)
-		value, err = fn(value, nil)
+		value, err = fn(value, nil, ctx.Public)
 		if err != nil {
 			return err
 		}

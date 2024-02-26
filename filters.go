@@ -6,7 +6,7 @@ import (
 )
 
 // FilterFunction is the type filter functions must fulfil
-type FilterFunction func(in *Value, param *Value) (out *Value, err *Error)
+type FilterFunction func(in *Value, param *Value, bind map[string]any) (out *Value, err *Error)
 
 // var filters map[string]FilterFunction
 var filters *sync.Map
@@ -40,22 +40,28 @@ func ReplaceFilter(name string, fn FilterFunction) error {
 	if !FilterExists(name) {
 		return fmt.Errorf("filter with name '%s' does not exist (therefore cannot be overridden)", name)
 	}
+	filters.Swap(name, fn)
+	return nil
+}
+
+func OverrideFilter(name string, fn FilterFunction) error {
+	filters.Delete(name)
 	filters.Store(name, fn)
 	return nil
 }
 
 // MustApplyFilter behaves like ApplyFilter, but panics on an error.
-func MustApplyFilter(name string, value *Value, param *Value) *Value {
-	val, err := ApplyFilter(name, value, param)
-	if err != nil {
-		panic(err)
-	}
-	return val
-}
+//func MustApplyFilter(name string, value *Value, param *Value) *Value {
+//	val, err := ApplyFilter(name, value, param)
+//	if err != nil {
+//		panic(err)
+//	}
+//	return val
+//}
 
 // ApplyFilter applies a filter to a given value using the given parameters.
 // Returns a *pongo2.Value or an error.
-func ApplyFilter(name string, value *Value, param *Value) (*Value, *Error) {
+func ApplyFilter(name string, value *Value, param *Value, bind map[string]any) (*Value, *Error) {
 	storedValue, existing := filters.Load(name)
 	if !existing {
 		return nil, &Error{
@@ -70,7 +76,7 @@ func ApplyFilter(name string, value *Value, param *Value) (*Value, *Error) {
 	}
 
 	fn, _ := storedValue.(FilterFunction)
-	return fn(value, param)
+	return fn(value, param, bind)
 }
 
 type filterCall struct {
@@ -95,7 +101,7 @@ func (fc *filterCall) Execute(v *Value, ctx *ExecutionContext) (*Value, *Error) 
 		param = AsValue(nil)
 	}
 
-	filteredValue, err := fc.filterFunc(v, param)
+	filteredValue, err := fc.filterFunc(v, param, ctx.Public)
 	if err != nil {
 		return nil, err.updateFromTokenIfNeeded(ctx.template, fc.token)
 	}
