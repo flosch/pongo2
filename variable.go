@@ -11,6 +11,7 @@ import (
 const (
 	varTypeInt = iota
 	varTypeIdent
+	varTypeAttr
 	varTypeSubscript
 	varTypeArray
 	varTypeNil
@@ -39,6 +40,8 @@ func (p *variablePart) String() string {
 		return strconv.Itoa(p.i)
 	case varTypeIdent:
 		return p.s
+	case varTypeAttr:
+		return "@" + p.s
 	case varTypeSubscript:
 		return "[subscript]"
 	case varTypeArray:
@@ -338,6 +341,8 @@ func (vr *variableResolver) resolve(ctx *ExecutionContext) (*Value, error) {
 						return nil, fmt.Errorf("can't access a field by name on type %s (variable %s)",
 							current.Kind().String(), vr.String())
 					}
+				case varTypeAttr:
+					return nil, fmt.Errorf("Attributes not supported yet")
 				case varTypeSubscript:
 					// Calling an index is only possible for:
 					// * slices/arrays/strings
@@ -804,6 +809,21 @@ variableLoop:
 				// EOF
 				return nil, p.Error(fmt.Errorf("Unexpected EOF, expected either IDENTIFIER or NUMBER after DOT."),
 					p.lastToken)
+			}
+		} else if p.Match(TokenSymbol, "@") != nil {
+			// Next variable part (can be either NUMBER or IDENT)
+			t2 := p.Current()
+			if t2 == nil {
+				return nil, p.Error(fmt.Errorf("Unexpected EOF, expected either IDENTIFIER after @."), p.lastToken)
+			} else if t2.Typ != TokenIdentifier {
+				return nil, p.Error(fmt.Errorf("This token is not allowed within a variable name."), t2)
+			} else {
+				resolver.parts = append(resolver.parts, &variablePart{
+					typ: varTypeAttr,
+					s:   t2.Val,
+				})
+				p.Consume() // consume: IDENT
+				continue variableLoop
 			}
 		} else if p.Match(TokenSymbol, "[") != nil {
 			// Variable subscript
