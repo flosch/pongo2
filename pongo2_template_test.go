@@ -266,6 +266,55 @@ Yep!`,
 	},
 }
 
+type ObjWithoutAttrs struct {
+	the_attr_field string
+}
+
+func (owa *ObjWithoutAttrs) GetAttr(attrName string) (string, error){
+	if attrName != "attr_name"{
+		return "", fmt.Errorf("unknown attr name '%s'", attrName)
+	}
+	return owa.the_attr_field, nil
+}
+
+type ObjWithAttrs struct {
+	the_attr_field string
+}
+
+func (owa *ObjWithAttrs) GetAttr(kwargs map[string]*pongo2.Value, args ...*pongo2.Value) (string, error){
+	if len(args) < 1 {
+		return "", fmt.Errorf("unspecified attr name")
+	}
+	if !args[0].IsString() {
+		return "", fmt.Errorf("attr name not string")
+	}
+	attrName := args[0].String()
+	if attrName != "attr_name"{
+		return "", fmt.Errorf("unknown attr name '%s'", attrName)
+	}
+	res := owa.the_attr_field + " with args ["
+	for _, arg := range args[1:] {
+		res += fmt.Sprintf("%v ", arg)
+	}
+	if len(kwargs) == 0 {
+		res += "(no kwargs)"
+	} else {
+		arg1, ok := kwargs["arg1"]
+		if !ok {
+			res += "no arg1 found"
+		} else {
+			res += fmt.Sprintf("arg1=%v ", arg1)
+		}
+		arg2, ok := kwargs["arg2"]
+		if !ok {
+			res += "no arg2 found"
+		} else {
+			res += fmt.Sprintf("arg2=%v ", arg2)
+		}
+	}
+	return res + "]", nil
+}
+
 func TestTemplate_Functions(t *testing.T) {
 	mydict := map[string]any{
 		"foo":    "bar",
@@ -407,6 +456,28 @@ func TestTemplate_Functions(t *testing.T) {
 				},
 			},
 			want:    `[no named arg 10 (no kwargs)]`,
+			wantErr: false,
+		},
+		{
+			name:     "AttrsWithoutArgs",
+			template: `{{ obj_with_attrs.@attr_name }}`,
+			context: pongo2.Context{
+				"obj_with_attrs": &ObjWithoutAttrs{
+					the_attr_field: "attr_value",
+				},
+			},
+			want:    `attr_value`,
+			wantErr: false,
+		},
+		{
+			name:     "AttrsWithArgs",
+			template: `{{ obj_with_attrs.@attr_name("no named arg", 10, arg1=7, arg2=2>3) }}`,
+			context: pongo2.Context{
+				"obj_with_attrs": &ObjWithAttrs{
+					the_attr_field: "attr_value",
+				},
+			},
+			want:    `attr_value with args [no named arg 10 arg1=7 arg2=False ]`,
 			wantErr: false,
 		},
 	}

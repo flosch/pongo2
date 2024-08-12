@@ -11,6 +11,7 @@ import (
 const (
 	varTypeInt = iota
 	varTypeIdent
+	varTypeAttr
 	varTypeSubscript
 	varTypeArray
 	varTypeNil
@@ -39,6 +40,8 @@ func (p *variablePart) String() string {
 		return strconv.Itoa(p.i)
 	case varTypeIdent:
 		return p.s
+	case varTypeAttr:
+		return "@" + p.s + "{attr args}"
 	case varTypeSubscript:
 		return "[subscript]"
 	case varTypeArray:
@@ -282,6 +285,7 @@ func (vr *variableResolver) resolve(ctx *ExecutionContext) (*Value, error) {
 				// Nothing found? Then have a final lookup in the public context
 				val, currentPresent = ctx.Public[vr.parts[0].s]
 			}
+
 			current = reflect.ValueOf(val) // Get the initial value
 
 		} else {
@@ -290,12 +294,21 @@ func (vr *variableResolver) resolve(ctx *ExecutionContext) (*Value, error) {
 			// Before resolving the pointer, let's see if we have a method to call
 			// Problem with resolving the pointer is we're changing the receiver
 			isFunc := false
+			funcName := ""
 			if part.typ == varTypeIdent {
-				funcValue := current.MethodByName(part.s)
+				funcName = part.s
+			} else if part.typ == varTypeAttr {
+				funcName = "GetAttr"
+			}
+			if funcName != "" {
+				funcValue := current.MethodByName(funcName)
 				if funcValue.IsValid() {
 					current = funcValue
 					currentPresent = true
 					isFunc = true
+				} else if part.typ == varTypeAttr {
+					return nil, fmt.Errorf("can't access method %s on type %s (variable %s)",
+						funcName, current.Kind().String(), vr.String())
 				}
 			}
 
@@ -456,8 +469,15 @@ func (vr *variableResolver) resolve(ctx *ExecutionContext) (*Value, error) {
 				evaluatedArgs = append(evaluatedArgs, v)
 			}
 
+			hasAttrNameArg := 0
+			if part.typ == varTypeAttr {
+				hasAttrNameArg = 1
+			}
+
 			// Input arguments
-			if len(currArgs)-kwargCount != t.NumIn()-includeKwargsBit && !(len(currArgs)-kwargCount >= t.NumIn()-1-includeKwargsBit && t.IsVariadic()) {
+			if (len(currArgs)+hasAttrNameArg-kwargCount != t.NumIn()-includeKwargsBit &&
+					!(len(currArgs)+hasAttrNameArg-kwargCount >= t.NumIn()-1-includeKwargsBit &&
+					t.IsVariadic())) {
 				return nil,
 					fmt.Errorf("function input argument count (%d) of '%s' must be equal to the calling argument count (%d)",
 						t.NumIn()-includeKwargsBit, vr.String(), len(currArgs)-kwargCount)
@@ -471,6 +491,14 @@ func (vr *variableResolver) resolve(ctx *ExecutionContext) (*Value, error) {
 			// Evaluate all parameters
 			args := make([]reflect.Value, 0)
 			kwargs := make(map[string]reflect.Value)
+
+			if part.typ == varTypeAttr {
+				var value any = part.s
+				if includeKwargsBit==1 {
+					value = AsValue(part.s)
+				}
+				args = append(args, reflect.ValueOf(value))
+			}
 
 			numArgs := t.NumIn()
 			isVariadic := t.IsVariadic()
@@ -779,6 +807,7 @@ variableLoop:
 					})
 					p.Consume() // consume: IDENT
 					continue variableLoop
+
 				case TokenNumber:
 					i, err := strconv.Atoi(t2.Val)
 					if err != nil {
@@ -790,6 +819,7 @@ variableLoop:
 					})
 					p.Consume() // consume: NUMBER
 					continue variableLoop
+
 				case TokenNil:
 					resolver.parts = append(resolver.parts, &variablePart{
 						typ:   varTypeNil,
@@ -797,6 +827,68 @@ variableLoop:
 					})
 					p.Consume() // consume: NIL
 					continue variableLoop
+
+				case TokenSymbol:
+					if t2.Val != "@" {
+						return nil, p.Error(fmt.Errorf("Unexpected symbol %s at the beginning of the identifier.", t2.Val), t2)
+					}
+					p.Consume() // consume: @
+
+					// Next part must be an IDENT.
+					t2 = p.Current()
+					if t2 == nil {
+						return nil, p.Error(fmt.Errorf("Unexpected EOF, expected either attr IDENTIFIER after @."), p.lastToken)
+					} else if t2.Typ != TokenIdentifier {
+						return nil, p.Error(fmt.Errorf("This token is not allowed within an identifier name."), t2)
+					}
+
+					attrPart := &variablePart{
+						typ:            varTypeAttr,
+						s:              t2.Val,
+						isFunctionCall: true,
+					}
+					resolver.parts = append(resolver.parts, attrPart)
+					p.Consume() // consume: IDENT
+
+					if p.Match(TokenSymbol, "(") != nil {
+						// Attribute call with parameters
+						// @ AttrName '(' Comma-separated list of expressions ')'
+					attrArgsLoop:
+						for {
+							if p.Remaining() == 0 {
+								return nil, p.Error(
+									fmt.Errorf("Unexpected EOF, expected function call argument list."),
+									p.lastToken)
+							}
+
+							if p.Peek(TokenSymbol, ")") == nil {
+								// No closing bracket, so we're parsing an expression
+								exprArg, err := p.ParseExpression()
+								if err != nil {
+									return nil, err
+								}
+								attrPart.callingArgs = append(attrPart.callingArgs, exprArg)
+
+								if p.Match(TokenSymbol, ")") != nil {
+									// If there's a closing bracket after an expression, we will stop parsing the arguments
+									break attrArgsLoop
+								} else {
+									// If there's NO closing bracket, there MUST be an comma
+									if p.Match(TokenSymbol, ",") == nil {
+										return nil,
+											p.Error(fmt.Errorf("Missing comma or closing bracket after argument."),
+												nil)
+									}
+								}
+							} else {
+								// We got a closing bracket, so stop parsing arguments
+								p.Consume()
+								break attrArgsLoop
+							}
+						}
+					}
+					continue variableLoop
+
 				default:
 					return nil, p.Error(fmt.Errorf("This token is not allowed within a variable name."), t2)
 				}
