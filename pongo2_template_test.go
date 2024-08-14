@@ -480,6 +480,28 @@ func TestTemplate_Functions(t *testing.T) {
 			want:    `attr_value with args [no named arg 10 arg1=7 arg2=False ]`,
 			wantErr: false,
 		},
+		{
+			name:     "AttrsWithoutArgs",
+			template: `{{ obj_with_attrs.attr_name }}`,
+			context: pongo2.Context{
+				"obj_with_attrs": &ObjWithoutAttrs{
+					the_attr_field: "attr_value",
+				},
+			},
+			want:    `attr_value`,
+			wantErr: false,
+		},
+		{
+			name:     "AttrsWithArgs",
+			template: `{{ obj_with_attrs.attr_name("no named arg", 10, arg1=7, arg2=2>3) }}`,
+			context: pongo2.Context{
+				"obj_with_attrs": &ObjWithAttrs{
+					the_attr_field: "attr_value",
+				},
+			},
+			want:    `attr_value with args [no named arg 10 arg1=7 arg2=False ]`,
+			wantErr: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

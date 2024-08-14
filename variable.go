@@ -15,6 +15,8 @@ const (
 	varTypeSubscript
 	varTypeArray
 	varTypeNil
+
+	getAttrMethodName := "GetAttr"
 )
 
 var (
@@ -275,6 +277,7 @@ func (vr *variableResolver) resolve(ctx *ExecutionContext) (*Value, error) {
 
 	for idx, part := range vr.parts {
 		currentPresent = false
+		assumeAttr := false
 		if idx == 0 {
 			// We're looking up the first part of the variable.
 			// First we're having a look in our private
@@ -298,7 +301,8 @@ func (vr *variableResolver) resolve(ctx *ExecutionContext) (*Value, error) {
 			if part.typ == varTypeIdent {
 				funcName = part.s
 			} else if part.typ == varTypeAttr {
-				funcName = "GetAttr"
+				assumeAttr = true
+				funcName = getAttrMethodName
 			}
 			if funcName != "" {
 				funcValue := current.MethodByName(funcName)
@@ -341,15 +345,29 @@ func (vr *variableResolver) resolve(ctx *ExecutionContext) (*Value, error) {
 							current.Kind().String(), vr.String())
 					}
 				case varTypeIdent:
+					var tryField reflect.Value
 					// Calling a field or key
 					switch current.Kind() {
 					case reflect.Struct:
-						current = current.FieldByName(part.s)
+						tryField = current.FieldByName(part.s)
 					case reflect.Map:
-						current = current.MapIndex(reflect.ValueOf(part.s))
+						tryField = current.MapIndex(reflect.ValueOf(part.s))
 					default:
 						return nil, fmt.Errorf("can't access a field by name on type %s (variable %s)",
 							current.Kind().String(), vr.String())
+					}
+					if tryField.IsValid() {
+						current = tryField
+					} else {
+						getAttr := current.MethodByName(getAttrMethodName)
+						if !getAttr.IsValid() && current.CanAddr() {
+							getAttr = current.Addr().MethodByName(getAttrMethodName)
+						}
+						if getAttr.IsValid() {
+							current = getAttr
+							currentPresent = true
+							assumeAttr = true
+						}
 					}
 				case varTypeSubscript:
 					// Calling an index is only possible for:
@@ -402,7 +420,6 @@ func (vr *variableResolver) resolve(ctx *ExecutionContext) (*Value, error) {
 		if !current.IsValid() {
 			// Value is not valid (anymore)
 			if !currentPresent {
-
 				if ctx.AllowMissingVal {
 					return AsValue(nil), nil
 				}
@@ -434,7 +451,14 @@ func (vr *variableResolver) resolve(ctx *ExecutionContext) (*Value, error) {
 		if part.isFunctionCall || current.Kind() == reflect.Func {
 			// Check for callable
 			if current.Kind() != reflect.Func {
-				return nil, fmt.Errorf("'%s' is not a function (it is %s)", vr.String(), current.Kind().String())
+				getAttr := current.MethodByName(getAttrMethodName)
+				if getAttr.IsValid() {
+					current = getAttr
+					currentPresent = true
+					assumeAttr = true
+				} else {
+					return nil, fmt.Errorf("'%s' is not a function (it is %s)", vr.String(), current.Kind().String())
+				}
 			}
 
 			// Check for correct function syntax and types
@@ -470,7 +494,7 @@ func (vr *variableResolver) resolve(ctx *ExecutionContext) (*Value, error) {
 			}
 
 			hasAttrNameArg := 0
-			if part.typ == varTypeAttr {
+			if assumeAttr {
 				hasAttrNameArg = 1
 			}
 
@@ -492,7 +516,7 @@ func (vr *variableResolver) resolve(ctx *ExecutionContext) (*Value, error) {
 			args := make([]reflect.Value, 0)
 			kwargs := make(map[string]reflect.Value)
 
-			if part.typ == varTypeAttr {
+			if assumeAttr {
 				var value any = part.s
 				if includeKwargsBit==1 {
 					value = AsValue(part.s)
