@@ -16,7 +16,7 @@ const (
 	varTypeArray
 	varTypeNil
 
-	getAttrMethodName := "GetAttr"
+	getAttrMethodName = "GetAttr"
 )
 
 var (
