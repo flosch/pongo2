@@ -1,6 +1,7 @@
 package pongo2
 
 import (
+	"errors"
 	"fmt"
 	"reflect"
 	"strconv"
@@ -11,6 +12,7 @@ const (
 	varTypeInt = iota
 	varTypeIdent
 	varTypeSubscript
+	varTypeArray
 	varTypeNil
 )
 
@@ -28,6 +30,21 @@ type variablePart struct {
 
 	isFunctionCall bool
 	callingArgs    []functionCallArgument // needed for a function call, represents all argument nodes (INode supports nested function calls)
+}
+
+func (p *variablePart) String() string {
+	switch p.typ {
+	case varTypeInt:
+		return strconv.Itoa(p.i)
+	case varTypeIdent:
+		return p.s
+	case varTypeSubscript:
+		return "[subscript]"
+	case varTypeArray:
+		return "[array]"
+	}
+
+	panic("unimplemented")
 }
 
 type functionCallArgument interface {
@@ -218,21 +235,38 @@ func (vr *variableResolver) FilterApplied(name string) bool {
 func (vr *variableResolver) String() string {
 	parts := make([]string, 0, len(vr.parts))
 	for _, p := range vr.parts {
-		switch p.typ {
-		case varTypeInt:
-			parts = append(parts, strconv.Itoa(p.i))
-		case varTypeIdent:
-			parts = append(parts, p.s)
-		default:
-			panic("unimplemented")
-		}
+		parts = append(parts, p.String())
 	}
+
 	return strings.Join(parts, ".")
 }
 
 func (vr *variableResolver) resolve(ctx *ExecutionContext) (*Value, error) {
 	var current reflect.Value
 	var isSafe bool
+
+	// we are resolving an in-template array definition
+	if len(vr.parts) > 0 && vr.parts[0].typ == varTypeArray {
+		items := make([]*Value, 0)
+		for _, part := range vr.parts {
+			switch v := part.subscript.(type) {
+			case *nodeFilteredVariable:
+				item, err := v.resolver.Evaluate(ctx)
+				if err != nil {
+					return nil, err
+				}
+
+				items = append(items, item)
+			default:
+				return nil, errors.New("unknown variable type is given")
+			}
+		}
+
+		return &Value{
+			val:  reflect.ValueOf(items),
+			safe: true,
+		}, nil
+	}
 
 	for idx, part := range vr.parts {
 		if idx == 0 {
@@ -287,9 +321,6 @@ func (vr *variableResolver) resolve(ctx *ExecutionContext) (*Value, error) {
 							current.Kind().String(), vr.String())
 					}
 				case varTypeIdent:
-					// debugging:
-					// fmt.Printf("now = %s (kind: %s)\n", part.s, current.Kind().String())
-
 					// Calling a field or key
 					switch current.Kind() {
 					case reflect.Struct:
@@ -518,7 +549,50 @@ func (v *nodeFilteredVariable) Evaluate(ctx *ExecutionContext) (*Value, *Error) 
 	return value, nil
 }
 
-// IDENT | IDENT.(IDENT|NUMBER)... | IDENT[expr]...
+// "[" [expr {, expr}] "]"
+func (p *Parser) parseArray() (IEvaluator, *Error) {
+	resolver := &variableResolver{
+		locationToken: p.Current(),
+	}
+	p.Consume() // We consume '['
+
+	// We allow an empty list, so check for a closing bracket.
+	if p.Match(TokenSymbol, "]") != nil {
+		return resolver, nil
+	}
+
+	// parsing an array declaration with at least one expression
+	for {
+		if p.Remaining() == 0 {
+			return nil, p.Error("Unexpected EOF, unclosed array list.", p.lastToken)
+		}
+
+		// No closing bracket, so we're parsing an expression
+		exprArg, err := p.ParseExpression()
+		if err != nil {
+			return nil, err
+		}
+
+		resolver.parts = append(resolver.parts, &variablePart{
+			typ:       varTypeArray,
+			subscript: exprArg,
+		})
+
+		if p.Match(TokenSymbol, "]") != nil {
+			// If there's a closing bracket after an expression, we will stop parsing the arguments
+			break
+		}
+
+		// If there's NO closing bracket, there MUST be an comma
+		if p.Match(TokenSymbol, ",") == nil {
+			return nil, p.Error("Missing comma or closing bracket after argument.", p.Current())
+		}
+	}
+
+	return resolver, nil
+}
+
+// IDENT | IDENT.(IDENT|NUMBER)... | IDENT[expr]... | "[" [ expr {, expr}] "]"
 func (p *Parser) parseVariableOrLiteral() (IEvaluator, *Error) {
 	t := p.Current()
 
@@ -561,7 +635,6 @@ func (p *Parser) parseVariableOrLiteral() (IEvaluator, *Error) {
 			val:           i,
 		}
 		return nr, nil
-
 	case TokenString:
 		p.Consume()
 		sr := &stringResolver{
@@ -587,14 +660,19 @@ func (p *Parser) parseVariableOrLiteral() (IEvaluator, *Error) {
 		default:
 			return nil, p.Error("This keyword is not allowed here.", nil)
 		}
+	case TokenSymbol:
+		if t.Val == "[" {
+			// Parsing an array literal [expr {, expr}]
+			return p.parseArray()
+		}
 	}
 
 	resolver := &variableResolver{
 		locationToken: t,
 	}
 
-	// First part of a variable MUST be an identifier
 	if t.Typ != TokenIdentifier {
+		// First part of a variable MUST be an identifier
 		return nil, p.Error("Expected either a number, string, keyword or identifier.", t)
 	}
 
@@ -602,13 +680,10 @@ func (p *Parser) parseVariableOrLiteral() (IEvaluator, *Error) {
 		typ: varTypeIdent,
 		s:   t.Val,
 	})
-
 	p.Consume() // we consumed the first identifier of the variable name
 
 variableLoop:
 	for p.Remaining() > 0 {
-		t = p.Current()
-
 		if p.Match(TokenSymbol, ".") != nil {
 			// Next variable part (can be either NUMBER or IDENT)
 			t2 := p.Current()
@@ -652,6 +727,7 @@ variableLoop:
 			if p.Remaining() == 0 {
 				return nil, p.Error("Unexpected EOF, expected subscript subscript.", p.lastToken)
 			}
+
 			exprSubscript, err := p.ParseExpression()
 			if err != nil {
 				return nil, err
@@ -663,6 +739,7 @@ variableLoop:
 			if p.Match(TokenSymbol, "]") == nil {
 				return nil, p.Error("Missing closing bracket after subscript argument.", nil)
 			}
+
 		} else if p.Match(TokenSymbol, "(") != nil {
 			// Function call
 			// FunctionName '(' Comma-separated list of expressions ')'
