@@ -25,5 +25,5 @@ func tagCommentParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, *
 }
 
 func init() {
-	RegisterTag("comment", tagCommentParser)
+	MustRegisterTag("comment", tagCommentParser)
 }

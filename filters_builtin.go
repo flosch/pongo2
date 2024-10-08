@@ -37,64 +37,65 @@ import (
 	"strings"
 	"time"
 	"unicode/utf8"
+
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 )
 
 func init() {
-	rand.Seed(time.Now().Unix())
+	MustRegisterFilter("escape", filterEscape)
+	MustRegisterFilter("e", filterEscape) // alias of `escape`
+	MustRegisterFilter("safe", filterSafe)
+	MustRegisterFilter("escapejs", filterEscapejs)
 
-	RegisterFilter("escape", filterEscape)
-	RegisterFilter("e", filterEscape) // alias of `escape`
-	RegisterFilter("safe", filterSafe)
-	RegisterFilter("escapejs", filterEscapejs)
+	MustRegisterFilter("add", filterAdd)
+	MustRegisterFilter("addslashes", filterAddslashes)
+	MustRegisterFilter("capfirst", filterCapfirst)
+	MustRegisterFilter("center", filterCenter)
+	MustRegisterFilter("cut", filterCut)
+	MustRegisterFilter("date", filterDate)
+	MustRegisterFilter("default", filterDefault)
+	MustRegisterFilter("default_if_none", filterDefaultIfNone)
+	MustRegisterFilter("divisibleby", filterDivisibleby)
+	MustRegisterFilter("first", filterFirst)
+	MustRegisterFilter("floatformat", filterFloatformat)
+	MustRegisterFilter("get_digit", filterGetdigit)
+	MustRegisterFilter("iriencode", filterIriencode)
+	MustRegisterFilter("join", filterJoin)
+	MustRegisterFilter("last", filterLast)
+	MustRegisterFilter("length", filterLength)
+	MustRegisterFilter("length_is", filterLengthis)
+	MustRegisterFilter("linebreaks", filterLinebreaks)
+	MustRegisterFilter("linebreaksbr", filterLinebreaksbr)
+	MustRegisterFilter("linenumbers", filterLinenumbers)
+	MustRegisterFilter("ljust", filterLjust)
+	MustRegisterFilter("lower", filterLower)
+	MustRegisterFilter("make_list", filterMakelist)
+	MustRegisterFilter("phone2numeric", filterPhone2numeric)
+	MustRegisterFilter("pluralize", filterPluralize)
+	MustRegisterFilter("random", filterRandom)
+	MustRegisterFilter("removetags", filterRemovetags)
+	MustRegisterFilter("rjust", filterRjust)
+	MustRegisterFilter("slice", filterSlice)
+	MustRegisterFilter("split", filterSplit)
+	MustRegisterFilter("stringformat", filterStringformat)
+	MustRegisterFilter("striptags", filterStriptags)
+	MustRegisterFilter("time", filterDate) // time uses filterDate (same golang-format)
+	MustRegisterFilter("title", filterTitle)
+	MustRegisterFilter("truncatechars", filterTruncatechars)
+	MustRegisterFilter("truncatechars_html", filterTruncatecharsHTML)
+	MustRegisterFilter("truncatewords", filterTruncatewords)
+	MustRegisterFilter("truncatewords_html", filterTruncatewordsHTML)
+	MustRegisterFilter("upper", filterUpper)
+	MustRegisterFilter("urlencode", filterUrlencode)
+	MustRegisterFilter("urlize", filterUrlize)
+	MustRegisterFilter("urlizetrunc", filterUrlizetrunc)
+	MustRegisterFilter("wordcount", filterWordcount)
+	MustRegisterFilter("wordwrap", filterWordwrap)
+	MustRegisterFilter("yesno", filterYesno)
 
-	RegisterFilter("add", filterAdd)
-	RegisterFilter("addslashes", filterAddslashes)
-	RegisterFilter("capfirst", filterCapfirst)
-	RegisterFilter("center", filterCenter)
-	RegisterFilter("cut", filterCut)
-	RegisterFilter("date", filterDate)
-	RegisterFilter("default", filterDefault)
-	RegisterFilter("default_if_none", filterDefaultIfNone)
-	RegisterFilter("divisibleby", filterDivisibleby)
-	RegisterFilter("first", filterFirst)
-	RegisterFilter("floatformat", filterFloatformat)
-	RegisterFilter("get_digit", filterGetdigit)
-	RegisterFilter("iriencode", filterIriencode)
-	RegisterFilter("join", filterJoin)
-	RegisterFilter("last", filterLast)
-	RegisterFilter("length", filterLength)
-	RegisterFilter("length_is", filterLengthis)
-	RegisterFilter("linebreaks", filterLinebreaks)
-	RegisterFilter("linebreaksbr", filterLinebreaksbr)
-	RegisterFilter("linenumbers", filterLinenumbers)
-	RegisterFilter("ljust", filterLjust)
-	RegisterFilter("lower", filterLower)
-	RegisterFilter("make_list", filterMakelist)
-	RegisterFilter("phone2numeric", filterPhone2numeric)
-	RegisterFilter("pluralize", filterPluralize)
-	RegisterFilter("random", filterRandom)
-	RegisterFilter("removetags", filterRemovetags)
-	RegisterFilter("rjust", filterRjust)
-	RegisterFilter("slice", filterSlice)
-	RegisterFilter("split", filterSplit)
-	RegisterFilter("stringformat", filterStringformat)
-	RegisterFilter("striptags", filterStriptags)
-	RegisterFilter("time", filterDate) // time uses filterDate (same golang-format)
-	RegisterFilter("title", filterTitle)
-	RegisterFilter("truncatechars", filterTruncatechars)
-	RegisterFilter("truncatechars_html", filterTruncatecharsHTML)
-	RegisterFilter("truncatewords", filterTruncatewords)
-	RegisterFilter("truncatewords_html", filterTruncatewordsHTML)
-	RegisterFilter("upper", filterUpper)
-	RegisterFilter("urlencode", filterUrlencode)
-	RegisterFilter("urlize", filterUrlize)
-	RegisterFilter("urlizetrunc", filterUrlizetrunc)
-	RegisterFilter("wordcount", filterWordcount)
-	RegisterFilter("wordwrap", filterWordwrap)
-	RegisterFilter("yesno", filterYesno)
-
-	RegisterFilter("float", filterFloat)     // pongo-specific
-	RegisterFilter("integer", filterInteger) // pongo-specific
+	MustRegisterFilter("float", filterFloat)     // pongo-specific
+	MustRegisterFilter("integer", filterInteger) // pongo-specific
 }
 
 func filterTruncatecharsHelper(s string, newLen int) string {
@@ -112,7 +113,7 @@ func filterTruncatecharsHelper(s string, newLen int) string {
 	return string(runes)
 }
 
-func filterTruncateHTMLHelper(value string, newOutput *bytes.Buffer, cond func() bool, fn func(c rune, s int, idx int) int, finalize func()) {
+func filterTruncateHTMLHelper(value string, newOutput *bytes.Buffer, cond func() bool, fn func(c rune, s, idx int) int, finalize func()) {
 	vLen := len(value)
 	var tagStack []string
 	idx := 0
@@ -218,13 +219,13 @@ func filterTruncateHTMLHelper(value string, newOutput *bytes.Buffer, cond func()
 	}
 }
 
-func filterTruncatechars(in *Value, param *Value) (*Value, *Error) {
+func filterTruncatechars(in, param *Value) (*Value, *Error) {
 	s := in.String()
 	newLen := param.Integer()
 	return AsValue(filterTruncatecharsHelper(s, newLen)), nil
 }
 
-func filterTruncatecharsHTML(in *Value, param *Value) (*Value, *Error) {
+func filterTruncatecharsHTML(in, param *Value) (*Value, *Error) {
 	value := in.String()
 	newLen := max(param.Integer()-3, 0)
 
@@ -234,7 +235,7 @@ func filterTruncatecharsHTML(in *Value, param *Value) (*Value, *Error) {
 
 	filterTruncateHTMLHelper(value, newOutput, func() bool {
 		return textcounter >= newLen
-	}, func(c rune, s int, idx int) int {
+	}, func(c rune, s, idx int) int {
 		textcounter++
 		newOutput.WriteRune(c)
 
@@ -248,7 +249,7 @@ func filterTruncatecharsHTML(in *Value, param *Value) (*Value, *Error) {
 	return AsSafeValue(newOutput.String()), nil
 }
 
-func filterTruncatewords(in *Value, param *Value) (*Value, *Error) {
+func filterTruncatewords(in, param *Value) (*Value, *Error) {
 	words := strings.Fields(in.String())
 	n := param.Integer()
 	if n <= 0 {
@@ -267,7 +268,7 @@ func filterTruncatewords(in *Value, param *Value) (*Value, *Error) {
 	return AsValue(strings.Join(out, " ")), nil
 }
 
-func filterTruncatewordsHTML(in *Value, param *Value) (*Value, *Error) {
+func filterTruncatewordsHTML(in, param *Value) (*Value, *Error) {
 	value := in.String()
 	newLen := max(param.Integer(), 0)
 
@@ -277,7 +278,7 @@ func filterTruncatewordsHTML(in *Value, param *Value) (*Value, *Error) {
 
 	filterTruncateHTMLHelper(value, newOutput, func() bool {
 		return wordcounter >= newLen
-	}, func(_ rune, _ int, idx int) int {
+	}, func(_ rune, _, idx int) int {
 		// Get next word
 		wordFound := false
 
@@ -318,7 +319,7 @@ func filterTruncatewordsHTML(in *Value, param *Value) (*Value, *Error) {
 	return AsSafeValue(newOutput.String()), nil
 }
 
-func filterEscape(in *Value, param *Value) (*Value, *Error) {
+func filterEscape(in, param *Value) (*Value, *Error) {
 	output := strings.Replace(in.String(), "&", "&amp;", -1)
 	output = strings.Replace(output, ">", "&gt;", -1)
 	output = strings.Replace(output, "<", "&lt;", -1)
@@ -327,11 +328,11 @@ func filterEscape(in *Value, param *Value) (*Value, *Error) {
 	return AsValue(output), nil
 }
 
-func filterSafe(in *Value, param *Value) (*Value, *Error) {
+func filterSafe(in, param *Value) (*Value, *Error) {
 	return in, nil // nothing to do here, just to keep track of the safe application
 }
 
-func filterEscapejs(in *Value, param *Value) (*Value, *Error) {
+func filterEscapejs(in, param *Value) (*Value, *Error) {
 	sin := in.String()
 
 	var b bytes.Buffer
@@ -380,7 +381,7 @@ func filterEscapejs(in *Value, param *Value) (*Value, *Error) {
 	return AsValue(b.String()), nil
 }
 
-func filterAdd(in *Value, param *Value) (*Value, *Error) {
+func filterAdd(in, param *Value) (*Value, *Error) {
 	if in.IsNumber() && param.IsNumber() {
 		if in.IsFloat() || param.IsFloat() {
 			return AsValue(in.Float() + param.Float()), nil
@@ -392,47 +393,47 @@ func filterAdd(in *Value, param *Value) (*Value, *Error) {
 	return AsValue(in.String() + param.String()), nil
 }
 
-func filterAddslashes(in *Value, param *Value) (*Value, *Error) {
+func filterAddslashes(in, param *Value) (*Value, *Error) {
 	output := strings.Replace(in.String(), "\\", "\\\\", -1)
 	output = strings.Replace(output, "\"", "\\\"", -1)
 	output = strings.Replace(output, "'", "\\'", -1)
 	return AsValue(output), nil
 }
 
-func filterCut(in *Value, param *Value) (*Value, *Error) {
+func filterCut(in, param *Value) (*Value, *Error) {
 	return AsValue(strings.Replace(in.String(), param.String(), "", -1)), nil
 }
 
-func filterLength(in *Value, param *Value) (*Value, *Error) {
+func filterLength(in, param *Value) (*Value, *Error) {
 	return AsValue(in.Len()), nil
 }
 
-func filterLengthis(in *Value, param *Value) (*Value, *Error) {
+func filterLengthis(in, param *Value) (*Value, *Error) {
 	return AsValue(in.Len() == param.Integer()), nil
 }
 
-func filterDefault(in *Value, param *Value) (*Value, *Error) {
+func filterDefault(in, param *Value) (*Value, *Error) {
 	if !in.IsTrue() {
 		return param, nil
 	}
 	return in, nil
 }
 
-func filterDefaultIfNone(in *Value, param *Value) (*Value, *Error) {
+func filterDefaultIfNone(in, param *Value) (*Value, *Error) {
 	if in.IsNil() {
 		return param, nil
 	}
 	return in, nil
 }
 
-func filterDivisibleby(in *Value, param *Value) (*Value, *Error) {
+func filterDivisibleby(in, param *Value) (*Value, *Error) {
 	if param.Integer() == 0 {
 		return AsValue(false), nil
 	}
 	return AsValue(in.Integer()%param.Integer() == 0), nil
 }
 
-func filterFirst(in *Value, param *Value) (*Value, *Error) {
+func filterFirst(in, param *Value) (*Value, *Error) {
 	if in.CanSlice() && in.Len() > 0 {
 		return in.Index(0), nil
 	}
@@ -441,7 +442,7 @@ func filterFirst(in *Value, param *Value) (*Value, *Error) {
 
 const maxFloatFormatDecimals = 1000
 
-func filterFloatformat(in *Value, param *Value) (*Value, *Error) {
+func filterFloatformat(in, param *Value) (*Value, *Error) {
 	val := in.Float()
 
 	decimals := -1
@@ -478,7 +479,7 @@ func filterFloatformat(in *Value, param *Value) (*Value, *Error) {
 	return AsValue(strconv.FormatFloat(val, 'f', decimals, 64)), nil
 }
 
-func filterGetdigit(in *Value, param *Value) (*Value, *Error) {
+func filterGetdigit(in, param *Value) (*Value, *Error) {
 	i := param.Integer()
 	l := len(in.String()) // do NOT use in.Len() here!
 	if i <= 0 || i > l {
@@ -489,7 +490,7 @@ func filterGetdigit(in *Value, param *Value) (*Value, *Error) {
 
 const filterIRIChars = "/#%[]=:;$&()+,!?*@'~"
 
-func filterIriencode(in *Value, param *Value) (*Value, *Error) {
+func filterIriencode(in, param *Value) (*Value, *Error) {
 	var b bytes.Buffer
 
 	sin := in.String()
@@ -504,7 +505,7 @@ func filterIriencode(in *Value, param *Value) (*Value, *Error) {
 	return AsValue(b.String()), nil
 }
 
-func filterJoin(in *Value, param *Value) (*Value, *Error) {
+func filterJoin(in, param *Value) (*Value, *Error) {
 	if !in.CanSlice() {
 		return in, nil
 	}
@@ -532,22 +533,22 @@ func filterJoin(in *Value, param *Value) (*Value, *Error) {
 	return AsValue(strings.Join(sl, sep)), nil
 }
 
-func filterLast(in *Value, param *Value) (*Value, *Error) {
+func filterLast(in, param *Value) (*Value, *Error) {
 	if in.CanSlice() && in.Len() > 0 {
 		return in.Index(in.Len() - 1), nil
 	}
 	return AsValue(""), nil
 }
 
-func filterUpper(in *Value, param *Value) (*Value, *Error) {
+func filterUpper(in, param *Value) (*Value, *Error) {
 	return AsValue(strings.ToUpper(in.String())), nil
 }
 
-func filterLower(in *Value, param *Value) (*Value, *Error) {
+func filterLower(in, param *Value) (*Value, *Error) {
 	return AsValue(strings.ToLower(in.String())), nil
 }
 
-func filterMakelist(in *Value, param *Value) (*Value, *Error) {
+func filterMakelist(in, param *Value) (*Value, *Error) {
 	s := in.String()
 	result := make([]string, 0, len(s))
 	for _, c := range s {
@@ -556,7 +557,7 @@ func filterMakelist(in *Value, param *Value) (*Value, *Error) {
 	return AsValue(result), nil
 }
 
-func filterCapfirst(in *Value, param *Value) (*Value, *Error) {
+func filterCapfirst(in, param *Value) (*Value, *Error) {
 	if in.Len() <= 0 {
 		return AsValue(""), nil
 	}
@@ -567,7 +568,7 @@ func filterCapfirst(in *Value, param *Value) (*Value, *Error) {
 
 const maxCharPadding = 10000
 
-func filterCenter(in *Value, param *Value) (*Value, *Error) {
+func filterCenter(in, param *Value) (*Value, *Error) {
 	width := param.Integer()
 	slen := in.Len()
 	if width <= slen {
@@ -590,7 +591,7 @@ func filterCenter(in *Value, param *Value) (*Value, *Error) {
 		in.String(), strings.Repeat(" ", right))), nil
 }
 
-func filterDate(in *Value, param *Value) (*Value, *Error) {
+func filterDate(in, param *Value) (*Value, *Error) {
 	t, isTime := in.Interface().(time.Time)
 	if !isTime {
 		return nil, &Error{
@@ -601,15 +602,15 @@ func filterDate(in *Value, param *Value) (*Value, *Error) {
 	return AsValue(t.Format(param.String())), nil
 }
 
-func filterFloat(in *Value, param *Value) (*Value, *Error) {
+func filterFloat(in, param *Value) (*Value, *Error) {
 	return AsValue(in.Float()), nil
 }
 
-func filterInteger(in *Value, param *Value) (*Value, *Error) {
+func filterInteger(in, param *Value) (*Value, *Error) {
 	return AsValue(in.Integer()), nil
 }
 
-func filterLinebreaks(in *Value, param *Value) (*Value, *Error) {
+func filterLinebreaks(in, param *Value) (*Value, *Error) {
 	if in.Len() == 0 {
 		return in, nil
 	}
@@ -653,17 +654,17 @@ func filterLinebreaks(in *Value, param *Value) (*Value, *Error) {
 	return AsValue(b.String()), nil
 }
 
-func filterSplit(in *Value, param *Value) (*Value, *Error) {
+func filterSplit(in, param *Value) (*Value, *Error) {
 	chunks := strings.Split(in.String(), param.String())
 
 	return AsValue(chunks), nil
 }
 
-func filterLinebreaksbr(in *Value, param *Value) (*Value, *Error) {
+func filterLinebreaksbr(in, param *Value) (*Value, *Error) {
 	return AsValue(strings.Replace(in.String(), "\n", "<br />", -1)), nil
 }
 
-func filterLinenumbers(in *Value, param *Value) (*Value, *Error) {
+func filterLinenumbers(in, param *Value) (*Value, *Error) {
 	lines := strings.Split(in.String(), "\n")
 	output := make([]string, 0, len(lines))
 	for idx, line := range lines {
@@ -672,7 +673,7 @@ func filterLinenumbers(in *Value, param *Value) (*Value, *Error) {
 	return AsValue(strings.Join(output, "\n")), nil
 }
 
-func filterLjust(in *Value, param *Value) (*Value, *Error) {
+func filterLjust(in, param *Value) (*Value, *Error) {
 	times := param.Integer() - in.Len()
 	if times < 0 {
 		times = 0
@@ -686,7 +687,7 @@ func filterLjust(in *Value, param *Value) (*Value, *Error) {
 	return AsValue(fmt.Sprintf("%s%s", in.String(), strings.Repeat(" ", times))), nil
 }
 
-func filterUrlencode(in *Value, param *Value) (*Value, *Error) {
+func filterUrlencode(in, param *Value) (*Value, *Error) {
 	return AsValue(url.QueryEscape(in.String())), nil
 }
 
@@ -755,7 +756,7 @@ func filterUrlizeHelper(input string, autoescape bool, trunc int) (string, error
 	return sout, nil
 }
 
-func filterUrlize(in *Value, param *Value) (*Value, *Error) {
+func filterUrlize(in, param *Value) (*Value, *Error) {
 	autoescape := true
 	if param.IsBool() {
 		autoescape = param.Bool()
@@ -772,7 +773,7 @@ func filterUrlize(in *Value, param *Value) (*Value, *Error) {
 	return AsValue(s), nil
 }
 
-func filterUrlizetrunc(in *Value, param *Value) (*Value, *Error) {
+func filterUrlizetrunc(in, param *Value) (*Value, *Error) {
 	s, err := filterUrlizeHelper(in.String(), true, param.Integer())
 	if err != nil {
 		return nil, &Error{
@@ -783,13 +784,13 @@ func filterUrlizetrunc(in *Value, param *Value) (*Value, *Error) {
 	return AsValue(s), nil
 }
 
-func filterStringformat(in *Value, param *Value) (*Value, *Error) {
+func filterStringformat(in, param *Value) (*Value, *Error) {
 	return AsValue(fmt.Sprintf(param.String(), in.Interface())), nil
 }
 
 var reStriptags = regexp.MustCompile("<[^>]*?>")
 
-func filterStriptags(in *Value, param *Value) (*Value, *Error) {
+func filterStriptags(in, param *Value) (*Value, *Error) {
 	s := in.String()
 
 	// Strip all tags
@@ -805,7 +806,7 @@ var filterPhone2numericMap = map[string]string{
 	"w": "9", "x": "9", "y": "9", "z": "9",
 }
 
-func filterPhone2numeric(in *Value, param *Value) (*Value, *Error) {
+func filterPhone2numeric(in, param *Value) (*Value, *Error) {
 	sin := in.String()
 	for k, v := range filterPhone2numericMap {
 		sin = strings.Replace(sin, k, v, -1)
@@ -814,7 +815,7 @@ func filterPhone2numeric(in *Value, param *Value) (*Value, *Error) {
 	return AsValue(sin), nil
 }
 
-func filterPluralize(in *Value, param *Value) (*Value, *Error) {
+func filterPluralize(in, param *Value) (*Value, *Error) {
 	if in.IsNumber() {
 		// Works only on numbers
 		if param.Len() > 0 {
@@ -852,7 +853,7 @@ func filterPluralize(in *Value, param *Value) (*Value, *Error) {
 	}
 }
 
-func filterRandom(in *Value, param *Value) (*Value, *Error) {
+func filterRandom(in, param *Value) (*Value, *Error) {
 	if !in.CanSlice() || in.Len() <= 0 {
 		return in, nil
 	}
@@ -862,7 +863,7 @@ func filterRandom(in *Value, param *Value) (*Value, *Error) {
 
 var reTag = regexp.MustCompile(`^[a-zA-Z]$`)
 
-func filterRemovetags(in *Value, param *Value) (*Value, *Error) {
+func filterRemovetags(in, param *Value) (*Value, *Error) {
 	s := in.String()
 	tags := strings.Split(param.String(), ",")
 
@@ -888,7 +889,7 @@ func filterRemovetags(in *Value, param *Value) (*Value, *Error) {
 	return AsValue(strings.TrimSpace(s)), nil
 }
 
-func filterRjust(in *Value, param *Value) (*Value, *Error) {
+func filterRjust(in, param *Value) (*Value, *Error) {
 	padding := param.Integer()
 	if padding > maxCharPadding {
 		return nil, &Error{
@@ -899,7 +900,7 @@ func filterRjust(in *Value, param *Value) (*Value, *Error) {
 	return AsValue(fmt.Sprintf(fmt.Sprintf("%%%ds", padding), in.String())), nil
 }
 
-func filterSlice(in *Value, param *Value) (*Value, *Error) {
+func filterSlice(in, param *Value) (*Value, *Error) {
 	comp := strings.Split(param.String(), ":")
 	if len(comp) != 2 {
 		return nil, &Error{
@@ -950,18 +951,19 @@ func filterSlice(in *Value, param *Value) (*Value, *Error) {
 	return in.Slice(from, to), nil
 }
 
-func filterTitle(in *Value, param *Value) (*Value, *Error) {
+func filterTitle(in, param *Value) (*Value, *Error) {
 	if !in.IsString() {
 		return AsValue(""), nil
 	}
-	return AsValue(strings.Title(strings.ToLower(in.String()))), nil
+	caser := cases.Title(language.Und)
+	return AsValue(caser.String(strings.ToLower(in.String()))), nil
 }
 
-func filterWordcount(in *Value, param *Value) (*Value, *Error) {
+func filterWordcount(in, param *Value) (*Value, *Error) {
 	return AsValue(len(strings.Fields(in.String()))), nil
 }
 
-func filterWordwrap(in *Value, param *Value) (*Value, *Error) {
+func filterWordwrap(in, param *Value) (*Value, *Error) {
 	words := strings.Fields(in.String())
 	wordsLen := len(words)
 	wrapAt := param.Integer()
@@ -980,7 +982,7 @@ func filterWordwrap(in *Value, param *Value) (*Value, *Error) {
 	return AsValue(strings.Join(lines, "\n")), nil
 }
 
-func filterYesno(in *Value, param *Value) (*Value, *Error) {
+func filterYesno(in, param *Value) (*Value, *Error) {
 	choices := map[int]string{
 		0: "yes",
 		1: "no",

@@ -50,5 +50,5 @@ func tagAutoescapeParser(doc *Parser, start *Token, arguments *Parser) (INodeTag
 }
 
 func init() {
-	RegisterTag("autoescape", tagAutoescapeParser)
+	MustRegisterTag("autoescape", tagAutoescapeParser)
 }

@@ -110,7 +110,6 @@ func TestImplicitExecCtx(t *testing.T) {
 			return val
 		},
 	})
-
 	if err != nil {
 		t.Fatalf("Error executing template: %v", err)
 	}
@@ -157,7 +156,7 @@ func FuzzSimpleExecution(f *testing.F) {
 				"foobar": contextValue,
 			}
 			mycontext.Update(tplContext)
-			out.Execute(mycontext)
+			_, _ = out.Execute(mycontext)
 		}
 	})
 }

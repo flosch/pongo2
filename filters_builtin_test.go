@@ -35,7 +35,7 @@ func FuzzBuiltinFilters(f *testing.F) {
 				t.Errorf("filter=%q value=%q, filterArg=%q, err=%v", name, value, filterArg, err)
 			}
 			if err == nil {
-				tpl.Execute(nil)
+				_, _ = tpl.Execute(nil)
 			}
 		}
 	})

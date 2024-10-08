@@ -103,7 +103,9 @@ func (v *nodeFilteredVariable) Execute(ctx *ExecutionContext, writer TemplateWri
 	if err != nil {
 		return err
 	}
-	writer.WriteString(value.String())
+	if _, err := writer.WriteString(value.String()); err != nil {
+		return ctx.Error(err, v.locationToken)
+	}
 	return nil
 }
 
@@ -112,7 +114,9 @@ func (vr *variableResolver) Execute(ctx *ExecutionContext, writer TemplateWriter
 	if err != nil {
 		return err
 	}
-	writer.WriteString(value.String())
+	if _, err := writer.WriteString(value.String()); err != nil {
+		return ctx.Error(err, vr.locationToken)
+	}
 	return nil
 }
 
@@ -121,7 +125,9 @@ func (s *stringResolver) Execute(ctx *ExecutionContext, writer TemplateWriter) *
 	if err != nil {
 		return err
 	}
-	writer.WriteString(value.String())
+	if _, err := writer.WriteString(value.String()); err != nil {
+		return ctx.Error(err, s.locationToken)
+	}
 	return nil
 }
 
@@ -130,7 +136,9 @@ func (i *intResolver) Execute(ctx *ExecutionContext, writer TemplateWriter) *Err
 	if err != nil {
 		return err
 	}
-	writer.WriteString(value.String())
+	if _, err := writer.WriteString(value.String()); err != nil {
+		return ctx.Error(err, i.locationToken)
+	}
 	return nil
 }
 
@@ -139,7 +147,9 @@ func (f *floatResolver) Execute(ctx *ExecutionContext, writer TemplateWriter) *E
 	if err != nil {
 		return err
 	}
-	writer.WriteString(value.String())
+	if _, err := writer.WriteString(value.String()); err != nil {
+		return ctx.Error(err, f.locationToken)
+	}
 	return nil
 }
 
@@ -148,7 +158,9 @@ func (b *boolResolver) Execute(ctx *ExecutionContext, writer TemplateWriter) *Er
 	if err != nil {
 		return err
 	}
-	writer.WriteString(value.String())
+	if _, err := writer.WriteString(value.String()); err != nil {
+		return ctx.Error(err, b.locationToken)
+	}
 	return nil
 }
 
@@ -226,7 +238,9 @@ func (nv *nodeVariable) Execute(ctx *ExecutionContext, writer TemplateWriter) *E
 		}
 	}
 
-	writer.WriteString(value.String())
+	if _, err := writer.WriteString(value.String()); err != nil {
+		return ctx.Error(err, nv.locationToken)
+	}
 	return nil
 }
 
@@ -499,9 +513,9 @@ func (vr *variableResolver) resolve(ctx *ExecutionContext) (*Value, error) {
 			}
 
 			// Input arguments
-			if (len(currArgs)+hasAttrNameArg-kwargCount != t.NumIn()-includeKwargsBit &&
-					!(len(currArgs)+hasAttrNameArg-kwargCount >= t.NumIn()-1-includeKwargsBit &&
-					t.IsVariadic())) {
+			if len(currArgs)+hasAttrNameArg-kwargCount != t.NumIn()-includeKwargsBit &&
+				!(len(currArgs)+hasAttrNameArg-kwargCount >= t.NumIn()-1-includeKwargsBit &&
+					t.IsVariadic()) {
 				return nil,
 					fmt.Errorf("function input argument count (%d) of '%s' must be equal to the calling argument count (%d)",
 						t.NumIn()-includeKwargsBit, vr.String(), len(currArgs)-kwargCount)
@@ -518,7 +532,7 @@ func (vr *variableResolver) resolve(ctx *ExecutionContext) (*Value, error) {
 
 			if assumeAttr {
 				var value any = part.s
-				if includeKwargsBit==1 {
+				if includeKwargsBit == 1 {
 					value = AsValue(part.s)
 				}
 				args = append(args, reflect.ValueOf(value))
@@ -796,7 +810,6 @@ func (p *Parser) parseVariableOrLiteral() (IEvaluator, *Error) {
 		if t.Val == "[" {
 			// Parsing an array literal [expr {, expr}]
 			return p.parseArray()
-
 		}
 	}
 
@@ -805,7 +818,6 @@ func (p *Parser) parseVariableOrLiteral() (IEvaluator, *Error) {
 	}
 
 	if t.Typ != TokenIdentifier {
-
 		// First part of a variable MUST be an identifier
 
 		return nil, p.Error(fmt.Errorf("Expected either a number, string, keyword or identifier."), t)

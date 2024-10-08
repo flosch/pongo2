@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math/rand"
 	"strings"
-	"time"
 )
 
 const maxLoremCount = 100000
@@ -31,58 +30,91 @@ func (node *tagLoremNode) Execute(ctx *ExecutionContext, writer TemplateWriter) 
 		if node.random {
 			for i := 0; i < node.count; i++ {
 				if i > 0 {
-					writer.WriteString("\n")
+					if _, err := writer.WriteString("\n"); err != nil {
+						return ctx.Error(err, node.position)
+					}
 				}
 				par := tagLoremParagraphs[rand.Intn(len(tagLoremParagraphs))]
-				writer.WriteString(par)
+				if _, err := writer.WriteString(par); err != nil {
+					return ctx.Error(err, node.position)
+				}
 			}
 		} else {
 			for i := 0; i < node.count; i++ {
 				if i > 0 {
-					writer.WriteString("\n")
+					if _, err := writer.WriteString("\n"); err != nil {
+						return ctx.Error(err, node.position)
+					}
 				}
 				par := tagLoremParagraphs[i%len(tagLoremParagraphs)]
-				writer.WriteString(par)
+				if _, err := writer.WriteString(par); err != nil {
+					return ctx.Error(err, node.position)
+				}
 			}
 		}
 	case "w":
 		if node.random {
 			for i := 0; i < node.count; i++ {
 				if i > 0 {
-					writer.WriteString(" ")
+					if _, err := writer.WriteString(" "); err != nil {
+						return ctx.Error(err, node.position)
+					}
 				}
 				word := tagLoremWords[rand.Intn(len(tagLoremWords))]
-				writer.WriteString(word)
+				if _, err := writer.WriteString(word); err != nil {
+					return ctx.Error(err, node.position)
+				}
 			}
 		} else {
 			for i := 0; i < node.count; i++ {
 				if i > 0 {
-					writer.WriteString(" ")
+					if _, err := writer.WriteString(" "); err != nil {
+						return ctx.Error(err, node.position)
+					}
 				}
 				word := tagLoremWords[i%len(tagLoremWords)]
-				writer.WriteString(word)
+				if _, err := writer.WriteString(word); err != nil {
+					return ctx.Error(err, node.position)
+				}
 			}
 		}
 	case "p":
 		if node.random {
 			for i := 0; i < node.count; i++ {
 				if i > 0 {
-					writer.WriteString("\n")
+					if _, err := writer.WriteString("\n"); err != nil {
+						return ctx.Error(err, node.position)
+					}
 				}
-				writer.WriteString("<p>")
+				if _, err := writer.WriteString("<p>"); err != nil {
+					return ctx.Error(err, node.position)
+				}
 				par := tagLoremParagraphs[rand.Intn(len(tagLoremParagraphs))]
-				writer.WriteString(par)
-				writer.WriteString("</p>")
+				if _, err := writer.WriteString(par); err != nil {
+					return ctx.Error(err, node.position)
+				}
+				if _, err := writer.WriteString("</p>"); err != nil {
+					return ctx.Error(err, node.position)
+				}
+
 			}
 		} else {
 			for i := 0; i < node.count; i++ {
 				if i > 0 {
-					writer.WriteString("\n")
+					if _, err := writer.WriteString("\n"); err != nil {
+						return ctx.Error(err, node.position)
+					}
 				}
-				writer.WriteString("<p>")
+				if _, err := writer.WriteString("<p>"); err != nil {
+					return ctx.Error(err, node.position)
+				}
 				par := tagLoremParagraphs[i%len(tagLoremParagraphs)]
-				writer.WriteString(par)
-				writer.WriteString("</p>")
+				if _, err := writer.WriteString(par); err != nil {
+					return ctx.Error(err, node.position)
+				}
+				if _, err := writer.WriteString("</p>"); err != nil {
+					return ctx.Error(err, node.position)
+				}
 
 			}
 		}
@@ -124,9 +156,7 @@ func tagLoremParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, *Er
 }
 
 func init() {
-	rand.Seed(time.Now().Unix())
-
-	RegisterTag("lorem", tagLoremParser)
+	MustRegisterTag("lorem", tagLoremParser)
 }
 
 const tagLoremText = `Lorem ipsum dolor sit amet, consectetur adipisici elit, sed eiusmod tempor incidunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquid ex ea commodi consequat. Quis aute iure reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint obcaecat cupiditat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.

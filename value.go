@@ -416,7 +416,7 @@ func (v *Value) Iterate(fn func(idx, count int, key, value *Value) bool, empty f
 // IterateOrder behaves like Value.Iterate, but can iterate through an array/slice/string in reverse. Does
 // not affect the iteration through a map because maps don't have any particular order.
 // However, you can force an order using the `sorted` keyword (and even use `reversed sorted`).
-func (v *Value) IterateOrder(fn func(idx, count int, key, value *Value) bool, empty func(), reverse bool, sorted bool) {
+func (v *Value) IterateOrder(fn func(idx, count int, key, value *Value) bool, empty func(), reverse, sorted bool) {
 	switch v.getResolvedValue().Kind() {
 	case reflect.Map:
 		keys := sortedKeys(v.getResolvedValue().MapKeys())

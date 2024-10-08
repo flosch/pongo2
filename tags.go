@@ -68,6 +68,12 @@ func RegisterTag(name string, parserFn TagParser) error {
 	return nil
 }
 
+func MustRegisterTag(name string, parserFn TagParser) {
+	if err := RegisterTag(name, parserFn); err != nil {
+		panic(err)
+	}
+}
+
 // Replaces an already registered tag with a new implementation. Use this
 // function with caution since it allows you to change existing tag behaviour.
 func ReplaceTag(name string, parserFn TagParser) error {

@@ -5,7 +5,7 @@ import (
 )
 
 // FilterFunction is the type filter functions must fulfil
-type FilterFunction func(in *Value, param *Value) (out *Value, err *Error)
+type FilterFunction func(in, param *Value) (out *Value, err *Error)
 
 var filters map[string]FilterFunction
 
@@ -31,6 +31,12 @@ func RegisterFilter(name string, fn FilterFunction) error {
 	return nil
 }
 
+func MustRegisterFilter(name string, fn FilterFunction) {
+	if err := RegisterFilter(name, fn); err != nil {
+		panic(err)
+	}
+}
+
 // ReplaceFilter replaces an already registered filter with a new implementation. Use this
 // function with caution since it allows you to change existing filter behaviour.
 func ReplaceFilter(name string, fn FilterFunction) error {
@@ -42,7 +48,7 @@ func ReplaceFilter(name string, fn FilterFunction) error {
 }
 
 // MustApplyFilter behaves like ApplyFilter, but panics on an error.
-func MustApplyFilter(name string, value *Value, param *Value) *Value {
+func MustApplyFilter(name string, value, param *Value) *Value {
 	val, err := ApplyFilter(name, value, param)
 	if err != nil {
 		panic(err)
@@ -52,7 +58,7 @@ func MustApplyFilter(name string, value *Value, param *Value) *Value {
 
 // ApplyFilter applies a filter to a given value using the given parameters.
 // Returns a *pongo2.Value or an error.
-func ApplyFilter(name string, value *Value, param *Value) (*Value, *Error) {
+func ApplyFilter(name string, value, param *Value) (*Value, *Error) {
 	fn, existing := filters[name]
 	if !existing {
 		return nil, &Error{

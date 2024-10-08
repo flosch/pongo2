@@ -77,7 +77,9 @@ func (p *post) String() string {
 type tagSandboxDemoTag struct{}
 
 func (node *tagSandboxDemoTag) Execute(ctx *pongo2.ExecutionContext, writer pongo2.TemplateWriter) *pongo2.Error {
-	writer.WriteString("hello")
+	if _, err := writer.WriteString("hello"); err != nil {
+		return ctx.Error(err, nil)
+	}
 	return nil
 }
 
@@ -85,20 +87,20 @@ func tagSandboxDemoTagParser(doc *pongo2.Parser, start *pongo2.Token, arguments 
 	return &tagSandboxDemoTag{}, nil
 }
 
-func BannedFilterFn(in *pongo2.Value, params *pongo2.Value) (*pongo2.Value, *pongo2.Error) {
+func BannedFilterFn(in, params *pongo2.Value) (*pongo2.Value, *pongo2.Error) {
 	return in, nil
 }
 
 func init() {
 	pongo2.DefaultSet.Debug = true
 
-	pongo2.RegisterFilter("banned_filter", BannedFilterFn)
-	pongo2.RegisterFilter("unbanned_filter", BannedFilterFn)
-	pongo2.RegisterTag("banned_tag", tagSandboxDemoTagParser)
-	pongo2.RegisterTag("unbanned_tag", tagSandboxDemoTagParser)
+	pongo2.MustRegisterFilter("banned_filter", BannedFilterFn)
+	pongo2.MustRegisterFilter("unbanned_filter", BannedFilterFn)
+	pongo2.MustRegisterTag("banned_tag", tagSandboxDemoTagParser)
+	pongo2.MustRegisterTag("unbanned_tag", tagSandboxDemoTagParser)
 
-	pongo2.DefaultSet.BanFilter("banned_filter")
-	pongo2.DefaultSet.BanTag("banned_tag")
+	pongo2.DefaultSet.MustBanFilter("banned_filter")
+	pongo2.DefaultSet.MustBanTag("banned_tag")
 
 	f, err := os.CreateTemp(os.TempDir(), "pongo2_")
 	if err != nil {
@@ -563,7 +565,7 @@ func TestTemplates(t *testing.T) {
 				errFilename := filepath.Base(fmt.Sprintf("%s.error", match))
 				err := os.WriteFile(errFilename, []byte(tplOut), 0o600)
 				if err != nil {
-					t.Fatalf(err.Error())
+					t.Fatal(err.Error())
 				}
 				t.Logf("get a complete diff with command: 'diff -ya %s %s'", testFilename, errFilename)
 				t.Errorf("Failed: test_out != tpl_out for %s", match)
@@ -611,7 +613,7 @@ func TestBlockTemplates(t *testing.T) {
 				errFilename := filepath.Base(fmt.Sprintf("%s.error", match))
 				err := os.WriteFile(errFilename, []byte(joinedString), 0o600)
 				if err != nil {
-					t.Fatalf(err.Error())
+					t.Fatal(err.Error())
 				}
 				t.Logf("get a complete diff with command: 'diff -ya %s %s'", testFilename, errFilename)
 				t.Errorf("Failed: test_out != tpl_out for %s", match)

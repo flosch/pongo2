@@ -2,9 +2,7 @@ package pongo2
 
 import (
 	"fmt"
-
-  "os"
-
+	"os"
 )
 
 type tagSSINode struct {
@@ -26,7 +24,9 @@ func (node *tagSSINode) Execute(ctx *ExecutionContext, writer TemplateWriter) *E
 		}
 	} else {
 		// Just print out the content
-		writer.WriteString(node.content)
+		if _, err := writer.WriteString(node.content); err != nil {
+			return ctx.Error(err, nil)
+		}
 	}
 	return nil
 }
@@ -67,5 +67,5 @@ func tagSSIParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, *Erro
 }
 
 func init() {
-	RegisterTag("ssi", tagSSIParser)
+	MustRegisterTag("ssi", tagSSIParser)
 }

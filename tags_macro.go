@@ -155,5 +155,5 @@ func tagMacroParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, *Er
 }
 
 func init() {
-	RegisterTag("macro", tagMacroParser)
+	MustRegisterTag("macro", tagMacroParser)
 }

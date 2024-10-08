@@ -103,7 +103,9 @@ func (expr *Expression) Execute(ctx *ExecutionContext, writer TemplateWriter) *E
 	if err != nil {
 		return err
 	}
-	writer.WriteString(value.String())
+	if _, err := writer.WriteString(value.String()); err != nil {
+		return ctx.Error(err, expr.GetPositionToken())
+	}
 	return nil
 }
 
@@ -112,7 +114,9 @@ func (expr *relationalExpression) Execute(ctx *ExecutionContext, writer Template
 	if err != nil {
 		return err
 	}
-	writer.WriteString(value.String())
+	if _, err := writer.WriteString(value.String()); err != nil {
+		return ctx.Error(err, expr.GetPositionToken())
+	}
 	return nil
 }
 
@@ -121,7 +125,9 @@ func (expr *simpleExpression) Execute(ctx *ExecutionContext, writer TemplateWrit
 	if err != nil {
 		return err
 	}
-	writer.WriteString(value.String())
+	if _, err := writer.WriteString(value.String()); err != nil {
+		return ctx.Error(err, expr.GetPositionToken())
+	}
 	return nil
 }
 
@@ -130,7 +136,9 @@ func (expr *namedTerm) Execute(ctx *ExecutionContext, writer TemplateWriter) *Er
 	if err != nil {
 		return err
 	}
-	writer.WriteString(value.String())
+	if _, err := writer.WriteString(value.String()); err != nil {
+		return ctx.Error(err, expr.GetPositionToken())
+	}
 	return nil
 }
 
@@ -139,7 +147,9 @@ func (expr *term) Execute(ctx *ExecutionContext, writer TemplateWriter) *Error {
 	if err != nil {
 		return err
 	}
-	writer.WriteString(value.String())
+	if _, err := writer.WriteString(value.String()); err != nil {
+		return ctx.Error(err, expr.GetPositionToken())
+	}
 	return nil
 }
 
@@ -148,7 +158,9 @@ func (expr *power) Execute(ctx *ExecutionContext, writer TemplateWriter) *Error 
 	if err != nil {
 		return err
 	}
-	writer.WriteString(value.String())
+	if _, err := writer.WriteString(value.String()); err != nil {
+		return ctx.Error(err, expr.GetPositionToken())
+	}
 	return nil
 }
 

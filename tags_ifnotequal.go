@@ -76,5 +76,5 @@ func tagIfNotEqualParser(doc *Parser, start *Token, arguments *Parser) (INodeTag
 }
 
 func init() {
-	RegisterTag("ifnotequal", tagIfNotEqualParser)
+	MustRegisterTag("ifnotequal", tagIfNotEqualParser)
 }

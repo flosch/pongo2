@@ -80,5 +80,5 @@ func tagImportParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, *E
 }
 
 func init() {
-	RegisterTag("import", tagImportParser)
+	MustRegisterTag("import", tagImportParser)
 }

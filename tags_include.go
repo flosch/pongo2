@@ -144,5 +144,5 @@ func tagIncludeParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, *
 }
 
 func init() {
-	RegisterTag("include", tagIncludeParser)
+	MustRegisterTag("include", tagIncludeParser)
 }

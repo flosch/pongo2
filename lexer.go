@@ -107,7 +107,7 @@ func (t *Token) String() string {
 		typ, t.Typ, val, t.Line, t.Col, t.TrimWhitespaces)
 }
 
-func lex(name string, input string) ([]*Token, *Error) {
+func lex(name, input string) ([]*Token, *Error) {
 	l := &lexer{
 		name:      name,
 		input:     input,

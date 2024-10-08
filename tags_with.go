@@ -86,5 +86,5 @@ func tagWithParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, *Err
 }
 
 func init() {
-	RegisterTag("with", tagWithParser)
+	MustRegisterTag("with", tagWithParser)
 }

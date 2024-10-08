@@ -22,7 +22,9 @@ func (node *tagAllowMissingVal) Execute(ctx *ExecutionContext, writer TemplateWr
 	if err2 != nil {
 		return err2.(*Error)
 	}
-	currentTemplate.root.Execute(ctx, writer)
+	if err := currentTemplate.root.Execute(ctx, writer); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -41,5 +43,5 @@ func tagHandleParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, *E
 }
 
 func init() {
-	RegisterTag("allowmissingval", tagHandleParser)
+	MustRegisterTag("allowmissingval", tagHandleParser)
 }

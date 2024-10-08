@@ -20,7 +20,9 @@ func (node *tagFirstofNode) Execute(ctx *ExecutionContext, writer TemplateWriter
 				}
 			}
 
-			writer.WriteString(val.String())
+			if _, err := writer.WriteString(val.String()); err != nil {
+				return ctx.Error(err, node.position)
+			}
 			return nil
 		}
 	}
@@ -45,5 +47,5 @@ func tagFirstofParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, *
 }
 
 func init() {
-	RegisterTag("firstof", tagFirstofParser)
+	MustRegisterTag("firstof", tagFirstofParser)
 }

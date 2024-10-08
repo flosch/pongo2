@@ -2,9 +2,7 @@ package pongo2
 
 import (
 	"bytes"
-
 	"fmt"
-
 )
 
 type tagExecNode struct {
@@ -49,5 +47,5 @@ func tagExecuteParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, *
 }
 
 func init() {
-	RegisterTag("exec", tagExecuteParser)
+	MustRegisterTag("exec", tagExecuteParser)
 }

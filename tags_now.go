@@ -14,12 +14,14 @@ type tagNowNode struct {
 func (node *tagNowNode) Execute(ctx *ExecutionContext, writer TemplateWriter) *Error {
 	var t time.Time
 	if node.fake {
-		t = time.Date(2014, time.February, 05, 18, 31, 45, 00, time.UTC)
+		t = time.Date(2014, time.February, 0o5, 18, 31, 45, 0o0, time.UTC)
 	} else {
 		t = time.Now()
 	}
 
-	writer.WriteString(t.Format(node.format))
+	if _, err := writer.WriteString(t.Format(node.format)); err != nil {
+		return ctx.Error(err, node.position)
+	}
 
 	return nil
 }
@@ -47,5 +49,5 @@ func tagNowParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, *Erro
 }
 
 func init() {
-	RegisterTag("now", tagNowParser)
+	MustRegisterTag("now", tagNowParser)
 }

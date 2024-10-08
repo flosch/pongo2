@@ -42,7 +42,9 @@ func (node *tagFilterNode) Execute(ctx *ExecutionContext, writer TemplateWriter)
 		}
 	}
 
-	writer.WriteString(value.String())
+	if _, err := writer.WriteString(value.String()); err != nil {
+		return ctx.Error(err, node.position)
+	}
 
 	return nil
 }
@@ -92,5 +94,5 @@ func tagFilterParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, *E
 }
 
 func init() {
-	RegisterTag("filter", tagFilterParser)
+	MustRegisterTag("filter", tagFilterParser)
 }

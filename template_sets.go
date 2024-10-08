@@ -113,6 +113,12 @@ func (set *TemplateSet) BanTag(name string) error {
 	return nil
 }
 
+func (set *TemplateSet) MustBanTag(name string) {
+	if err := set.BanTag(name); err != nil {
+		panic(err)
+	}
+}
+
 // BanFilter bans a specific filter for this template set. See more in the documentation for TemplateSet.
 func (set *TemplateSet) BanFilter(name string) error {
 	_, has := filters[name]
@@ -129,6 +135,12 @@ func (set *TemplateSet) BanFilter(name string) error {
 	set.bannedFilters[name] = true
 
 	return nil
+}
+
+func (set *TemplateSet) MustBanFilter(name string) {
+	if err := set.BanFilter(name); err != nil {
+		panic(err)
+	}
 }
 
 func (set *TemplateSet) resolveTemplate(tpl *Template, path string) (name string, loader TemplateLoader, fd io.Reader, err error) {

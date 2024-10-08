@@ -157,5 +157,5 @@ func tagForParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, *Erro
 }
 
 func init() {
-	RegisterTag("for", tagForParser)
+	MustRegisterTag("for", tagForParser)
 }
