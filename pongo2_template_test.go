@@ -14,7 +14,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/flosch/pongo2/v6"
+	"github.com/rudderlabs/pongo2/v6"
 )
 
 type stringerValueType int
@@ -270,8 +270,8 @@ type ObjWithoutAttrs struct {
 	the_attr_field string
 }
 
-func (owa *ObjWithoutAttrs) GetAttr(attrName string) (string, error){
-	if attrName != "attr_name"{
+func (owa *ObjWithoutAttrs) GetAttr(attrName string) (string, error) {
+	if attrName != "attr_name" {
 		return "", fmt.Errorf("unknown attr name '%s'", attrName)
 	}
 	return owa.the_attr_field, nil
@@ -281,7 +281,7 @@ type ObjWithAttrs struct {
 	the_attr_field string
 }
 
-func (owa *ObjWithAttrs) GetAttr(kwargs map[string]*pongo2.Value, args ...*pongo2.Value) (string, error){
+func (owa *ObjWithAttrs) GetAttr(kwargs map[string]*pongo2.Value, args ...*pongo2.Value) (string, error) {
 	if len(args) < 1 {
 		return "", fmt.Errorf("unspecified attr name")
 	}
@@ -289,7 +289,7 @@ func (owa *ObjWithAttrs) GetAttr(kwargs map[string]*pongo2.Value, args ...*pongo
 		return "", fmt.Errorf("attr name not string")
 	}
 	attrName := args[0].String()
-	if attrName != "attr_name"{
+	if attrName != "attr_name" {
 		return "", fmt.Errorf("unknown attr name '%s'", attrName)
 	}
 	res := owa.the_attr_field + " with args ["

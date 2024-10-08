@@ -9,7 +9,7 @@ import (
 	"regexp"
 	"testing"
 
-	"github.com/flosch/pongo2/v6"
+	"github.com/rudderlabs/pongo2/v6"
 )
 
 var testSuite2 = pongo2.NewSet("test suite 2", pongo2.MustNewLocalFileSystemLoader(""))
