@@ -74,7 +74,7 @@ func newTemplate(set *TemplateSet, name string, isTplString bool, tpl []byte) (*
 	t.Options.Update(set.Options)
 
 	// Tokenize it
-	tokens, err := lex(name, strTpl)
+	tokens, err := Lex(name, strTpl)
 	if err != nil {
 		return nil, err
 	}

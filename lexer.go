@@ -51,6 +51,7 @@ type (
 		Val             string
 		Line            int
 		Col             int
+		Position        int
 		TrimWhitespaces bool
 	}
 )
@@ -107,7 +108,7 @@ func (t *Token) String() string {
 		typ, t.Typ, val, t.Line, t.Col, t.TrimWhitespaces)
 }
 
-func lex(name string, input string) ([]*Token, *Error) {
+func Lex(name string, input string) ([]*Token, *Error) {
 	l := &lexer{
 		name:      name,
 		input:     input,
@@ -146,6 +147,7 @@ func (l *lexer) emit(t TokenType) {
 		Val:      l.value(),
 		Line:     l.startline,
 		Col:      l.startcol,
+		Position: l.pos,
 	}
 
 	if t == TokenString {
