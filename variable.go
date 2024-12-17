@@ -328,20 +328,19 @@ func (vr *variableResolver) resolve(ctx *ExecutionContext) (*Value, error) {
 				}
 
 				// Look up which part must be called now
-				var resolver func(reflect.Value, *variablePart) (_ reflect.Value, done bool, _ error)
+				var resolver func(*ExecutionContext, reflect.Value, *variablePart) (_ reflect.Value, done bool, _ error)
 				switch part.typ {
 				case varTypeInt:
 					resolver = vr.resolveIndexedField
 				case varTypeIdent:
-					// debugging:
-					// fmt.Printf("now = %s (kind: %s)\n", part.s, current.Kind().String())
-
 					resolver = vr.resolveNamedField
+				case varTypeSubscript:
+					resolver = vr.resolveSubscriptField
 				default:
 					panic("unimplemented")
 				}
 
-				if v, done, err := resolver(current, part); err != nil {
+				if v, done, err := resolver(ctx, current, part); err != nil {
 					return nil, err
 				} else if done {
 					return &Value{val: v}, nil
@@ -498,7 +497,7 @@ func (vr *variableResolver) Evaluate(ctx *ExecutionContext) (*Value, *Error) {
 	return value, nil
 }
 
-func (vr *variableResolver) resolveNamedField(of reflect.Value, by *variablePart) (_ reflect.Value, done bool, _ error) {
+func (vr *variableResolver) resolveNamedField(_ *ExecutionContext, of reflect.Value, by *variablePart) (_ reflect.Value, done bool, _ error) {
 	// If current does implement NamedFieldResolver, call it with the actual field name.
 	if fr, ok := of.Interface().(NamedFieldResolver); ok {
 		if val, err := fr.GetNamedField(by.s); err == ErrNoSuchField {
@@ -558,7 +557,7 @@ func (vr *variableResolver) resolveStructFieldTag(of reflect.StructField) (alias
 	return strings.TrimSpace(plainParts[0])
 }
 
-func (vr *variableResolver) resolveIndexedField(of reflect.Value, by *variablePart) (_ reflect.Value, done bool, _ error) {
+func (vr *variableResolver) resolveIndexedField(_ *ExecutionContext, of reflect.Value, by *variablePart) (_ reflect.Value, done bool, _ error) {
 	// If current does implement IndexedFieldResolver, call it with the actual index.
 	if fr, ok := of.Interface().(IndexedFieldResolver); ok {
 		if val, err := fr.GetIndexedField(by.i); err == ErrNoSuchField {
@@ -579,6 +578,48 @@ func (vr *variableResolver) resolveIndexedField(of reflect.Value, by *variablePa
 			return of.Index(by.i), false, nil
 		} else {
 			// In Django, exceeding the length of a list is just empty.
+			return reflect.ValueOf(nil), true, nil
+		}
+	default:
+		return reflect.Value{}, false, fmt.Errorf("can't access an index on type %s (variable %s)",
+			of.Kind().String(), vr.String())
+	}
+}
+
+func (vr *variableResolver) resolveSubscriptField(ctx *ExecutionContext, of reflect.Value, by *variablePart) (_ reflect.Value, done bool, _ error) {
+	// Calling an index is only possible for:
+	// * slices/arrays/strings
+	switch of.Kind() {
+	case reflect.String, reflect.Array, reflect.Slice:
+		sv, err := by.subscript.Evaluate(ctx)
+		if err != nil {
+			return reflect.Value{}, false, err
+		}
+		si := sv.Integer()
+		if si >= 0 && of.Len() > si {
+			return of.Index(si), false, nil
+		} else {
+			// In Django, exceeding the length of a list is just empty.
+			return reflect.ValueOf(nil), true, nil
+		}
+	// Calling a field or key
+	case reflect.Struct:
+		sv, err := by.subscript.Evaluate(ctx)
+		if err != nil {
+			return reflect.Value{}, false, err
+		}
+		return of.FieldByName(sv.String()), false, nil
+	case reflect.Map:
+		sv, err := by.subscript.Evaluate(ctx)
+		if err != nil {
+			return reflect.Value{}, false, err
+		}
+		if sv.IsNil() {
+			return reflect.ValueOf(nil), true, nil
+		}
+		if sv.val.Type().AssignableTo(of.Type().Key()) {
+			return of.MapIndex(sv.val), false, nil
+		} else {
 			return reflect.ValueOf(nil), true, nil
 		}
 	default:

@@ -2,8 +2,9 @@ package pongo2_test
 
 import (
 	"errors"
-	"github.com/flosch/pongo2/v5"
 	"testing"
+
+	"github.com/flosch/pongo2/v6"
 )
 
 func TestVariables_Named(t *testing.T) {
