@@ -19,15 +19,16 @@ type Value struct {
 // through a Context or within filter functions.
 //
 // Example:
-//     AsValue("my string")
-func AsValue(i interface{}) *Value {
+//
+//	AsValue("my string")
+func AsValue(i any) *Value {
 	return &Value{
 		val: reflect.ValueOf(i),
 	}
 }
 
 // AsSafeValue works like AsValue, but does not apply the 'escape' filter.
-func AsSafeValue(i interface{}) *Value {
+func AsSafeValue(i any) *Value {
 	return &Value{
 		val:  reflect.ValueOf(i),
 		safe: true,
@@ -93,12 +94,12 @@ func (v *Value) IsNil() bool {
 // of type string, pongo2 tries to convert it. Currently the following
 // types for underlying values are supported:
 //
-//     1. string
-//     2. int/uint (any size)
-//     3. float (any precision)
-//     4. bool
-//     5. time.Time
-//     6. String() will be called on the underlying value if provided
+//  1. string
+//  2. int/uint (any size)
+//  3. float (any precision)
+//  4. bool
+//  5. time.Time
+//  6. String() will be called on the underlying value if provided
 //
 // NIL values will lead to an empty string. Unsupported types are leading
 // to their respective type name.
@@ -206,12 +207,12 @@ func (v *Value) Time() time.Time {
 //
 // Returns TRUE in one the following cases:
 //
-//     * int != 0
-//     * uint != 0
-//     * float != 0.0
-//     * len(array/chan/map/slice/string) > 0
-//     * bool == true
-//     * underlying value is a struct
+//   - int != 0
+//   - uint != 0
+//   - float != 0.0
+//   - len(array/chan/map/slice/string) > 0
+//   - bool == true
+//   - underlying value is a struct
 //
 // Otherwise returns always FALSE.
 func (v *Value) IsTrue() bool {
@@ -239,7 +240,8 @@ func (v *Value) IsTrue() bool {
 // return_value.IsTrue() afterwards.
 //
 // Example:
-//     AsValue(1).Negate().IsTrue() == false
+//
+//	AsValue(1).Negate().IsTrue() == false
 func (v *Value) Negate() *Value {
 	switch v.getResolvedValue().Kind() {
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
@@ -305,7 +307,6 @@ func (v *Value) Index(i int) *Value {
 		}
 		return AsValue(v.getResolvedValue().Index(i).Interface())
 	case reflect.String:
-		// return AsValue(v.getResolvedValue().Slice(i, i+1).Interface())
 		s := v.getResolvedValue().String()
 		runes := []rune(s)
 		if i < len(runes) {
@@ -323,19 +324,30 @@ func (v *Value) Index(i int) *Value {
 // whether a struct contains of a specific field or a map contains a specific key).
 //
 // Example:
-//     AsValue("Hello, World!").Contains(AsValue("World")) == true
+//
+//	AsValue("Hello, World!").Contains(AsValue("World")) == true
 func (v *Value) Contains(other *Value) bool {
-	switch v.getResolvedValue().Kind() {
+	baseValue := v.getResolvedValue()
+	switch baseValue.Kind() {
 	case reflect.Struct:
-		fieldValue := v.getResolvedValue().FieldByName(other.String())
+		fieldValue := baseValue.FieldByName(other.String())
 		return fieldValue.IsValid()
 	case reflect.Map:
+		// We can't check against invalid types
+		if !other.val.IsValid() {
+			return false
+		}
+		// Ensure that map key type is equal to other's type.
+		if baseValue.Type().Key() != other.val.Type() {
+			return false
+		}
+
 		var mapValue reflect.Value
 		switch other.Interface().(type) {
 		case int:
-			mapValue = v.getResolvedValue().MapIndex(other.getResolvedValue())
+			mapValue = baseValue.MapIndex(other.getResolvedValue())
 		case string:
-			mapValue = v.getResolvedValue().MapIndex(other.getResolvedValue())
+			mapValue = baseValue.MapIndex(other.getResolvedValue())
 		default:
 			logf("Value.Contains() does not support lookup type '%s'\n", other.getResolvedValue().Kind().String())
 			return false
@@ -346,8 +358,8 @@ func (v *Value) Contains(other *Value) bool {
 		return strings.Contains(v.getResolvedValue().String(), other.String())
 
 	case reflect.Slice, reflect.Array:
-		for i := 0; i < v.getResolvedValue().Len(); i++ {
-			item := v.getResolvedValue().Index(i)
+		for i := 0; i < baseValue.Len(); i++ {
+			item := baseValue.Index(i)
 			if other.EqualValueTo(AsValue(item.Interface())) {
 				return true
 			}
@@ -355,7 +367,7 @@ func (v *Value) Contains(other *Value) bool {
 		return false
 
 	default:
-		logf("Value.Contains() not available for type: %s\n", v.getResolvedValue().Kind().String())
+		logf("Value.Contains() not available for type: %s\n", baseValue.Kind().String())
 		return false
 	}
 }
@@ -373,10 +385,10 @@ func (v *Value) CanSlice() bool {
 // Iterate iterates over a map, array, slice or a string. It calls the
 // function's first argument for every value with the following arguments:
 //
-//     idx      current 0-index
-//     count    total amount of items
-//     key      *Value for the key or item
-//     value    *Value (only for maps, the respective value for a specific key)
+//	idx      current 0-index
+//	count    total amount of items
+//	key      *Value for the key or item
+//	value    *Value (only for maps, the respective value for a specific key)
 //
 // If the underlying value has no items or is not one of the types above,
 // the empty function (function's second argument) will be called.
@@ -442,25 +454,26 @@ func (v *Value) IterateOrder(fn func(idx, count int, key, value *Value) bool, em
 		}
 		return // done
 	case reflect.String:
-		if sorted {
-			// TODO(flosch): Handle sorted
-			panic("TODO: handle sort for type string")
-		}
+		s := v.getResolvedValue().String()
+		rs := []rune(s)
+		charCount := len(rs)
 
-		// TODO(flosch): Not utf8-compatible (utf8-decoding necessary)
-		charCount := v.getResolvedValue().Len()
 		if charCount > 0 {
+			if sorted {
+				sort.SliceStable(rs, func(i, j int) bool {
+					return rs[i] < rs[j]
+				})
+			}
+
 			if reverse {
-				for i := charCount - 1; i >= 0; i-- {
-					if !fn(i, charCount, &Value{val: v.getResolvedValue().Slice(i, i+1)}, nil) {
-						return
-					}
+				for i, j := 0, charCount-1; i < j; i, j = i+1, j-1 {
+					rs[i], rs[j] = rs[j], rs[i]
 				}
-			} else {
-				for i := 0; i < charCount; i++ {
-					if !fn(i, charCount, &Value{val: v.getResolvedValue().Slice(i, i+1)}, nil) {
-						return
-					}
+			}
+
+			for i := 0; i < charCount; i++ {
+				if !fn(i, charCount, &Value{val: reflect.ValueOf(string(rs[i]))}, nil) {
+					return
 				}
 			}
 		} else {
@@ -474,14 +487,14 @@ func (v *Value) IterateOrder(fn func(idx, count int, key, value *Value) bool, em
 }
 
 // Interface gives you access to the underlying value.
-func (v *Value) Interface() interface{} {
+func (v *Value) Interface() any {
 	if v.val.IsValid() {
 		return v.val.Interface()
 	}
 	return nil
 }
 
-// EqualValueTo checks whether two values are containing the same value or object.
+// EqualValueTo checks whether two values are containing the same value or object (if comparable).
 func (v *Value) EqualValueTo(other *Value) bool {
 	// comparison of uint with int fails using .Interface()-comparison (see issue #64)
 	if v.IsInteger() && other.IsInteger() {
@@ -490,7 +503,14 @@ func (v *Value) EqualValueTo(other *Value) bool {
 	if v.IsTime() && other.IsTime() {
 		return v.Time().Equal(other.Time())
 	}
-	return v.Interface() == other.Interface()
+	if !v.val.IsValid() || !other.val.IsValid() {
+		return false
+	}
+	// TODO(flosch): As of Go 1.20, reflect supports Comparable() and Equal(). This should potentially
+	// be used here: https://pkg.go.dev/reflect#Value.Comparable
+	return v.val.CanInterface() && other.val.CanInterface() &&
+		v.val.Type().Comparable() && other.val.Type().Comparable() &&
+		v.Interface() == other.Interface()
 }
 
 type sortedKeys []reflect.Value

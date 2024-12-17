@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -14,7 +14,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/flosch/pongo2/v5"
+	"github.com/flosch/pongo2/v6"
 )
 
 type stringerValueType int
@@ -29,8 +29,8 @@ var (
 )
 
 var (
-	time1 = time.Date(2014, 06, 10, 15, 30, 15, 0, time.UTC)
-	time2 = time.Date(2011, 03, 21, 8, 37, 56, 12, time.UTC)
+	time1 = time.Date(2014, 0o6, 10, 15, 30, 15, 0, time.UTC)
+	time2 = time.Date(2011, 0o3, 21, 8, 37, 56, 12, time.UTC)
 )
 
 type post struct {
@@ -100,7 +100,7 @@ func init() {
 	pongo2.DefaultSet.BanFilter("banned_filter")
 	pongo2.DefaultSet.BanTag("banned_tag")
 
-	f, err := ioutil.TempFile(os.TempDir(), "pongo2_")
+	f, err := os.CreateTemp(os.TempDir(), "pongo2_")
 	if err != nil {
 		panic(fmt.Sprintf("cannot write to %s", os.TempDir()))
 	}
@@ -118,7 +118,7 @@ func init() {
 
 var tplContext = pongo2.Context{
 	"number": 11,
-	"simple": map[string]interface{}{
+	"simple": map[string]any{
 		"number":                   42,
 		"name":                     "john doe",
 		"included_file":            "INCLUDES.helper",
@@ -143,7 +143,7 @@ Yep!`,
 		"multiple_item_list": []int{1, 1, 2, 3, 5, 8, 13, 21, 34, 55},
 		"unsorted_int_list":  []int{192, 581, 22, 1, 249, 9999, 1828591, 8271},
 		"fixed_item_list":    [...]int{1, 2, 3, 4},
-		"misc_list":          []interface{}{"Hello", 99, 3.14, "good"},
+		"misc_list":          []any{"Hello", 99, 3.14, "good"},
 		"escape_text":        "This is \\a Test. \"Yep\". 'Yep'.",
 		"xss":                "<script>alert(\"uh oh\");</script>",
 		"time1":              time1,
@@ -166,10 +166,15 @@ Yep!`,
 		"func_add": func(a, b int) int {
 			return a + b
 		},
-		"func_add_iface": func(a, b interface{}) interface{} {
-			return a.(int) + b.(int)
+		"func_add_iface": func(a, b any) any {
+			x, is1 := a.(int)
+			y, is2 := b.(int)
+			if is1 && is2 {
+				return x + y
+			}
+			return 0
 		},
-		"func_variadic": func(msg string, args ...interface{}) string {
+		"func_variadic": func(msg string, args ...any) string {
 			return fmt.Sprintf(msg, args...)
 		},
 		"func_variadic_sum_int": func(args ...int) int {
@@ -188,8 +193,19 @@ Yep!`,
 			}
 			return pongo2.AsValue(s)
 		},
+		"func_ensure_nil": func(x any) bool {
+			return x == nil
+		},
+		"func_ensure_nil_variadic": func(args ...any) bool {
+			for _, i := range args {
+				if i != nil {
+					return false
+				}
+			}
+			return true
+		},
 	},
-	"complex": map[string]interface{}{
+	"complex": map[string]any{
 		"is_admin": isAdmin,
 		"post": post{
 			Text:    "<h2>Hello!</h2><p>Welcome to my new blog page. I'm using pongo2 which supports {{ variables }} and {% tags %}.</p>",
@@ -251,7 +267,7 @@ Yep!`,
 }
 
 func TestTemplate_Functions(t *testing.T) {
-	mydict := map[string]interface{}{
+	mydict := map[string]any{
 		"foo":    "bar",
 		"foobar": 8379,
 	}
@@ -269,7 +285,7 @@ func TestTemplate_Functions(t *testing.T) {
 			template: "{{ testFunc(mydict) }}",
 			context: pongo2.Context{
 				"mydict": mydict,
-				"testFunc": func(i interface{}) (string, error) {
+				"testFunc": func(i any) (string, error) {
 					d, err := json.Marshal(i)
 					return string(d), err
 				},
@@ -282,7 +298,7 @@ func TestTemplate_Functions(t *testing.T) {
 			template: "{{ testFunc(mydict) }}",
 			context: pongo2.Context{
 				"mydict": mydict,
-				"testFunc": func(i interface{}) (string, error) {
+				"testFunc": func(i any) (string, error) {
 					return "", errors.New("something went wrong")
 				},
 			},
@@ -294,7 +310,7 @@ func TestTemplate_Functions(t *testing.T) {
 			template: "{{ testFunc(mydict) }}",
 			context: pongo2.Context{
 				"mydict": mydict,
-				"testFunc": func(i interface{}) (string, int, error) {
+				"testFunc": func(i any) (string, int, error) {
 					return "", 0, nil
 				},
 			},
@@ -305,15 +321,26 @@ func TestTemplate_Functions(t *testing.T) {
 			name:     "InvalidArguments",
 			template: "{{ testFunc(mydict) }}",
 			context: pongo2.Context{
-				"mydict": map[string]interface{}{
+				"mydict": map[string]any{
 					"foo":    "bar",
 					"foobar": 8379,
 				},
-				"testFunc": func(i interface{}) (string, int) {
+				"testFunc": func(i any) (string, int) {
 					return "", 0
 				},
 			},
 			errorMessage: "[Error (where: execution) in <string> | Line 1 Col 4 near 'testFunc'] the second return value is not an error",
+			wantErr:      true,
+		},
+		{
+			name:     "NilToNonNilParameter",
+			template: "{{ testFunc(nil) }}",
+			context: pongo2.Context{
+				"testFunc": func(i int) int {
+					return 1
+				},
+			},
+			errorMessage: "[Error (where: execution) in <string> | Line 1 Col 4 near 'testFunc'] function input argument 0 of 'testFunc' must be of type int or *pongo2.Value (not <nil>)",
 			wantErr:      true,
 		},
 	}
@@ -355,7 +382,7 @@ func TestTemplates(t *testing.T) {
 			}
 
 			// Read options from file
-			optsStr, _ := ioutil.ReadFile(fmt.Sprintf("%s.options", match))
+			optsStr, _ := os.ReadFile(fmt.Sprintf("%s.options", match))
 			trimBlocks := strings.Contains(string(optsStr), "TrimBlocks=true")
 			lStripBlocks := strings.Contains(string(optsStr), "LStripBlocks=true")
 
@@ -363,7 +390,7 @@ func TestTemplates(t *testing.T) {
 			tpl.Options.LStripBlocks = lStripBlocks
 
 			testFilename := fmt.Sprintf("%s.out", match)
-			testOut, rerr := ioutil.ReadFile(testFilename)
+			testOut, rerr := os.ReadFile(testFilename)
 			if rerr != nil {
 				t.Fatalf("Error on ReadFile('%s'): %s", testFilename, rerr.Error())
 			}
@@ -375,7 +402,7 @@ func TestTemplates(t *testing.T) {
 			if !bytes.Equal(testOut, tplOut) {
 				t.Logf("Template (rendered) '%s': '%s'", match, tplOut)
 				errFilename := filepath.Base(fmt.Sprintf("%s.error", match))
-				err := ioutil.WriteFile(errFilename, []byte(tplOut), 0600)
+				err := os.WriteFile(errFilename, []byte(tplOut), 0o600)
 				if err != nil {
 					t.Fatalf(err.Error())
 				}
@@ -394,41 +421,43 @@ func TestBlockTemplates(t *testing.T) {
 		t.Fatal(err)
 	}
 	for idx, match := range matches {
-		t.Logf("[BlockTemplate %3d] Testing '%s'", idx+1, match)
+		t.Run(fmt.Sprintf("%03d-%s", idx+1, match), func(t *testing.T) {
+			t.Logf("[BlockTemplate %3d] Testing '%s'", idx+1, match)
 
-		tpl, err := pongo2.FromFile(match)
-		if err != nil {
-			t.Fatalf("Error on FromFile('%s'): %s", match, err.Error())
-		}
-
-		testFilename := fmt.Sprintf("%s.out", match)
-		testOut, rerr := ioutil.ReadFile(testFilename)
-		if rerr != nil {
-			t.Fatalf("Error on ReadFile('%s'): %s", testFilename, rerr.Error())
-		}
-		tpl_out, err := tpl.ExecuteBlocks(tplContext, []string{"content", "more_content"})
-		if err != nil {
-			t.Fatalf("Error on ExecuteBlocks('%s'): %s", match, err.Error())
-		}
-
-		if _, ok := tpl_out["content"]; !ok {
-			t.Errorf("Failed: content not in tpl_out for %s", match)
-		}
-		if _, ok := tpl_out["more_content"]; !ok {
-			t.Errorf("Failed: more_content not in tpl_out for %s", match)
-		}
-		testString := string(testOut[:])
-		joinedString := strings.Join([]string{tpl_out["content"], tpl_out["more_content"]}, "")
-		if testString != joinedString {
-			t.Logf("BlockTemplate (rendered) '%s': '%s'", match, tpl_out["content"])
-			errFilename := filepath.Base(fmt.Sprintf("%s.error", match))
-			err := ioutil.WriteFile(errFilename, []byte(joinedString), 0600)
+			tpl, err := pongo2.FromFile(match)
 			if err != nil {
-				t.Fatalf(err.Error())
+				t.Fatalf("Error on FromFile('%s'): %s", match, err.Error())
 			}
-			t.Logf("get a complete diff with command: 'diff -ya %s %s'", testFilename, errFilename)
-			t.Errorf("Failed: test_out != tpl_out for %s", match)
-		}
+
+			testFilename := fmt.Sprintf("%s.out", match)
+			testOut, rerr := os.ReadFile(testFilename)
+			if rerr != nil {
+				t.Fatalf("Error on ReadFile('%s'): %s", testFilename, rerr.Error())
+			}
+			tpl_out, err := tpl.ExecuteBlocks(tplContext, []string{"content", "more_content"})
+			if err != nil {
+				t.Fatalf("Error on ExecuteBlocks('%s'): %s", match, err.Error())
+			}
+
+			if _, ok := tpl_out["content"]; !ok {
+				t.Errorf("Failed: content not in tpl_out for %s", match)
+			}
+			if _, ok := tpl_out["more_content"]; !ok {
+				t.Errorf("Failed: more_content not in tpl_out for %s", match)
+			}
+			testString := string(testOut[:])
+			joinedString := strings.Join([]string{tpl_out["content"], tpl_out["more_content"]}, "")
+			if testString != joinedString {
+				t.Logf("BlockTemplate (rendered) '%s': '%s'", match, tpl_out["content"])
+				errFilename := filepath.Base(fmt.Sprintf("%s.error", match))
+				err := os.WriteFile(errFilename, []byte(joinedString), 0o600)
+				if err != nil {
+					t.Fatalf(err.Error())
+				}
+				t.Logf("get a complete diff with command: 'diff -ya %s %s'", testFilename, errFilename)
+				t.Errorf("Failed: test_out != tpl_out for %s", match)
+			}
+		})
 	}
 }
 
@@ -460,14 +489,14 @@ func TestExecutionErrors(t *testing.T) {
 	}
 	for idx, match := range matches {
 		t.Run(fmt.Sprintf("%03d-%s", idx+1, match), func(t *testing.T) {
-			testData, err := ioutil.ReadFile(match)
+			testData, err := os.ReadFile(match)
 			if err != nil {
 				t.Fatalf("could not read file '%v': %v", match, err)
 			}
 			tests := strings.Split(string(testData), "\n")
 
 			checkFilename := fmt.Sprintf("%s.out", match)
-			checkData, err := ioutil.ReadFile(checkFilename)
+			checkData, err := os.ReadFile(checkFilename)
 			if err != nil {
 				t.Fatalf("Error on ReadFile('%s'): %s", checkFilename, err.Error())
 			}
@@ -521,14 +550,14 @@ func TestCompilationErrors(t *testing.T) {
 	}
 	for idx, match := range matches {
 		t.Run(fmt.Sprintf("%03d-%s", idx+1, match), func(t *testing.T) {
-			testData, err := ioutil.ReadFile(match)
+			testData, err := os.ReadFile(match)
 			if err != nil {
 				t.Fatalf("could not read file '%v': %v", match, err)
 			}
 			tests := strings.Split(string(testData), "\n")
 
 			checkFilename := fmt.Sprintf("%s.out", match)
-			checkData, err := ioutil.ReadFile(checkFilename)
+			checkData, err := os.ReadFile(checkFilename)
 			if err != nil {
 				t.Fatalf("error on ReadFile('%s'): %s", checkFilename, err.Error())
 			}
@@ -599,7 +628,7 @@ func BenchmarkCache(b *testing.B) {
 		if err != nil {
 			b.Fatal(err)
 		}
-		err = tpl.ExecuteWriterUnbuffered(tplContext, ioutil.Discard)
+		err = tpl.ExecuteWriterUnbuffered(tplContext, io.Discard)
 		if err != nil {
 			b.Fatal(err)
 		}
@@ -614,7 +643,7 @@ func BenchmarkCacheDebugOn(b *testing.B) {
 		if err != nil {
 			b.Fatal(err)
 		}
-		err = tpl.ExecuteWriterUnbuffered(tplContext, ioutil.Discard)
+		err = tpl.ExecuteWriterUnbuffered(tplContext, io.Discard)
 		if err != nil {
 			b.Fatal(err)
 		}
@@ -628,7 +657,7 @@ func BenchmarkExecuteComplexWithSandboxActive(b *testing.B) {
 	}
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		err = tpl.ExecuteWriterUnbuffered(tplContext, ioutil.Discard)
+		err = tpl.ExecuteWriterUnbuffered(tplContext, io.Discard)
 		if err != nil {
 			b.Fatal(err)
 		}
@@ -636,7 +665,7 @@ func BenchmarkExecuteComplexWithSandboxActive(b *testing.B) {
 }
 
 func BenchmarkCompileAndExecuteComplexWithSandboxActive(b *testing.B) {
-	buf, err := ioutil.ReadFile("template_tests/complex.tpl")
+	buf, err := os.ReadFile("template_tests/complex.tpl")
 	if err != nil {
 		b.Fatal(err)
 	}
@@ -648,7 +677,7 @@ func BenchmarkCompileAndExecuteComplexWithSandboxActive(b *testing.B) {
 			b.Fatal(err)
 		}
 
-		err = tpl.ExecuteWriterUnbuffered(tplContext, ioutil.Discard)
+		err = tpl.ExecuteWriterUnbuffered(tplContext, io.Discard)
 		if err != nil {
 			b.Fatal(err)
 		}
@@ -663,7 +692,7 @@ func BenchmarkParallelExecuteComplexWithSandboxActive(b *testing.B) {
 	b.ResetTimer()
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
-			err := tpl.ExecuteWriterUnbuffered(tplContext, ioutil.Discard)
+			err := tpl.ExecuteWriterUnbuffered(tplContext, io.Discard)
 			if err != nil {
 				b.Fatal(err)
 			}
@@ -679,7 +708,7 @@ func BenchmarkExecuteComplexWithoutSandbox(b *testing.B) {
 	}
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		err = tpl.ExecuteWriterUnbuffered(tplContext, ioutil.Discard)
+		err = tpl.ExecuteWriterUnbuffered(tplContext, io.Discard)
 		if err != nil {
 			b.Fatal(err)
 		}
@@ -687,7 +716,7 @@ func BenchmarkExecuteComplexWithoutSandbox(b *testing.B) {
 }
 
 func BenchmarkCompileAndExecuteComplexWithoutSandbox(b *testing.B) {
-	buf, err := ioutil.ReadFile("template_tests/complex.tpl")
+	buf, err := os.ReadFile("template_tests/complex.tpl")
 	if err != nil {
 		b.Fatal(err)
 	}
@@ -702,7 +731,7 @@ func BenchmarkCompileAndExecuteComplexWithoutSandbox(b *testing.B) {
 			b.Fatal(err)
 		}
 
-		err = tpl.ExecuteWriterUnbuffered(tplContext, ioutil.Discard)
+		err = tpl.ExecuteWriterUnbuffered(tplContext, io.Discard)
 		if err != nil {
 			b.Fatal(err)
 		}
@@ -718,7 +747,7 @@ func BenchmarkParallelExecuteComplexWithoutSandbox(b *testing.B) {
 	b.ResetTimer()
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
-			err := tpl.ExecuteWriterUnbuffered(tplContext, ioutil.Discard)
+			err := tpl.ExecuteWriterUnbuffered(tplContext, io.Discard)
 			if err != nil {
 				b.Fatal(err)
 			}
@@ -728,6 +757,36 @@ func BenchmarkParallelExecuteComplexWithoutSandbox(b *testing.B) {
 
 func BenchmarkExecuteBlocksWithSandboxActive(b *testing.B) {
 	blockNames := []string{"content", "more_content"}
+	tpl, err := pongo2.FromFile("template_tests/block_render/block.tpl")
+	if err != nil {
+		b.Fatal(err)
+	}
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_, err = tpl.ExecuteBlocks(tplContext, blockNames)
+		if err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
+func BenchmarkExecuteBlocksDeepWithSandboxActive(b *testing.B) {
+	blockNames := []string{"body", "more_content"}
+	tpl, err := pongo2.FromFile("template_tests/block_render/deep.tpl")
+	if err != nil {
+		b.Fatal(err)
+	}
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_, err = tpl.ExecuteBlocks(tplContext, blockNames)
+		if err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
+func BenchmarkExecuteBlocksWithEmptyBlocksSandboxActive(b *testing.B) {
+	blockNames := []string{}
 	tpl, err := pongo2.FromFile("template_tests/block_render/block.tpl")
 	if err != nil {
 		b.Fatal(err)

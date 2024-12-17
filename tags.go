@@ -33,7 +33,7 @@ type INodeTag interface {
 // 'doc' is providing access to the whole document while 'arguments'
 // is providing access to the user's arguments to the tag:
 //
-//     {% your_tag_name some "arguments" 123 %}
+//	{% your_tag_name some "arguments" 123 %}
 //
 // start_token will be the *Token with the tag's name in it (here: your_tag_name).
 //
@@ -56,9 +56,6 @@ func init() {
 // Registers a new tag. You usually want to call this
 // function in the tag's init() function:
 // http://golang.org/doc/effective_go.html#init
-//
-// See http://www.florian-schlachter.de/post/pongo2/ for more about
-// writing filters and tags.
 func RegisterTag(name string, parserFn TagParser) error {
 	_, existing := tags[name]
 	if existing {

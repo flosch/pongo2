@@ -31,6 +31,7 @@ import (
 	"fmt"
 	"math/rand"
 	"net/url"
+	"reflect"
 	"regexp"
 	"strconv"
 	"strings"
@@ -97,6 +98,9 @@ func init() {
 }
 
 func filterTruncatecharsHelper(s string, newLen int) string {
+	if newLen <= 0 {
+		return s
+	}
 	runes := []rune(s)
 	if newLen < len(runes) {
 		if newLen >= 3 {
@@ -435,6 +439,8 @@ func filterFirst(in *Value, param *Value) (*Value, *Error) {
 	return AsValue(""), nil
 }
 
+const maxFloatFormatDecimals = 1000
+
 func filterFloatformat(in *Value, param *Value) (*Value, *Error) {
 	val := in.Float()
 
@@ -459,6 +465,13 @@ func filterFloatformat(in *Value, param *Value) (*Value, *Error) {
 		// Remove zeroes
 		if float64(int(val)) == val {
 			return AsValue(in.Integer()), nil
+		}
+	}
+
+	if decimals > maxFloatFormatDecimals {
+		return nil, &Error{
+			Sender:    "filter:floatformat",
+			OrigError: fmt.Errorf("filter floatformat doesn't support more than %v decimals", maxFloatFormatDecimals),
 		}
 	}
 
@@ -496,10 +509,26 @@ func filterJoin(in *Value, param *Value) (*Value, *Error) {
 		return in, nil
 	}
 	sep := param.String()
-	sl := make([]string, 0, in.Len())
-	for i := 0; i < in.Len(); i++ {
-		sl = append(sl, in.Index(i).String())
+	if sep == "" {
+		// An empty string separator returns the input string.
+		return AsValue(in.String()), nil
 	}
+
+	sl := make([]string, 0, in.Len())
+
+	// This is an optimization for very long strings. Index() splits `in` into runes with each
+	// function invocation which hurts performance. Hence we're doing it just once (with ranging
+	// over the string) and speeding things up.
+	if in.getResolvedValue().Kind() == reflect.String {
+		for _, i := range in.String() {
+			sl = append(sl, string(i))
+		}
+	} else {
+		for i := 0; i < in.Len(); i++ {
+			sl = append(sl, in.Index(i).String())
+		}
+	}
+
 	return AsValue(strings.Join(sl, sep)), nil
 }
 
@@ -536,6 +565,8 @@ func filterCapfirst(in *Value, param *Value) (*Value, *Error) {
 	return AsValue(strings.ToUpper(string(r)) + t[size:]), nil
 }
 
+const maxCharPadding = 10000
+
 func filterCenter(in *Value, param *Value) (*Value, *Error) {
 	width := param.Integer()
 	slen := in.Len()
@@ -544,6 +575,14 @@ func filterCenter(in *Value, param *Value) (*Value, *Error) {
 	}
 
 	spaces := width - slen
+
+	if spaces > maxCharPadding {
+		return nil, &Error{
+			Sender:    "filter:center",
+			OrigError: fmt.Errorf("filter center doesn't support more than %v padding chars", maxCharPadding),
+		}
+	}
+
 	left := spaces/2 + spaces%2
 	right := spaces / 2
 
@@ -637,6 +676,12 @@ func filterLjust(in *Value, param *Value) (*Value, *Error) {
 	times := param.Integer() - in.Len()
 	if times < 0 {
 		times = 0
+	}
+	if times > maxCharPadding {
+		return nil, &Error{
+			Sender:    "filter:ljust",
+			OrigError: fmt.Errorf("ljust doesn't support more padding than %c chars", maxCharPadding),
+		}
 	}
 	return AsValue(fmt.Sprintf("%s%s", in.String(), strings.Repeat(" ", times))), nil
 }
@@ -815,13 +860,28 @@ func filterRandom(in *Value, param *Value) (*Value, *Error) {
 	return in.Index(i), nil
 }
 
+var reTag = regexp.MustCompile(`^[a-zA-Z]$`)
+
 func filterRemovetags(in *Value, param *Value) (*Value, *Error) {
 	s := in.String()
 	tags := strings.Split(param.String(), ",")
 
 	// Strip only specific tags
 	for _, tag := range tags {
-		re := regexp.MustCompile(fmt.Sprintf("</?%s/?>", tag))
+		if !reTag.MatchString(tag) {
+			return nil, &Error{
+				Sender:    "filter:removetags",
+				OrigError: fmt.Errorf("invalid tag '%s'", tag),
+			}
+		}
+
+		re, err := regexp.Compile(fmt.Sprintf("</?%s/?>", tag))
+		if err != nil {
+			return nil, &Error{
+				Sender:    "filter:removetags",
+				OrigError: fmt.Errorf("removetags-filter regexp error with tag '%s': %v", tag, err),
+			}
+		}
 		s = re.ReplaceAllString(s, "")
 	}
 
@@ -829,7 +889,14 @@ func filterRemovetags(in *Value, param *Value) (*Value, *Error) {
 }
 
 func filterRjust(in *Value, param *Value) (*Value, *Error) {
-	return AsValue(fmt.Sprintf(fmt.Sprintf("%%%ds", param.Integer()), in.String())), nil
+	padding := param.Integer()
+	if padding > maxCharPadding {
+		return nil, &Error{
+			Sender:    "filter:rjust",
+			OrigError: fmt.Errorf("rjust doesn't support more padding than %c chars", maxCharPadding),
+		}
+	}
+	return AsValue(fmt.Sprintf(fmt.Sprintf("%%%ds", padding), in.String())), nil
 }
 
 func filterSlice(in *Value, param *Value) (*Value, *Error) {
@@ -902,7 +969,10 @@ func filterWordwrap(in *Value, param *Value) (*Value, *Error) {
 		return in, nil
 	}
 
-	linecount := wordsLen/wrapAt + wordsLen%wrapAt
+	linecount := wordsLen / wrapAt
+	if wordsLen%wrapAt > 0 {
+		linecount++
+	}
 	lines := make([]string, 0, linecount)
 	for i := 0; i < linecount; i++ {
 		lines = append(lines, strings.Join(words[wrapAt*i:min(wrapAt*(i+1), wordsLen)], " "))

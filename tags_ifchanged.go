@@ -58,9 +58,11 @@ func (node *tagIfchangedNode) Execute(ctx *ExecutionContext, writer TemplateWrit
 			}
 		} else {
 			// Render elseWrapper
-			err := node.elseWrapper.Execute(ctx, writer)
-			if err != nil {
-				return err
+			if node.elseWrapper != nil {
+				err := node.elseWrapper.Execute(ctx, writer)
+				if err != nil {
+					return err
+				}
 			}
 		}
 	}

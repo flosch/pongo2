@@ -5,6 +5,8 @@ import (
 	"fmt"
 )
 
+const maxMacroDepth = 1000
+
 type tagMacroNode struct {
 	position  *Token
 	name      string
@@ -17,6 +19,15 @@ type tagMacroNode struct {
 
 func (node *tagMacroNode) Execute(ctx *ExecutionContext, writer TemplateWriter) *Error {
 	ctx.Private[node.name] = func(args ...*Value) (*Value, error) {
+		ctx.macroDepth++
+		defer func() {
+			ctx.macroDepth--
+		}()
+
+		if ctx.macroDepth > maxMacroDepth {
+			return nil, ctx.Error(fmt.Sprintf("maximum recursive macro call depth reached (max is %v)", maxMacroDepth), node.position)
+		}
+
 		return node.call(ctx, args...)
 	}
 

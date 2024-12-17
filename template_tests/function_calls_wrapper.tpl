@@ -9,3 +9,8 @@
 {{ simple.func_variadic_sum_int2() }}
 {{ simple.func_variadic_sum_int2(2) }}
 {{ simple.func_variadic_sum_int2(1, 7, 100) }}
+eqnil: {{ simple.func_ensure_nil(nil) }}
+neqnil: {{ simple.func_ensure_nil(1) }}
+v1: {{ simple.func_ensure_nil_variadic(nil) }}
+v2: {{ simple.func_ensure_nil_variadic() }}
+v3: {{ simple.func_ensure_nil_variadic(nil, 1, nil, "test") }}

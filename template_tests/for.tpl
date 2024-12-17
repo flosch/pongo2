@@ -25,3 +25,21 @@ reversed sorted string map
 
 reversed sorted int map
 '{% for key in simple.intmap reversed sorted %}{{ key }} {% endfor %}'
+
+string iteration
+'{% for char in simple.name %}{{ char }}{% endfor %}'
+
+string iteration reversed
+'{% for char in simple.name reversed %}{{ char }}{% endfor %}'
+
+string iteration sorted
+'{% for char in simple.name sorted %}{{ char }}{% endfor %}'
+
+string iteration sorted reversed
+'{% for char in simple.name reversed sorted %}{{ char }}{% endfor %}'
+
+string unicode
+'{% for char in simple.chinese_hello_world %}{{ char }}{% endfor %}'
+
+string unicode sorted reversed
+'{% for char in simple.chinese_hello_world reversed sorted %}{{ char }}{% endfor %}'

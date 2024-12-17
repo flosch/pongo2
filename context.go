@@ -1,10 +1,9 @@
 package pongo2
 
 import (
+	"errors"
 	"fmt"
 	"regexp"
-
-	"errors"
 )
 
 var reIdentifiers = regexp.MustCompile("^[a-zA-Z0-9_]+$")
@@ -22,10 +21,11 @@ func SetAutoescape(newValue bool) {
 //  1. version: returns the version string
 //
 // Template examples for accessing items from your context:
-//     {{ myconstant }}
-//     {{ myfunc("test", 42) }}
-//     {{ user.name }}
-//     {{ pongo2.version }}
+//
+//	{{ myconstant }}
+//	{{ myfunc("test", 42) }}
+//	{{ user.name }}
+//	{{ pongo2.version }}
 //
 // Variable resolution
 //
@@ -74,7 +74,7 @@ func SetAutoescape(newValue bool) {
 //     my.tmpl:
 //     {{ myStruct.uh }} {{ myStruct.yeah }}
 //     {{ myStruct.0 }} {{ myStruct.1 }}
-type Context map[string]interface{}
+type Context map[string]any
 
 func (c Context) checkForValidIdentifiers() *Error {
 	for k, v := range c {
@@ -112,7 +112,8 @@ func (c Context) Update(other Context) Context {
 // To create your own execution context within tags, use the
 // NewChildExecutionContext(parent) function.
 type ExecutionContext struct {
-	template *Template
+	template   *Template
+	macroDepth int
 
 	Autoescape bool
 	Public     Context
@@ -180,6 +181,6 @@ func (ctx *ExecutionContext) OrigError(err error, token *Token) *Error {
 	}
 }
 
-func (ctx *ExecutionContext) Logf(format string, args ...interface{}) {
+func (ctx *ExecutionContext) Logf(format string, args ...any) {
 	ctx.template.set.logf(format, args...)
 }

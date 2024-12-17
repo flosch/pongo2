@@ -6,7 +6,7 @@ type tagWithNode struct {
 }
 
 func (node *tagWithNode) Execute(ctx *ExecutionContext, writer TemplateWriter) *Error {
-	//new context for block
+	// new context for block
 	withctx := NewChildExecutionContext(ctx)
 
 	// Put all custom with-pairs into the context

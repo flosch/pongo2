@@ -18,6 +18,7 @@ const (
 	TokenString
 	TokenNumber
 	TokenSymbol
+	TokenNil
 )
 
 var (
@@ -35,7 +36,7 @@ var (
 		"==", ">=", "<=", "&&", "||", "{{", "}}", "{%", "%}", "!=", "<>",
 
 		// 1-Char symbol
-		"(", ")", "+", "-", "*", "<", ">", "/", "^", ",", ".", "!", "|", ":", "=", "%",
+		"(", ")", "+", "-", "*", "<", ">", "/", "^", ",", ".", "!", "|", ":", "=", "%", "[", "]",
 	}
 
 	// Available keywords in pongo2
@@ -96,6 +97,8 @@ func (t *Token) String() string {
 		typ = "String"
 	case TokenSymbol:
 		typ = "Symbol"
+	case TokenNil:
+		typ = "Nil"
 	default:
 		typ = "Unknown"
 	}
@@ -205,7 +208,7 @@ func (l *lexer) acceptRun(what string) {
 	l.backup()
 }
 
-func (l *lexer) errorf(format string, args ...interface{}) lexerStateFn {
+func (l *lexer) errorf(format string, args ...any) lexerStateFn {
 	t := &Token{
 		Filename: l.name,
 		Typ:      TokenError,
@@ -369,6 +372,10 @@ func (l *lexer) stateIdentifier() lexerStateFn {
 	for _, kw := range TokenKeywords {
 		if kw == l.value() {
 			l.emit(TokenKeyword)
+			return l.stateCode
+		}
+		if kw == "nil" {
+			l.emit(TokenNil)
 			return l.stateCode
 		}
 	}

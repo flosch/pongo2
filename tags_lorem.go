@@ -7,6 +7,8 @@ import (
 	"time"
 )
 
+const maxLoremCount = 100000
+
 var (
 	tagLoremParagraphs = strings.Split(tagLoremText, "\n")
 	tagLoremWords      = strings.Fields(tagLoremText)
@@ -20,6 +22,10 @@ type tagLoremNode struct {
 }
 
 func (node *tagLoremNode) Execute(ctx *ExecutionContext, writer TemplateWriter) *Error {
+	if node.count > maxLoremCount {
+		return ctx.Error(fmt.Sprintf("max count for lorem is %d", maxLoremCount), node.position)
+	}
+
 	switch node.method {
 	case "b":
 		if node.random {

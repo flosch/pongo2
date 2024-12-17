@@ -303,13 +303,25 @@ func (expr *term) Evaluate(ctx *ExecutionContext) (*Value, *Error) {
 		case "/":
 			if f1.IsFloat() || f2.IsFloat() {
 				// Result will be float
-				return AsValue(f1.Float() / f2.Float()), nil
+				divisor := f2.Float()
+				if divisor == 0 {
+					return nil, ctx.Error("float divide by zero", expr.factor2.GetPositionToken())
+				}
+				return AsValue(f1.Float() / divisor), nil
 			}
 			// Result will be int
-			return AsValue(f1.Integer() / f2.Integer()), nil
+			divisor := f2.Integer()
+			if divisor == 0 {
+				return nil, ctx.Error("integer divide by zero", expr.factor2.GetPositionToken())
+			}
+			return AsValue(f1.Integer() / divisor), nil
 		case "%":
 			// Result will be int
-			return AsValue(f1.Integer() % f2.Integer()), nil
+			divisor := f2.Integer()
+			if divisor == 0 {
+				return nil, ctx.Error("integer divide by zero", expr.factor2.GetPositionToken())
+			}
+			return AsValue(f1.Integer() % divisor), nil
 		default:
 			return nil, ctx.Error("unimplemented", expr.opToken)
 		}
