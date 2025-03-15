@@ -284,12 +284,46 @@ func (vr *variableResolver) resolve(ctx *ExecutionContext) (*Value, error) {
 			// context (e. g. information provided by tags, like the forloop)
 			val, inPrivate := ctx.Private[vr.parts[0].s]
 
-			if !inPrivate {
-				// Nothing found? Then have a final lookup in the public context
+			if inPrivate {
+				// We found it in private
+				currentPresent = true
+			} else {
+				// Not found in private? Then have a final lookup in the public context
 				val, currentPresent = ctx.Public[vr.parts[0].s]
 			}
 
-			current = reflect.ValueOf(val) // Get the initial value
+			// If not found in either private or public, try fallback to "this"
+			if !currentPresent {
+				part := vr.parts[0]
+				if part.typ == varTypeIdent {
+					valThis, inPrivateThis := ctx.Private["this"]
+					inPublicThis := false
+					if !inPrivateThis {
+						valThis, inPublicThis = ctx.Public["this"]
+					}
+					if inPrivateThis || inPublicThis {
+						fv := reflect.ValueOf(valThis)
+						if valuePtr, ok := valThis.(*Value); ok {
+							fv = valuePtr.val
+						}
+
+						resolved, found, usedAttr := tryResolveFieldMapOrAttr(fv, part.s)
+						if found {
+							current = resolved
+							currentPresent = true
+							if usedAttr {
+								assumeAttr = true
+							}
+						}
+					}
+				}
+			}
+
+                        if value, ok := val.(*Value); ok {
+				current = value.val
+			} else {
+				current = reflect.ValueOf(val) // Get the initial value
+			}
 
 		} else {
 			// Next parts, resolve it from current
@@ -345,29 +379,16 @@ func (vr *variableResolver) resolve(ctx *ExecutionContext) (*Value, error) {
 							current.Kind().String(), vr.String())
 					}
 				case varTypeIdent:
-					var tryField reflect.Value
-					// Calling a field or key
-					switch current.Kind() {
-					case reflect.Struct:
-						tryField = current.FieldByName(part.s)
-					case reflect.Map:
-						tryField = current.MapIndex(reflect.ValueOf(part.s))
-					default:
-						return nil, fmt.Errorf("can't access a field by name on type %s (variable %s)",
-							current.Kind().String(), vr.String())
-					}
-					if tryField.IsValid() {
-						current = tryField
-					} else {
-						getAttr := current.MethodByName(getAttrMethodName)
-						if !getAttr.IsValid() && current.CanAddr() {
-							getAttr = current.Addr().MethodByName(getAttrMethodName)
-						}
-						if getAttr.IsValid() {
-							current = getAttr
-							currentPresent = true
+					nextVal, found, usedAttr := tryResolveFieldMapOrAttr(current, part.s)
+					if found {
+						current = nextVal
+						currentPresent = true
+						if usedAttr {
 							assumeAttr = true
 						}
+					} else {
+						return nil, fmt.Errorf("can't access a field/map key by name on type %s (variable %s)",
+							current.Kind().String(), vr.String())
 					}
 				case varTypeSubscript:
 					// Calling an index is only possible for:
@@ -647,7 +668,52 @@ func (vr *variableResolver) resolve(ctx *ExecutionContext) (*Value, error) {
 	return &Value{val: current, safe: isSafe}, nil
 }
 
+// tryResolveFieldMapOrAttr tries to resolve `name` from `val` by:
+// 1. Struct field
+// 2. Map key
+// 3. getAttr method (if present)
+// Returns (resolvedVal, found, usedAttr).
+func tryResolveFieldMapOrAttr(val reflect.Value, name string) (reflect.Value, bool, bool) {
+	if !val.IsValid() {
+		return reflect.Value{}, false, false
+	}
+
+	// If val is a pointer, deref it
+	if val.Kind() == reflect.Ptr {
+		val = val.Elem()
+		if !val.IsValid() {
+			return reflect.Value{}, false, false
+		}
+	}
+
+	// 1. Struct field
+	if val.Kind() == reflect.Struct {
+		f := val.FieldByName(name)
+		if f.IsValid() {
+			return f, true, false
+		}
+	}
+
+	// 2. Map key
+	if val.Kind() == reflect.Map {
+		m := val.MapIndex(reflect.ValueOf(name))
+		if m.IsValid() {
+			return m, true, false
+		}
+	}
+
+	// 3. Attempt getAttr fallback
+	getAttr := val.MethodByName(getAttrMethodName)
+	if !getAttr.IsValid() && val.CanAddr() {
+		getAttr = val.Addr().MethodByName(getAttrMethodName)
+	}
+	return getAttr, getAttr.IsValid(), getAttr.IsValid()
+}
+
 func (vr *variableResolver) Evaluate(ctx *ExecutionContext) (*Value, *Error) {
+        if (vr.locationToken.Val == "inptu_material") {
+              fmt.Println("Hoho")
+        }
 	value, err := vr.resolve(ctx)
 	if err != nil {
 		return AsValue(nil), ctx.Error(err, vr.locationToken)

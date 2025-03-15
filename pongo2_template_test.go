@@ -524,6 +524,111 @@ func TestTemplate_Functions(t *testing.T) {
 	}
 }
 
+func TestTemplate_ThisFallback(t *testing.T) {
+	type structWithField struct {
+		Field1 string
+	}
+
+	tests := []struct {
+		name         string
+		template     string
+		context      pongo2.Context
+		want         string
+		errorMessage string
+		wantErr      bool
+	}{
+		{
+			name:     "Map fallback",
+			template: "{{ missing_key }}",
+			context: pongo2.Context{
+				// 'missing_key' does not exist in root context => fallback to `this`.
+				"this": map[string]any{
+					"missing_key": "Hello from map fallback",
+				},
+			},
+			want:    "Hello from map fallback",
+			wantErr: false,
+		},
+		{
+			name:     "Struct fallback",
+			template: "{{ Field1 }}",
+			context: pongo2.Context{
+				// 'Field1' is not in root => fallback to `this.Field1`
+				"this": &structWithField{
+					Field1: "Hello from struct fallback",
+				},
+			},
+			want:    "Hello from struct fallback",
+			wantErr: false,
+		},
+		{
+			name:     "GetAttr fallback",
+			template: "{{ attr_name }}",
+			context: pongo2.Context{
+				// 'attr_name' is not in root => fallback to `this.GetAttr("attr_name")`
+				"this": &ObjWithoutAttrs{
+					the_attr_field: "val_from_getAttr",
+				},
+			},
+			want:    "val_from_getAttr",
+			wantErr: false,
+		},
+		{
+			name:     "No fallback if variable found in root",
+			template: "{{ myvar }}",
+			context: pongo2.Context{
+				// 'myvar' *is* defined in the root context, so we won't use the fallback.
+				"myvar": "root value",
+				"this": map[string]any{
+					"myvar": "fallback value",
+				},
+			},
+			want:    "root value",
+			wantErr: false,
+		},
+		{
+			name:         "Error if not in root nor in 'this'",
+			template:     "{{ notfound }}",
+			context:      pongo2.Context{},
+			errorMessage: "[Error (where: execution) in <string> | Line 1 Col 4 near 'notfound'] No value found for notfound",
+			wantErr:      true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tpl, err := pongo2.FromString(tt.template)
+			if err != nil {
+				t.Errorf("Error compiling template %q: %v", tt.template, err)
+				return
+			}
+			got, err := tpl.Execute(tt.context)
+
+			if err != nil {
+				// We expect an error
+				if !tt.wantErr {
+					t.Errorf("Unexpected error: %v", err)
+					return
+				}
+				// If we *do* expect an error, check message
+				if tt.errorMessage != "" && err.Error() != tt.errorMessage {
+					t.Errorf("Got error = %v, want %v", err.Error(), tt.errorMessage)
+				}
+				return
+			}
+
+			if tt.wantErr {
+				t.Errorf("Expected an error but got none")
+				return
+			}
+
+			if got != tt.want {
+				t.Errorf("Template.Execute() = %q; want %q", got, tt.want)
+			}
+		})
+	}
+}
+
 func TestTemplates(t *testing.T) {
 	// Add a global to the default set
 	pongo2.Globals["this_is_a_global_variable"] = "this is a global text"
