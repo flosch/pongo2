@@ -379,6 +379,9 @@ func (vr *variableResolver) resolve(ctx *ExecutionContext) (*Value, error) {
 
 		if !current.IsValid() {
 			// Value is not valid (anymore)
+			if ctx.DisallowNotExistedVar {
+				return nil, fmt.Errorf("invalid identifier %s", vr.String())
+			}
 			return AsValue(nil), nil
 		}
 
