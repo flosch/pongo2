@@ -593,6 +593,10 @@ func (p *Parser) parseArray() (IEvaluator, *Error) {
 }
 
 func (p *Parser) parseNumberLiteral(sign int, numToken *Token, locToken *Token) (IEvaluator, *Error) {
+	// One exception to the rule that we don't have float64 literals is at the beginning
+	// of an expression (or a variable name). Since we know we started with an integer
+	// which can't obviously be a variable name, we can check whether the first number
+	// is followed by dot (and then a number again). If so we're converting it to a float64.
 	if p.Match(TokenSymbol, ".") != nil {
 		t2 := p.MatchType(TokenNumber)
 		if t2 == nil {
