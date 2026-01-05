@@ -26,6 +26,54 @@ func SetAutoescape(newValue bool) {
 //	{{ myfunc("test", 42) }}
 //	{{ user.name }}
 //	{{ pongo2.version }}
+//
+// Variable resolution
+//
+// By the default sub variables are resolved by
+//  1. Field names inside structs
+//  2. Keys of values inside maps
+//  3. Indexes of values inside slices
+//
+// This behavior can be customized using either struct tag "pongo2" like:
+//     type MyStruct struct {
+//         FieldA string `pongo2:"uh"`
+//         FieldB string `pongo2:"yeah"`
+//     }
+//
+//     my.tmpl:
+//     {{ myStruct.uh }} {{ myStruct.yeah }}
+//
+// ...or by implementing NamedFieldResolver or IndexedFieldResolver.
+//
+//     type MyStruct struct {
+//         fieldA string
+//     }
+//
+//     // GetNamedField implements NamedFieldResolver
+//     func (s MyStruct) GetNamedField(s string) (interface{}, error) {
+//         switch s {
+//         case "uh":
+//             return s.fieldA, nil
+//         case "yeah":
+//             return "YEAH!", nil
+//         default:
+//             return nil, pongo2.ErrNoSuchField
+//     }
+//
+//     // GetNamedField implements IndexedFieldResolver
+//     func (s MyStruct) GetIndexedField(s int) (interface{}, error) {
+//         switch s {
+//         case 0:
+//             return s.fieldA, nil
+//         case 1:
+//             return "YEAH!", nil
+//         default:
+//             return nil, pongo2.ErrNoSuchField
+//     }
+//
+//     my.tmpl:
+//     {{ myStruct.uh }} {{ myStruct.yeah }}
+//     {{ myStruct.0 }} {{ myStruct.1 }}
 type Context map[string]any
 
 func (c Context) checkForValidIdentifiers() *Error {
