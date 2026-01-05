@@ -3,16 +3,16 @@ name: Go
 agent:
   machine:
     type: e1-standard-2
-    os_image: ubuntu2004
+    os_image: ubuntu2404
 blocks:
-  - name: Test
+  - name: Tests
     task:
       jobs:
         - name: go test
           commands:
-            - sem-version go 1.18
+            - sem-version go 1.25
             - export GOPATH=~/go
-            - 'export PATH=/home/semaphore/go/bin:$PATH'
+            - "export PATH=/home/semaphore/go/bin:$PATH"
             - checkout
             - go get ./...
             - go test ./...
