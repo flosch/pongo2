@@ -44,6 +44,34 @@ func TestIssue297(t *testing.T) {
 	}
 }
 
+func TestIssue289(t *testing.T) {
+	// Test negative integer in filter argument
+	tpl, err := pongo2.FromString("{{ variable|add:-1 }}")
+	if err != nil {
+		t.Fatal(err)
+	}
+	str, err := tpl.Execute(pongo2.Context{"variable": 5})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if str != "4" {
+		t.Fatalf("Expected '4', but got '%s'.", str)
+	}
+
+	// Test negative float in filter argument
+	tpl, err = pongo2.FromString("{{ variable|add:-1.5 }}")
+	if err != nil {
+		t.Fatal(err)
+	}
+	str, err = tpl.Execute(pongo2.Context{"variable": 5.0})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if str != "3.500000" {
+		t.Fatalf("Expected '3.500000', but got '%s'.", str)
+ 	}
+}
+
 func TestIssue343(t *testing.T) {
 	// Test \n escape sequence (newline) - the main issue
 	tpl, err := pongo2.FromString(`{% for val in my_string|split:"\n" %}[{{ val }}]{% endfor %}`)
