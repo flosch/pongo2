@@ -404,7 +404,7 @@ func TestTemplates(t *testing.T) {
 				errFilename := filepath.Base(fmt.Sprintf("%s.error", match))
 				err := os.WriteFile(errFilename, []byte(tplOut), 0o600)
 				if err != nil {
-					t.Fatalf(err.Error())
+					t.Fatal(err.Error())
 				}
 				t.Logf("get a complete diff with command: 'diff -ya %s %s'", testFilename, errFilename)
 				t.Errorf("Failed: test_out != tpl_out for %s", match)
@@ -452,7 +452,7 @@ func TestBlockTemplates(t *testing.T) {
 				errFilename := filepath.Base(fmt.Sprintf("%s.error", match))
 				err := os.WriteFile(errFilename, []byte(joinedString), 0o600)
 				if err != nil {
-					t.Fatalf(err.Error())
+					t.Fatal(err.Error())
 				}
 				t.Logf("get a complete diff with command: 'diff -ya %s %s'", testFilename, errFilename)
 				t.Errorf("Failed: test_out != tpl_out for %s", match)
