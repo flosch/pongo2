@@ -592,6 +592,29 @@ func (p *Parser) parseArray() (IEvaluator, *Error) {
 	return resolver, nil
 }
 
+func (p *Parser) parseNumberLiteral(sign int, numToken *Token, locToken *Token) (IEvaluator, *Error) {
+	// One exception to the rule that we don't have float64 literals is at the beginning
+	// of an expression (or a variable name). Since we know we started with an integer
+	// which can't obviously be a variable name, we can check whether the first number
+	// is followed by dot (and then a number again). If so we're converting it to a float64.
+	if p.Match(TokenSymbol, ".") != nil {
+		t2 := p.MatchType(TokenNumber)
+		if t2 == nil {
+			return nil, p.Error("Expected a number after the '.'.", nil)
+		}
+		f, err := strconv.ParseFloat(fmt.Sprintf("%s.%s", numToken.Val, t2.Val), 64)
+		if err != nil {
+			return nil, p.Error(err.Error(), locToken)
+		}
+		return &floatResolver{locationToken: locToken, val: float64(sign) * f}, nil
+	}
+	i, err := strconv.Atoi(numToken.Val)
+	if err != nil {
+		return nil, p.Error(err.Error(), numToken)
+	}
+	return &intResolver{locationToken: locToken, val: sign * i}, nil
+}
+
 // IDENT | IDENT.(IDENT|NUMBER)... | IDENT[expr]... | "[" [ expr {, expr}] "]"
 func (p *Parser) parseVariableOrLiteral() (IEvaluator, *Error) {
 	t := p.Current()
@@ -604,37 +627,7 @@ func (p *Parser) parseVariableOrLiteral() (IEvaluator, *Error) {
 	switch t.Typ {
 	case TokenNumber:
 		p.Consume()
-
-		// One exception to the rule that we don't have float64 literals is at the beginning
-		// of an expression (or a variable name). Since we know we started with an integer
-		// which can't obviously be a variable name, we can check whether the first number
-		// is followed by dot (and then a number again). If so we're converting it to a float64.
-
-		if p.Match(TokenSymbol, ".") != nil {
-			// float64
-			t2 := p.MatchType(TokenNumber)
-			if t2 == nil {
-				return nil, p.Error("Expected a number after the '.'.", nil)
-			}
-			f, err := strconv.ParseFloat(fmt.Sprintf("%s.%s", t.Val, t2.Val), 64)
-			if err != nil {
-				return nil, p.Error(err.Error(), t)
-			}
-			fr := &floatResolver{
-				locationToken: t,
-				val:           f,
-			}
-			return fr, nil
-		}
-		i, err := strconv.Atoi(t.Val)
-		if err != nil {
-			return nil, p.Error(err.Error(), t)
-		}
-		nr := &intResolver{
-			locationToken: t,
-			val:           i,
-		}
-		return nr, nil
+		return p.parseNumberLiteral(1, t, t)
 	case TokenString:
 		p.Consume()
 		sr := &stringResolver{
@@ -664,6 +657,16 @@ func (p *Parser) parseVariableOrLiteral() (IEvaluator, *Error) {
 		if t.Val == "[" {
 			// Parsing an array literal [expr {, expr}]
 			return p.parseArray()
+		}
+		if t.Val == "-" {
+			// Negative number literal
+			p.Consume() // consume '-'
+			t2 := p.Current()
+			if t2 == nil || t2.Typ != TokenNumber {
+				return nil, p.Error("Expected a number after '-'.", t)
+			}
+			p.Consume() // consume the number
+			return p.parseNumberLiteral(-1, t2, t)
 		}
 	}
 
