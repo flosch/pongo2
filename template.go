@@ -38,11 +38,13 @@ type Template struct {
 	parser *Parser
 
 	// first come, first serve (it's important to not override existing entries in here)
-	level          int
-	parent         *Template
-	child          *Template
-	blocks         map[string]*NodeWrapper
-	exportedMacros map[string]*tagMacroNode
+	level            int
+	parent           *Template
+	child            *Template
+	blocks           map[string]*NodeWrapper
+	exportedMacros   map[string]*tagMacroNode
+	ownMacroNodes    []*tagMacroNode
+	macroImportNodes []*tagImportNode
 
 	// Output
 	root *nodeDocument
@@ -61,14 +63,16 @@ func newTemplate(set *TemplateSet, name string, isTplString bool, tpl []byte) (*
 
 	// Create the template
 	t := &Template{
-		set:            set,
-		isTplString:    isTplString,
-		name:           name,
-		tpl:            strTpl,
-		size:           len(strTpl),
-		blocks:         make(map[string]*NodeWrapper),
-		exportedMacros: make(map[string]*tagMacroNode),
-		Options:        newOptions(),
+		set:              set,
+		isTplString:      isTplString,
+		name:             name,
+		tpl:              strTpl,
+		size:             len(strTpl),
+		blocks:           make(map[string]*NodeWrapper),
+		exportedMacros:   make(map[string]*tagMacroNode),
+		ownMacroNodes:    make([]*tagMacroNode, 0),
+		macroImportNodes: make([]*tagImportNode, 0),
+		Options:          newOptions(),
 	}
 	// Copy all settings from another Options.
 	t.Options.Update(set.Options)

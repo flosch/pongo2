@@ -1,0 +1,1 @@
+{% macro c() export %}c{% endmacro %}
