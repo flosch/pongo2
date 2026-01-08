@@ -8,12 +8,14 @@ type Options struct {
 
 	// If this is set to true leading spaces and tabs are stripped from the start of a line to a block. Defaults to false
 	LStripBlocks bool
+	AutoEscape   bool
 }
 
 func newOptions() *Options {
 	return &Options{
 		TrimBlocks:   false,
 		LStripBlocks: false,
+		AutoEscape:   true,
 	}
 }
 
@@ -21,6 +23,7 @@ func newOptions() *Options {
 func (opt *Options) Update(other *Options) *Options {
 	opt.TrimBlocks = other.TrimBlocks
 	opt.LStripBlocks = other.LStripBlocks
+	opt.AutoEscape = other.AutoEscape
 
 	return opt
 }
