@@ -8,6 +8,9 @@ type Options struct {
 
 	// If this is set to true leading spaces and tabs are stripped from the start of a line to a block. Defaults to false
 	LStripBlocks bool
+
+	// If this is set to true, the Execute() would returns error when var not exists
+	DisallowNotExistedVar bool
 }
 
 func newOptions() *Options {

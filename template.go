@@ -159,6 +159,7 @@ func (tpl *Template) newContextForExecution(context Context) (*Template, *Execut
 
 	// Create operational context
 	ctx := newExecutionContext(parent, newContext)
+	ctx.DisallowNotExistedVar = tpl.Options.DisallowNotExistedVar
 
 	return parent, ctx, nil
 }
