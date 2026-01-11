@@ -41,6 +41,31 @@ var (
 
 	// Available keywords in pongo2
 	TokenKeywords = []string{"in", "and", "or", "not", "true", "false", "as", "export"}
+
+	// tokenKeywordsMap is a pre-compiled map for O(1) keyword lookup.
+	// This is more efficient than iterating through the TokenKeywords slice.
+	tokenKeywordsMap = map[string]struct{}{
+		"in":     {},
+		"and":    {},
+		"or":     {},
+		"not":    {},
+		"true":   {},
+		"false":  {},
+		"as":     {},
+		"export": {},
+	}
+
+	// stringEscapeReplacer is a pre-compiled replacer for handling escape
+	// sequences in string tokens. Using a package-level variable avoids
+	// creating a new Replacer for each string token.
+	stringEscapeReplacer = strings.NewReplacer(
+		`\\`, `\`,
+		`\"`, `"`,
+		`\'`, `'`,
+		`\n`, "\n",
+		`\t`, "\t",
+		`\r`, "\r",
+	)
 )
 
 type (
@@ -150,15 +175,7 @@ func (l *lexer) emit(t TokenType) {
 
 	if t == TokenString {
 		// Escape sequences in strings
-		r := strings.NewReplacer(
-			`\\`, `\`,
-			`\"`, `"`,
-			`\'`, `'`,
-			`\n`, "\n",
-			`\t`, "\t",
-			`\r`, "\r",
-		)
-		tok.Val = r.Replace(tok.Val)
+		tok.Val = stringEscapeReplacer.Replace(tok.Val)
 	}
 
 	if t == TokenSymbol && len(tok.Val) == 3 && (strings.HasSuffix(tok.Val, "-") || strings.HasPrefix(tok.Val, "-")) {
@@ -376,15 +393,10 @@ outer_loop:
 func (l *lexer) stateIdentifier() lexerStateFn {
 	l.acceptRun(tokenIdentifierChars)
 	l.acceptRun(tokenIdentifierCharsWithDigits)
-	for _, kw := range TokenKeywords {
-		if kw == l.value() {
-			l.emit(TokenKeyword)
-			return l.stateCode
-		}
-		if kw == "nil" {
-			l.emit(TokenNil)
-			return l.stateCode
-		}
+	val := l.value()
+	if _, isKeyword := tokenKeywordsMap[val]; isKeyword {
+		l.emit(TokenKeyword)
+		return l.stateCode
 	}
 	l.emit(TokenIdentifier)
 	return l.stateCode
