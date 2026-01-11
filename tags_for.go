@@ -60,8 +60,8 @@ func (node *tagForNode) Execute(ctx *ExecutionContext, writer TemplateWriter) (f
 		if idx+1 == count {
 			loopInfo.Last = true
 		}
-		loopInfo.Revcounter = count - idx        // TODO: Not sure about this, have to look it up
-		loopInfo.Revcounter0 = count - (idx + 1) // TODO: Not sure about this, have to look it up
+		loopInfo.Revcounter = count - idx
+		loopInfo.Revcounter0 = count - (idx + 1)
 
 		// Render elements with updated context
 		err := node.bodyWrapper.Execute(forCtx, writer)

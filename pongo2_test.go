@@ -118,6 +118,35 @@ func TestImplicitExecCtx(t *testing.T) {
 	mustEqual(t, res, val)
 }
 
+// TestForloopRevcounter verifies that forloop.Revcounter and forloop.Revcounter0
+// match Django's documented behavior:
+// - Revcounter: iterations remaining (1-indexed, counts down to 1)
+// - Revcounter0: iterations remaining (0-indexed, counts down to 0)
+func TestForloopRevcounter(t *testing.T) {
+	items := []int{10, 20, 30, 40, 50}
+
+	tpl, err := pongo2.FromString(`{% for item in items %}{{ forloop.Counter }}:{{ forloop.Revcounter }},{{ forloop.Revcounter0 }} {% endfor %}`)
+	if err != nil {
+		t.Fatalf("Error parsing template: %v", err)
+	}
+
+	result, err := tpl.Execute(pongo2.Context{"items": items})
+	if err != nil {
+		t.Fatalf("Error executing template: %v", err)
+	}
+
+	// For 5 items:
+	// Counter=1: Revcounter=5, Revcounter0=4
+	// Counter=2: Revcounter=4, Revcounter0=3
+	// Counter=3: Revcounter=3, Revcounter0=2
+	// Counter=4: Revcounter=2, Revcounter0=1
+	// Counter=5: Revcounter=1, Revcounter0=0
+	expected := "1:5,4 2:4,3 3:3,2 4:2,1 5:1,0 "
+	if result != expected {
+		t.Errorf("Expected %q, got %q", expected, result)
+	}
+}
+
 type DummyLoader struct{}
 
 func (l *DummyLoader) Abs(base, name string) string {
