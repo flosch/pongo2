@@ -54,22 +54,23 @@ func (v *Value) IsBool() bool {
 
 // IsFloat checks whether the underlying value is a float
 func (v *Value) IsFloat() bool {
-	return v.getResolvedValue().Kind() == reflect.Float32 ||
-		v.getResolvedValue().Kind() == reflect.Float64
+	kind := v.getResolvedValue().Kind()
+	return kind == reflect.Float32 || kind == reflect.Float64
 }
 
 // IsInteger checks whether the underlying value is an integer
 func (v *Value) IsInteger() bool {
-	return v.getResolvedValue().Kind() == reflect.Int ||
-		v.getResolvedValue().Kind() == reflect.Int8 ||
-		v.getResolvedValue().Kind() == reflect.Int16 ||
-		v.getResolvedValue().Kind() == reflect.Int32 ||
-		v.getResolvedValue().Kind() == reflect.Int64 ||
-		v.getResolvedValue().Kind() == reflect.Uint ||
-		v.getResolvedValue().Kind() == reflect.Uint8 ||
-		v.getResolvedValue().Kind() == reflect.Uint16 ||
-		v.getResolvedValue().Kind() == reflect.Uint32 ||
-		v.getResolvedValue().Kind() == reflect.Uint64
+	kind := v.getResolvedValue().Kind()
+	return kind == reflect.Int ||
+		kind == reflect.Int8 ||
+		kind == reflect.Int16 ||
+		kind == reflect.Int32 ||
+		kind == reflect.Int64 ||
+		kind == reflect.Uint ||
+		kind == reflect.Uint8 ||
+		kind == reflect.Uint16 ||
+		kind == reflect.Uint32 ||
+		kind == reflect.Uint64
 }
 
 // IsNumber checks whether the underlying value is either an integer
@@ -112,15 +113,16 @@ func (v *Value) String() string {
 		return t.String()
 	}
 
-	switch v.getResolvedValue().Kind() {
+	rv := v.getResolvedValue()
+	switch rv.Kind() {
 	case reflect.String:
-		return v.getResolvedValue().String()
+		return rv.String()
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-		return strconv.FormatInt(v.getResolvedValue().Int(), 10)
+		return strconv.FormatInt(rv.Int(), 10)
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-		return strconv.FormatUint(v.getResolvedValue().Uint(), 10)
+		return strconv.FormatUint(rv.Uint(), 10)
 	case reflect.Float32, reflect.Float64:
-		return fmt.Sprintf("%f", v.getResolvedValue().Float())
+		return fmt.Sprintf("%f", rv.Float())
 	case reflect.Bool:
 		if v.Bool() {
 			return "True"
@@ -128,30 +130,31 @@ func (v *Value) String() string {
 		return "False"
 	}
 
-	logf("Value.String() not implemented for type: %s\n", v.getResolvedValue().Kind().String())
-	return v.getResolvedValue().String()
+	logf("Value.String() not implemented for type: %s\n", rv.Kind().String())
+	return rv.String()
 }
 
 // Integer returns the underlying value as an integer (converts the underlying
 // value, if necessary). If it's not possible to convert the underlying value,
 // it will return 0.
 func (v *Value) Integer() int {
-	switch v.getResolvedValue().Kind() {
+	rv := v.getResolvedValue()
+	switch rv.Kind() {
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-		return int(v.getResolvedValue().Int())
+		return int(rv.Int())
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-		return int(v.getResolvedValue().Uint())
+		return int(rv.Uint())
 	case reflect.Float32, reflect.Float64:
-		return int(v.getResolvedValue().Float())
+		return int(rv.Float())
 	case reflect.String:
 		// Try to convert from string to int (base 10)
-		f, err := strconv.ParseFloat(v.getResolvedValue().String(), 64)
+		f, err := strconv.ParseFloat(rv.String(), 64)
 		if err != nil {
 			return 0
 		}
 		return int(f)
 	default:
-		logf("Value.Integer() not available for type: %s\n", v.getResolvedValue().Kind().String())
+		logf("Value.Integer() not available for type: %s\n", rv.Kind().String())
 		return 0
 	}
 }
@@ -160,22 +163,23 @@ func (v *Value) Integer() int {
 // value, if necessary). If it's not possible to convert the underlying value,
 // it will return 0.0.
 func (v *Value) Float() float64 {
-	switch v.getResolvedValue().Kind() {
+	rv := v.getResolvedValue()
+	switch rv.Kind() {
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-		return float64(v.getResolvedValue().Int())
+		return float64(rv.Int())
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-		return float64(v.getResolvedValue().Uint())
+		return float64(rv.Uint())
 	case reflect.Float32, reflect.Float64:
-		return v.getResolvedValue().Float()
+		return rv.Float()
 	case reflect.String:
 		// Try to convert from string to float64 (base 10)
-		f, err := strconv.ParseFloat(v.getResolvedValue().String(), 64)
+		f, err := strconv.ParseFloat(rv.String(), 64)
 		if err != nil {
 			return 0.0
 		}
 		return f
 	default:
-		logf("Value.Float() not available for type: %s\n", v.getResolvedValue().Kind().String())
+		logf("Value.Float() not available for type: %s\n", rv.Kind().String())
 		return 0.0
 	}
 }
@@ -184,11 +188,12 @@ func (v *Value) Float() float64 {
 // will always be returned. If you're looking for true/false-evaluation of the
 // underlying value, have a look on the IsTrue()-function.
 func (v *Value) Bool() bool {
-	switch v.getResolvedValue().Kind() {
+	rv := v.getResolvedValue()
+	switch rv.Kind() {
 	case reflect.Bool:
-		return v.getResolvedValue().Bool()
+		return rv.Bool()
 	default:
-		logf("Value.Bool() not available for type: %s\n", v.getResolvedValue().Kind().String())
+		logf("Value.Bool() not available for type: %s\n", rv.Kind().String())
 		return false
 	}
 }
@@ -216,21 +221,22 @@ func (v *Value) Time() time.Time {
 //
 // Otherwise returns always FALSE.
 func (v *Value) IsTrue() bool {
-	switch v.getResolvedValue().Kind() {
+	rv := v.getResolvedValue()
+	switch rv.Kind() {
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-		return v.getResolvedValue().Int() != 0
+		return rv.Int() != 0
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-		return v.getResolvedValue().Uint() != 0
+		return rv.Uint() != 0
 	case reflect.Float32, reflect.Float64:
-		return v.getResolvedValue().Float() != 0
+		return rv.Float() != 0
 	case reflect.Array, reflect.Chan, reflect.Map, reflect.Slice, reflect.String:
-		return v.getResolvedValue().Len() > 0
+		return rv.Len() > 0
 	case reflect.Bool:
-		return v.getResolvedValue().Bool()
+		return rv.Bool()
 	case reflect.Struct:
 		return true // struct instance is always true
 	default:
-		logf("Value.IsTrue() not available for type: %s\n", v.getResolvedValue().Kind().String())
+		logf("Value.IsTrue() not available for type: %s\n", rv.Kind().String())
 		return false
 	}
 }
@@ -243,7 +249,8 @@ func (v *Value) IsTrue() bool {
 //
 //	AsValue(1).Negate().IsTrue() == false
 func (v *Value) Negate() *Value {
-	switch v.getResolvedValue().Kind() {
+	rv := v.getResolvedValue()
+	switch rv.Kind() {
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
 		reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
 		if v.Integer() != 0 {
@@ -256,13 +263,13 @@ func (v *Value) Negate() *Value {
 		}
 		return AsValue(float64(1.1))
 	case reflect.Array, reflect.Chan, reflect.Map, reflect.Slice, reflect.String:
-		return AsValue(v.getResolvedValue().Len() == 0)
+		return AsValue(rv.Len() == 0)
 	case reflect.Bool:
-		return AsValue(!v.getResolvedValue().Bool())
+		return AsValue(!rv.Bool())
 	case reflect.Struct:
 		return AsValue(false)
 	default:
-		logf("Value.IsTrue() not available for type: %s\n", v.getResolvedValue().Kind().String())
+		logf("Value.IsTrue() not available for type: %s\n", rv.Kind().String())
 		return AsValue(true)
 	}
 }
@@ -270,14 +277,15 @@ func (v *Value) Negate() *Value {
 // Len returns the length for an array, chan, map, slice or string.
 // Otherwise it will return 0.
 func (v *Value) Len() int {
-	switch v.getResolvedValue().Kind() {
+	rv := v.getResolvedValue()
+	switch rv.Kind() {
 	case reflect.Array, reflect.Chan, reflect.Map, reflect.Slice:
-		return v.getResolvedValue().Len()
+		return rv.Len()
 	case reflect.String:
-		runes := []rune(v.getResolvedValue().String())
+		runes := []rune(rv.String())
 		return len(runes)
 	default:
-		logf("Value.Len() not available for type: %s\n", v.getResolvedValue().Kind().String())
+		logf("Value.Len() not available for type: %s\n", rv.Kind().String())
 		return 0
 	}
 }
@@ -285,14 +293,15 @@ func (v *Value) Len() int {
 // Slice slices an array, slice or string. Otherwise it will
 // return an empty []int.
 func (v *Value) Slice(i, j int) *Value {
-	switch v.getResolvedValue().Kind() {
+	rv := v.getResolvedValue()
+	switch rv.Kind() {
 	case reflect.Array, reflect.Slice:
-		return AsValue(v.getResolvedValue().Slice(i, j).Interface())
+		return AsValue(rv.Slice(i, j).Interface())
 	case reflect.String:
-		runes := []rune(v.getResolvedValue().String())
+		runes := []rune(rv.String())
 		return AsValue(string(runes[i:j]))
 	default:
-		logf("Value.Slice() not available for type: %s\n", v.getResolvedValue().Kind().String())
+		logf("Value.Slice() not available for type: %s\n", rv.Kind().String())
 		return AsValue([]int{})
 	}
 }
@@ -300,21 +309,21 @@ func (v *Value) Slice(i, j int) *Value {
 // Index gets the i-th item of an array, slice or string. Otherwise
 // it will return NIL.
 func (v *Value) Index(i int) *Value {
-	switch v.getResolvedValue().Kind() {
+	rv := v.getResolvedValue()
+	switch rv.Kind() {
 	case reflect.Array, reflect.Slice:
 		if i >= v.Len() {
 			return AsValue(nil)
 		}
-		return AsValue(v.getResolvedValue().Index(i).Interface())
+		return AsValue(rv.Index(i).Interface())
 	case reflect.String:
-		s := v.getResolvedValue().String()
-		runes := []rune(s)
+		runes := []rune(rv.String())
 		if i < len(runes) {
 			return AsValue(string(runes[i]))
 		}
 		return AsValue("")
 	default:
-		logf("Value.Slice() not available for type: %s\n", v.getResolvedValue().Kind().String())
+		logf("Value.Slice() not available for type: %s\n", rv.Kind().String())
 		return AsValue([]int{})
 	}
 }
@@ -355,7 +364,7 @@ func (v *Value) Contains(other *Value) bool {
 
 		return mapValue.IsValid()
 	case reflect.String:
-		return strings.Contains(v.getResolvedValue().String(), other.String())
+		return strings.Contains(baseValue.String(), other.String())
 
 	case reflect.Slice, reflect.Array:
 		for i := 0; i < baseValue.Len(); i++ {
@@ -400,9 +409,10 @@ func (v *Value) Iterate(fn func(idx, count int, key, value *Value) bool, empty f
 // not affect the iteration through a map because maps don't have any particular order.
 // However, you can force an order using the `sorted` keyword (and even use `reversed sorted`).
 func (v *Value) IterateOrder(fn func(idx, count int, key, value *Value) bool, empty func(), reverse bool, sorted bool) {
-	switch v.getResolvedValue().Kind() {
+	rv := v.getResolvedValue()
+	switch rv.Kind() {
 	case reflect.Map:
-		keys := sortedKeys(v.getResolvedValue().MapKeys())
+		keys := sortedKeys(rv.MapKeys())
 		if sorted {
 			if reverse {
 				sort.Sort(sort.Reverse(keys))
@@ -412,7 +422,7 @@ func (v *Value) IterateOrder(fn func(idx, count int, key, value *Value) bool, em
 		}
 		keyLen := len(keys)
 		for idx, key := range keys {
-			value := v.getResolvedValue().MapIndex(key)
+			value := rv.MapIndex(key)
 			if !fn(idx, keyLen, &Value{val: key}, &Value{val: value}) {
 				return
 			}
@@ -424,9 +434,9 @@ func (v *Value) IterateOrder(fn func(idx, count int, key, value *Value) bool, em
 	case reflect.Array, reflect.Slice:
 		var items valuesList
 
-		itemCount := v.getResolvedValue().Len()
+		itemCount := rv.Len()
 		for i := 0; i < itemCount; i++ {
-			items = append(items, &Value{val: v.getResolvedValue().Index(i)})
+			items = append(items, &Value{val: rv.Index(i)})
 		}
 
 		if sorted {
@@ -454,8 +464,7 @@ func (v *Value) IterateOrder(fn func(idx, count int, key, value *Value) bool, em
 		}
 		return // done
 	case reflect.String:
-		s := v.getResolvedValue().String()
-		rs := []rune(s)
+		rs := []rune(rv.String())
 		charCount := len(rs)
 
 		if charCount > 0 {
@@ -481,7 +490,7 @@ func (v *Value) IterateOrder(fn func(idx, count int, key, value *Value) bool, em
 		}
 		return // done
 	default:
-		logf("Value.Iterate() not available for type: %s\n", v.getResolvedValue().Kind().String())
+		logf("Value.Iterate() not available for type: %s\n", rv.Kind().String())
 	}
 	empty()
 }
