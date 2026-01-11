@@ -22,6 +22,8 @@ type Error struct {
 	OrigError error
 }
 
+// updateFromTokenIfNeeded updates the error with template and token information
+// if they haven't been set yet. This helps provide better error location context.
 func (e *Error) updateFromTokenIfNeeded(template *Template, t *Token) *Error {
 	if e.Template == nil {
 		e.Template = template
