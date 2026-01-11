@@ -1,6 +1,9 @@
 package pongo2
 
-import "testing"
+import (
+	"testing"
+	"testing/fstest"
+)
 
 func TestReplaceTag(t *testing.T) {
 	t.Run("non-existent tag", func(t *testing.T) {
@@ -734,4 +737,66 @@ func TestComplexExpressions(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestTagSSI(t *testing.T) {
+	t.Run("FSLoader plaintext", func(t *testing.T) {
+		// Create an in-memory filesystem with templates
+		memFS := fstest.MapFS{
+			"main.tpl": &fstest.MapFile{
+				Data: []byte(`{% ssi "include.txt" %}`),
+			},
+			"include.txt": &fstest.MapFile{
+				Data: []byte("Hello from virtual file!"),
+			},
+		}
+
+		loader := NewFSLoader(memFS)
+		set := NewSet("test", loader)
+
+		tpl, err := set.FromFile("main.tpl")
+		if err != nil {
+			t.Fatalf("Failed to load template: %v", err)
+		}
+
+		result, err := tpl.Execute(Context{})
+		if err != nil {
+			t.Fatalf("Failed to execute template: %v", err)
+		}
+
+		expected := "Hello from virtual file!"
+		if result != expected {
+			t.Errorf("Got %q, want %q", result, expected)
+		}
+	})
+
+	t.Run("FSLoader parsed", func(t *testing.T) {
+		// Create an in-memory filesystem with templates
+		memFS := fstest.MapFS{
+			"main.tpl": &fstest.MapFile{
+				Data: []byte(`{% ssi "include.tpl" parsed %}`),
+			},
+			"include.tpl": &fstest.MapFile{
+				Data: []byte("Hello {{ name }}!"),
+			},
+		}
+
+		loader := NewFSLoader(memFS)
+		set := NewSet("test", loader)
+
+		tpl, err := set.FromFile("main.tpl")
+		if err != nil {
+			t.Fatalf("Failed to load template: %v", err)
+		}
+
+		result, err := tpl.Execute(Context{"name": "World"})
+		if err != nil {
+			t.Fatalf("Failed to execute template: %v", err)
+		}
+
+		expected := "Hello World!"
+		if result != expected {
+			t.Errorf("Got %q, want %q", result, expected)
+		}
+	})
 }

@@ -1,6 +1,6 @@
 package pongo2
 
-import "os"
+import "io"
 
 // tagSSINode represents the {% ssi %} tag.
 //
@@ -66,8 +66,18 @@ func tagSSIParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, error
 			}
 			SSINode.template = temporaryTpl
 		} else {
-			// plaintext
-			buf, err := os.ReadFile(doc.template.set.resolveFilename(doc.template, fileToken.Val))
+			// plaintext - use the template loader to support virtual filesystems
+			_, _, fd, err := doc.template.set.resolveTemplate(doc.template, fileToken.Val)
+			if err != nil {
+				return nil, updateErrorToken(&Error{
+					Sender:    "tag:ssi",
+					OrigError: err,
+				}, doc.template, fileToken)
+			}
+			buf, err := io.ReadAll(fd)
+			if closer, ok := fd.(io.Closer); ok {
+				closer.Close()
+			}
 			if err != nil {
 				return nil, updateErrorToken(&Error{
 					Sender:    "tag:ssi",
