@@ -7,6 +7,9 @@ import (
 
 var autoescape = true
 
+// SetAutoescape configures the global default autoescaping behavior for templates.
+// When enabled (true), template output will be automatically HTML-escaped for safety.
+// This setting affects all newly created ExecutionContexts.
 func SetAutoescape(newValue bool) {
 	autoescape = newValue
 }
@@ -105,6 +108,11 @@ func newExecutionContext(tpl *Template, ctx Context) *ExecutionContext {
 	}
 }
 
+// NewChildExecutionContext creates a new execution context that inherits from
+// a parent context. The child context shares the same Public context and Shared
+// context as the parent, but gets its own Private context (pre-populated with
+// copies of the parent's private data). This is useful for custom tags that need
+// to create isolated scopes while maintaining access to the template's data.
 func NewChildExecutionContext(parent *ExecutionContext) *ExecutionContext {
 	newctx := &ExecutionContext{
 		template: parent.template,
