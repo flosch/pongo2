@@ -688,10 +688,14 @@ func filterUrlencode(in *Value, param *Value) (*Value, error) {
 	return AsValue(url.QueryEscape(in.String())), nil
 }
 
-// TODO: This regexp could do some work
 var (
-	filterUrlizeURLRegexp   = regexp.MustCompile(`((((http|https)://)|www\.|((^|[ ])[0-9A-Za-z_\-]+(\.com|\.net|\.org|\.info|\.biz|\.de))))(?U:.*)([ ]+|$)`)
-	filterUrlizeEmailRegexp = regexp.MustCompile(`(\w+@\w+\.\w{2,4})`)
+	// URL regex matches:
+	// 1. URLs starting with http:// or https://
+	// 2. URLs starting with www.
+	// 3. Bare domains with common TLDs (generic, country-code, and new TLDs)
+	filterUrlizeURLRegexp = regexp.MustCompile(`((((http|https)://)|www\.|((^|[ ])[0-9A-Za-z_\-]+\.(com|net|org|info|biz|edu|gov|mil|int|co|io|ai|app|dev|me|tv|cc|us|uk|de|fr|es|it|nl|be|at|ch|ru|cn|jp|kr|au|nz|in|br|mx|ca|eu))))\S*([ ]+|$)`)
+	// Email regex matches email addresses with TLDs 2-6 chars to support .info, .museum, etc.
+	filterUrlizeEmailRegexp = regexp.MustCompile(`(\w+@\w+\.\w{2,6})`)
 )
 
 func filterUrlizeHelper(input string, autoescape bool, trunc int) (string, error) {

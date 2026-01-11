@@ -147,6 +147,88 @@ func TestForloopRevcounter(t *testing.T) {
 	}
 }
 
+// TestUrlizeFilter tests the urlize filter with various URL formats and TLDs
+func TestUrlizeFilter(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		expected string
+	}{
+		// Existing TLDs that should work
+		{
+			name:     "http URL with .com",
+			input:    "Visit http://example.com today",
+			expected: `Visit <a href="http://example.com" rel="nofollow">http://example.com</a> today`,
+		},
+		{
+			name:     "www URL with .org",
+			input:    "Check www.example.org please",
+			expected: `Check <a href="http://www.example.org" rel="nofollow">www.example.org</a> please`,
+		},
+		// New TLDs that should be supported
+		{
+			name:     "URL with .io TLD",
+			input:    "Visit github.io for pages",
+			expected: `Visit <a href="http://github.io" rel="nofollow">github.io</a> for pages`,
+		},
+		{
+			name:     "URL with .dev TLD",
+			input:    "Check web.dev for tips",
+			expected: `Check <a href="http://web.dev" rel="nofollow">web.dev</a> for tips`,
+		},
+		{
+			name:     "URL with .co TLD",
+			input:    "See example.co now",
+			expected: `See <a href="http://example.co" rel="nofollow">example.co</a> now`,
+		},
+		{
+			name:     "URL with .ai TLD",
+			input:    "Try claude.ai today",
+			expected: `Try <a href="http://claude.ai" rel="nofollow">claude.ai</a> today`,
+		},
+		{
+			name:     "URL with .app TLD",
+			input:    "Download from myapp.app",
+			expected: `Download from <a href="http://myapp.app" rel="nofollow">myapp.app</a>`,
+		},
+		// Country-code TLDs
+		{
+			name:     "URL with .uk TLD",
+			input:    "Visit bbc.co.uk for news",
+			expected: `Visit <a href="http://bbc.co.uk" rel="nofollow">bbc.co.uk</a> for news`,
+		},
+		{
+			name:     "URL with .fr TLD",
+			input:    "See example.fr please",
+			expected: `See <a href="http://example.fr" rel="nofollow">example.fr</a> please`,
+		},
+		// Email addresses
+		{
+			name:     "email with .info TLD",
+			input:    "Contact user@example.info",
+			expected: `Contact <a href="mailto:user@example.info">user@example.info</a>`,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tpl, err := pongo2.FromString(`{{ input|urlize|safe }}`)
+			if err != nil {
+				t.Fatalf("Error parsing template: %v", err)
+			}
+
+			result, err := tpl.Execute(pongo2.Context{"input": tt.input})
+			if err != nil {
+				t.Fatalf("Error executing template: %v", err)
+			}
+
+			if result != tt.expected {
+				t.Errorf("Expected:\n%s\nGot:\n%s", tt.expected, result)
+			}
+		})
+	}
+}
+
 type DummyLoader struct{}
 
 func (l *DummyLoader) Abs(base, name string) string {
