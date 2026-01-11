@@ -229,6 +229,99 @@ func TestUrlizeFilter(t *testing.T) {
 	}
 }
 
+// TestValueEqualTo tests the Value.EqualTo method for various types
+func TestValueEqualTo(t *testing.T) {
+	tests := []struct {
+		name     string
+		v1       interface{}
+		v2       interface{}
+		expected bool
+	}{
+		// Integers
+		{"equal integers", 42, 42, true},
+		{"different integers", 42, 43, false},
+		{"int and int64 equal", 42, int64(42), true},
+
+		// Floats
+		{"equal floats", 3.14, 3.14, true},
+		{"different floats", 3.14, 2.71, false},
+
+		// Strings
+		{"equal strings", "hello", "hello", true},
+		{"different strings", "hello", "world", false},
+
+		// Booleans
+		{"equal bools true", true, true, true},
+		{"equal bools false", false, false, true},
+		{"different bools", true, false, false},
+
+		// Nil values
+		// Note: Current implementation returns false for two nil values
+		// Using reflect.Value.Equal would return true for two invalid values
+		{"both nil", nil, nil, false},
+		{"one nil", nil, "hello", false},
+
+		// Slices (not comparable, should return false)
+		{"slices", []int{1, 2}, []int{1, 2}, false},
+
+		// Maps (not comparable, should return false)
+		{"maps", map[string]int{"a": 1}, map[string]int{"a": 1}, false},
+
+		// Structs (comparable)
+		{"equal structs", struct{ A int }{1}, struct{ A int }{1}, true},
+		{"different structs", struct{ A int }{1}, struct{ A int }{2}, false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			v1 := pongo2.AsValue(tt.v1)
+			v2 := pongo2.AsValue(tt.v2)
+
+			result := v1.EqualValueTo(v2)
+			if result != tt.expected {
+				t.Errorf("EqualTo(%v, %v) = %v, want %v", tt.v1, tt.v2, result, tt.expected)
+			}
+		})
+	}
+}
+
+// BenchmarkValueEqualTo benchmarks the EqualValueTo method
+func BenchmarkValueEqualTo(b *testing.B) {
+	// Pre-create values to avoid allocation overhead in benchmark
+	intVal1 := pongo2.AsValue(42)
+	intVal2 := pongo2.AsValue(42)
+	strVal1 := pongo2.AsValue("hello world")
+	strVal2 := pongo2.AsValue("hello world")
+	structVal1 := pongo2.AsValue(struct{ A, B, C int }{1, 2, 3})
+	structVal2 := pongo2.AsValue(struct{ A, B, C int }{1, 2, 3})
+	sliceVal1 := pongo2.AsValue([]int{1, 2, 3})
+	sliceVal2 := pongo2.AsValue([]int{1, 2, 3})
+
+	b.Run("integers", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			intVal1.EqualValueTo(intVal2)
+		}
+	})
+
+	b.Run("strings", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			strVal1.EqualValueTo(strVal2)
+		}
+	})
+
+	b.Run("structs", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			structVal1.EqualValueTo(structVal2)
+		}
+	})
+
+	b.Run("slices_not_comparable", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			sliceVal1.EqualValueTo(sliceVal2)
+		}
+	})
+}
+
 type DummyLoader struct{}
 
 func (l *DummyLoader) Abs(base, name string) string {

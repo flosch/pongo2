@@ -506,8 +506,9 @@ func (v *Value) EqualValueTo(other *Value) bool {
 	if !v.val.IsValid() || !other.val.IsValid() {
 		return false
 	}
-	// TODO(flosch): As of Go 1.20, reflect supports Comparable() and Equal(). This should potentially
-	// be used here: https://pkg.go.dev/reflect#Value.Comparable
+	// Note: reflect.Value.Equal() and Value.Comparable() (Go 1.20+) were considered
+	// but benchmarking showed they are slower. Type().Comparable() and
+	// Interface() == Interface() is faster due to Go's interface comparison optimization.
 	return v.val.CanInterface() && other.val.CanInterface() &&
 		v.val.Type().Comparable() && other.val.Type().Comparable() &&
 		v.Interface() == other.Interface()
