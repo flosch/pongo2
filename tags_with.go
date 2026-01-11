@@ -5,7 +5,7 @@ type tagWithNode struct {
 	wrapper   *NodeWrapper
 }
 
-func (node *tagWithNode) Execute(ctx *ExecutionContext, writer TemplateWriter) *Error {
+func (node *tagWithNode) Execute(ctx *ExecutionContext, writer TemplateWriter) error {
 	// new context for block
 	withctx := NewChildExecutionContext(ctx)
 
@@ -21,7 +21,7 @@ func (node *tagWithNode) Execute(ctx *ExecutionContext, writer TemplateWriter) *
 	return node.wrapper.Execute(withctx, writer)
 }
 
-func tagWithParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, *Error) {
+func tagWithParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, error) {
 	withNode := &tagWithNode{
 		withPairs: make(map[string]IEvaluator),
 	}

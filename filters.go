@@ -5,7 +5,7 @@ import (
 )
 
 // FilterFunction is the type filter functions must fulfil
-type FilterFunction func(in *Value, param *Value) (out *Value, err *Error)
+type FilterFunction func(in *Value, param *Value) (out *Value, err error)
 
 var filters map[string]FilterFunction
 
@@ -52,7 +52,7 @@ func MustApplyFilter(name string, value *Value, param *Value) *Value {
 
 // ApplyFilter applies a filter to a given value using the given parameters.
 // Returns a *pongo2.Value or an error.
-func ApplyFilter(name string, value *Value, param *Value) (*Value, *Error) {
+func ApplyFilter(name string, value *Value, param *Value) (*Value, error) {
 	fn, existing := filters[name]
 	if !existing {
 		return nil, &Error{
@@ -78,9 +78,9 @@ type filterCall struct {
 	filterFunc FilterFunction
 }
 
-func (fc *filterCall) Execute(v *Value, ctx *ExecutionContext) (*Value, *Error) {
+func (fc *filterCall) Execute(v *Value, ctx *ExecutionContext) (*Value, error) {
 	var param *Value
-	var err *Error
+	var err error
 
 	if fc.parameter != nil {
 		param, err = fc.parameter.Evaluate(ctx)
@@ -93,13 +93,13 @@ func (fc *filterCall) Execute(v *Value, ctx *ExecutionContext) (*Value, *Error) 
 
 	filteredValue, err := fc.filterFunc(v, param)
 	if err != nil {
-		return nil, err.updateFromTokenIfNeeded(ctx.template, fc.token)
+		return nil, updateErrorToken(err, ctx.template, fc.token)
 	}
 	return filteredValue, nil
 }
 
 // Filter = IDENT | IDENT ":" FilterArg | IDENT "|" Filter
-func (p *Parser) parseFilter() (*filterCall, *Error) {
+func (p *Parser) parseFilter() (*filterCall, error) {
 	identToken := p.MatchType(TokenIdentifier)
 
 	// Check filter ident

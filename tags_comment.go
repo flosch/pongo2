@@ -2,11 +2,11 @@ package pongo2
 
 type tagCommentNode struct{}
 
-func (node *tagCommentNode) Execute(ctx *ExecutionContext, writer TemplateWriter) *Error {
+func (node *tagCommentNode) Execute(ctx *ExecutionContext, writer TemplateWriter) error {
 	return nil
 }
 
-func tagCommentParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, *Error) {
+func tagCommentParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, error) {
 	commentNode := &tagCommentNode{}
 
 	// TODO: Process the endtag's arguments (see django 'comment'-tag documentation)

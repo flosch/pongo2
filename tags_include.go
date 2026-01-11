@@ -10,7 +10,7 @@ type tagIncludeNode struct {
 	ifExists          bool
 }
 
-func (node *tagIncludeNode) Execute(ctx *ExecutionContext, writer TemplateWriter) *Error {
+func (node *tagIncludeNode) Execute(ctx *ExecutionContext, writer TemplateWriter) error {
 	// Building the context for the template
 	includeCtx := make(Context)
 
@@ -47,32 +47,32 @@ func (node *tagIncludeNode) Execute(ctx *ExecutionContext, writer TemplateWriter
 		includedTpl, err2 := ctx.template.set.FromFile(includedFilename)
 		if err2 != nil {
 			// if this is ReadFile error, and "if_exists" flag is enabled
-			if node.ifExists && err2.(*Error).Sender == "fromfile" {
+			if e, ok := err2.(*Error); ok && node.ifExists && e.Sender == "fromfile" {
 				return nil
 			}
-			return err2.(*Error)
+			return err2
 		}
 		err2 = includedTpl.ExecuteWriter(includeCtx, writer)
 		if err2 != nil {
-			return err2.(*Error)
+			return err2
 		}
 		return nil
 	}
 	// Template is already parsed with static filename
 	err := node.tpl.ExecuteWriter(includeCtx, writer)
 	if err != nil {
-		return err.(*Error)
+		return err
 	}
 	return nil
 }
 
 type tagIncludeEmptyNode struct{}
 
-func (node *tagIncludeEmptyNode) Execute(ctx *ExecutionContext, writer TemplateWriter) *Error {
+func (node *tagIncludeEmptyNode) Execute(ctx *ExecutionContext, writer TemplateWriter) error {
 	return nil
 }
 
-func tagIncludeParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, *Error) {
+func tagIncludeParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, error) {
 	includeNode := &tagIncludeNode{
 		withPairs: make(map[string]IEvaluator),
 	}
@@ -91,17 +91,17 @@ func tagIncludeParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, *
 		includedTpl, err := doc.template.set.FromFile(includedFilename)
 		if err != nil {
 			// if this is ReadFile error, and "if_exists" token presents we should create and empty node
-			if err.(*Error).Sender == "fromfile" && ifExists {
+			if e, ok := err.(*Error); ok && e.Sender == "fromfile" && ifExists {
 				return &tagIncludeEmptyNode{}, nil
 			}
-			return nil, err.(*Error).updateFromTokenIfNeeded(doc.template, filenameToken)
+			return nil, updateErrorToken(err, doc.template, filenameToken)
 		}
 		includeNode.tpl = includedTpl
 	} else {
 		// No String, then the user wants to use lazy-evaluation (slower, but possible)
 		filenameEvaluator, err := arguments.ParseExpression()
 		if err != nil {
-			return nil, err.updateFromTokenIfNeeded(doc.template, filenameToken)
+			return nil, updateErrorToken(err, doc.template, filenameToken)
 		}
 		includeNode.filenameEvaluator = filenameEvaluator
 		includeNode.lazy = true
@@ -121,7 +121,7 @@ func tagIncludeParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, *
 			}
 			valueExpr, err := arguments.ParseExpression()
 			if err != nil {
-				return nil, err.updateFromTokenIfNeeded(doc.template, keyToken)
+				return nil, updateErrorToken(err, doc.template, keyToken)
 			}
 
 			includeNode.withPairs[keyToken.Val] = valueExpr

@@ -40,7 +40,7 @@ type INodeTag interface {
 // Please see the Parser documentation on how to use the parser.
 // See RegisterTag()'s documentation for more information about
 // writing a tag as well.
-type TagParser func(doc *Parser, start *Token, arguments *Parser) (INodeTag, *Error)
+type TagParser func(doc *Parser, start *Token, arguments *Parser) (INodeTag, error)
 
 type tag struct {
 	name   string
@@ -83,7 +83,7 @@ func ReplaceTag(name string, parserFn TagParser) error {
 }
 
 // Tag = "{%" IDENT ARGS "%}"
-func (p *Parser) parseTagElement() (INodeTag, *Error) {
+func (p *Parser) parseTagElement() (INodeTag, error) {
 	p.Consume() // consume "{%"
 	tokenName := p.MatchType(TokenIdentifier)
 

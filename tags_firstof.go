@@ -5,7 +5,7 @@ type tagFirstofNode struct {
 	args     []IEvaluator
 }
 
-func (node *tagFirstofNode) Execute(ctx *ExecutionContext, writer TemplateWriter) *Error {
+func (node *tagFirstofNode) Execute(ctx *ExecutionContext, writer TemplateWriter) error {
 	for _, arg := range node.args {
 		val, err := arg.Evaluate(ctx)
 		if err != nil {
@@ -28,7 +28,7 @@ func (node *tagFirstofNode) Execute(ctx *ExecutionContext, writer TemplateWriter
 	return nil
 }
 
-func tagFirstofParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, *Error) {
+func tagFirstofParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, error) {
 	firstofNode := &tagFirstofNode{
 		position: start,
 	}

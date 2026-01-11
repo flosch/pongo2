@@ -38,6 +38,23 @@ func (e *Error) updateFromTokenIfNeeded(template *Template, t *Token) *Error {
 	return e
 }
 
+// updateErrorToken is a helper that updates token info on a *Error if the error
+// is of that type, otherwise returns the error as-is.
+func updateErrorToken(err error, template *Template, t *Token) error {
+	if err == nil {
+		return nil
+	}
+	if e, ok := err.(*Error); ok {
+		return e.updateFromTokenIfNeeded(template, t)
+	}
+	return err
+}
+
+// Unwrap returns the underlying error for use with errors.Is and errors.As.
+func (e *Error) Unwrap() error {
+	return e.OrigError
+}
+
 // Returns a nice formatted error string.
 func (e *Error) Error() string {
 	s := "[Error"

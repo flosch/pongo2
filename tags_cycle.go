@@ -17,7 +17,7 @@ func (cv *tagCycleValue) String() string {
 	return cv.value.String()
 }
 
-func (node *tagCycleNode) Execute(ctx *ExecutionContext, writer TemplateWriter) *Error {
+func (node *tagCycleNode) Execute(ctx *ExecutionContext, writer TemplateWriter) error {
 	item := node.args[node.idx%len(node.args)]
 	node.idx++
 
@@ -64,7 +64,7 @@ func (node *tagCycleNode) Execute(ctx *ExecutionContext, writer TemplateWriter) 
 }
 
 // HINT: We're not supporting the old comma-separated list of expressions argument-style
-func tagCycleParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, *Error) {
+func tagCycleParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, error) {
 	cycleNode := &tagCycleNode{
 		position: start,
 	}

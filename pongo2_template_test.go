@@ -76,16 +76,16 @@ func (p *post) String() string {
 
 type tagSandboxDemoTag struct{}
 
-func (node *tagSandboxDemoTag) Execute(ctx *pongo2.ExecutionContext, writer pongo2.TemplateWriter) *pongo2.Error {
+func (node *tagSandboxDemoTag) Execute(ctx *pongo2.ExecutionContext, writer pongo2.TemplateWriter) error {
 	writer.WriteString("hello")
 	return nil
 }
 
-func tagSandboxDemoTagParser(doc *pongo2.Parser, start *pongo2.Token, arguments *pongo2.Parser) (pongo2.INodeTag, *pongo2.Error) {
+func tagSandboxDemoTagParser(doc *pongo2.Parser, start *pongo2.Token, arguments *pongo2.Parser) (pongo2.INodeTag, error) {
 	return &tagSandboxDemoTag{}, nil
 }
 
-func BannedFilterFn(in *pongo2.Value, params *pongo2.Value) (*pongo2.Value, *pongo2.Error) {
+func BannedFilterFn(in *pongo2.Value, params *pongo2.Value) (*pongo2.Value, error) {
 	return in, nil
 }
 

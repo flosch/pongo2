@@ -10,7 +10,7 @@ type nodeHTML struct {
 	trimRight bool
 }
 
-func (n *nodeHTML) Execute(ctx *ExecutionContext, writer TemplateWriter) *Error {
+func (n *nodeHTML) Execute(ctx *ExecutionContext, writer TemplateWriter) error {
 	res := n.token.Val
 	if n.trimLeft {
 		res = strings.TrimLeft(res, tokenSpaceChars)

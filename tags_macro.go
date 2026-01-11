@@ -17,7 +17,7 @@ type tagMacroNode struct {
 	wrapper *NodeWrapper
 }
 
-func (node *tagMacroNode) Execute(ctx *ExecutionContext, writer TemplateWriter) *Error {
+func (node *tagMacroNode) Execute(ctx *ExecutionContext, writer TemplateWriter) error {
 	ctx.Private[node.name] = func(args ...*Value) (*Value, error) {
 		ctx.macroDepth++
 		defer func() {
@@ -56,7 +56,7 @@ func (node *tagMacroNode) call(ctx *ExecutionContext, args ...*Value) (*Value, e
 	if len(args) > len(node.argsOrder) {
 		// Too many arguments, we're ignoring them and just logging into debug mode.
 		err := ctx.Error(fmt.Sprintf("Macro '%s' called with too many arguments (%d instead of %d).",
-			node.name, len(args), len(node.argsOrder)), nil).updateFromTokenIfNeeded(ctx.template, node.position)
+			node.name, len(args), len(node.argsOrder)), node.position)
 
 		return AsSafeValue(""), err
 	}
@@ -74,13 +74,13 @@ func (node *tagMacroNode) call(ctx *ExecutionContext, args ...*Value) (*Value, e
 	var b bytes.Buffer
 	err := node.wrapper.Execute(macroCtx, &b)
 	if err != nil {
-		return AsSafeValue(""), err.updateFromTokenIfNeeded(ctx.template, node.position)
+		return AsSafeValue(""), updateErrorToken(err, ctx.template, node.position)
 	}
 
 	return AsSafeValue(b.String()), nil
 }
 
-func tagMacroParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, *Error) {
+func tagMacroParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, error) {
 	macroNode := &tagMacroNode{
 		position: start,
 		args:     make(map[string]IEvaluator),

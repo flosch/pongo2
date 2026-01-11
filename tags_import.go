@@ -10,7 +10,7 @@ type tagImportNode struct {
 	macros   map[string]*tagMacroNode // alias/name -> macro instance
 }
 
-func (node *tagImportNode) Execute(ctx *ExecutionContext, writer TemplateWriter) *Error {
+func (node *tagImportNode) Execute(ctx *ExecutionContext, writer TemplateWriter) error {
 	for name, macro := range node.macros {
 		func(name string, macro *tagMacroNode) {
 			ctx.Private[name] = func(args ...*Value) (*Value, error) {
@@ -21,7 +21,7 @@ func (node *tagImportNode) Execute(ctx *ExecutionContext, writer TemplateWriter)
 	return nil
 }
 
-func tagImportParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, *Error) {
+func tagImportParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, error) {
 	importNode := &tagImportNode{
 		position: start,
 		macros:   make(map[string]*tagMacroNode),
@@ -41,7 +41,7 @@ func tagImportParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, *E
 	// Compile the given template
 	tpl, err := doc.template.set.FromFile(importNode.filename)
 	if err != nil {
-		return nil, err.(*Error).updateFromTokenIfNeeded(doc.template, start)
+		return nil, updateErrorToken(err, doc.template, start)
 	}
 
 	for arguments.Remaining() > 0 {

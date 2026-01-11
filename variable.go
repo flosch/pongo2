@@ -48,7 +48,7 @@ func (p *variablePart) String() string {
 }
 
 type functionCallArgument interface {
-	Evaluate(*ExecutionContext) (*Value, *Error)
+	Evaluate(*ExecutionContext) (*Value, error)
 }
 
 // TODO: Add location tokens
@@ -92,7 +92,7 @@ type nodeVariable struct {
 
 type executionCtxEval struct{}
 
-func (v *nodeFilteredVariable) Execute(ctx *ExecutionContext, writer TemplateWriter) *Error {
+func (v *nodeFilteredVariable) Execute(ctx *ExecutionContext, writer TemplateWriter) error {
 	value, err := v.Evaluate(ctx)
 	if err != nil {
 		return err
@@ -101,7 +101,7 @@ func (v *nodeFilteredVariable) Execute(ctx *ExecutionContext, writer TemplateWri
 	return nil
 }
 
-func (vr *variableResolver) Execute(ctx *ExecutionContext, writer TemplateWriter) *Error {
+func (vr *variableResolver) Execute(ctx *ExecutionContext, writer TemplateWriter) error {
 	value, err := vr.Evaluate(ctx)
 	if err != nil {
 		return err
@@ -110,7 +110,7 @@ func (vr *variableResolver) Execute(ctx *ExecutionContext, writer TemplateWriter
 	return nil
 }
 
-func (s *stringResolver) Execute(ctx *ExecutionContext, writer TemplateWriter) *Error {
+func (s *stringResolver) Execute(ctx *ExecutionContext, writer TemplateWriter) error {
 	value, err := s.Evaluate(ctx)
 	if err != nil {
 		return err
@@ -119,7 +119,7 @@ func (s *stringResolver) Execute(ctx *ExecutionContext, writer TemplateWriter) *
 	return nil
 }
 
-func (i *intResolver) Execute(ctx *ExecutionContext, writer TemplateWriter) *Error {
+func (i *intResolver) Execute(ctx *ExecutionContext, writer TemplateWriter) error {
 	value, err := i.Evaluate(ctx)
 	if err != nil {
 		return err
@@ -128,7 +128,7 @@ func (i *intResolver) Execute(ctx *ExecutionContext, writer TemplateWriter) *Err
 	return nil
 }
 
-func (f *floatResolver) Execute(ctx *ExecutionContext, writer TemplateWriter) *Error {
+func (f *floatResolver) Execute(ctx *ExecutionContext, writer TemplateWriter) error {
 	value, err := f.Evaluate(ctx)
 	if err != nil {
 		return err
@@ -137,7 +137,7 @@ func (f *floatResolver) Execute(ctx *ExecutionContext, writer TemplateWriter) *E
 	return nil
 }
 
-func (b *boolResolver) Execute(ctx *ExecutionContext, writer TemplateWriter) *Error {
+func (b *boolResolver) Execute(ctx *ExecutionContext, writer TemplateWriter) error {
 	value, err := b.Evaluate(ctx)
 	if err != nil {
 		return err
@@ -170,19 +170,19 @@ func (b *boolResolver) GetPositionToken() *Token {
 	return b.locationToken
 }
 
-func (s *stringResolver) Evaluate(ctx *ExecutionContext) (*Value, *Error) {
+func (s *stringResolver) Evaluate(ctx *ExecutionContext) (*Value, error) {
 	return AsValue(s.val), nil
 }
 
-func (i *intResolver) Evaluate(ctx *ExecutionContext) (*Value, *Error) {
+func (i *intResolver) Evaluate(ctx *ExecutionContext) (*Value, error) {
 	return AsValue(i.val), nil
 }
 
-func (f *floatResolver) Evaluate(ctx *ExecutionContext) (*Value, *Error) {
+func (f *floatResolver) Evaluate(ctx *ExecutionContext) (*Value, error) {
 	return AsValue(f.val), nil
 }
 
-func (b *boolResolver) Evaluate(ctx *ExecutionContext) (*Value, *Error) {
+func (b *boolResolver) Evaluate(ctx *ExecutionContext) (*Value, error) {
 	return AsValue(b.val), nil
 }
 
@@ -206,7 +206,7 @@ func (nv *nodeVariable) FilterApplied(name string) bool {
 	return nv.expr.FilterApplied(name)
 }
 
-func (nv *nodeVariable) Execute(ctx *ExecutionContext, writer TemplateWriter) *Error {
+func (nv *nodeVariable) Execute(ctx *ExecutionContext, writer TemplateWriter) error {
 	value, err := nv.expr.Evaluate(ctx)
 	if err != nil {
 		return err
@@ -224,7 +224,7 @@ func (nv *nodeVariable) Execute(ctx *ExecutionContext, writer TemplateWriter) *E
 	return nil
 }
 
-func (executionCtxEval) Evaluate(ctx *ExecutionContext) (*Value, *Error) {
+func (executionCtxEval) Evaluate(ctx *ExecutionContext) (*Value, error) {
 	return AsValue(ctx), nil
 }
 
@@ -516,7 +516,7 @@ func (vr *variableResolver) resolve(ctx *ExecutionContext) (*Value, error) {
 	return &Value{val: current, safe: isSafe}, nil
 }
 
-func (vr *variableResolver) Evaluate(ctx *ExecutionContext) (*Value, *Error) {
+func (vr *variableResolver) Evaluate(ctx *ExecutionContext) (*Value, error) {
 	value, err := vr.resolve(ctx)
 	if err != nil {
 		return AsValue(nil), ctx.Error(err.Error(), vr.locationToken)
@@ -533,7 +533,7 @@ func (v *nodeFilteredVariable) FilterApplied(name string) bool {
 	return false
 }
 
-func (v *nodeFilteredVariable) Evaluate(ctx *ExecutionContext) (*Value, *Error) {
+func (v *nodeFilteredVariable) Evaluate(ctx *ExecutionContext) (*Value, error) {
 	value, err := v.resolver.Evaluate(ctx)
 	if err != nil {
 		return nil, err
@@ -550,7 +550,7 @@ func (v *nodeFilteredVariable) Evaluate(ctx *ExecutionContext) (*Value, *Error) 
 }
 
 // "[" [expr {, expr}] "]"
-func (p *Parser) parseArray() (IEvaluator, *Error) {
+func (p *Parser) parseArray() (IEvaluator, error) {
 	resolver := &variableResolver{
 		locationToken: p.Current(),
 	}
@@ -592,7 +592,7 @@ func (p *Parser) parseArray() (IEvaluator, *Error) {
 	return resolver, nil
 }
 
-func (p *Parser) parseNumberLiteral(sign int, numToken *Token, locToken *Token) (IEvaluator, *Error) {
+func (p *Parser) parseNumberLiteral(sign int, numToken *Token, locToken *Token) (IEvaluator, error) {
 	// One exception to the rule that we don't have float64 literals is at the beginning
 	// of an expression (or a variable name). Since we know we started with an integer
 	// which can't obviously be a variable name, we can check whether the first number
@@ -616,7 +616,7 @@ func (p *Parser) parseNumberLiteral(sign int, numToken *Token, locToken *Token) 
 }
 
 // IDENT | IDENT.(IDENT|NUMBER)... | IDENT[expr]... | "[" [ expr {, expr}] "]"
-func (p *Parser) parseVariableOrLiteral() (IEvaluator, *Error) {
+func (p *Parser) parseVariableOrLiteral() (IEvaluator, error) {
 	t := p.Current()
 
 	if t == nil {
@@ -789,7 +789,7 @@ variableLoop:
 	return resolver, nil
 }
 
-func (p *Parser) parseVariableOrLiteralWithFilter() (*nodeFilteredVariable, *Error) {
+func (p *Parser) parseVariableOrLiteralWithFilter() (*nodeFilteredVariable, error) {
 	v := &nodeFilteredVariable{
 		locationToken: p.Current(),
 	}
@@ -823,7 +823,7 @@ filterLoop:
 	return v, nil
 }
 
-func (p *Parser) parseVariableElement() (INode, *Error) {
+func (p *Parser) parseVariableElement() (INode, error) {
 	node := &nodeVariable{
 		locationToken: p.Current(),
 	}

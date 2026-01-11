@@ -5,7 +5,7 @@ type NodeWrapper struct {
 	nodes  []INode
 }
 
-func (wrapper *NodeWrapper) Execute(ctx *ExecutionContext, writer TemplateWriter) *Error {
+func (wrapper *NodeWrapper) Execute(ctx *ExecutionContext, writer TemplateWriter) error {
 	for _, n := range wrapper.nodes {
 		err := n.Execute(ctx, writer)
 		if err != nil {

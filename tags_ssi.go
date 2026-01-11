@@ -8,7 +8,7 @@ type tagSSINode struct {
 	template *Template
 }
 
-func (node *tagSSINode) Execute(ctx *ExecutionContext, writer TemplateWriter) *Error {
+func (node *tagSSINode) Execute(ctx *ExecutionContext, writer TemplateWriter) error {
 	if node.template != nil {
 		// Execute the template within the current context
 		includeCtx := make(Context)
@@ -17,7 +17,7 @@ func (node *tagSSINode) Execute(ctx *ExecutionContext, writer TemplateWriter) *E
 
 		err := node.template.execute(includeCtx, writer)
 		if err != nil {
-			return err.(*Error)
+			return err
 		}
 	} else {
 		// Just print out the content
@@ -26,7 +26,7 @@ func (node *tagSSINode) Execute(ctx *ExecutionContext, writer TemplateWriter) *E
 	return nil
 }
 
-func tagSSIParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, *Error) {
+func tagSSIParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, error) {
 	SSINode := &tagSSINode{}
 
 	if fileToken := arguments.MatchType(TokenString); fileToken != nil {
@@ -36,17 +36,17 @@ func tagSSIParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, *Erro
 			// parsed
 			temporaryTpl, err := doc.template.set.FromFile(doc.template.set.resolveFilename(doc.template, fileToken.Val))
 			if err != nil {
-				return nil, err.(*Error).updateFromTokenIfNeeded(doc.template, fileToken)
+				return nil, updateErrorToken(err, doc.template, fileToken)
 			}
 			SSINode.template = temporaryTpl
 		} else {
 			// plaintext
 			buf, err := os.ReadFile(doc.template.set.resolveFilename(doc.template, fileToken.Val))
 			if err != nil {
-				return nil, (&Error{
+				return nil, updateErrorToken(&Error{
 					Sender:    "tag:ssi",
 					OrigError: err,
-				}).updateFromTokenIfNeeded(doc.template, fileToken)
+				}, doc.template, fileToken)
 			}
 			SSINode.content = string(buf)
 		}

@@ -5,7 +5,7 @@ type tagAutoescapeNode struct {
 	autoescape bool
 }
 
-func (node *tagAutoescapeNode) Execute(ctx *ExecutionContext, writer TemplateWriter) *Error {
+func (node *tagAutoescapeNode) Execute(ctx *ExecutionContext, writer TemplateWriter) error {
 	old := ctx.Autoescape
 	ctx.Autoescape = node.autoescape
 
@@ -19,7 +19,7 @@ func (node *tagAutoescapeNode) Execute(ctx *ExecutionContext, writer TemplateWri
 	return nil
 }
 
-func tagAutoescapeParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, *Error) {
+func tagAutoescapeParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, error) {
 	autoescapeNode := &tagAutoescapeNode{}
 
 	wrapper, _, err := doc.WrapUntilTag("endautoescape")

@@ -21,7 +21,7 @@ type tagLoremNode struct {
 	random   bool   // does not use the default paragraph "Lorem ipsum dolor sit amet, ..."
 }
 
-func (node *tagLoremNode) Execute(ctx *ExecutionContext, writer TemplateWriter) *Error {
+func (node *tagLoremNode) Execute(ctx *ExecutionContext, writer TemplateWriter) error {
 	if node.count > maxLoremCount {
 		return ctx.Error(fmt.Sprintf("max count for lorem is %d", maxLoremCount), node.position)
 	}
@@ -93,7 +93,7 @@ func (node *tagLoremNode) Execute(ctx *ExecutionContext, writer TemplateWriter) 
 	return nil
 }
 
-func tagLoremParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, *Error) {
+func tagLoremParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, error) {
 	loremNode := &tagLoremNode{
 		position: start,
 		count:    1,

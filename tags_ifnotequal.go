@@ -6,7 +6,7 @@ type tagIfNotEqualNode struct {
 	elseWrapper *NodeWrapper
 }
 
-func (node *tagIfNotEqualNode) Execute(ctx *ExecutionContext, writer TemplateWriter) *Error {
+func (node *tagIfNotEqualNode) Execute(ctx *ExecutionContext, writer TemplateWriter) error {
 	r1, err := node.var1.Evaluate(ctx)
 	if err != nil {
 		return err
@@ -27,7 +27,7 @@ func (node *tagIfNotEqualNode) Execute(ctx *ExecutionContext, writer TemplateWri
 	return nil
 }
 
-func tagIfNotEqualParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, *Error) {
+func tagIfNotEqualParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, error) {
 	ifnotequalNode := &tagIfNotEqualNode{}
 
 	// Parse two expressions

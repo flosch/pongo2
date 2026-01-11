@@ -25,7 +25,7 @@ func SetAutoescape(newValue bool) {
 //	{{ pongo2.version }}
 type Context map[string]any
 
-func (c Context) checkForValidIdentifiers() *Error {
+func (c Context) checkForValidIdentifiers() error {
 	for k, v := range c {
 		if !isValidIdentifier(k) {
 			return &Error{
@@ -121,11 +121,11 @@ func NewChildExecutionContext(parent *ExecutionContext) *ExecutionContext {
 	return newctx
 }
 
-func (ctx *ExecutionContext) Error(msg string, token *Token) *Error {
+func (ctx *ExecutionContext) Error(msg string, token *Token) error {
 	return ctx.OrigError(errors.New(msg), token)
 }
 
-func (ctx *ExecutionContext) OrigError(err error, token *Token) *Error {
+func (ctx *ExecutionContext) OrigError(err error, token *Token) error {
 	filename := ctx.template.name
 	var line, col int
 	if token != nil {

@@ -10,7 +10,7 @@ type tagNowNode struct {
 	fake     bool
 }
 
-func (node *tagNowNode) Execute(ctx *ExecutionContext, writer TemplateWriter) *Error {
+func (node *tagNowNode) Execute(ctx *ExecutionContext, writer TemplateWriter) error {
 	var t time.Time
 	if node.fake {
 		t = time.Date(2014, time.February, 05, 18, 31, 45, 00, time.UTC)
@@ -23,7 +23,7 @@ func (node *tagNowNode) Execute(ctx *ExecutionContext, writer TemplateWriter) *E
 	return nil
 }
 
-func tagNowParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, *Error) {
+func tagNowParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, error) {
 	nowNode := &tagNowNode{
 		position: start,
 	}

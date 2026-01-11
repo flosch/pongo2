@@ -12,7 +12,7 @@ type tagWidthratioNode struct {
 	ctxName      string
 }
 
-func (node *tagWidthratioNode) Execute(ctx *ExecutionContext, writer TemplateWriter) *Error {
+func (node *tagWidthratioNode) Execute(ctx *ExecutionContext, writer TemplateWriter) error {
 	current, err := node.current.Evaluate(ctx)
 	if err != nil {
 		return err
@@ -39,7 +39,7 @@ func (node *tagWidthratioNode) Execute(ctx *ExecutionContext, writer TemplateWri
 	return nil
 }
 
-func tagWidthratioParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, *Error) {
+func tagWidthratioParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, error) {
 	widthratioNode := &tagWidthratioNode{
 		position: start,
 	}

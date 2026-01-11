@@ -15,12 +15,12 @@ var templateTagMapping = map[string]string{
 	"closecomment":  "#}",
 }
 
-func (node *tagTemplateTagNode) Execute(ctx *ExecutionContext, writer TemplateWriter) *Error {
+func (node *tagTemplateTagNode) Execute(ctx *ExecutionContext, writer TemplateWriter) error {
 	writer.WriteString(node.content)
 	return nil
 }
 
-func tagTemplateTagParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, *Error) {
+func tagTemplateTagParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, error) {
 	ttNode := &tagTemplateTagNode{}
 
 	if argToken := arguments.MatchType(TokenIdentifier); argToken != nil {

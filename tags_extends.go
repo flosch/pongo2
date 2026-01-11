@@ -4,11 +4,11 @@ type tagExtendsNode struct {
 	filename string
 }
 
-func (node *tagExtendsNode) Execute(ctx *ExecutionContext, writer TemplateWriter) *Error {
+func (node *tagExtendsNode) Execute(ctx *ExecutionContext, writer TemplateWriter) error {
 	return nil
 }
 
-func tagExtendsParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, *Error) {
+func tagExtendsParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, error) {
 	extendsNode := &tagExtendsNode{}
 
 	if doc.template.level > 1 {
@@ -29,7 +29,7 @@ func tagExtendsParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, *
 		// Parse the parent
 		parentTemplate, err := doc.template.set.FromFile(parentFilename)
 		if err != nil {
-			return nil, err.(*Error)
+			return nil, err
 		}
 
 		// Keep track of things
