@@ -4,6 +4,7 @@ import (
 	"errors"
 	"os"
 	"testing"
+	"testing/fstest"
 )
 
 func TestErrorUnwrap(t *testing.T) {
@@ -93,6 +94,43 @@ func TestErrorRawLine(t *testing.T) {
 		}
 		if available {
 			t.Error("RawLine should return available=false when line exceeds file length")
+		}
+	})
+
+	t.Run("FSLoader virtual filesystem", func(t *testing.T) {
+		// Create an in-memory filesystem with a template
+		memFS := fstest.MapFS{
+			"test.tpl": &fstest.MapFile{
+				Data: []byte("virtual line 1\nvirtual line 2\nvirtual line 3"),
+			},
+		}
+
+		// Create a template set with FSLoader
+		loader := NewFSLoader(memFS)
+		set := NewSet("test", loader)
+
+		// Load a template that will trigger an error
+		tpl, err := set.FromFile("test.tpl")
+		if err != nil {
+			t.Fatalf("Failed to load template: %v", err)
+		}
+
+		// Create an error with the template reference
+		e := &Error{
+			Template: tpl,
+			Filename: "test.tpl",
+			Line:     2,
+		}
+
+		line, available, err := e.RawLine()
+		if err != nil {
+			t.Fatalf("RawLine returned error: %v", err)
+		}
+		if !available {
+			t.Error("RawLine should return available=true for FSLoader")
+		}
+		if line != "virtual line 2" {
+			t.Errorf("RawLine = %q, want %q", line, "virtual line 2")
 		}
 	})
 }

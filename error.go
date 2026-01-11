@@ -3,6 +3,7 @@ package pongo2
 import (
 	"bufio"
 	"fmt"
+	"io"
 	"os"
 )
 
@@ -87,18 +88,40 @@ func (e *Error) RawLine() (line string, available bool, outErr error) {
 	if e.Template != nil {
 		filename = e.Template.set.resolveFilename(e.Template, e.Filename)
 	}
-	file, err := os.Open(filename)
-	if err != nil {
-		return "", false, err
-	}
-	defer func() {
-		err := file.Close()
-		if err != nil && outErr == nil {
-			outErr = err
-		}
-	}()
 
-	scanner := bufio.NewScanner(file)
+	// Try to get the file through the template's loader first (supports fs.FS),
+	// falling back to os.Open for backwards compatibility
+	var reader io.Reader
+	if e.Template != nil && e.Template.set != nil {
+		_, _, fd, err := e.Template.set.resolveTemplate(e.Template, e.Filename)
+		if err == nil {
+			reader = fd
+			// If reader implements io.Closer, ensure we close it
+			if closer, ok := reader.(io.Closer); ok {
+				defer func() {
+					err := closer.Close()
+					if err != nil && outErr == nil {
+						outErr = err
+					}
+				}()
+			}
+		}
+	}
+	if reader == nil {
+		file, err := os.Open(filename)
+		if err != nil {
+			return "", false, err
+		}
+		defer func() {
+			err := file.Close()
+			if err != nil && outErr == nil {
+				outErr = err
+			}
+		}()
+		reader = file
+	}
+
+	scanner := bufio.NewScanner(reader)
 	l := 0
 	for scanner.Scan() {
 		l++
