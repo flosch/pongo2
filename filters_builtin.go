@@ -48,6 +48,24 @@ func mustRegisterFilter(name string, fn FilterFunction) {
 	}
 }
 
+// htmlEscapeReplacer is a pre-compiled replacer for HTML escaping.
+// Using a single Replacer is more efficient than multiple strings.Replace calls
+// because it processes the string in a single pass.
+var htmlEscapeReplacer = strings.NewReplacer(
+	"&", "&amp;",
+	">", "&gt;",
+	"<", "&lt;",
+	`"`, "&quot;",
+	"'", "&#39;",
+)
+
+// addslashesReplacer is a pre-compiled replacer for adding slashes.
+var addslashesReplacer = strings.NewReplacer(
+	`\`, `\\`,
+	`"`, `\"`,
+	"'", `\'`,
+)
+
 func init() {
 	mustRegisterFilter("escape", filterEscape)
 	mustRegisterFilter("e", filterEscape) // alias of `escape`
@@ -383,12 +401,7 @@ func filterTruncatewordsHTML(in *Value, param *Value) (*Value, error) {
 //
 // Output: "&lt;script&gt;alert(&#39;XSS&#39;)&lt;/script&gt;"
 func filterEscape(in *Value, param *Value) (*Value, error) {
-	output := strings.ReplaceAll(in.String(), "&", "&amp;")
-	output = strings.ReplaceAll(output, ">", "&gt;")
-	output = strings.ReplaceAll(output, "<", "&lt;")
-	output = strings.ReplaceAll(output, "\"", "&quot;")
-	output = strings.ReplaceAll(output, "'", "&#39;")
-	return AsValue(output), nil
+	return AsValue(htmlEscapeReplacer.Replace(in.String())), nil
 }
 
 // filterSafe marks a string as safe, meaning it will not be HTML-escaped when
@@ -509,10 +522,7 @@ func filterAdd(in *Value, param *Value) (*Value, error) {
 //
 // Output: "I\'m using \"pongo2\""
 func filterAddslashes(in *Value, param *Value) (*Value, error) {
-	output := strings.ReplaceAll(in.String(), "\\", "\\\\")
-	output = strings.ReplaceAll(output, "\"", "\\\"")
-	output = strings.ReplaceAll(output, "'", "\\'")
-	return AsValue(output), nil
+	return AsValue(addslashesReplacer.Replace(in.String())), nil
 }
 
 // filterCut removes all occurrences of the argument from the string.
@@ -1072,9 +1082,9 @@ func filterLinebreaksbr(in *Value, param *Value) (*Value, error) {
 //
 // Output:
 //
-//	1. first
-//	2. second
-//	3. third
+//  1. first
+//  2. second
+//  3. third
 func filterLinenumbers(in *Value, param *Value) (*Value, error) {
 	lines := strings.Split(in.String(), "\n")
 	output := make([]string, 0, len(lines))
