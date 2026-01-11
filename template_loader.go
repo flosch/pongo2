@@ -17,6 +17,9 @@ type FSLoader struct {
 	fs fs.FS
 }
 
+// NewFSLoader creates a new template loader that reads templates from an fs.FS
+// filesystem. This is useful for loading templates from embedded filesystems
+// (using Go's embed package) or any other fs.FS implementation.
 func NewFSLoader(fs fs.FS) *FSLoader {
 	return &FSLoader{
 		fs: fs,
