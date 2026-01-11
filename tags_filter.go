@@ -9,6 +9,44 @@ type nodeFilterCall struct {
 	paramExpr IEvaluator
 }
 
+// tagFilterNode represents the {% filter %} tag.
+//
+// The filter tag applies one or more filters to a block of template content.
+// This is useful when you want to apply a filter to a large block of text
+// rather than a single variable.
+//
+// Usage with a single filter:
+//
+//	{% filter upper %}
+//	    This text will be converted to uppercase.
+//	{% endfilter %}
+//
+// Output: "THIS TEXT WILL BE CONVERTED TO UPPERCASE."
+//
+// Usage with filter parameters:
+//
+//	{% filter truncatewords:3 %}
+//	    This is a longer text that will be truncated.
+//	{% endfilter %}
+//
+// Output: "This is a ..."
+//
+// Chaining multiple filters:
+//
+//	{% filter lower|capfirst %}
+//	    THIS TEXT WILL BE LOWERCASED THEN CAPITALIZED.
+//	{% endfilter %}
+//
+// Output: "This text will be lowercased then capitalized."
+//
+// Combining escape and linebreaksbr:
+//
+//	{% filter escape|linebreaksbr %}
+//	Line 1
+//	Line 2
+//	{% endfilter %}
+//
+// Output: "Line 1<br />Line 2"
 type tagFilterNode struct {
 	position    *Token
 	bodyWrapper *NodeWrapper

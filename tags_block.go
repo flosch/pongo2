@@ -5,6 +5,41 @@ import (
 	"fmt"
 )
 
+// tagBlockNode represents the {% block %} tag.
+//
+// The block tag defines a block that can be overridden by child templates.
+// Blocks are used in conjunction with {% extends %} to implement template inheritance.
+// Child templates can override blocks defined in parent templates.
+//
+// Usage in base template (base.html):
+//
+//	<html>
+//	<head><title>{% block title %}Default Title{% endblock %}</title></head>
+//	<body>
+//	    {% block content %}Default content{% endblock %}
+//	</body>
+//	</html>
+//
+// Usage in child template:
+//
+//	{% extends "base.html" %}
+//	{% block title %}My Page Title{% endblock %}
+//	{% block content %}
+//	    <h1>Welcome!</h1>
+//	    <p>This is my custom content.</p>
+//	{% endblock %}
+//
+// Using block.Super() to include parent content:
+//
+//	{% extends "base.html" %}
+//	{% block content %}
+//	    {{ block.Super }}
+//	    <p>Additional content after parent's content.</p>
+//	{% endblock %}
+//
+// The endblock tag can optionally include the block name for clarity:
+//
+//	{% block sidebar %}...{% endblock sidebar %}
 type tagBlockNode struct {
 	name string
 }

@@ -1,5 +1,28 @@
 package pongo2
 
+// tagAutoescapeNode represents the {% autoescape %} tag.
+//
+// The autoescape tag controls automatic HTML escaping for a block of template content.
+// When autoescape is "on", all variable output is HTML-escaped. When "off", variables
+// are output as-is (use with caution for trusted content only).
+//
+// Usage:
+//
+//	{% autoescape on %}
+//	    {{ user_input }}  {# This will be HTML-escaped #}
+//	{% endautoescape %}
+//
+//	{% autoescape off %}
+//	    {{ trusted_html }}  {# This will NOT be escaped - use with caution! #}
+//	{% endautoescape %}
+//
+// Example with dangerous input:
+//
+//	{% autoescape on %}
+//	    {{ "<script>alert('XSS')</script>" }}
+//	{% endautoescape %}
+//
+// Output: "&lt;script&gt;alert('XSS')&lt;/script&gt;"
 type tagAutoescapeNode struct {
 	wrapper    *NodeWrapper
 	autoescape bool

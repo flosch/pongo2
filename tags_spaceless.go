@@ -5,6 +5,40 @@ import (
 	"regexp"
 )
 
+// tagSpacelessNode represents the {% spaceless %} tag.
+//
+// The spaceless tag removes whitespace between HTML tags. It only removes
+// whitespace that appears between closing and opening tags, not whitespace
+// within tags or within text content.
+//
+// Basic usage:
+//
+//	{% spaceless %}
+//	    <ul>
+//	        <li>Item 1</li>
+//	        <li>Item 2</li>
+//	    </ul>
+//	{% endspaceless %}
+//
+// Output: "<ul><li>Item 1</li><li>Item 2</li></ul>"
+//
+// Note that whitespace inside text content is preserved:
+//
+//	{% spaceless %}
+//	    <p>
+//	        Hello    World
+//	    </p>
+//	{% endspaceless %}
+//
+// Output: "<p>Hello    World</p>"
+//
+// Use cases:
+//   - Minimizing HTML output size
+//   - Removing unwanted whitespace in inline elements
+//   - Cleaning up template-generated HTML
+//
+// Note: Only whitespace between tags is removed. Whitespace within tag
+// content or attributes is preserved.
 type tagSpacelessNode struct {
 	wrapper *NodeWrapper
 }

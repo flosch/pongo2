@@ -1,5 +1,39 @@
 package pongo2
 
+// tagIncludeNode represents the {% include %} tag.
+//
+// The include tag renders another template and inserts its output at the
+// current location. The included template has access to the current context.
+//
+// Basic usage:
+//
+//	{% include "header.html" %}
+//	<main>Content here</main>
+//	{% include "footer.html" %}
+//
+// Using "if_exists" to silently skip missing templates:
+//
+//	{% include "optional_sidebar.html" if_exists %}
+//
+// Passing additional context with "with":
+//
+//	{% include "user_card.html" with username=user.name avatar=user.avatar %}
+//
+// Using "only" to exclude parent context (included template only sees with variables):
+//
+//	{% include "widget.html" with title="My Widget" only %}
+//
+// Dynamic template names (lazy evaluation):
+//
+//	{% include template_name %}
+//	{% include "partials/"|add:partial_name|add:".html" %}
+//
+// The "only" keyword must come after all with pairs:
+//
+//	{% include "card.html" with title="Hello" subtitle="World" only %}
+//
+// Note: Static filenames (strings) are parsed at compile time for better
+// performance. Dynamic filenames are resolved at runtime.
 type tagIncludeNode struct {
 	tpl               *Template
 	filenameEvaluator IEvaluator

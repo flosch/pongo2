@@ -1,5 +1,58 @@
 package pongo2
 
+// tagForNode represents the {% for %} tag.
+//
+// The for tag loops over each item in a sequence (slice, array, map, or string).
+// It provides loop variables through the special "forloop" object.
+//
+// Basic usage:
+//
+//	{% for item in items %}
+//	    {{ item }}
+//	{% endfor %}
+//
+// Iterating over maps with key and value:
+//
+//	{% for key, value in myMap %}
+//	    {{ key }}: {{ value }}
+//	{% endfor %}
+//
+// Using the empty clause (displayed when the sequence is empty):
+//
+//	{% for item in items %}
+//	    {{ item }}
+//	{% empty %}
+//	    No items found.
+//	{% endfor %}
+//
+// Using "reversed" to iterate in reverse order:
+//
+//	{% for item in items reversed %}
+//	    {{ item }}
+//	{% endfor %}
+//
+// Using "sorted" to iterate over maps in sorted key order:
+//
+//	{% for key, value in myMap sorted %}
+//	    {{ key }}: {{ value }}
+//	{% endfor %}
+//
+// Loop variables available via forloop:
+//   - forloop.Counter: Current iteration (1-indexed)
+//   - forloop.Counter0: Current iteration (0-indexed)
+//   - forloop.Revcounter: Iterations remaining (1-indexed)
+//   - forloop.Revcounter0: Iterations remaining (0-indexed)
+//   - forloop.First: True if this is the first iteration
+//   - forloop.Last: True if this is the last iteration
+//   - forloop.Parentloop: Access parent loop in nested loops
+//
+// Example with loop variables:
+//
+//	{% for item in items %}
+//	    {% if forloop.First %}<ul>{% endif %}
+//	    <li>{{ forloop.Counter }}. {{ item }}</li>
+//	    {% if forloop.Last %}</ul>{% endif %}
+//	{% endfor %}
 type tagForNode struct {
 	key             string
 	value           string // only for maps: for key, value in map
@@ -11,6 +64,7 @@ type tagForNode struct {
 	emptyWrapper *NodeWrapper
 }
 
+// tagForLoopInformation provides loop metadata accessible via "forloop" variable.
 type tagForLoopInformation struct {
 	Counter     int
 	Counter0    int

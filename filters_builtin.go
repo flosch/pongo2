@@ -216,12 +216,34 @@ func filterTruncateHTMLHelper(value string, newOutput *bytes.Buffer, cond func()
 	}
 }
 
+// filterTruncatechars truncates a string to the specified number of characters.
+// If the string is longer than the specified length, it will be truncated and
+// an ellipsis ("...") will be appended. The ellipsis counts towards the character limit.
+//
+// Usage:
+//
+//	{{ "Hello World"|truncatechars:5 }}
+//
+// Output: "He..."
+//
+// {{ "Hi"|truncatechars:5 }}
+//
+// Output: "Hi"
 func filterTruncatechars(in *Value, param *Value) (*Value, error) {
 	s := in.String()
 	newLen := param.Integer()
 	return AsValue(filterTruncatecharsHelper(s, newLen)), nil
 }
 
+// filterTruncatecharsHTML truncates a string to the specified number of characters,
+// preserving HTML tags. HTML tags are not counted towards the character limit.
+// If truncated, an ellipsis ("...") is appended. Open HTML tags are properly closed.
+//
+// Usage:
+//
+//	{{ "<p>Hello World</p>"|truncatechars_html:8 }}
+//
+// Output: "<p>Hello...</p>"
 func filterTruncatecharsHTML(in *Value, param *Value) (*Value, error) {
 	value := in.String()
 	newLen := max(param.Integer()-3, 0)
@@ -246,6 +268,18 @@ func filterTruncatecharsHTML(in *Value, param *Value) (*Value, error) {
 	return AsSafeValue(newOutput.String()), nil
 }
 
+// filterTruncatewords truncates a string after a certain number of words.
+// If truncated, an ellipsis ("...") is appended.
+//
+// Usage:
+//
+//	{{ "Hello beautiful world"|truncatewords:2 }}
+//
+// Output: "Hello beautiful ..."
+//
+// {{ "Hi"|truncatewords:5 }}
+//
+// Output: "Hi"
 func filterTruncatewords(in *Value, param *Value) (*Value, error) {
 	words := strings.Fields(in.String())
 	n := param.Integer()
@@ -265,6 +299,15 @@ func filterTruncatewords(in *Value, param *Value) (*Value, error) {
 	return AsValue(strings.Join(out, " ")), nil
 }
 
+// filterTruncatewordsHTML truncates a string after a certain number of words,
+// preserving HTML tags. HTML tags are not counted towards the word limit.
+// If truncated, an ellipsis ("...") is appended. Open HTML tags are properly closed.
+//
+// Usage:
+//
+//	{{ "<p>Hello beautiful world</p>"|truncatewords_html:2 }}
+//
+// Output: "<p>Hello beautiful ...</p>"
 func filterTruncatewordsHTML(in *Value, param *Value) (*Value, error) {
 	value := in.String()
 	newLen := max(param.Integer(), 0)
@@ -316,6 +359,20 @@ func filterTruncatewordsHTML(in *Value, param *Value) (*Value, error) {
 	return AsSafeValue(newOutput.String()), nil
 }
 
+// filterEscape escapes a string's HTML characters. Specifically, it makes these replacements:
+//   - < is converted to &lt;
+//   - > is converted to &gt;
+//   - ' (single quote) is converted to &#39;
+//   - " (double quote) is converted to &quot;
+//   - & is converted to &amp;
+//
+// The filter is also available under the alias "e".
+//
+// Usage:
+//
+//	{{ "<script>alert('XSS')</script>"|escape }}
+//
+// Output: "&lt;script&gt;alert(&#39;XSS&#39;)&lt;/script&gt;"
 func filterEscape(in *Value, param *Value) (*Value, error) {
 	output := strings.Replace(in.String(), "&", "&amp;", -1)
 	output = strings.Replace(output, ">", "&gt;", -1)
@@ -325,10 +382,36 @@ func filterEscape(in *Value, param *Value) (*Value, error) {
 	return AsValue(output), nil
 }
 
+// filterSafe marks a string as safe, meaning it will not be HTML-escaped when
+// rendered. Use this filter when you know the content is safe and should be
+// rendered as-is (e.g., pre-sanitized HTML content).
+//
+// Usage:
+//
+//	{{ "<b>Bold text</b>"|safe }}
+//
+// Output: "<b>Bold text</b>"
+//
+// Without safe filter (when autoescape is on):
+//
+//	{{ "<b>Bold text</b>" }}
+//
+// Output: "&lt;b&gt;Bold text&lt;/b&gt;"
 func filterSafe(in *Value, param *Value) (*Value, error) {
 	return in, nil // nothing to do here, just to keep track of the safe application
 }
 
+// filterEscapejs escapes characters for safe use in JavaScript strings.
+// It converts special characters to their Unicode escape sequences (\uXXXX format).
+// Only alphanumeric characters, spaces, and forward slashes are left unescaped.
+//
+// Usage:
+//
+//	<script>var name = "{{ name|escapejs }}";</script>
+//
+// With name = "John's \"Quote\"":
+//
+// Output: <script>var name = "John\u0027s \u0022Quote\u0022";</script>
 func filterEscapejs(in *Value, param *Value) (*Value, error) {
 	sin := in.String()
 
@@ -378,6 +461,24 @@ func filterEscapejs(in *Value, param *Value) (*Value, error) {
 	return AsValue(b.String()), nil
 }
 
+// filterAdd adds the argument to the value. Works with numbers (integers and floats)
+// and strings (concatenation).
+//
+// Usage with numbers:
+//
+//	{{ 5|add:3 }}
+//
+// Output: 8
+//
+//	{{ 3.5|add:2.1 }}
+//
+// Output: 5.6
+//
+// Usage with strings:
+//
+//	{{ "Hello "|add:"World" }}
+//
+// Output: "Hello World"
 func filterAdd(in *Value, param *Value) (*Value, error) {
 	if in.IsNumber() && param.IsNumber() {
 		if in.IsFloat() || param.IsFloat() {
@@ -390,6 +491,14 @@ func filterAdd(in *Value, param *Value) (*Value, error) {
 	return AsValue(in.String() + param.String()), nil
 }
 
+// filterAddslashes adds backslashes before quotes and backslashes.
+// Useful for escaping strings in CSV or JavaScript contexts.
+//
+// Usage:
+//
+//	{{ "I'm using \"pongo2\""|addslashes }}
+//
+// Output: "I\'m using \"pongo2\""
 func filterAddslashes(in *Value, param *Value) (*Value, error) {
 	output := strings.Replace(in.String(), "\\", "\\\\", -1)
 	output = strings.Replace(output, "\"", "\\\"", -1)
@@ -397,18 +506,66 @@ func filterAddslashes(in *Value, param *Value) (*Value, error) {
 	return AsValue(output), nil
 }
 
+// filterCut removes all occurrences of the argument from the string.
+//
+// Usage:
+//
+//	{{ "Hello World"|cut:" " }}
+//
+// Output: "HelloWorld"
+//
+//	{{ "String with spaces"|cut:" " }}
+//
+// Output: "Stringwithspaces"
 func filterCut(in *Value, param *Value) (*Value, error) {
 	return AsValue(strings.Replace(in.String(), param.String(), "", -1)), nil
 }
 
+// filterLength returns the length of the value. Works with strings (character count),
+// slices, arrays, and maps.
+//
+// Usage with strings:
+//
+//	{{ "Hello"|length }}
+//
+// Output: 5
+//
+// Usage with lists:
+//
+//	{% set items = ["a", "b", "c"] %}{{ items|length }}
+//
+// Output: 3
 func filterLength(in *Value, param *Value) (*Value, error) {
 	return AsValue(in.Len()), nil
 }
 
+// filterLengthis returns true if the value's length equals the argument.
+// Useful in conditional expressions.
+//
+// Usage:
+//
+//	{% if items|length_is:3 %}Exactly 3 items{% endif %}
+//
+//	{{ "Hello"|length_is:5 }}
+//
+// Output: true
 func filterLengthis(in *Value, param *Value) (*Value, error) {
 	return AsValue(in.Len() == param.Integer()), nil
 }
 
+// filterDefault returns the argument if the value is falsy (empty string, 0,
+// nil, false, empty slice/map). Otherwise returns the original value.
+//
+// Usage:
+//
+//	{{ name|default:"Guest" }}
+//
+// If name is empty or not set, output: "Guest"
+// If name is "John", output: "John"
+//
+//	{{ 0|default:42 }}
+//
+// Output: 42
 func filterDefault(in *Value, param *Value) (*Value, error) {
 	if !in.IsTrue() {
 		return param, nil
@@ -416,6 +573,17 @@ func filterDefault(in *Value, param *Value) (*Value, error) {
 	return in, nil
 }
 
+// filterDefaultIfNone returns the argument only if the value is nil.
+// Unlike "default", this only triggers on nil values, not on other falsy values
+// like 0, false, or empty strings.
+//
+// Usage:
+//
+//	{{ value|default_if_none:"N/A" }}
+//
+// If value is nil, output: "N/A"
+// If value is 0, output: 0 (unlike default filter)
+// If value is "", output: "" (unlike default filter)
 func filterDefaultIfNone(in *Value, param *Value) (*Value, error) {
 	if in.IsNil() {
 		return param, nil
@@ -423,6 +591,16 @@ func filterDefaultIfNone(in *Value, param *Value) (*Value, error) {
 	return in, nil
 }
 
+// filterDivisibleby returns true if the value is divisible by the argument.
+// Returns false if the argument is 0 (to avoid division by zero).
+//
+// Usage:
+//
+//	{{ 21|divisibleby:7 }}
+//
+// Output: true
+//
+//	{% if forloop.Counter|divisibleby:2 %}even{% else %}odd{% endif %}
 func filterDivisibleby(in *Value, param *Value) (*Value, error) {
 	if param.Integer() == 0 {
 		return AsValue(false), nil
@@ -430,6 +608,20 @@ func filterDivisibleby(in *Value, param *Value) (*Value, error) {
 	return AsValue(in.Integer()%param.Integer() == 0), nil
 }
 
+// filterFirst returns the first element of a slice/array or the first character
+// of a string. Returns an empty string if the input is empty.
+//
+// Usage with list:
+//
+//	{{ ["a", "b", "c"]|first }}
+//
+// Output: "a"
+//
+// Usage with string:
+//
+//	{{ "Hello"|first }}
+//
+// Output: "H"
 func filterFirst(in *Value, param *Value) (*Value, error) {
 	if in.CanSlice() && in.Len() > 0 {
 		return in.Index(0), nil
@@ -439,6 +631,26 @@ func filterFirst(in *Value, param *Value) (*Value, error) {
 
 const maxFloatFormatDecimals = 1000
 
+// filterFloatformat formats a floating-point number with a specified number of
+// decimal places. If the argument is negative or omitted, trailing zeros are removed.
+//
+// Usage:
+//
+//	{{ 3.14159|floatformat:2 }}
+//
+// Output: "3.14"
+//
+//	{{ 3.0|floatformat:2 }}
+//
+// Output: "3.00"
+//
+//	{{ 3.0|floatformat:-2 }}
+//
+// Output: "3" (trailing zeros removed)
+//
+//	{{ 3.14159|floatformat }}
+//
+// Output: "3.14159" (default behavior, trimmed)
 func filterFloatformat(in *Value, param *Value) (*Value, error) {
 	val := in.Float()
 
@@ -476,6 +688,22 @@ func filterFloatformat(in *Value, param *Value) (*Value, error) {
 	return AsValue(strconv.FormatFloat(val, 'f', decimals, 64)), nil
 }
 
+// filterGetdigit returns the digit at position N from the right (1-indexed).
+// Position 1 is the rightmost digit. Returns the original value if N is out of range.
+//
+// Usage:
+//
+//	{{ 123456789|get_digit:1 }}
+//
+// Output: 9 (rightmost digit)
+//
+//	{{ 123456789|get_digit:2 }}
+//
+// Output: 8
+//
+//	{{ 123456789|get_digit:9 }}
+//
+// Output: 1 (leftmost digit)
 func filterGetdigit(in *Value, param *Value) (*Value, error) {
 	i := param.Integer()
 	l := len(in.String()) // do NOT use in.Len() here!
@@ -487,6 +715,19 @@ func filterGetdigit(in *Value, param *Value) (*Value, error) {
 
 const filterIRIChars = "/#%[]=:;$&()+,!?*@'~"
 
+// filterIriencode encodes an IRI (Internationalized Resource Identifier) for safe
+// use in URLs. Unlike urlencode, it preserves characters that are valid in IRIs
+// (such as /, #, %, etc.) while encoding other special characters.
+//
+// Usage:
+//
+//	{{ "https://example.com/path with spaces"|iriencode }}
+//
+// Output: "https://example.com/path%20with%20spaces"
+//
+//	{{ "/search?q=hello world"|iriencode }}
+//
+// Output: "/search?q=hello%20world"
 func filterIriencode(in *Value, param *Value) (*Value, error) {
 	var b bytes.Buffer
 
@@ -502,6 +743,20 @@ func filterIriencode(in *Value, param *Value) (*Value, error) {
 	return AsValue(b.String()), nil
 }
 
+// filterJoin joins a list with the given separator string. For strings, each
+// character is joined with the separator.
+//
+// Usage with list:
+//
+//	{{ ["apple", "banana", "cherry"]|join:", " }}
+//
+// Output: "apple, banana, cherry"
+//
+// Usage with string:
+//
+//	{{ "abc"|join:"-" }}
+//
+// Output: "a-b-c"
 func filterJoin(in *Value, param *Value) (*Value, error) {
 	if !in.CanSlice() {
 		return in, nil
@@ -530,6 +785,20 @@ func filterJoin(in *Value, param *Value) (*Value, error) {
 	return AsValue(strings.Join(sl, sep)), nil
 }
 
+// filterLast returns the last element of a slice/array or the last character
+// of a string. Returns an empty string if the input is empty.
+//
+// Usage with list:
+//
+//	{{ ["a", "b", "c"]|last }}
+//
+// Output: "c"
+//
+// Usage with string:
+//
+//	{{ "Hello"|last }}
+//
+// Output: "o"
 func filterLast(in *Value, param *Value) (*Value, error) {
 	if in.CanSlice() && in.Len() > 0 {
 		return in.Index(in.Len() - 1), nil
@@ -537,14 +806,40 @@ func filterLast(in *Value, param *Value) (*Value, error) {
 	return AsValue(""), nil
 }
 
+// filterUpper converts a string to uppercase.
+//
+// Usage:
+//
+//	{{ "Hello World"|upper }}
+//
+// Output: "HELLO WORLD"
 func filterUpper(in *Value, param *Value) (*Value, error) {
 	return AsValue(strings.ToUpper(in.String())), nil
 }
 
+// filterLower converts a string to lowercase.
+//
+// Usage:
+//
+//	{{ "Hello World"|lower }}
+//
+// Output: "hello world"
 func filterLower(in *Value, param *Value) (*Value, error) {
 	return AsValue(strings.ToLower(in.String())), nil
 }
 
+// filterMakelist converts a string into a list of individual characters.
+// Each character becomes a separate element in the resulting list.
+//
+// Usage:
+//
+//	{{ "abc"|make_list }}
+//
+// Output: ["a", "b", "c"]
+//
+//	{% for char in "Hello"|make_list %}{{ char }}-{% endfor %}
+//
+// Output: "H-e-l-l-o-"
 func filterMakelist(in *Value, param *Value) (*Value, error) {
 	s := in.String()
 	result := make([]string, 0, len(s))
@@ -554,6 +849,18 @@ func filterMakelist(in *Value, param *Value) (*Value, error) {
 	return AsValue(result), nil
 }
 
+// filterCapfirst capitalizes the first character of a string.
+// Only the first character is affected; the rest remains unchanged.
+//
+// Usage:
+//
+//	{{ "hello world"|capfirst }}
+//
+// Output: "Hello world"
+//
+//	{{ "hELLO"|capfirst }}
+//
+// Output: "HELLO"
 func filterCapfirst(in *Value, param *Value) (*Value, error) {
 	if in.Len() <= 0 {
 		return AsValue(""), nil
@@ -565,6 +872,18 @@ func filterCapfirst(in *Value, param *Value) (*Value, error) {
 
 const maxCharPadding = 10000
 
+// filterCenter centers the value in a field of a given width by padding with spaces.
+// If the original string is longer than the specified width, no padding is added.
+//
+// Usage:
+//
+//	"[{{ "hello"|center:11 }}]"
+//
+// Output: "[   hello   ]"
+//
+//	{{ "test"|center:10 }}
+//
+// Output: "   test   "
 func filterCenter(in *Value, param *Value) (*Value, error) {
 	width := param.Integer()
 	slen := in.Len()
@@ -588,6 +907,23 @@ func filterCenter(in *Value, param *Value) (*Value, error) {
 		in.String(), strings.Repeat(" ", right))), nil
 }
 
+// filterDate formats a time.Time value according to the given Go time format string.
+// This filter is also used for the "time" filter (same implementation).
+// The format string uses Go's time formatting reference: Mon Jan 2 15:04:05 MST 2006.
+//
+// Usage:
+//
+//	{{ myDate|date:"2006-01-02" }}
+//
+// Output: "2024-03-15" (example)
+//
+//	{{ myDate|date:"Monday, January 2, 2006" }}
+//
+// Output: "Friday, March 15, 2024" (example)
+//
+//	{{ myTime|time:"15:04:05" }}
+//
+// Output: "14:30:00" (example)
 func filterDate(in *Value, param *Value) (*Value, error) {
 	t, isTime := in.Interface().(time.Time)
 	if !isTime {
@@ -599,14 +935,52 @@ func filterDate(in *Value, param *Value) (*Value, error) {
 	return AsValue(t.Format(param.String())), nil
 }
 
+// filterFloat converts a value to a floating-point number.
+// This is a pongo2-specific filter (not in Django).
+//
+// Usage:
+//
+//	{{ "3.14"|float }}
+//
+// Output: 3.14
+//
+//	{{ 42|float }}
+//
+// Output: 42.0
 func filterFloat(in *Value, param *Value) (*Value, error) {
 	return AsValue(in.Float()), nil
 }
 
+// filterInteger converts a value to an integer.
+// This is a pongo2-specific filter (not in Django).
+// Floating-point values are truncated.
+//
+// Usage:
+//
+//	{{ "42"|integer }}
+//
+// Output: 42
+//
+//	{{ 3.7|integer }}
+//
+// Output: 3
 func filterInteger(in *Value, param *Value) (*Value, error) {
 	return AsValue(in.Integer()), nil
 }
 
+// filterLinebreaks converts newlines in plain text to appropriate HTML.
+// Single newlines become <br /> tags, and double newlines (blank lines)
+// start a new paragraph with <p>...</p> tags.
+//
+// Usage:
+//
+//	{{ "First line\nSecond line"|linebreaks }}
+//
+// Output: "<p>First line<br />Second line</p>"
+//
+//	{{ "Para 1\n\nPara 2"|linebreaks }}
+//
+// Output: "<p>Para 1</p><p>Para 2</p>"
 func filterLinebreaks(in *Value, param *Value) (*Value, error) {
 	if in.Len() == 0 {
 		return in, nil
@@ -651,16 +1025,47 @@ func filterLinebreaks(in *Value, param *Value) (*Value, error) {
 	return AsValue(b.String()), nil
 }
 
+// filterSplit splits a string by the given separator and returns a list.
+//
+// Usage:
+//
+//	{{ "a,b,c"|split:"," }}
+//
+// Output: ["a", "b", "c"]
+//
+//	{% for item in "one-two-three"|split:"-" %}{{ item }} {% endfor %}
+//
+// Output: "one two three "
 func filterSplit(in *Value, param *Value) (*Value, error) {
 	chunks := strings.Split(in.String(), param.String())
 
 	return AsValue(chunks), nil
 }
 
+// filterLinebreaksbr converts all newlines in a string to HTML <br /> tags.
+// Unlike linebreaks, this filter does not wrap text in <p> tags.
+//
+// Usage:
+//
+//	{{ "First line\nSecond line\nThird line"|linebreaksbr }}
+//
+// Output: "First line<br />Second line<br />Third line"
 func filterLinebreaksbr(in *Value, param *Value) (*Value, error) {
 	return AsValue(strings.Replace(in.String(), "\n", "<br />", -1)), nil
 }
 
+// filterLinenumbers prepends line numbers to each line in the text.
+// Line numbering starts at 1.
+//
+// Usage:
+//
+//	{{ "first\nsecond\nthird"|linenumbers }}
+//
+// Output:
+//
+//	1. first
+//	2. second
+//	3. third
 func filterLinenumbers(in *Value, param *Value) (*Value, error) {
 	lines := strings.Split(in.String(), "\n")
 	output := make([]string, 0, len(lines))
@@ -670,6 +1075,15 @@ func filterLinenumbers(in *Value, param *Value) (*Value, error) {
 	return AsValue(strings.Join(output, "\n")), nil
 }
 
+// filterLjust left-aligns the value in a field of a given width by padding
+// spaces on the right. If the original string is longer than the specified width,
+// no padding is added.
+//
+// Usage:
+//
+//	"[{{ "hello"|ljust:10 }}]"
+//
+// Output: "[hello     ]"
 func filterLjust(in *Value, param *Value) (*Value, error) {
 	times := param.Integer() - in.Len()
 	if times < 0 {
@@ -684,6 +1098,18 @@ func filterLjust(in *Value, param *Value) (*Value, error) {
 	return AsValue(fmt.Sprintf("%s%s", in.String(), strings.Repeat(" ", times))), nil
 }
 
+// filterUrlencode encodes a string for safe use in a URL query string.
+// Spaces become "+", special characters are percent-encoded.
+//
+// Usage:
+//
+//	{{ "hello world"|urlencode }}
+//
+// Output: "hello+world"
+//
+//	{{ "name=John&age=30"|urlencode }}
+//
+// Output: "name%3DJohn%26age%3D30"
 func filterUrlencode(in *Value, param *Value) (*Value, error) {
 	return AsValue(url.QueryEscape(in.String())), nil
 }
@@ -757,6 +1183,19 @@ func filterUrlizeHelper(input string, autoescape bool, trunc int) (string, error
 	return sout, nil
 }
 
+// filterUrlize converts URLs and email addresses in plain text into clickable links.
+// URLs are wrapped in <a> tags with rel="nofollow". Email addresses become mailto: links.
+// By default, the links are HTML-escaped; pass false to disable escaping.
+//
+// Usage:
+//
+//	{{ "Visit www.example.com today!"|urlize }}
+//
+// Output: 'Visit <a href="http://www.example.com" rel="nofollow">www.example.com</a> today!'
+//
+//	{{ "Contact: user@example.com"|urlize }}
+//
+// Output: 'Contact: <a href="mailto:user@example.com">user@example.com</a>'
 func filterUrlize(in *Value, param *Value) (*Value, error) {
 	autoescape := true
 	if param.IsBool() {
@@ -774,6 +1213,14 @@ func filterUrlize(in *Value, param *Value) (*Value, error) {
 	return AsValue(s), nil
 }
 
+// filterUrlizetrunc works like urlize but truncates URLs longer than the given
+// character limit. An ellipsis is appended to truncated URLs.
+//
+// Usage:
+//
+//	{{ "Check out www.reallylongdomainname.com/path"|urlizetrunc:20 }}
+//
+// Output: '<a href="http://www.reallylongdomainname.com/path" rel="nofollow">www.reallylongdo...</a>'
 func filterUrlizetrunc(in *Value, param *Value) (*Value, error) {
 	s, err := filterUrlizeHelper(in.String(), true, param.Integer())
 	if err != nil {
@@ -785,12 +1232,40 @@ func filterUrlizetrunc(in *Value, param *Value) (*Value, error) {
 	return AsValue(s), nil
 }
 
+// filterStringformat formats the value according to the argument, which is a
+// Go fmt-style format specifier. Note: unlike Python, Go uses different format verbs.
+//
+// Usage:
+//
+//	{{ 3.14159|stringformat:"%.2f" }}
+//
+// Output: "3.14"
+//
+//	{{ 42|stringformat:"%05d" }}
+//
+// Output: "00042"
+//
+//	{{ "hello"|stringformat:"%q" }}
+//
+// Output: '"hello"'
 func filterStringformat(in *Value, param *Value) (*Value, error) {
 	return AsValue(fmt.Sprintf(param.String(), in.Interface())), nil
 }
 
 var reStriptags = regexp.MustCompile("<[^>]*?>")
 
+// filterStriptags strips all HTML/XML tags from the value, returning plain text.
+// The result is also trimmed of leading/trailing whitespace.
+//
+// Usage:
+//
+//	{{ "<p>Hello <b>World</b>!</p>"|striptags }}
+//
+// Output: "Hello World!"
+//
+//	{{ "<a href='#'>Link</a>"|striptags }}
+//
+// Output: "Link"
 func filterStriptags(in *Value, param *Value) (*Value, error) {
 	s := in.String()
 
@@ -807,6 +1282,19 @@ var filterPhone2numericMap = map[string]string{
 	"w": "9", "x": "9", "y": "9", "z": "9",
 }
 
+// filterPhone2numeric converts a phone number with letters (phoneword) to its
+// numeric equivalent using the standard phone keypad mapping.
+// See: https://en.wikipedia.org/wiki/Phoneword
+//
+// Usage:
+//
+//	{{ "1-800-COLLECT"|phone2numeric }}
+//
+// Output: "1-800-2655328"
+//
+//	{{ "CALL-ME"|phone2numeric }}
+//
+// Output: "2255-63"
 func filterPhone2numeric(in *Value, param *Value) (*Value, error) {
 	sin := in.String()
 	for k, v := range filterPhone2numericMap {
@@ -816,6 +1304,26 @@ func filterPhone2numeric(in *Value, param *Value) (*Value, error) {
 	return AsValue(sin), nil
 }
 
+// filterPluralize returns a plural suffix based on the numeric value.
+// By default, returns "s" if the value is not 1, otherwise returns "".
+// You can specify custom singular/plural suffixes as comma-separated arguments.
+//
+// Usage:
+//
+//	You have {{ count }} item{{ count|pluralize }}.
+//
+// With count=1: "You have 1 item."
+// With count=5: "You have 5 items."
+//
+//	{{ count }} cherr{{ count|pluralize:"y,ies" }}.
+//
+// With count=1: "1 cherry."
+// With count=5: "5 cherries."
+//
+//	{{ count }} walrus{{ count|pluralize:"es" }}.
+//
+// With count=1: "1 walrus."
+// With count=5: "5 walruses."
 func filterPluralize(in *Value, param *Value) (*Value, error) {
 	if in.IsNumber() {
 		// Works only on numbers
@@ -854,6 +1362,18 @@ func filterPluralize(in *Value, param *Value) (*Value, error) {
 	}
 }
 
+// filterRandom returns a random element from the given list or string.
+// If the input is empty, returns the input unchanged.
+//
+// Usage:
+//
+//	{{ ["apple", "banana", "cherry"]|random }}
+//
+// Output: "banana" (random element)
+//
+//	{{ "abc"|random }}
+//
+// Output: "b" (random character)
 func filterRandom(in *Value, param *Value) (*Value, error) {
 	if !in.CanSlice() || in.Len() <= 0 {
 		return in, nil
@@ -864,6 +1384,19 @@ func filterRandom(in *Value, param *Value) (*Value, error) {
 
 var reTag = regexp.MustCompile(`^[a-zA-Z]$`)
 
+// filterRemovetags removes specified HTML tags from the string while keeping the content.
+// Tag names are provided as a comma-separated list (single letters only).
+// Note: Use striptags to remove all HTML tags.
+//
+// Usage:
+//
+//	{{ "<b>bold</b> and <i>italic</i>"|removetags:"b" }}
+//
+// Output: "bold and <i>italic</i>"
+//
+//	{{ "<a><b>text</b></a>"|removetags:"a,b" }}
+//
+// Output: "text"
 func filterRemovetags(in *Value, param *Value) (*Value, error) {
 	s := in.String()
 	tags := strings.Split(param.String(), ",")
@@ -890,6 +1423,18 @@ func filterRemovetags(in *Value, param *Value) (*Value, error) {
 	return AsValue(strings.TrimSpace(s)), nil
 }
 
+// filterRjust right-aligns the value in a field of a given width by padding
+// spaces on the left. Useful for creating aligned columns of text.
+//
+// Usage:
+//
+//	"[{{ "hello"|rjust:10 }}]"
+//
+// Output: "[     hello]"
+//
+//	{{ 42|rjust:5 }}
+//
+// Output: "   42"
 func filterRjust(in *Value, param *Value) (*Value, error) {
 	padding := param.Integer()
 	if padding > maxCharPadding {
@@ -901,6 +1446,30 @@ func filterRjust(in *Value, param *Value) (*Value, error) {
 	return AsValue(fmt.Sprintf(fmt.Sprintf("%%%ds", padding), in.String())), nil
 }
 
+// filterSlice returns a slice of a list using the "from:to" syntax (Python-style).
+// Both from and to are optional. Negative indices count from the end.
+//
+// Usage:
+//
+//	{{ [1, 2, 3, 4, 5]|slice:"1:3" }}
+//
+// Output: [2, 3]
+//
+//	{{ [1, 2, 3, 4, 5]|slice:":3" }}
+//
+// Output: [1, 2, 3]
+//
+//	{{ [1, 2, 3, 4, 5]|slice:"2:" }}
+//
+// Output: [3, 4, 5]
+//
+//	{{ [1, 2, 3, 4, 5]|slice:"-2:" }}
+//
+// Output: [4, 5]
+//
+//	{{ "Hello"|slice:"1:4" }}
+//
+// Output: "ell"
 func filterSlice(in *Value, param *Value) (*Value, error) {
 	comp := strings.Split(param.String(), ":")
 	if len(comp) != 2 {
@@ -952,6 +1521,18 @@ func filterSlice(in *Value, param *Value) (*Value, error) {
 	return in.Slice(from, to), nil
 }
 
+// filterTitle converts a string to title case, where the first character of
+// each word is capitalized and the rest are lowercase.
+//
+// Usage:
+//
+//	{{ "hello world"|title }}
+//
+// Output: "Hello World"
+//
+//	{{ "HELLO WORLD"|title }}
+//
+// Output: "Hello World"
 func filterTitle(in *Value, param *Value) (*Value, error) {
 	if !in.IsString() {
 		return AsValue(""), nil
@@ -959,10 +1540,41 @@ func filterTitle(in *Value, param *Value) (*Value, error) {
 	return AsValue(strings.Title(strings.ToLower(in.String()))), nil
 }
 
+// filterWordcount returns the number of words in the string.
+// Words are separated by whitespace.
+//
+// Usage:
+//
+//	{{ "Hello beautiful world"|wordcount }}
+//
+// Output: 3
+//
+//	{{ "  Multiple   spaces  "|wordcount }}
+//
+// Output: 2
 func filterWordcount(in *Value, param *Value) (*Value, error) {
 	return AsValue(len(strings.Fields(in.String()))), nil
 }
 
+// filterWordwrap wraps text at the specified number of words per line.
+// Lines are separated by newline characters.
+//
+// Usage:
+//
+//	{{ "one two three four five six"|wordwrap:3 }}
+//
+// Output:
+//
+//	one two three
+//	four five six
+//
+//	{{ "a b c d e"|wordwrap:2 }}
+//
+// Output:
+//
+//	a b
+//	c d
+//	e
 func filterWordwrap(in *Value, param *Value) (*Value, error) {
 	words := strings.Fields(in.String())
 	wordsLen := len(words)
@@ -982,6 +1594,31 @@ func filterWordwrap(in *Value, param *Value) (*Value, error) {
 	return AsValue(strings.Join(lines, "\n")), nil
 }
 
+// filterYesno maps true, false, and nil values to customizable strings.
+// By default: true -> "yes", false -> "no", nil -> "maybe".
+// You can provide custom values as comma-separated arguments: "yes_val,no_val,maybe_val".
+//
+// Usage:
+//
+//	{{ true|yesno }}
+//
+// Output: "yes"
+//
+//	{{ false|yesno }}
+//
+// Output: "no"
+//
+//	{{ nil|yesno }}
+//
+// Output: "maybe"
+//
+//	{{ true|yesno:"yeah,nope,dunno" }}
+//
+// Output: "yeah"
+//
+//	{{ false|yesno:"on,off" }}
+//
+// Output: "off"
 func filterYesno(in *Value, param *Value) (*Value, error) {
 	choices := map[int]string{
 		0: "yes",

@@ -4,6 +4,37 @@ import (
 	"fmt"
 )
 
+// tagImportNode represents the {% import %} tag.
+//
+// The import tag imports macros from another template file, making them
+// available as callable functions in the current template.
+//
+// Basic usage (importing a single macro):
+//
+//	{% import "macros.html" input_field %}
+//	{{ input_field("username", "Enter your name") }}
+//
+// Importing multiple macros:
+//
+//	{% import "forms/macros.html" input_field, textarea, select_box %}
+//	{{ input_field("email", "Email address") }}
+//	{{ textarea("bio", "Tell us about yourself", 5) }}
+//
+// Using aliases with "as":
+//
+//	{% import "macros.html" input_field as field, textarea as ta %}
+//	{{ field("name", "Your name") }}
+//	{{ ta("description", "Description", 3) }}
+//
+// The imported macros must be defined with "export" in the source template:
+//
+//	{# In macros.html #}
+//	{% macro input_field(name, label) export %}
+//	    <label>{{ label }}</label>
+//	    <input type="text" name="{{ name }}">
+//	{% endmacro %}
+//
+// Note: Only macros marked with "export" can be imported.
 type tagImportNode struct {
 	position *Token
 	filename string

@@ -2,6 +2,32 @@ package pongo2
 
 import "os"
 
+// tagSSINode represents the {% ssi %} tag.
+//
+// The ssi (Server Side Include) tag includes the contents of another file
+// into the template. It can include files as plain text or as parsed templates.
+//
+// Including a file as plain text (content is not parsed):
+//
+//	{% ssi "static/robots.txt" %}
+//
+// Output: Contents of robots.txt displayed as-is
+//
+// Including a file as a parsed template:
+//
+//	{% ssi "includes/header.html" parsed %}
+//
+// With "parsed", the file is treated as a template and has access to
+// the current context variables.
+//
+// Use cases:
+//   - Including static text files (plain text mode)
+//   - Including template fragments that need context (parsed mode)
+//   - Server-side includes similar to Apache SSI
+//
+// Note: Unlike {% include %}, the ssi tag reads the file at parse time.
+// The "parsed" keyword is required if you want the included content to be
+// processed as a template.
 type tagSSINode struct {
 	filename string
 	content  string

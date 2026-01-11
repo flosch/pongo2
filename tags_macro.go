@@ -7,6 +7,49 @@ import (
 
 const maxMacroDepth = 1000
 
+// tagMacroNode represents the {% macro %} tag.
+//
+// The macro tag defines reusable template fragments that can be called like
+// functions. Macros can accept arguments with optional default values.
+//
+// Basic macro definition:
+//
+//	{% macro greeting(name) %}
+//	    Hello, {{ name }}!
+//	{% endmacro %}
+//
+// Calling a macro:
+//
+//	{{ greeting("World") }}
+//
+// Output: "Hello, World!"
+//
+// Macro with default argument values:
+//
+//	{% macro button(text, type="primary", disabled=false) %}
+//	    <button class="btn-{{ type }}"{% if disabled %} disabled{% endif %}>
+//	        {{ text }}
+//	    </button>
+//	{% endmacro %}
+//
+//	{{ button("Click me") }}
+//	{{ button("Submit", type="success") }}
+//	{{ button("Disabled", disabled=true) }}
+//
+// Exporting macros for use in other templates:
+//
+//	{% macro input_field(name, label) export %}
+//	    <label for="{{ name }}">{{ label }}</label>
+//	    <input type="text" id="{{ name }}" name="{{ name }}">
+//	{% endmacro %}
+//
+// Exported macros can be imported using the {% import %} tag:
+//
+//	{% import "forms/macros.html" input_field %}
+//	{{ input_field("email", "Email Address") }}
+//
+// Note: Recursive macro calls are limited to a depth of 1000 to prevent
+// infinite recursion.
 type tagMacroNode struct {
 	position  *Token
 	name      string

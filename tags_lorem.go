@@ -14,6 +14,41 @@ var (
 	tagLoremWords      = strings.Fields(tagLoremText)
 )
 
+// tagLoremNode represents the {% lorem %} tag.
+//
+// The lorem tag generates placeholder "Lorem Ipsum" text, useful for
+// prototyping and design mockups.
+//
+// Basic usage (1 paragraph, plain text):
+//
+//	{% lorem %}
+//
+// Output: "Lorem ipsum dolor sit amet, consectetur adipisici elit..."
+//
+// Specifying number of items:
+//
+//	{% lorem 3 %}      {# 3 paragraphs #}
+//	{% lorem 5 w %}    {# 5 words #}
+//	{% lorem 2 p %}    {# 2 HTML paragraphs #}
+//
+// Method options:
+//   - b: Plain text paragraphs (default)
+//   - w: Individual words
+//   - p: HTML paragraphs wrapped in <p> tags
+//
+// Using random option (randomizes selection instead of sequential):
+//
+//	{% lorem 3 p random %}
+//
+// Examples with output:
+//
+//	{% lorem 5 w %}
+//	{# Output: "Lorem ipsum dolor sit amet" #}
+//
+//	{% lorem 1 p %}
+//	{# Output: "<p>Lorem ipsum dolor sit amet...</p>" #}
+//
+// Note: The maximum count is 100,000 to prevent abuse.
 type tagLoremNode struct {
 	position *Token
 	count    int    // number of paragraphs

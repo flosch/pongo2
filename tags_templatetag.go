@@ -1,5 +1,41 @@
 package pongo2
 
+// tagTemplateTagNode represents the {% templatetag %} tag.
+//
+// The templatetag tag outputs special template syntax characters that would
+// otherwise be interpreted by the template engine. This is useful when you
+// need to display template tags as literal text.
+//
+// Available arguments:
+//   - openblock: outputs "{%"
+//   - closeblock: outputs "%}"
+//   - openvariable: outputs "{{"
+//   - closevariable: outputs "}}"
+//   - openbrace: outputs "{"
+//   - closebrace: outputs "}"
+//   - opencomment: outputs "{#"
+//   - closecomment: outputs "#}"
+//
+// Examples:
+//
+//	{% templatetag openblock %} for item in items {% templatetag closeblock %}
+//
+// Output: "{% for item in items %}"
+//
+//	{% templatetag openvariable %} item {% templatetag closevariable %}
+//
+// Output: "{{ item }}"
+//
+// Displaying a comment tag:
+//
+//	{% templatetag opencomment %} This is a comment {% templatetag closecomment %}
+//
+// Output: "{# This is a comment #}"
+//
+// Use cases:
+//   - Documenting template syntax in templates
+//   - Generating template code dynamically
+//   - Escaping template syntax in output
 type tagTemplateTagNode struct {
 	content string
 }

@@ -1,10 +1,43 @@
 package pongo2
 
+// tagCycleValue holds the current value and state of a cycle.
 type tagCycleValue struct {
 	node  *tagCycleNode
 	value *Value
 }
 
+// tagCycleNode represents the {% cycle %} tag.
+//
+// The cycle tag cycles through a list of values each time it is encountered.
+// It's commonly used within loops to alternate between values (e.g., alternating
+// row colors in a table).
+//
+// Basic usage (cycles through values on each iteration):
+//
+//	{% for item in items %}
+//	    <tr class="{% cycle 'odd' 'even' %}">
+//	        <td>{{ item }}</td>
+//	    </tr>
+//	{% endfor %}
+//
+// Output (for 4 items):
+//
+//	<tr class="odd"><td>...</td></tr>
+//	<tr class="even"><td>...</td></tr>
+//	<tr class="odd"><td>...</td></tr>
+//	<tr class="even"><td>...</td></tr>
+//
+// Using "as" to store the cycle value in a variable:
+//
+//	{% cycle 'red' 'green' 'blue' as color %}
+//	<p style="color: {{ color }}">Text</p>
+//	{% cycle color %}  {# Advances to next value #}
+//	<p style="color: {{ color }}">More text</p>
+//
+// Using "silent" to not output the value (only store it):
+//
+//	{% cycle 'a' 'b' 'c' as letter silent %}
+//	Current letter: {{ letter }}
 type tagCycleNode struct {
 	position *Token
 	args     []IEvaluator

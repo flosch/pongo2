@@ -1,5 +1,39 @@
 package pongo2
 
+// tagExtendsNode represents the {% extends %} tag.
+//
+// The extends tag indicates that this template extends a parent template.
+// It must be the first tag in the template if used. The child template can
+// override blocks defined in the parent template using {% block %} tags.
+//
+// Usage:
+//
+//	{% extends "base.html" %}
+//	{% block content %}
+//	    My custom content that overrides the parent's content block.
+//	{% endblock %}
+//
+// Example parent template (base.html):
+//
+//	<!DOCTYPE html>
+//	<html>
+//	<head><title>{% block title %}Default{% endblock %}</title></head>
+//	<body>
+//	    <header>{% block header %}Default Header{% endblock %}</header>
+//	    <main>{% block content %}{% endblock %}</main>
+//	    <footer>{% block footer %}Default Footer{% endblock %}</footer>
+//	</body>
+//	</html>
+//
+// Example child template (page.html):
+//
+//	{% extends "base.html" %}
+//	{% block title %}My Page{% endblock %}
+//	{% block content %}
+//	    <h1>Welcome to my page!</h1>
+//	{% endblock %}
+//
+// Note: Only one extends tag is allowed per template, and it must be at the root level.
 type tagExtendsNode struct {
 	filename string
 }

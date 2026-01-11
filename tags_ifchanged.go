@@ -4,6 +4,45 @@ import (
 	"bytes"
 )
 
+// tagIfchangedNode represents the {% ifchanged %} tag.
+//
+// The ifchanged tag checks if a value has changed from the previous iteration
+// in a loop. It's useful for displaying grouped data or section headers.
+//
+// Basic usage (checks if block content changed):
+//
+//	{% for date in days %}
+//	    {% ifchanged %}{{ date.month }}{% endifchanged %}
+//	    {{ date.day }}
+//	{% endfor %}
+//
+// Watching specific variables:
+//
+//	{% for item in items %}
+//	    {% ifchanged item.category %}
+//	        <h2>{{ item.category }}</h2>
+//	    {% endifchanged %}
+//	    <p>{{ item.name }}</p>
+//	{% endfor %}
+//
+// Using else clause (rendered when value hasn't changed):
+//
+//	{% for item in items %}
+//	    {% ifchanged item.section %}
+//	        <h3>{{ item.section }}</h3>
+//	    {% else %}
+//	        <hr>
+//	    {% endifchanged %}
+//	    {{ item.name }}
+//	{% endfor %}
+//
+// Watching multiple variables:
+//
+//	{% for item in items %}
+//	    {% ifchanged item.year item.month %}
+//	        <h2>{{ item.year }}-{{ item.month }}</h2>
+//	    {% endifchanged %}
+//	{% endfor %}
 type tagIfchangedNode struct {
 	watchedExpr []IEvaluator
 	lastValues  []*Value
