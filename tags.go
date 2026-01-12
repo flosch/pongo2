@@ -53,6 +53,12 @@ func init() {
 	tags = make(map[string]*tag)
 }
 
+func mustRegisterTag(name string, parserFn TagParser) {
+	if err := RegisterTag(name, parserFn); err != nil {
+		panic(err)
+	}
+}
+
 // Registers a new tag. You usually want to call this
 // function in the tag's init() function:
 // http://golang.org/doc/effective_go.html#init
