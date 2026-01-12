@@ -356,3 +356,10 @@ dictsort
 {% for item in simple.people|dictsort:"name" %}{{ item.name }}{% if not forloop.Last %}, {% endif %}{% endfor %}
 {% for item in simple.people|dictsortreversed:"name" %}{{ item.name }}{% if not forloop.Last %}, {% endif %}{% endfor %}
 {% for item in simple.people|dictsort:"age" %}{{ item.age }}{% if not forloop.Last %}, {% endif %}{% endfor %}
+
+json_script
+{{ "hello"|json_script:"greeting" }}
+{{ 42|json_script:"number" }}
+{{ simple.bool_true|json_script:"bool-data" }}
+{{ "</script>"|json_script:"xss-test" }}
+{{ simple.people.0|json_script:"person-data" }}

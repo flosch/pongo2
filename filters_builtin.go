@@ -10,6 +10,7 @@ package pongo2
 
 import (
 	"bytes"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"math/rand"
@@ -109,6 +110,7 @@ func init() {
 	mustRegisterFilter("filesizeformat", filterFilesizeformat)
 	mustRegisterFilter("safeseq", filterSafeseq)
 	mustRegisterFilter("escapeseq", filterEscapeseq)
+	mustRegisterFilter("json_script", filterJSONScript)
 
 	mustRegisterFilter("float", filterFloat)     // pongo-specific
 	mustRegisterFilter("integer", filterInteger) // pongo-specific
@@ -2071,4 +2073,34 @@ func filterEscapeseq(in *Value, param *Value) (*Value, error) {
 	}, func() {})
 
 	return AsValue(result), nil
+}
+
+// filterJSONScript safely outputs a value as JSON inside a script tag.
+// The element_id argument is required and will be used as the script tag's id.
+//
+// Usage:
+//
+//	{{ value|json_script:"my-data" }}
+//
+// Output:
+//
+//	<script id="my-data" type="application/json">{"key": "value"}</script>
+func filterJSONScript(in *Value, param *Value) (*Value, error) {
+	if param.IsNil() || param.String() == "" {
+		return nil, errors.New("json_script requires an element_id argument")
+	}
+
+	var result strings.Builder
+	elementID := strings.ReplaceAll(param.String(), `"`, `&quot;`)
+	fmt.Fprintf(&result, `<script id="%s" type="application/json">`, elementID)
+
+	// Convert the value to JSON (json.Marshal doesn't add trailing newline)
+	jsonBytes, err := json.Marshal(in.Interface())
+	if err != nil {
+		return nil, fmt.Errorf("json marshalling error: %w", err)
+	}
+	result.Write(jsonBytes)
+
+	fmt.Fprintf(&result, "</script>")
+	return AsSafeValue(result.String()), nil
 }

@@ -2337,6 +2337,507 @@ func TestFilterCenterSmallerThanInput(t *testing.T) {
 	}
 }
 
+// TestFilterJSONScript tests the json_script filter comprehensively
+func TestFilterJSONScript(t *testing.T) {
+	tests := []struct {
+		name      string
+		input     any
+		elementID string
+		expected  string
+	}{
+		{
+			name:      "simple string",
+			input:     "hello",
+			elementID: "my-data",
+			expected:  `<script id="my-data" type="application/json">"hello"</script>`,
+		},
+		{
+			name:      "integer",
+			input:     42,
+			elementID: "num-data",
+			expected:  `<script id="num-data" type="application/json">42</script>`,
+		},
+		{
+			name:      "float",
+			input:     3.14159,
+			elementID: "float-data",
+			expected:  `<script id="float-data" type="application/json">3.14159</script>`,
+		},
+		{
+			name:      "boolean true",
+			input:     true,
+			elementID: "bool-data",
+			expected:  `<script id="bool-data" type="application/json">true</script>`,
+		},
+		{
+			name:      "boolean false",
+			input:     false,
+			elementID: "bool-data",
+			expected:  `<script id="bool-data" type="application/json">false</script>`,
+		},
+		{
+			name:      "null/nil",
+			input:     nil,
+			elementID: "nil-data",
+			expected:  `<script id="nil-data" type="application/json">null</script>`,
+		},
+		{
+			name:      "simple map",
+			input:     map[string]any{"key": "value"},
+			elementID: "map-data",
+			expected:  `<script id="map-data" type="application/json">{"key":"value"}</script>`,
+		},
+		{
+			name:      "simple slice",
+			input:     []string{"a", "b", "c"},
+			elementID: "slice-data",
+			expected:  `<script id="slice-data" type="application/json">["a","b","c"]</script>`,
+		},
+		{
+			name:      "element ID with spaces",
+			input:     "test",
+			elementID: "my data",
+			expected:  `<script id="my data" type="application/json">"test"</script>`,
+		},
+		{
+			name:      "element ID with hyphens and underscores",
+			input:     "test",
+			elementID: "my-data_123",
+			expected:  `<script id="my-data_123" type="application/json">"test"</script>`,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result, err := filterJSONScript(AsValue(tt.input), AsValue(tt.elementID))
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if result.String() != tt.expected {
+				t.Errorf("got %q, want %q", result.String(), tt.expected)
+			}
+		})
+	}
+}
+
+// TestFilterJSONScriptXSSPrevention tests XSS prevention in json_script
+func TestFilterJSONScriptXSSPrevention(t *testing.T) {
+	tests := []struct {
+		name        string
+		input       any
+		elementID   string
+		shouldHave  []string
+		shouldNotHave []string
+	}{
+		{
+			name:        "element ID with quotes is escaped",
+			input:       "test",
+			elementID:   `my"data`,
+			shouldHave:  []string{`id="my&quot;data"`},
+			shouldNotHave: []string{`id="my"data"`},
+		},
+		{
+			name:        "JSON with script tag is escaped",
+			input:       "</script><script>alert('xss')</script>",
+			elementID:   "safe-data",
+			shouldHave:  []string{`\u003c/script\u003e`, `\u003cscript\u003e`},
+			shouldNotHave: []string{`</script><script>`},
+		},
+		{
+			name:        "JSON with less than is escaped",
+			input:       "a < b",
+			elementID:   "data",
+			shouldHave:  []string{`\u003c`},
+			shouldNotHave: []string{`"a < b"`},
+		},
+		{
+			name:        "JSON with greater than is escaped",
+			input:       "a > b",
+			elementID:   "data",
+			shouldHave:  []string{`\u003e`},
+			shouldNotHave: []string{`"a > b"`},
+		},
+		{
+			name:        "JSON with ampersand is escaped",
+			input:       "a & b",
+			elementID:   "data",
+			shouldHave:  []string{`\u0026`},
+			shouldNotHave: []string{`"a & b"`},
+		},
+		{
+			name:        "multiple XSS vectors in one value",
+			input:       "<script>alert('xss')</script>&<div>",
+			elementID:   "xss-test",
+			shouldHave:  []string{`\u003cscript\u003e`, `\u0026`, `\u003cdiv\u003e`},
+			shouldNotHave: []string{`<script>`, `&`, `<div>`},
+		},
+		{
+			name:        "XSS in map values",
+			input:       map[string]string{"html": "<script>evil()</script>"},
+			elementID:   "map-xss",
+			shouldHave:  []string{`\u003cscript\u003e`},
+			shouldNotHave: []string{`<script>`},
+		},
+		{
+			name:        "XSS in slice elements",
+			input:       []string{"<img src=x onerror=alert(1)>"},
+			elementID:   "arr-xss",
+			shouldHave:  []string{`\u003cimg`},
+			shouldNotHave: []string{`<img`},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result, err := filterJSONScript(AsValue(tt.input), AsValue(tt.elementID))
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			resultStr := result.String()
+
+			for _, shouldHave := range tt.shouldHave {
+				if !strings.Contains(resultStr, shouldHave) {
+					t.Errorf("result should contain %q, got %q", shouldHave, resultStr)
+				}
+			}
+
+			for _, shouldNotHave := range tt.shouldNotHave {
+				if strings.Contains(resultStr, shouldNotHave) {
+					t.Errorf("result should not contain %q, got %q", shouldNotHave, resultStr)
+				}
+			}
+		})
+	}
+}
+
+// TestFilterJSONScriptErrors tests error cases for json_script
+func TestFilterJSONScriptErrors(t *testing.T) {
+	t.Run("nil element_id", func(t *testing.T) {
+		result, err := filterJSONScript(AsValue("test"), AsValue(nil))
+		if err == nil {
+			t.Error("expected error for nil element_id")
+		}
+		if result != nil {
+			t.Error("expected nil result on error")
+		}
+		if !strings.Contains(err.Error(), "element_id") {
+			t.Errorf("error should mention element_id, got %v", err)
+		}
+	})
+
+	t.Run("empty string element_id", func(t *testing.T) {
+		result, err := filterJSONScript(AsValue("test"), AsValue(""))
+		if err == nil {
+			t.Error("expected error for empty element_id")
+		}
+		if result != nil {
+			t.Error("expected nil result on error")
+		}
+	})
+
+	t.Run("unmarshalable value - channel", func(t *testing.T) {
+		ch := make(chan int)
+		result, err := filterJSONScript(AsValue(ch), AsValue("data"))
+		if err == nil {
+			t.Error("expected error for unmarshalable value")
+		}
+		if result != nil {
+			t.Error("expected nil result on error")
+		}
+		if !strings.Contains(err.Error(), "json marshalling error") {
+			t.Errorf("error should mention json marshalling, got %v", err)
+		}
+	})
+
+	t.Run("unmarshalable value - function", func(t *testing.T) {
+		fn := func() {}
+		result, err := filterJSONScript(AsValue(fn), AsValue("data"))
+		if err == nil {
+			t.Error("expected error for unmarshalable function")
+		}
+		if result != nil {
+			t.Error("expected nil result on error")
+		}
+	})
+}
+
+// TestFilterJSONScriptComplexTypes tests json_script with complex Go types
+func TestFilterJSONScriptComplexTypes(t *testing.T) {
+	type Person struct {
+		Name string `json:"name"`
+		Age  int    `json:"age"`
+	}
+
+	type Config struct {
+		Debug   bool                `json:"debug"`
+		Timeout int                 `json:"timeout"`
+		Tags    []string            `json:"tags"`
+		Meta    map[string]any `json:"meta"`
+	}
+
+	tests := []struct {
+		name     string
+		input    any
+		elementID string
+		contains []string
+	}{
+		{
+			name:      "struct with json tags",
+			input:     Person{Name: "Alice", Age: 30},
+			elementID: "person",
+			contains:  []string{`"name":"Alice"`, `"age":30`},
+		},
+		{
+			name:      "pointer to struct",
+			input:     &Person{Name: "Bob", Age: 25},
+			elementID: "person-ptr",
+			contains:  []string{`"name":"Bob"`, `"age":25`},
+		},
+		{
+			name: "complex nested struct",
+			input: Config{
+				Debug:   true,
+				Timeout: 30,
+				Tags:    []string{"api", "v2"},
+				Meta:    map[string]any{"version": "1.0"},
+			},
+			elementID: "config",
+			contains:  []string{`"debug":true`, `"timeout":30`, `"tags":["api","v2"]`, `"version":"1.0"`},
+		},
+		{
+			name:      "slice of structs",
+			input:     []Person{{Name: "A", Age: 1}, {Name: "B", Age: 2}},
+			elementID: "people",
+			contains:  []string{`[{`, `"name":"A"`, `"name":"B"`},
+		},
+		{
+			name:      "map with struct values",
+			input:     map[string]Person{"first": {Name: "First", Age: 1}},
+			elementID: "map-struct",
+			contains:  []string{`"first":{`, `"name":"First"`},
+		},
+		{
+			name:      "empty slice",
+			input:     []string{},
+			elementID: "empty-slice",
+			contains:  []string{`[]`},
+		},
+		{
+			name:      "empty map",
+			input:     map[string]string{},
+			elementID: "empty-map",
+			contains:  []string{`{}`},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result, err := filterJSONScript(AsValue(tt.input), AsValue(tt.elementID))
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			resultStr := result.String()
+
+			for _, c := range tt.contains {
+				if !strings.Contains(resultStr, c) {
+					t.Errorf("result should contain %q, got %q", c, resultStr)
+				}
+			}
+
+			// Verify proper script tag structure
+			if !strings.HasPrefix(resultStr, `<script id="`) {
+				t.Errorf("result should start with <script id=\", got %q", resultStr)
+			}
+			if !strings.HasSuffix(resultStr, "</script>") {
+				t.Errorf("result should end with </script>, got %q", resultStr)
+			}
+			if !strings.Contains(resultStr, `type="application/json"`) {
+				t.Errorf("result should contain type=\"application/json\", got %q", resultStr)
+			}
+		})
+	}
+}
+
+// TestFilterJSONScriptViaTemplate tests json_script through template execution
+func TestFilterJSONScriptViaTemplate(t *testing.T) {
+	ts := NewSet("test", &DummyLoader{})
+
+	tests := []struct {
+		name     string
+		template string
+		context  Context
+		contains []string
+	}{
+		{
+			name:     "simple variable",
+			template: `{{ data|json_script:"my-data" }}`,
+			context:  Context{"data": map[string]string{"key": "value"}},
+			contains: []string{`<script id="my-data"`, `{"key":"value"}`},
+		},
+		{
+			name:     "string literal",
+			template: `{{ "hello"|json_script:"greeting" }}`,
+			context:  nil,
+			contains: []string{`<script id="greeting"`, `"hello"`},
+		},
+		{
+			name:     "number",
+			template: `{{ 42|json_script:"number" }}`,
+			context:  nil,
+			contains: []string{`<script id="number"`, `42`},
+		},
+		{
+			name:     "xss vector through template",
+			template: `{{ html|json_script:"safe" }}`,
+			context:  Context{"html": "<script>alert(1)</script>"},
+			contains: []string{`\u003cscript\u003e`},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tpl, err := ts.FromString(tt.template)
+			if err != nil {
+				t.Fatalf("template parse error: %v", err)
+			}
+
+			result, err := tpl.Execute(tt.context)
+			if err != nil {
+				t.Fatalf("template execute error: %v", err)
+			}
+
+			for _, c := range tt.contains {
+				if !strings.Contains(result, c) {
+					t.Errorf("result should contain %q, got %q", c, result)
+				}
+			}
+		})
+	}
+}
+
+// TestFilterJSONScriptOutputIsSafe tests that json_script output is marked as safe
+func TestFilterJSONScriptOutputIsSafe(t *testing.T) {
+	// The output should not be double-escaped when rendered in a template
+	ts := NewSet("test", &DummyLoader{})
+
+	template := `{{ data|json_script:"test" }}`
+	context := Context{"data": "hello"}
+
+	tpl, err := ts.FromString(template)
+	if err != nil {
+		t.Fatalf("template parse error: %v", err)
+	}
+
+	result, err := tpl.Execute(context)
+	if err != nil {
+		t.Fatalf("template execute error: %v", err)
+	}
+
+	// The < and > in script tags should NOT be escaped
+	if strings.Contains(result, "&lt;script") {
+		t.Error("script tag should not be HTML-escaped in output")
+	}
+	if !strings.Contains(result, "<script") {
+		t.Error("output should contain literal <script tag")
+	}
+}
+
+// TestFilterJSONScriptUnicodeHandling tests proper Unicode handling
+func TestFilterJSONScriptUnicodeHandling(t *testing.T) {
+	tests := []struct {
+		name      string
+		input     string
+		elementID string
+	}{
+		{
+			name:      "chinese characters",
+			input:     "你好世界",
+			elementID: "chinese",
+		},
+		{
+			name:      "emoji",
+			input:     "Hello 👋 World 🌍",
+			elementID: "emoji",
+		},
+		{
+			name:      "mixed unicode",
+			input:     "Ñoño日本語한국어",
+			elementID: "mixed",
+		},
+		{
+			name:      "unicode in element ID",
+			input:     "test",
+			elementID: "データ",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result, err := filterJSONScript(AsValue(tt.input), AsValue(tt.elementID))
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+
+			// Verify the output is valid
+			if result == nil {
+				t.Error("expected non-nil result")
+			}
+
+			// The result should contain our element ID
+			if !strings.Contains(result.String(), tt.elementID) {
+				t.Errorf("result should contain element ID %q, got %q", tt.elementID, result.String())
+			}
+		})
+	}
+}
+
+// TestFilterJSONScriptSpecialJSONValues tests special JSON values
+func TestFilterJSONScriptSpecialJSONValues(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    any
+		expected string
+	}{
+		{
+			name:     "empty string",
+			input:    "",
+			expected: `<script id="data" type="application/json">""</script>`,
+		},
+		{
+			name:     "zero",
+			input:    0,
+			expected: `<script id="data" type="application/json">0</script>`,
+		},
+		{
+			name:     "negative number",
+			input:    -42,
+			expected: `<script id="data" type="application/json">-42</script>`,
+		},
+		{
+			name:     "very large number",
+			input:    9999999999999999,
+			expected: `<script id="data" type="application/json">9999999999999999</script>`,
+		},
+		{
+			name:     "floating point",
+			input:    0.123456789,
+			expected: `<script id="data" type="application/json">0.123456789</script>`,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result, err := filterJSONScript(AsValue(tt.input), AsValue("data"))
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if result.String() != tt.expected {
+				t.Errorf("got %q, want %q", result.String(), tt.expected)
+			}
+		})
+	}
+}
+
 func FuzzBuiltinFilters(f *testing.F) {
 	f.Add("foobar", "123")
 	f.Add("foobar", `123,456`)

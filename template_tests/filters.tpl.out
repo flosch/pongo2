@@ -370,3 +370,10 @@ dictsort
 Alice, Bob, Charlie
 Charlie, Bob, Alice
 20, 25, 30
+
+json_script
+<script id="greeting" type="application/json">"hello"</script>
+<script id="number" type="application/json">42</script>
+<script id="bool-data" type="application/json">true</script>
+<script id="xss-test" type="application/json">"\u003c/script\u003e"</script>
+<script id="person-data" type="application/json">{"age":25,"name":"Charlie"}</script>
