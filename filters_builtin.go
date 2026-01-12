@@ -37,62 +37,71 @@ import (
 	"strings"
 	"time"
 	"unicode/utf8"
+
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 )
 
+func mustRegisterFilter(name string, fn FilterFunction) {
+	if err := RegisterFilter(name, fn); err != nil {
+		panic(err)
+	}
+}
+
 func init() {
-	RegisterFilter("escape", filterEscape)
-	RegisterFilter("e", filterEscape) // alias of `escape`
-	RegisterFilter("safe", filterSafe)
-	RegisterFilter("escapejs", filterEscapejs)
+	mustRegisterFilter("escape", filterEscape)
+	mustRegisterFilter("e", filterEscape) // alias of `escape`
+	mustRegisterFilter("safe", filterSafe)
+	mustRegisterFilter("escapejs", filterEscapejs)
 
-	RegisterFilter("add", filterAdd)
-	RegisterFilter("addslashes", filterAddslashes)
-	RegisterFilter("capfirst", filterCapfirst)
-	RegisterFilter("center", filterCenter)
-	RegisterFilter("cut", filterCut)
-	RegisterFilter("date", filterDate)
-	RegisterFilter("default", filterDefault)
-	RegisterFilter("default_if_none", filterDefaultIfNone)
-	RegisterFilter("divisibleby", filterDivisibleby)
-	RegisterFilter("first", filterFirst)
-	RegisterFilter("floatformat", filterFloatformat)
-	RegisterFilter("get_digit", filterGetdigit)
-	RegisterFilter("iriencode", filterIriencode)
-	RegisterFilter("join", filterJoin)
-	RegisterFilter("last", filterLast)
-	RegisterFilter("length", filterLength)
-	RegisterFilter("length_is", filterLengthis)
-	RegisterFilter("linebreaks", filterLinebreaks)
-	RegisterFilter("linebreaksbr", filterLinebreaksbr)
-	RegisterFilter("linenumbers", filterLinenumbers)
-	RegisterFilter("ljust", filterLjust)
-	RegisterFilter("lower", filterLower)
-	RegisterFilter("make_list", filterMakelist)
-	RegisterFilter("phone2numeric", filterPhone2numeric)
-	RegisterFilter("pluralize", filterPluralize)
-	RegisterFilter("random", filterRandom)
-	RegisterFilter("removetags", filterRemovetags)
-	RegisterFilter("rjust", filterRjust)
-	RegisterFilter("slice", filterSlice)
-	RegisterFilter("split", filterSplit)
-	RegisterFilter("stringformat", filterStringformat)
-	RegisterFilter("striptags", filterStriptags)
-	RegisterFilter("time", filterDate) // time uses filterDate (same golang-format)
-	RegisterFilter("title", filterTitle)
-	RegisterFilter("truncatechars", filterTruncatechars)
-	RegisterFilter("truncatechars_html", filterTruncatecharsHTML)
-	RegisterFilter("truncatewords", filterTruncatewords)
-	RegisterFilter("truncatewords_html", filterTruncatewordsHTML)
-	RegisterFilter("upper", filterUpper)
-	RegisterFilter("urlencode", filterUrlencode)
-	RegisterFilter("urlize", filterUrlize)
-	RegisterFilter("urlizetrunc", filterUrlizetrunc)
-	RegisterFilter("wordcount", filterWordcount)
-	RegisterFilter("wordwrap", filterWordwrap)
-	RegisterFilter("yesno", filterYesno)
+	mustRegisterFilter("add", filterAdd)
+	mustRegisterFilter("addslashes", filterAddslashes)
+	mustRegisterFilter("capfirst", filterCapfirst)
+	mustRegisterFilter("center", filterCenter)
+	mustRegisterFilter("cut", filterCut)
+	mustRegisterFilter("date", filterDate)
+	mustRegisterFilter("default", filterDefault)
+	mustRegisterFilter("default_if_none", filterDefaultIfNone)
+	mustRegisterFilter("divisibleby", filterDivisibleby)
+	mustRegisterFilter("first", filterFirst)
+	mustRegisterFilter("floatformat", filterFloatformat)
+	mustRegisterFilter("get_digit", filterGetdigit)
+	mustRegisterFilter("iriencode", filterIriencode)
+	mustRegisterFilter("join", filterJoin)
+	mustRegisterFilter("last", filterLast)
+	mustRegisterFilter("length", filterLength)
+	mustRegisterFilter("length_is", filterLengthis)
+	mustRegisterFilter("linebreaks", filterLinebreaks)
+	mustRegisterFilter("linebreaksbr", filterLinebreaksbr)
+	mustRegisterFilter("linenumbers", filterLinenumbers)
+	mustRegisterFilter("ljust", filterLjust)
+	mustRegisterFilter("lower", filterLower)
+	mustRegisterFilter("make_list", filterMakelist)
+	mustRegisterFilter("phone2numeric", filterPhone2numeric)
+	mustRegisterFilter("pluralize", filterPluralize)
+	mustRegisterFilter("random", filterRandom)
+	mustRegisterFilter("removetags", filterRemovetags)
+	mustRegisterFilter("rjust", filterRjust)
+	mustRegisterFilter("slice", filterSlice)
+	mustRegisterFilter("split", filterSplit)
+	mustRegisterFilter("stringformat", filterStringformat)
+	mustRegisterFilter("striptags", filterStriptags)
+	mustRegisterFilter("time", filterDate) // time uses filterDate (same golang-format)
+	mustRegisterFilter("title", filterTitle)
+	mustRegisterFilter("truncatechars", filterTruncatechars)
+	mustRegisterFilter("truncatechars_html", filterTruncatecharsHTML)
+	mustRegisterFilter("truncatewords", filterTruncatewords)
+	mustRegisterFilter("truncatewords_html", filterTruncatewordsHTML)
+	mustRegisterFilter("upper", filterUpper)
+	mustRegisterFilter("urlencode", filterUrlencode)
+	mustRegisterFilter("urlize", filterUrlize)
+	mustRegisterFilter("urlizetrunc", filterUrlizetrunc)
+	mustRegisterFilter("wordcount", filterWordcount)
+	mustRegisterFilter("wordwrap", filterWordwrap)
+	mustRegisterFilter("yesno", filterYesno)
 
-	RegisterFilter("float", filterFloat)     // pongo-specific
-	RegisterFilter("integer", filterInteger) // pongo-specific
+	mustRegisterFilter("float", filterFloat)     // pongo-specific
+	mustRegisterFilter("integer", filterInteger) // pongo-specific
 }
 
 func filterTruncatecharsHelper(s string, newLen int) string {
@@ -212,7 +221,7 @@ func filterTruncateHTMLHelper(value string, newOutput *bytes.Buffer, cond func()
 	for i := len(tagStack) - 1; i >= 0; i-- {
 		tag := tagStack[i]
 		// Close everything from the regular tag stack
-		newOutput.WriteString(fmt.Sprintf("</%s>", tag))
+		fmt.Fprintf(newOutput, "</%s>", tag)
 	}
 }
 
@@ -374,11 +383,11 @@ func filterTruncatewordsHTML(in *Value, param *Value) (*Value, error) {
 //
 // Output: "&lt;script&gt;alert(&#39;XSS&#39;)&lt;/script&gt;"
 func filterEscape(in *Value, param *Value) (*Value, error) {
-	output := strings.Replace(in.String(), "&", "&amp;", -1)
-	output = strings.Replace(output, ">", "&gt;", -1)
-	output = strings.Replace(output, "<", "&lt;", -1)
-	output = strings.Replace(output, "\"", "&quot;", -1)
-	output = strings.Replace(output, "'", "&#39;", -1)
+	output := strings.ReplaceAll(in.String(), "&", "&amp;")
+	output = strings.ReplaceAll(output, ">", "&gt;")
+	output = strings.ReplaceAll(output, "<", "&lt;")
+	output = strings.ReplaceAll(output, "\"", "&quot;")
+	output = strings.ReplaceAll(output, "'", "&#39;")
 	return AsValue(output), nil
 }
 
@@ -500,9 +509,9 @@ func filterAdd(in *Value, param *Value) (*Value, error) {
 //
 // Output: "I\'m using \"pongo2\""
 func filterAddslashes(in *Value, param *Value) (*Value, error) {
-	output := strings.Replace(in.String(), "\\", "\\\\", -1)
-	output = strings.Replace(output, "\"", "\\\"", -1)
-	output = strings.Replace(output, "'", "\\'", -1)
+	output := strings.ReplaceAll(in.String(), "\\", "\\\\")
+	output = strings.ReplaceAll(output, "\"", "\\\"")
+	output = strings.ReplaceAll(output, "'", "\\'")
 	return AsValue(output), nil
 }
 
@@ -518,7 +527,7 @@ func filterAddslashes(in *Value, param *Value) (*Value, error) {
 //
 // Output: "Stringwithspaces"
 func filterCut(in *Value, param *Value) (*Value, error) {
-	return AsValue(strings.Replace(in.String(), param.String(), "", -1)), nil
+	return AsValue(strings.ReplaceAll(in.String(), param.String(), "")), nil
 }
 
 // filterLength returns the length of the value. Works with strings (character count),
@@ -1051,7 +1060,7 @@ func filterSplit(in *Value, param *Value) (*Value, error) {
 //
 // Output: "First line<br />Second line<br />Third line"
 func filterLinebreaksbr(in *Value, param *Value) (*Value, error) {
-	return AsValue(strings.Replace(in.String(), "\n", "<br />", -1)), nil
+	return AsValue(strings.ReplaceAll(in.String(), "\n", "<br />")), nil
 }
 
 // filterLinenumbers prepends line numbers to each line in the text.
@@ -1298,8 +1307,8 @@ var filterPhone2numericMap = map[string]string{
 func filterPhone2numeric(in *Value, param *Value) (*Value, error) {
 	sin := in.String()
 	for k, v := range filterPhone2numericMap {
-		sin = strings.Replace(sin, k, v, -1)
-		sin = strings.Replace(sin, strings.ToUpper(k), v, -1)
+		sin = strings.ReplaceAll(sin, k, v)
+		sin = strings.ReplaceAll(sin, strings.ToUpper(k), v)
 	}
 	return AsValue(sin), nil
 }
@@ -1537,7 +1546,8 @@ func filterTitle(in *Value, param *Value) (*Value, error) {
 	if !in.IsString() {
 		return AsValue(""), nil
 	}
-	return AsValue(strings.Title(strings.ToLower(in.String()))), nil
+	caser := cases.Title(language.English)
+	return AsValue(caser.String(strings.ToLower(in.String()))), nil
 }
 
 // filterWordcount returns the number of words in the string.
