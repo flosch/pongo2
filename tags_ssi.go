@@ -47,7 +47,8 @@ func (node *tagSSINode) Execute(ctx *ExecutionContext, writer TemplateWriter) er
 		}
 	} else {
 		// Just print out the content
-		writer.WriteString(node.content)
+		_, err := writer.WriteString(node.content)
+		return err
 	}
 	return nil
 }
@@ -76,7 +77,9 @@ func tagSSIParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, error
 			}
 			buf, err := io.ReadAll(fd)
 			if closer, ok := fd.(io.Closer); ok {
-				closer.Close()
+				if closeErr := closer.Close(); closeErr != nil && err == nil {
+					err = closeErr
+				}
 			}
 			if err != nil {
 				return nil, updateErrorToken(&Error{
@@ -98,5 +101,5 @@ func tagSSIParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, error
 }
 
 func init() {
-	RegisterTag("ssi", tagSSIParser)
+	mustRegisterTag("ssi", tagSSIParser)
 }
