@@ -107,6 +107,7 @@ func init() {
 	mustRegisterFilter("unordered_list", filterUnorderedList)
 	mustRegisterFilter("slugify", filterSlugify)
 	mustRegisterFilter("filesizeformat", filterFilesizeformat)
+	mustRegisterFilter("safeseq", filterSafeseq)
 
 	mustRegisterFilter("float", filterFloat)     // pongo-specific
 	mustRegisterFilter("integer", filterInteger) // pongo-specific
@@ -2015,4 +2016,32 @@ func filterFilesizeformat(in *Value, param *Value) (*Value, error) {
 	}
 
 	return AsValue(fmt.Sprintf("%.1f %s", size, units[unitIdx])), nil
+}
+
+// filterSafeseq applies the safe filter to each element in a sequence.
+// This is useful when you have a list of strings that are known to be safe
+// and want to mark each one individually.
+//
+// Usage:
+//
+//	{% for item in items|safeseq %}{{ item }}{% endfor %}
+func filterSafeseq(in *Value, param *Value) (*Value, error) {
+	if !in.CanSlice() {
+		return in, nil
+	}
+
+	var result []*Value
+	in.Iterate(func(idx, count int, key, value *Value) bool {
+		var item *Value
+		if value != nil {
+			item = value
+		} else {
+			item = key
+		}
+		// Create a new Value marked as safe
+		result = append(result, AsSafeValue(item.Interface()))
+		return true
+	}, func() {})
+
+	return AsValue(result), nil
 }
