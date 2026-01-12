@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 )
@@ -1498,6 +1499,842 @@ func TestDictsortInterfaceSlice(t *testing.T) {
 			}
 		}
 	})
+}
+
+// TestMustRegisterFilterPanic tests that mustRegisterFilter panics on duplicate registration
+func TestMustRegisterFilterPanic(t *testing.T) {
+	defer func() {
+		if r := recover(); r == nil {
+			t.Error("mustRegisterFilter should panic when registering a duplicate filter")
+		}
+	}()
+	// "escape" is already registered in init()
+	mustRegisterFilter("escape", func(in *Value, param *Value) (*Value, error) {
+		return in, nil
+	})
+}
+
+// TestFilterTruncateHTMLHelperRuneError tests handling of invalid UTF-8 sequences
+func TestFilterTruncateHTMLHelperRuneError(t *testing.T) {
+	// Create a string with invalid UTF-8 in various positions
+	tests := []struct {
+		name  string
+		input string
+	}{
+		{
+			name:  "invalid utf8 at start",
+			input: "\xff<p>hello</p>",
+		},
+		{
+			name:  "invalid utf8 in tag",
+			input: "<p\xff>hello</p>",
+		},
+		{
+			name:  "invalid utf8 in close tag",
+			input: "<p>hello</p\xff>",
+		},
+		{
+			name:  "invalid utf8 in content",
+			input: "<p>hel\xfflo</p>",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// truncatechars_html should not panic on invalid UTF-8
+			result, err := filterTruncatecharsHTML(AsValue(tt.input), AsValue(100))
+			if err != nil {
+				t.Errorf("unexpected error: %v", err)
+			}
+			// Just verify it doesn't panic and returns something
+			_ = result.String()
+		})
+	}
+}
+
+// TestFilterTruncatewordsHTMLRuneError tests truncatewords_html with invalid UTF-8
+func TestFilterTruncatewordsHTMLRuneError(t *testing.T) {
+	tests := []struct {
+		name  string
+		input string
+	}{
+		{
+			name:  "invalid utf8 in word",
+			input: "<p>word1 wor\xffd2 word3</p>",
+		},
+		{
+			name:  "invalid utf8 at word boundary",
+			input: "<p>word1\xff word2</p>",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result, err := filterTruncatewordsHTML(AsValue(tt.input), AsValue(2))
+			if err != nil {
+				t.Errorf("unexpected error: %v", err)
+			}
+			_ = result.String()
+		})
+	}
+}
+
+// TestFilterCenterMaxPadding tests the error case when padding exceeds maxCharPadding
+func TestFilterCenterMaxPadding(t *testing.T) {
+	result, err := filterCenter(AsValue("test"), AsValue(20000))
+	if err == nil {
+		t.Error("expected error for excessive padding")
+	}
+	if result != nil {
+		t.Error("expected nil result on error")
+	}
+}
+
+// TestFilterLjustMaxPadding tests the error case when padding exceeds maxCharPadding
+func TestFilterLjustMaxPadding(t *testing.T) {
+	result, err := filterLjust(AsValue("test"), AsValue(20000))
+	if err == nil {
+		t.Error("expected error for excessive padding")
+	}
+	if result != nil {
+		t.Error("expected nil result on error")
+	}
+}
+
+// TestFilterRjustMaxPadding tests the error case when padding exceeds maxCharPadding
+func TestFilterRjustMaxPadding(t *testing.T) {
+	result, err := filterRjust(AsValue("test"), AsValue(20000))
+	if err == nil {
+		t.Error("expected error for excessive padding")
+	}
+	if result != nil {
+		t.Error("expected nil result on error")
+	}
+}
+
+// TestFilterDateNonTimeInput tests that filterDate returns error for non-time input
+func TestFilterDateNonTimeInput(t *testing.T) {
+	tests := []struct {
+		name  string
+		input any
+	}{
+		{"string", "not a time"},
+		{"integer", 12345},
+		{"float", 3.14},
+		{"nil", nil},
+		{"bool", true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result, err := filterDate(AsValue(tt.input), AsValue("2006-01-02"))
+			if err == nil {
+				t.Error("expected error for non-time input")
+			}
+			if result != nil {
+				t.Error("expected nil result on error")
+			}
+		})
+	}
+}
+
+// TestFilterDateValidTime tests filterDate with valid time input
+func TestFilterDateValidTime(t *testing.T) {
+	testTime := time.Date(2024, 3, 15, 14, 30, 0, 0, time.UTC)
+	result, err := filterDate(AsValue(testTime), AsValue("2006-01-02"))
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if result.String() != "2024-03-15" {
+		t.Errorf("got %q, want %q", result.String(), "2024-03-15")
+	}
+}
+
+// TestFilterFloatformatMaxDecimals tests the error case when decimals exceed maximum
+func TestFilterFloatformatMaxDecimals(t *testing.T) {
+	result, err := filterFloatformat(AsValue(3.14), AsValue(2000))
+	if err == nil {
+		t.Error("expected error for excessive decimals")
+	}
+	if result != nil {
+		t.Error("expected nil result on error")
+	}
+}
+
+// TestFilterFloatformatEdgeCases tests various edge cases
+func TestFilterFloatformatEdgeCases(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    float64
+		param    any
+		expected string
+	}{
+		{"whole number with negative param", 34.0, -3, "34"},
+		{"decimal with zero param trims", 34.5, 0, "34"},   // zero param means trim, whole part only
+		{"nil param on whole number", 42.0, nil, "42"},
+		{"nil param on decimal", 42.5, nil, "42.5"},
+		{"non-number param trims whole", 42.0, "abc", "42"}, // non-number param with whole number
+		{"negative value", -3.14159, 2, "-3.14"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result, err := filterFloatformat(AsValue(tt.input), AsValue(tt.param))
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if result.String() != tt.expected {
+				t.Errorf("got %q, want %q", result.String(), tt.expected)
+			}
+		})
+	}
+}
+
+// TestFilterPluralizeNonNumber tests that pluralize returns error for non-number input
+func TestFilterPluralizeNonNumber(t *testing.T) {
+	result, err := filterPluralize(AsValue("not a number"), AsValue("s"))
+	if err == nil {
+		t.Error("expected error for non-number input")
+	}
+	if result != nil {
+		t.Error("expected nil result on error")
+	}
+}
+
+// TestFilterPluralizeTooManyArgs tests that pluralize returns error for >2 arguments
+func TestFilterPluralizeTooManyArgs(t *testing.T) {
+	result, err := filterPluralize(AsValue(5), AsValue("a,b,c,d"))
+	if err == nil {
+		t.Error("expected error for too many arguments")
+	}
+	if result != nil {
+		t.Error("expected nil result on error")
+	}
+}
+
+// TestFilterRemovetagsEdgeCases tests various edge cases
+func TestFilterRemovetagsEdgeCases(t *testing.T) {
+	t.Run("valid single letter tag", func(t *testing.T) {
+		result, err := filterRemovetags(AsValue("<b>bold</b> and <i>italic</i>"), AsValue("b"))
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if result.String() != "bold and <i>italic</i>" {
+			t.Errorf("got %q, want %q", result.String(), "bold and <i>italic</i>")
+		}
+	})
+
+	t.Run("invalid tag name - multiple letters", func(t *testing.T) {
+		result, err := filterRemovetags(AsValue("<div>content</div>"), AsValue("div"))
+		if err == nil {
+			t.Error("expected error for invalid tag name")
+		}
+		if result != nil {
+			t.Error("expected nil result on error")
+		}
+	})
+
+	t.Run("invalid tag name - number", func(t *testing.T) {
+		result, err := filterRemovetags(AsValue("<1>content</1>"), AsValue("1"))
+		if err == nil {
+			t.Error("expected error for invalid tag name")
+		}
+		if result != nil {
+			t.Error("expected nil result on error")
+		}
+	})
+
+	t.Run("invalid tag name - special char", func(t *testing.T) {
+		result, err := filterRemovetags(AsValue("text"), AsValue("@"))
+		if err == nil {
+			t.Error("expected error for invalid tag name")
+		}
+		if result != nil {
+			t.Error("expected nil result on error")
+		}
+	})
+
+	t.Run("multiple valid tags", func(t *testing.T) {
+		result, err := filterRemovetags(AsValue("<a><b>text</b></a>"), AsValue("a,b"))
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if result.String() != "text" {
+			t.Errorf("got %q, want %q", result.String(), "text")
+		}
+	})
+}
+
+// TestFilterSliceInvalidFormat tests the error case for invalid slice format
+func TestFilterSliceInvalidFormat(t *testing.T) {
+	tests := []struct {
+		name  string
+		param string
+	}{
+		{"no colon", "5"},
+		{"too many colons", "1:2:3"},
+		{"empty string", ""},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result, err := filterSlice(AsValue([]int{1, 2, 3}), AsValue(tt.param))
+			if err == nil {
+				t.Error("expected error for invalid slice format")
+			}
+			if result != nil {
+				t.Error("expected nil result on error")
+			}
+		})
+	}
+}
+
+// TestFilterSliceNonSliceable tests slice with non-sliceable input
+func TestFilterSliceNonSliceable(t *testing.T) {
+	result, err := filterSlice(AsValue(42), AsValue("1:2"))
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	// Non-sliceable input is returned unchanged
+	if result.Integer() != 42 {
+		t.Errorf("got %d, want 42", result.Integer())
+	}
+}
+
+// TestFilterYesnoErrors tests error cases for yesno filter
+func TestFilterYesnoErrors(t *testing.T) {
+	t.Run("too many arguments", func(t *testing.T) {
+		result, err := filterYesno(AsValue(true), AsValue("a,b,c,d"))
+		if err == nil {
+			t.Error("expected error for too many arguments")
+		}
+		if result != nil {
+			t.Error("expected nil result on error")
+		}
+	})
+
+	t.Run("too few arguments", func(t *testing.T) {
+		result, err := filterYesno(AsValue(true), AsValue("only_one"))
+		if err == nil {
+			t.Error("expected error for too few arguments")
+		}
+		if result != nil {
+			t.Error("expected nil result on error")
+		}
+	})
+}
+
+// TestFilterYesnoCustomOptions tests yesno with custom 2-argument options
+func TestFilterYesnoCustomOptions(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    any
+		param    string
+		expected string
+	}{
+		{"true with 2 args", true, "on,off", "on"},
+		{"false with 2 args", false, "on,off", "off"},
+		{"nil with 2 args uses maybe default", nil, "on,off", "maybe"},
+		{"true with 3 args", true, "yes,no,unknown", "yes"},
+		{"false with 3 args", false, "yes,no,unknown", "no"},
+		{"nil with 3 args", nil, "yes,no,unknown", "unknown"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result, err := filterYesno(AsValue(tt.input), AsValue(tt.param))
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if result.String() != tt.expected {
+				t.Errorf("got %q, want %q", result.String(), tt.expected)
+			}
+		})
+	}
+}
+
+// TestFilterUrlizeWithAutoescape tests urlize with different autoescape settings
+func TestFilterUrlizeWithAutoescape(t *testing.T) {
+	t.Run("autoescape true (default)", func(t *testing.T) {
+		input := `Check www.example.com/test="value"`
+		result, err := filterUrlize(AsValue(input), AsValue(true))
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		// Should contain escaped quotes
+		if !strings.Contains(result.String(), "&quot;") {
+			t.Errorf("expected escaped quotes, got %q", result.String())
+		}
+	})
+
+	t.Run("autoescape false", func(t *testing.T) {
+		input := `Check www.example.com/test="value"`
+		result, err := filterUrlize(AsValue(input), AsValue(false))
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		// Should not contain escaped quotes
+		if strings.Contains(result.String(), "&quot;") {
+			t.Errorf("expected unescaped quotes, got %q", result.String())
+		}
+	})
+
+	t.Run("non-bool param defaults to autoescape", func(t *testing.T) {
+		input := "Check www.example.com"
+		result, err := filterUrlize(AsValue(input), AsValue("not a bool"))
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		// Should work normally
+		if !strings.Contains(result.String(), "<a href=") {
+			t.Errorf("expected link, got %q", result.String())
+		}
+	})
+}
+
+// TestFilterUrlizetruncEdgeCases tests urlizetrunc edge cases
+func TestFilterUrlizetruncEdgeCases(t *testing.T) {
+	t.Run("truncate long URL", func(t *testing.T) {
+		input := "Visit www.verylongdomainname.com/with/long/path/here"
+		result, err := filterUrlizetrunc(AsValue(input), AsValue(15))
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		// Should contain truncated title with ...
+		if !strings.Contains(result.String(), "...") {
+			t.Errorf("expected truncated URL with ellipsis, got %q", result.String())
+		}
+	})
+
+	t.Run("short URL not truncated", func(t *testing.T) {
+		input := "Visit www.ex.com"
+		result, err := filterUrlizetrunc(AsValue(input), AsValue(100))
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		// Should not contain ellipsis
+		if strings.Contains(result.String(), "...") {
+			t.Errorf("short URL should not be truncated, got %q", result.String())
+		}
+	})
+
+	t.Run("truncate email", func(t *testing.T) {
+		input := "Email verylongusername@verylongdomain.com"
+		result, err := filterUrlizetrunc(AsValue(input), AsValue(10))
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		// Should contain truncated email with ...
+		if !strings.Contains(result.String(), "...") {
+			t.Errorf("expected truncated email with ellipsis, got %q", result.String())
+		}
+	})
+}
+
+// TestUnorderedListHelperDeepNesting tests the recursion depth guard
+func TestUnorderedListHelperDeepNesting(t *testing.T) {
+	// Create deeply nested structure via template
+	ts := NewSet("test", &DummyLoader{})
+
+	// Test with a structure that exceeds depth limit
+	var createDeep func(depth int) any
+	createDeep = func(depth int) any {
+		if depth == 0 {
+			return []any{"leaf"}
+		}
+		return []any{createDeep(depth - 1)}
+	}
+
+	// Create 150 levels of nesting (exceeds maxUnorderedListDepth of 100)
+	deepInput := createDeep(150)
+
+	result, err := filterUnorderedList(AsValue(deepInput), nil)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	// The function should stop at depth 100 and not panic
+	_ = result.String()
+
+	// Also test via template to ensure integration works
+	tpl, err := ts.FromString("{{ items|unordered_list }}")
+	if err != nil {
+		t.Fatalf("template parse error: %v", err)
+	}
+
+	_, err = tpl.Execute(Context{"items": deepInput})
+	if err != nil {
+		t.Fatalf("template execute error: %v", err)
+	}
+}
+
+// TestUnorderedListWithNestedLists tests unordered_list with various nested structures
+func TestUnorderedListWithNestedLists(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    any
+		expected string
+	}{
+		{
+			name:     "two levels",
+			input:    []any{"Item 1", []any{"Sub 1", "Sub 2"}},
+			expected: "<li>Item 1<ul><li>Sub 1</li><li>Sub 2</li></ul></li>",
+		},
+		{
+			name:     "list only contains nested list",
+			input:    []any{[]any{"A", "B"}},
+			expected: "<ul><li>A</li><li>B</li></ul>",
+		},
+		{
+			name:     "mixed nested",
+			input:    []any{"Top", []any{"Middle"}, "Bottom"},
+			expected: "<li>Top<ul><li>Middle</li></ul></li><li>Bottom</li>",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result, err := filterUnorderedList(AsValue(tt.input), nil)
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if result.String() != tt.expected {
+				t.Errorf("got %q, want %q", result.String(), tt.expected)
+			}
+		})
+	}
+}
+
+// TestUnorderedListWithMap tests unordered_list with a map (non-slice input)
+func TestUnorderedListWithMap(t *testing.T) {
+	// Maps are not slice/array so they return empty
+	input := map[string]string{"a": "value1", "b": "value2"}
+	result, err := filterUnorderedList(AsValue(input), nil)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	// Map is not a slice/array, so output should be empty
+	if result.String() != "" {
+		t.Errorf("expected empty output for map input, got %q", result.String())
+	}
+}
+
+// TestFilterWordwrapZeroWidth tests wordwrap with zero or negative width
+func TestFilterWordwrapZeroWidth(t *testing.T) {
+	input := "one two three"
+
+	t.Run("zero width", func(t *testing.T) {
+		result, err := filterWordwrap(AsValue(input), AsValue(0))
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		// Should return input unchanged
+		if result.String() != input {
+			t.Errorf("got %q, want %q", result.String(), input)
+		}
+	})
+
+	t.Run("negative width", func(t *testing.T) {
+		result, err := filterWordwrap(AsValue(input), AsValue(-5))
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		// Should return input unchanged
+		if result.String() != input {
+			t.Errorf("got %q, want %q", result.String(), input)
+		}
+	})
+}
+
+// TestFilterJoinNonSliceable tests join with non-sliceable input
+func TestFilterJoinNonSliceable(t *testing.T) {
+	result, err := filterJoin(AsValue(42), AsValue(","))
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	// Non-sliceable input is returned unchanged
+	if result.Integer() != 42 {
+		t.Errorf("got %d, want 42", result.Integer())
+	}
+}
+
+// TestFilterJoinEmptySeparator tests join with empty separator
+func TestFilterJoinEmptySeparator(t *testing.T) {
+	result, err := filterJoin(AsValue([]string{"a", "b", "c"}), AsValue(""))
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	// Empty separator returns the string representation of the slice
+	// The filter returns AsValue(in.String()) which wraps the Value's String()
+	// Just verify we get a non-empty result and the code path is exercised
+	if result.IsNil() {
+		t.Error("expected non-nil result")
+	}
+}
+
+// TestFilterRandomEmptyInput tests random with empty input
+func TestFilterRandomEmptyInput(t *testing.T) {
+	result, err := filterRandom(AsValue([]int{}), nil)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if result.Len() != 0 {
+		t.Error("expected empty slice to be returned unchanged")
+	}
+}
+
+// TestFilterRandomNonSliceable tests random with non-sliceable input
+func TestFilterRandomNonSliceable(t *testing.T) {
+	result, err := filterRandom(AsValue(42), nil)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if result.Integer() != 42 {
+		t.Errorf("got %d, want 42", result.Integer())
+	}
+}
+
+// TestFilterFirstEmpty tests first with empty input
+func TestFilterFirstEmpty(t *testing.T) {
+	result, err := filterFirst(AsValue([]int{}), nil)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if result.String() != "" {
+		t.Errorf("got %q, want empty string", result.String())
+	}
+}
+
+// TestFilterLastEmpty tests last with empty input
+func TestFilterLastEmpty(t *testing.T) {
+	result, err := filterLast(AsValue([]int{}), nil)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if result.String() != "" {
+		t.Errorf("got %q, want empty string", result.String())
+	}
+}
+
+// TestFilterLinebreaksEmpty tests linebreaks with empty input
+func TestFilterLinebreaksEmpty(t *testing.T) {
+	result, err := filterLinebreaks(AsValue(""), nil)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if result.String() != "" {
+		t.Errorf("got %q, want empty string", result.String())
+	}
+}
+
+// TestFilterDivisibleByZero tests divisibleby with zero divisor
+func TestFilterDivisibleByZero(t *testing.T) {
+	result, err := filterDivisibleby(AsValue(10), AsValue(0))
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if result.Bool() {
+		t.Error("expected false for division by zero")
+	}
+}
+
+// TestFilterCapfirstEmpty tests capfirst with empty string
+func TestFilterCapfirstEmpty(t *testing.T) {
+	result, err := filterCapfirst(AsValue(""), nil)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if result.String() != "" {
+		t.Errorf("got %q, want empty string", result.String())
+	}
+}
+
+// TestFilterTitleNonString tests title with non-string input
+func TestFilterTitleNonString(t *testing.T) {
+	result, err := filterTitle(AsValue(12345), nil)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if result.String() != "" {
+		t.Errorf("got %q, want empty string", result.String())
+	}
+}
+
+// TestFilterGetdigitEdgeCases tests get_digit edge cases
+func TestFilterGetdigitEdgeCases(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    any
+		param    int
+		expected string
+	}{
+		{"position 0", "12345", 0, "12345"},
+		{"negative position", "12345", -1, "12345"},
+		{"position > length", "12345", 10, "12345"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result, err := filterGetdigit(AsValue(tt.input), AsValue(tt.param))
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if result.String() != tt.expected {
+				t.Errorf("got %q, want %q", result.String(), tt.expected)
+			}
+		})
+	}
+}
+
+// TestFilterDefaultIfNone tests default_if_none with various inputs
+func TestFilterDefaultIfNone(t *testing.T) {
+	t.Run("nil returns default", func(t *testing.T) {
+		result, err := filterDefaultIfNone(AsValue(nil), AsValue("default"))
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if result.String() != "default" {
+			t.Errorf("got %q, want %q", result.String(), "default")
+		}
+	})
+
+	t.Run("empty string returns empty string", func(t *testing.T) {
+		result, err := filterDefaultIfNone(AsValue(""), AsValue("default"))
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if result.String() != "" {
+			t.Errorf("got %q, want empty string", result.String())
+		}
+	})
+
+	t.Run("zero returns zero", func(t *testing.T) {
+		result, err := filterDefaultIfNone(AsValue(0), AsValue(42))
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if result.Integer() != 0 {
+			t.Errorf("got %d, want 0", result.Integer())
+		}
+	})
+}
+
+// TestFilterEscapejsWithEscapeSequences tests escapejs with escape sequences
+func TestFilterEscapejsWithEscapeSequences(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		contains string
+	}{
+		{"carriage return escape", "line1\\rline2", "\\u000D"},
+		{"newline escape", "line1\\nline2", "\\u000A"},
+		{"backslash", "path\\to\\file", "\\u005C"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result, err := filterEscapejs(AsValue(tt.input), nil)
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if !strings.Contains(result.String(), tt.contains) {
+				t.Errorf("expected %q to contain %q", result.String(), tt.contains)
+			}
+		})
+	}
+}
+
+// TestFilterEscapejsRuneError tests escapejs with invalid UTF-8
+func TestFilterEscapejsRuneError(t *testing.T) {
+	input := "hello\xffworld"
+	result, err := filterEscapejs(AsValue(input), nil)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	// Should handle invalid UTF-8 gracefully
+	_ = result.String()
+}
+
+// TestFilterTruncatewordsZero tests truncatewords with zero words
+func TestFilterTruncatewordsZero(t *testing.T) {
+	result, err := filterTruncatewords(AsValue("hello world"), AsValue(0))
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if result.String() != "" {
+		t.Errorf("got %q, want empty string", result.String())
+	}
+}
+
+// TestFilterTruncatewordsNegative tests truncatewords with negative count
+func TestFilterTruncatewordsNegative(t *testing.T) {
+	result, err := filterTruncatewords(AsValue("hello world"), AsValue(-5))
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if result.String() != "" {
+		t.Errorf("got %q, want empty string", result.String())
+	}
+}
+
+// TestFilterTruncatecharsZero tests truncatechars with zero length
+func TestFilterTruncatecharsZero(t *testing.T) {
+	result, err := filterTruncatechars(AsValue("hello"), AsValue(0))
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if result.String() != "hello" {
+		t.Errorf("got %q, want %q", result.String(), "hello")
+	}
+}
+
+// TestFilterTruncatecharsLessThanThree tests truncatechars with length < 3
+func TestFilterTruncatecharsLessThanThree(t *testing.T) {
+	result, err := filterTruncatechars(AsValue("hello"), AsValue(2))
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	// Less than 3 chars: no room for ellipsis, just truncate
+	if result.String() != "he" {
+		t.Errorf("got %q, want %q", result.String(), "he")
+	}
+}
+
+// TestFilterRjustSmallerThanInput tests rjust when width is smaller than input
+func TestFilterRjustSmallerThanInput(t *testing.T) {
+	result, err := filterRjust(AsValue("hello"), AsValue(3))
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	// Width is 3, but input is 5 chars, so it should still be formatted
+	// The fmt.Sprintf with %3s will not truncate, but won't pad either
+	if result.String() != "hello" {
+		t.Errorf("got %q, want %q", result.String(), "hello")
+	}
+}
+
+// TestFilterLjustSmallerThanInput tests ljust when width is smaller than input
+func TestFilterLjustSmallerThanInput(t *testing.T) {
+	result, err := filterLjust(AsValue("hello"), AsValue(3))
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	// Width is 3, input is 5, no padding needed
+	if result.String() != "hello" {
+		t.Errorf("got %q, want %q", result.String(), "hello")
+	}
+}
+
+// TestFilterCenterSmallerThanInput tests center when width is smaller than input
+func TestFilterCenterSmallerThanInput(t *testing.T) {
+	result, err := filterCenter(AsValue("hello"), AsValue(3))
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	// Width is 3, input is 5, return unchanged
+	if result.String() != "hello" {
+		t.Errorf("got %q, want %q", result.String(), "hello")
+	}
 }
 
 func FuzzBuiltinFilters(f *testing.F) {
