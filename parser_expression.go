@@ -90,8 +90,8 @@ func (expr *Expression) Execute(ctx *ExecutionContext, writer TemplateWriter) er
 	if err != nil {
 		return err
 	}
-	writer.WriteString(value.String())
-	return nil
+	_, err = writer.WriteString(value.String())
+	return err
 }
 
 func (expr *relationalExpression) Execute(ctx *ExecutionContext, writer TemplateWriter) error {
@@ -99,8 +99,8 @@ func (expr *relationalExpression) Execute(ctx *ExecutionContext, writer Template
 	if err != nil {
 		return err
 	}
-	writer.WriteString(value.String())
-	return nil
+	_, err = writer.WriteString(value.String())
+	return err
 }
 
 func (expr *simpleExpression) Execute(ctx *ExecutionContext, writer TemplateWriter) error {
@@ -108,8 +108,8 @@ func (expr *simpleExpression) Execute(ctx *ExecutionContext, writer TemplateWrit
 	if err != nil {
 		return err
 	}
-	writer.WriteString(value.String())
-	return nil
+	_, err = writer.WriteString(value.String())
+	return err
 }
 
 func (expr *term) Execute(ctx *ExecutionContext, writer TemplateWriter) error {
@@ -117,8 +117,8 @@ func (expr *term) Execute(ctx *ExecutionContext, writer TemplateWriter) error {
 	if err != nil {
 		return err
 	}
-	writer.WriteString(value.String())
-	return nil
+	_, err = writer.WriteString(value.String())
+	return err
 }
 
 func (expr *power) Execute(ctx *ExecutionContext, writer TemplateWriter) error {
@@ -126,8 +126,8 @@ func (expr *power) Execute(ctx *ExecutionContext, writer TemplateWriter) error {
 	if err != nil {
 		return err
 	}
-	writer.WriteString(value.String())
-	return nil
+	_, err = writer.WriteString(value.String())
+	return err
 }
 
 func (expr *Expression) Evaluate(ctx *ExecutionContext) (*Value, error) {
