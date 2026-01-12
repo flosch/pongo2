@@ -2838,6 +2838,359 @@ func TestFilterJSONScriptSpecialJSONValues(t *testing.T) {
 	}
 }
 
+// TestFilterSafeseq tests the safeseq filter
+func TestFilterSafeseq(t *testing.T) {
+	t.Run("string slice", func(t *testing.T) {
+		input := []string{"<b>bold</b>", "<i>italic</i>"}
+		result, err := filterSafeseq(AsValue(input), nil)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+
+		// Result should be a slice of Values
+		if !result.CanSlice() {
+			t.Error("result should be sliceable")
+		}
+		if result.Len() != 2 {
+			t.Errorf("result length = %d, want 2", result.Len())
+		}
+	})
+
+	t.Run("values are marked safe", func(t *testing.T) {
+		input := []string{"<script>alert('xss')</script>"}
+
+		// When used in template, safe values should not be escaped
+		ts := NewSet("test", &DummyLoader{})
+		tpl, err := ts.FromString(`{% for item in items %}{{ item }}{% endfor %}`)
+		if err != nil {
+			t.Fatalf("template parse error: %v", err)
+		}
+
+		// Apply safeseq and use result
+		safeItems, err := filterSafeseq(AsValue(input), nil)
+		if err != nil {
+			t.Fatalf("filterSafeseq error: %v", err)
+		}
+		out, err := tpl.Execute(Context{"items": safeItems.Interface()})
+		if err != nil {
+			t.Fatalf("template execute error: %v", err)
+		}
+
+		// Should NOT be escaped because items are marked safe
+		if strings.Contains(out, "&lt;") {
+			t.Errorf("safe values should not be escaped, got %q", out)
+		}
+		if !strings.Contains(out, "<script>") {
+			t.Errorf("output should contain literal <script>, got %q", out)
+		}
+	})
+
+	t.Run("empty slice", func(t *testing.T) {
+		input := []string{}
+		result, err := filterSafeseq(AsValue(input), nil)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if result.Len() != 0 {
+			t.Errorf("result length = %d, want 0", result.Len())
+		}
+	})
+
+	t.Run("int slice", func(t *testing.T) {
+		input := []int{1, 2, 3}
+		result, err := filterSafeseq(AsValue(input), nil)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if result.Len() != 3 {
+			t.Errorf("result length = %d, want 3", result.Len())
+		}
+	})
+
+	t.Run("non-sliceable input returns unchanged", func(t *testing.T) {
+		input := 42 // integers are not sliceable
+		result, err := filterSafeseq(AsValue(input), nil)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if result.Integer() != 42 {
+			t.Errorf("non-sliceable input should be returned unchanged, got %v", result.Interface())
+		}
+	})
+
+	t.Run("nil input", func(t *testing.T) {
+		result, err := filterSafeseq(AsValue(nil), nil)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if !result.IsNil() {
+			t.Error("nil input should return nil-ish result")
+		}
+	})
+
+	t.Run("mixed type slice", func(t *testing.T) {
+		input := []any{"<b>text</b>", 42, true}
+		result, err := filterSafeseq(AsValue(input), nil)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if result.Len() != 3 {
+			t.Errorf("result length = %d, want 3", result.Len())
+		}
+	})
+}
+
+// TestFilterEscapeseq tests the escapeseq filter
+func TestFilterEscapeseq(t *testing.T) {
+	t.Run("string slice with HTML", func(t *testing.T) {
+		input := []string{"<b>bold</b>", "<i>italic</i>"}
+		result, err := filterEscapeseq(AsValue(input), nil)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+
+		if !result.CanSlice() {
+			t.Error("result should be sliceable")
+		}
+		if result.Len() != 2 {
+			t.Errorf("result length = %d, want 2", result.Len())
+		}
+
+		// Check that HTML is escaped
+		first := result.Index(0).String()
+		if !strings.Contains(first, "&lt;b&gt;") {
+			t.Errorf("first element should be escaped, got %q", first)
+		}
+	})
+
+	t.Run("XSS prevention", func(t *testing.T) {
+		input := []string{"<script>alert('xss')</script>"}
+		result, err := filterEscapeseq(AsValue(input), nil)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+
+		escaped := result.Index(0).String()
+		if strings.Contains(escaped, "<script>") {
+			t.Errorf("script tag should be escaped, got %q", escaped)
+		}
+		if !strings.Contains(escaped, "&lt;script&gt;") {
+			t.Errorf("script tag should be escaped to &lt;script&gt;, got %q", escaped)
+		}
+	})
+
+	t.Run("empty slice", func(t *testing.T) {
+		input := []string{}
+		result, err := filterEscapeseq(AsValue(input), nil)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if result.Len() != 0 {
+			t.Errorf("result length = %d, want 0", result.Len())
+		}
+	})
+
+	t.Run("non-sliceable input returns unchanged", func(t *testing.T) {
+		input := 42 // integers are not sliceable
+		result, err := filterEscapeseq(AsValue(input), nil)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if result.Integer() != 42 {
+			t.Errorf("non-sliceable input should be returned unchanged, got %v", result.Interface())
+		}
+	})
+
+	t.Run("nil input", func(t *testing.T) {
+		result, err := filterEscapeseq(AsValue(nil), nil)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if !result.IsNil() {
+			t.Error("nil input should return nil-ish result")
+		}
+	})
+
+	t.Run("int slice converts to escaped strings", func(t *testing.T) {
+		input := []int{1, 2, 3}
+		result, err := filterEscapeseq(AsValue(input), nil)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if result.Len() != 3 {
+			t.Errorf("result length = %d, want 3", result.Len())
+		}
+		// Integers don't contain HTML so should be unchanged
+		if result.Index(0).String() != "1" {
+			t.Errorf("first element = %q, want \"1\"", result.Index(0).String())
+		}
+	})
+
+	t.Run("special HTML characters", func(t *testing.T) {
+		input := []string{
+			"<",
+			">",
+			"&",
+			"\"",
+			"'",
+		}
+		result, err := filterEscapeseq(AsValue(input), nil)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+
+		expected := []string{
+			"&lt;",
+			"&gt;",
+			"&amp;",
+			"&quot;",
+			"&#39;",
+		}
+
+		for i, exp := range expected {
+			got := result.Index(i).String()
+			if got != exp {
+				t.Errorf("element %d = %q, want %q", i, got, exp)
+			}
+		}
+	})
+
+	t.Run("already safe content", func(t *testing.T) {
+		input := []string{"plain text", "hello world"}
+		result, err := filterEscapeseq(AsValue(input), nil)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+
+		// Plain text should remain unchanged
+		if result.Index(0).String() != "plain text" {
+			t.Errorf("plain text should remain unchanged, got %q", result.Index(0).String())
+		}
+	})
+
+	t.Run("mixed content", func(t *testing.T) {
+		input := []any{"<b>bold</b>", 42, "<script>"}
+		result, err := filterEscapeseq(AsValue(input), nil)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if result.Len() != 3 {
+			t.Errorf("result length = %d, want 3", result.Len())
+		}
+
+		// First should be escaped HTML
+		if !strings.Contains(result.Index(0).String(), "&lt;b&gt;") {
+			t.Errorf("HTML should be escaped, got %q", result.Index(0).String())
+		}
+		// Second should be number as string
+		if result.Index(1).String() != "42" {
+			t.Errorf("number should be \"42\", got %q", result.Index(1).String())
+		}
+		// Third should be escaped
+		if !strings.Contains(result.Index(2).String(), "&lt;script&gt;") {
+			t.Errorf("script tag should be escaped, got %q", result.Index(2).String())
+		}
+	})
+}
+
+// TestFilterSafeseqViaTemplate tests safeseq through template execution
+func TestFilterSafeseqViaTemplate(t *testing.T) {
+	ts := NewSet("test", &DummyLoader{})
+
+	tests := []struct {
+		name     string
+		template string
+		context  Context
+		contains string
+		excludes string
+	}{
+		{
+			name:     "HTML not escaped with safeseq",
+			template: `{% for item in items|safeseq %}{{ item }}{% endfor %}`,
+			context:  Context{"items": []string{"<b>bold</b>"}},
+			contains: "<b>bold</b>",
+			excludes: "&lt;",
+		},
+		{
+			name:     "multiple items",
+			template: `{% for item in items|safeseq %}[{{ item }}]{% endfor %}`,
+			context:  Context{"items": []string{"<a>", "<b>"}},
+			contains: "[<a>][<b>]",
+			excludes: "&lt;",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tpl, err := ts.FromString(tt.template)
+			if err != nil {
+				t.Fatalf("template parse error: %v", err)
+			}
+
+			result, err := tpl.Execute(tt.context)
+			if err != nil {
+				t.Fatalf("template execute error: %v", err)
+			}
+
+			if !strings.Contains(result, tt.contains) {
+				t.Errorf("result should contain %q, got %q", tt.contains, result)
+			}
+			if tt.excludes != "" && strings.Contains(result, tt.excludes) {
+				t.Errorf("result should not contain %q, got %q", tt.excludes, result)
+			}
+		})
+	}
+}
+
+// TestFilterEscapeseqViaTemplate tests escapeseq through template execution
+func TestFilterEscapeseqViaTemplate(t *testing.T) {
+	ts := NewSet("test", &DummyLoader{})
+
+	tests := []struct {
+		name     string
+		template string
+		context  Context
+		contains string
+		excludes string
+	}{
+		{
+			name:     "HTML escaped with escapeseq and safe",
+			template: `{% for item in items|escapeseq %}{{ item|safe }}{% endfor %}`,
+			context:  Context{"items": []string{"<b>bold</b>"}},
+			contains: "&lt;b&gt;bold&lt;/b&gt;",
+			excludes: "<b>",
+		},
+		{
+			name:     "script tag escaped",
+			template: `{% for item in items|escapeseq %}{{ item|safe }}{% endfor %}`,
+			context:  Context{"items": []string{"<script>alert('xss')</script>"}},
+			contains: "&lt;script&gt;",
+			excludes: "<script>",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tpl, err := ts.FromString(tt.template)
+			if err != nil {
+				t.Fatalf("template parse error: %v", err)
+			}
+
+			result, err := tpl.Execute(tt.context)
+			if err != nil {
+				t.Fatalf("template execute error: %v", err)
+			}
+
+			if !strings.Contains(result, tt.contains) {
+				t.Errorf("result should contain %q, got %q", tt.contains, result)
+			}
+			if tt.excludes != "" && strings.Contains(result, tt.excludes) {
+				t.Errorf("result should not contain %q, got %q", tt.excludes, result)
+			}
+		})
+	}
+}
+
 func FuzzBuiltinFilters(f *testing.F) {
 	f.Add("foobar", "123")
 	f.Add("foobar", `123,456`)

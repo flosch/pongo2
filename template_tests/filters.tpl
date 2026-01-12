@@ -363,3 +363,9 @@ json_script
 {{ simple.bool_true|json_script:"bool-data" }}
 {{ "</script>"|json_script:"xss-test" }}
 {{ simple.people.0|json_script:"person-data" }}
+
+safeseq
+{% for item in simple.html_list|safeseq %}{{ item }}{% endfor %}
+
+escapeseq
+{% for item in simple.html_list|escapeseq %}{{ item|safe }}{% endfor %}

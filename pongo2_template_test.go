@@ -205,6 +205,7 @@ Yep!`,
 			return true
 		},
 		"string_list": []string{"Item 1", "Item 2", "Item 3"},
+		"html_list":   []string{"<b>bold</b>", "<i>italic</i>", "<script>alert('xss')</script>"},
 		"people": []map[string]any{
 			{"name": "Charlie", "age": 25},
 			{"name": "Alice", "age": 30},

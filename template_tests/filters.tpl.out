@@ -377,3 +377,9 @@ json_script
 <script id="bool-data" type="application/json">true</script>
 <script id="xss-test" type="application/json">"\u003c/script\u003e"</script>
 <script id="person-data" type="application/json">{"age":25,"name":"Charlie"}</script>
+
+safeseq
+<b>bold</b><i>italic</i><script>alert('xss')</script>
+
+escapeseq
+&lt;b&gt;bold&lt;/b&gt;&lt;i&gt;italic&lt;/i&gt;&lt;script&gt;alert(&#39;xss&#39;)&lt;/script&gt;
