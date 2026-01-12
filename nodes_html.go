@@ -18,6 +18,6 @@ func (n *nodeHTML) Execute(ctx *ExecutionContext, writer TemplateWriter) error {
 	if n.trimRight {
 		res = strings.TrimRight(res, tokenSpaceChars)
 	}
-	writer.WriteString(res)
-	return nil
+	_, err := writer.WriteString(res)
+	return err
 }
