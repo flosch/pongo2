@@ -97,8 +97,8 @@ func (v *nodeFilteredVariable) Execute(ctx *ExecutionContext, writer TemplateWri
 	if err != nil {
 		return err
 	}
-	writer.WriteString(value.String())
-	return nil
+	_, err = writer.WriteString(value.String())
+	return err
 }
 
 func (vr *variableResolver) Execute(ctx *ExecutionContext, writer TemplateWriter) error {
@@ -106,8 +106,8 @@ func (vr *variableResolver) Execute(ctx *ExecutionContext, writer TemplateWriter
 	if err != nil {
 		return err
 	}
-	writer.WriteString(value.String())
-	return nil
+	_, err = writer.WriteString(value.String())
+	return err
 }
 
 func (s *stringResolver) Execute(ctx *ExecutionContext, writer TemplateWriter) error {
@@ -115,8 +115,8 @@ func (s *stringResolver) Execute(ctx *ExecutionContext, writer TemplateWriter) e
 	if err != nil {
 		return err
 	}
-	writer.WriteString(value.String())
-	return nil
+	_, err = writer.WriteString(value.String())
+	return err
 }
 
 func (i *intResolver) Execute(ctx *ExecutionContext, writer TemplateWriter) error {
@@ -124,8 +124,8 @@ func (i *intResolver) Execute(ctx *ExecutionContext, writer TemplateWriter) erro
 	if err != nil {
 		return err
 	}
-	writer.WriteString(value.String())
-	return nil
+	_, err = writer.WriteString(value.String())
+	return err
 }
 
 func (f *floatResolver) Execute(ctx *ExecutionContext, writer TemplateWriter) error {
@@ -133,8 +133,8 @@ func (f *floatResolver) Execute(ctx *ExecutionContext, writer TemplateWriter) er
 	if err != nil {
 		return err
 	}
-	writer.WriteString(value.String())
-	return nil
+	_, err = writer.WriteString(value.String())
+	return err
 }
 
 func (b *boolResolver) Execute(ctx *ExecutionContext, writer TemplateWriter) error {
@@ -142,8 +142,8 @@ func (b *boolResolver) Execute(ctx *ExecutionContext, writer TemplateWriter) err
 	if err != nil {
 		return err
 	}
-	writer.WriteString(value.String())
-	return nil
+	_, err = writer.WriteString(value.String())
+	return err
 }
 
 func (v *nodeFilteredVariable) GetPositionToken() *Token {
@@ -220,8 +220,8 @@ func (nv *nodeVariable) Execute(ctx *ExecutionContext, writer TemplateWriter) er
 		}
 	}
 
-	writer.WriteString(value.String())
-	return nil
+	_, err = writer.WriteString(value.String())
+	return err
 }
 
 func (executionCtxEval) Evaluate(ctx *ExecutionContext) (*Value, error) {
@@ -414,7 +414,7 @@ func (vr *variableResolver) resolve(ctx *ExecutionContext) (*Value, error) {
 			}
 
 			// Input arguments
-			if len(currArgs) != t.NumIn() && !(len(currArgs) >= t.NumIn()-1 && t.IsVariadic()) {
+			if len(currArgs) != t.NumIn() && (len(currArgs) < t.NumIn()-1 || !t.IsVariadic()) {
 				return nil,
 					fmt.Errorf("function input argument count (%d) of '%s' must be equal to the calling argument count (%d)",
 						t.NumIn(), vr.String(), len(currArgs))
