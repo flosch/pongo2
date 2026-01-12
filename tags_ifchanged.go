@@ -64,7 +64,9 @@ func (node *tagIfchangedNode) Execute(ctx *ExecutionContext, writer TemplateWrit
 		bufBytes := buf.Bytes()
 		if !bytes.Equal(node.lastContent, bufBytes) {
 			// Rendered content changed, output it
-			writer.Write(bufBytes)
+			if _, err := writer.Write(bufBytes); err != nil {
+				return err
+			}
 			node.lastContent = bufBytes
 		}
 	} else {
@@ -153,5 +155,5 @@ func tagIfchangedParser(doc *Parser, start *Token, arguments *Parser) (INodeTag,
 }
 
 func init() {
-	RegisterTag("ifchanged", tagIfchangedParser)
+	mustRegisterTag("ifchanged", tagIfchangedParser)
 }
