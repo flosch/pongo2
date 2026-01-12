@@ -120,6 +120,9 @@ func init() {
 
 	mustRegisterFilter("float", filterFloat)     // pongo-specific
 	mustRegisterFilter("integer", filterInteger) // pongo-specific
+	// Django compatibility filters
+	mustRegisterFilter("timesince", filterTimesince)
+	mustRegisterFilter("timeuntil", filterTimeuntil)
 }
 
 func filterTruncatecharsHelper(s string, newLen int) string {
@@ -1681,4 +1684,139 @@ func filterYesno(in *Value, param *Value) (*Value, error) {
 
 	// no
 	return AsValue(choices[1]), nil
+}
+
+// filterTimesince returns the time elapsed since the given datetime.
+// The result is a human-readable string like "2 days, 3 hours".
+//
+// Usage:
+//
+//	{{ some_date|timesince }}
+//	{{ some_date|timesince:comparison_date }}
+func filterTimesince(in *Value, param *Value) (*Value, error) {
+	t, isTime := in.Interface().(time.Time)
+	if !isTime {
+		return AsValue(""), nil
+	}
+
+	var now time.Time
+	if !param.IsNil() {
+		if paramTime, ok := param.Interface().(time.Time); ok {
+			now = paramTime
+		} else {
+			now = time.Now()
+		}
+	} else {
+		now = time.Now()
+	}
+
+	return AsValue(timeDiff(t, now)), nil
+}
+
+// filterTimeuntil returns the time remaining until the given datetime.
+// The result is a human-readable string like "2 days, 3 hours".
+//
+// Usage:
+//
+//	{{ some_date|timeuntil }}
+//	{{ some_date|timeuntil:comparison_date }}
+func filterTimeuntil(in *Value, param *Value) (*Value, error) {
+	t, isTime := in.Interface().(time.Time)
+	if !isTime {
+		return AsValue(""), nil
+	}
+
+	var now time.Time
+	if !param.IsNil() {
+		if paramTime, ok := param.Interface().(time.Time); ok {
+			now = paramTime
+		} else {
+			now = time.Now()
+		}
+	} else {
+		now = time.Now()
+	}
+
+	return AsValue(timeDiff(now, t)), nil
+}
+
+// timeDiff calculates the difference between two times and returns a human-readable string.
+func timeDiff(from, to time.Time) string {
+	diff := to.Sub(from)
+	if diff < 0 {
+		diff = -diff
+	}
+
+	if diff < time.Minute {
+		return "0 minutes"
+	}
+
+	years := int(diff / (365 * 24 * time.Hour))
+	diff -= time.Duration(years) * 365 * 24 * time.Hour
+
+	months := int(diff / (30 * 24 * time.Hour))
+	diff -= time.Duration(months) * 30 * 24 * time.Hour
+
+	weeks := int(diff / (7 * 24 * time.Hour))
+	diff -= time.Duration(weeks) * 7 * 24 * time.Hour
+
+	days := int(diff / (24 * time.Hour))
+	diff -= time.Duration(days) * 24 * time.Hour
+
+	hours := int(diff / time.Hour)
+	diff -= time.Duration(hours) * time.Hour
+
+	minutes := int(diff / time.Minute)
+
+	// Build the result with up to two units (like Django)
+	var parts []string
+
+	if years > 0 {
+		if years == 1 {
+			parts = append(parts, "1 year")
+		} else {
+			parts = append(parts, fmt.Sprintf("%d years", years))
+		}
+	}
+	if months > 0 && len(parts) < 2 {
+		if months == 1 {
+			parts = append(parts, "1 month")
+		} else {
+			parts = append(parts, fmt.Sprintf("%d months", months))
+		}
+	}
+	if weeks > 0 && len(parts) < 2 {
+		if weeks == 1 {
+			parts = append(parts, "1 week")
+		} else {
+			parts = append(parts, fmt.Sprintf("%d weeks", weeks))
+		}
+	}
+	if days > 0 && len(parts) < 2 {
+		if days == 1 {
+			parts = append(parts, "1 day")
+		} else {
+			parts = append(parts, fmt.Sprintf("%d days", days))
+		}
+	}
+	if hours > 0 && len(parts) < 2 {
+		if hours == 1 {
+			parts = append(parts, "1 hour")
+		} else {
+			parts = append(parts, fmt.Sprintf("%d hours", hours))
+		}
+	}
+	if minutes > 0 && len(parts) < 2 {
+		if minutes == 1 {
+			parts = append(parts, "1 minute")
+		} else {
+			parts = append(parts, fmt.Sprintf("%d minutes", minutes))
+		}
+	}
+
+	if len(parts) == 0 {
+		return "0 minutes"
+	}
+
+	return strings.Join(parts, ", ")
 }

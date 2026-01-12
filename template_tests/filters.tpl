@@ -320,3 +320,13 @@ truncatewords_html
 {{ "<p>This </a>is a long test, which will be cutted after some words.</p>"|truncatewords_html:5 }}
 {{ "<p>This is a long test which will be cutted after some words.</p>"|truncatewords_html:2 }}
 {{ "<p>This is a long test which will be cutted after some words.</p>"|truncatewords_html:0 }}
+
+timesince
+{{ simple.time2|timesince:simple.time1 }}
+{{ "not a time"|timesince:simple.time1 }}
+{{ 12345|timesince:simple.time1 }}
+
+timeuntil
+{{ simple.time1|timeuntil:simple.time2 }}
+{{ "not a time"|timeuntil:simple.time2 }}
+{{ 12345|timeuntil:simple.time2 }}
