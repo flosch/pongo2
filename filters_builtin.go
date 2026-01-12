@@ -108,6 +108,7 @@ func init() {
 	mustRegisterFilter("slugify", filterSlugify)
 	mustRegisterFilter("filesizeformat", filterFilesizeformat)
 	mustRegisterFilter("safeseq", filterSafeseq)
+	mustRegisterFilter("escapeseq", filterEscapeseq)
 
 	mustRegisterFilter("float", filterFloat)     // pongo-specific
 	mustRegisterFilter("integer", filterInteger) // pongo-specific
@@ -2040,6 +2041,32 @@ func filterSafeseq(in *Value, param *Value) (*Value, error) {
 		}
 		// Create a new Value marked as safe
 		result = append(result, AsSafeValue(item.Interface()))
+		return true
+	}, func() {})
+
+	return AsValue(result), nil
+}
+
+// filterEscapeseq applies HTML escaping to each element in a sequence.
+//
+// Usage:
+//
+//	{% for item in items|escapeseq %}{{ item }}{% endfor %}
+func filterEscapeseq(in *Value, param *Value) (*Value, error) {
+	if !in.CanSlice() {
+		return in, nil
+	}
+
+	var result []string
+	in.Iterate(func(idx, count int, key, value *Value) bool {
+		var item *Value
+		if value != nil {
+			item = value
+		} else {
+			item = key
+		}
+		escaped, _ := filterEscape(item, nil)
+		result = append(result, escaped.String())
 		return true
 	}, func() {})
 
