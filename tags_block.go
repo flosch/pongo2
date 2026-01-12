@@ -160,5 +160,5 @@ func tagBlockParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, err
 }
 
 func init() {
-	RegisterTag("block", tagBlockParser)
+	mustRegisterTag("block", tagBlockParser)
 }

@@ -82,5 +82,5 @@ func tagExtendsParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, e
 }
 
 func init() {
-	RegisterTag("extends", tagExtendsParser)
+	mustRegisterTag("extends", tagExtendsParser)
 }

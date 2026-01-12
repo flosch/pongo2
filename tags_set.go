@@ -76,5 +76,5 @@ func tagSetParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, error
 }
 
 func init() {
-	RegisterTag("set", tagSetParser)
+	mustRegisterTag("set", tagSetParser)
 }

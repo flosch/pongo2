@@ -209,5 +209,5 @@ func tagForParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, error
 }
 
 func init() {
-	RegisterTag("for", tagForParser)
+	mustRegisterTag("for", tagForParser)
 }

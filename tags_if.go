@@ -121,5 +121,5 @@ func tagIfParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, error)
 }
 
 func init() {
-	RegisterTag("if", tagIfParser)
+	mustRegisterTag("if", tagIfParser)
 }
