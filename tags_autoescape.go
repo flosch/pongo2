@@ -55,11 +55,12 @@ func tagAutoescapeParser(doc *Parser, start *Token, arguments *Parser) (INodeTag
 	if modeToken == nil {
 		return nil, arguments.Error("A mode is required for autoescape-tag.", nil)
 	}
-	if modeToken.Val == "on" {
+	switch modeToken.Val {
+	case "on":
 		autoescapeNode.autoescape = true
-	} else if modeToken.Val == "off" {
+	case "off":
 		autoescapeNode.autoescape = false
-	} else {
+	default:
 		return nil, arguments.Error("Only 'on' or 'off' is valid as an autoescape-mode.", nil)
 	}
 
@@ -71,5 +72,5 @@ func tagAutoescapeParser(doc *Parser, start *Token, arguments *Parser) (INodeTag
 }
 
 func init() {
-	RegisterTag("autoescape", tagAutoescapeParser)
+	mustRegisterTag("autoescape", tagAutoescapeParser)
 }
