@@ -66,7 +66,9 @@ func (node *tagWidthratioNode) Execute(ctx *ExecutionContext, writer TemplateWri
 	value := int(math.Ceil(current.Float()/max.Float()*width.Float() + 0.5))
 
 	if node.ctxName == "" {
-		writer.WriteString(fmt.Sprintf("%d", value))
+		if _, err := fmt.Fprintf(writer, "%d", value); err != nil {
+			return err
+		}
 	} else {
 		ctx.Private[node.ctxName] = value
 	}
@@ -114,5 +116,5 @@ func tagWidthratioParser(doc *Parser, start *Token, arguments *Parser) (INodeTag
 }
 
 func init() {
-	RegisterTag("widthratio", tagWidthratioParser)
+	mustRegisterTag("widthratio", tagWidthratioParser)
 }

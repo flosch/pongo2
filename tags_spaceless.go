@@ -62,9 +62,8 @@ func (node *tagSpacelessNode) Execute(ctx *ExecutionContext, writer TemplateWrit
 		s = s2
 	}
 
-	writer.WriteString(s)
-
-	return nil
+	_, err = writer.WriteString(s)
+	return err
 }
 
 func tagSpacelessParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, error) {
@@ -84,5 +83,5 @@ func tagSpacelessParser(doc *Parser, start *Token, arguments *Parser) (INodeTag,
 }
 
 func init() {
-	RegisterTag("spaceless", tagSpacelessParser)
+	mustRegisterTag("spaceless", tagSpacelessParser)
 }

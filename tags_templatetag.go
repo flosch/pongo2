@@ -52,8 +52,8 @@ var templateTagMapping = map[string]string{
 }
 
 func (node *tagTemplateTagNode) Execute(ctx *ExecutionContext, writer TemplateWriter) error {
-	writer.WriteString(node.content)
-	return nil
+	_, err := writer.WriteString(node.content)
+	return err
 }
 
 func tagTemplateTagParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, error) {
@@ -77,5 +77,5 @@ func tagTemplateTagParser(doc *Parser, start *Token, arguments *Parser) (INodeTa
 }
 
 func init() {
-	RegisterTag("templatetag", tagTemplateTagParser)
+	mustRegisterTag("templatetag", tagTemplateTagParser)
 }

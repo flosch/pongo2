@@ -75,7 +75,9 @@ func (node *tagCycleNode) Execute(ctx *ExecutionContext, writer TemplateWriter) 
 		t.value = val
 
 		if !t.node.silent {
-			writer.WriteString(val.String())
+			if _, err := writer.WriteString(val.String()); err != nil {
+				return err
+			}
 		}
 	} else {
 		// Regular call
@@ -89,7 +91,9 @@ func (node *tagCycleNode) Execute(ctx *ExecutionContext, writer TemplateWriter) 
 			ctx.Private[node.asName] = cycleValue
 		}
 		if !node.silent {
-			writer.WriteString(val.String())
+			if _, err := writer.WriteString(val.String()); err != nil {
+				return err
+			}
 		}
 	}
 
@@ -135,5 +139,5 @@ func tagCycleParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, err
 }
 
 func init() {
-	RegisterTag("cycle", tagCycleParser)
+	mustRegisterTag("cycle", tagCycleParser)
 }

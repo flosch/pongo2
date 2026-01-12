@@ -50,9 +50,8 @@ func (node *tagNowNode) Execute(ctx *ExecutionContext, writer TemplateWriter) er
 		t = time.Now()
 	}
 
-	writer.WriteString(t.Format(node.format))
-
-	return nil
+	_, err := writer.WriteString(t.Format(node.format))
+	return err
 }
 
 func tagNowParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, error) {
@@ -78,5 +77,5 @@ func tagNowParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, error
 }
 
 func init() {
-	RegisterTag("now", tagNowParser)
+	mustRegisterTag("now", tagNowParser)
 }
