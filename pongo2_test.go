@@ -361,7 +361,7 @@ func FuzzSimpleExecution(f *testing.F) {
 				"foobar": contextValue,
 			}
 			mycontext.Update(tplContext)
-			out.Execute(mycontext)
+			out.Execute(mycontext) //nolint:errcheck
 		}
 	})
 }

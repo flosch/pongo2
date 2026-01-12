@@ -24,7 +24,7 @@ func TestTemplateSetCleanCache(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create temp dir: %v", err)
 	}
-	defer os.RemoveAll(tmpDir)
+	defer os.RemoveAll(tmpDir) //nolint:errcheck
 
 	tplPath1 := filepath.Join(tmpDir, "file1.tpl")
 	tplPath2 := filepath.Join(tmpDir, "file2.tpl")
@@ -75,7 +75,7 @@ func TestTemplateSetFromCache(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create temp dir: %v", err)
 	}
-	defer os.RemoveAll(tmpDir)
+	defer os.RemoveAll(tmpDir) //nolint:errcheck
 
 	tplPath := filepath.Join(tmpDir, "test.tpl")
 	if err := os.WriteFile(tplPath, []byte("cached template"), 0644); err != nil {
@@ -143,7 +143,7 @@ func TestTemplateSetRenderTemplateFile(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create temp dir: %v", err)
 	}
-	defer os.RemoveAll(tmpDir)
+	defer os.RemoveAll(tmpDir) //nolint:errcheck
 
 	tplPath := filepath.Join(tmpDir, "test.tpl")
 	if err := os.WriteFile(tplPath, []byte("Hello {{ name }}!"), 0644); err != nil {

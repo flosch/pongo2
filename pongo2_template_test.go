@@ -77,8 +77,8 @@ func (p *post) String() string {
 type tagSandboxDemoTag struct{}
 
 func (node *tagSandboxDemoTag) Execute(ctx *pongo2.ExecutionContext, writer pongo2.TemplateWriter) error {
-	writer.WriteString("hello")
-	return nil
+	_, err := writer.WriteString("hello")
+	return err
 }
 
 func tagSandboxDemoTagParser(doc *pongo2.Parser, start *pongo2.Token, arguments *pongo2.Parser) (pongo2.INodeTag, error) {
@@ -92,19 +92,19 @@ func BannedFilterFn(in *pongo2.Value, params *pongo2.Value) (*pongo2.Value, erro
 func init() {
 	pongo2.DefaultSet.Debug = true
 
-	pongo2.RegisterFilter("banned_filter", BannedFilterFn)
-	pongo2.RegisterFilter("unbanned_filter", BannedFilterFn)
-	pongo2.RegisterTag("banned_tag", tagSandboxDemoTagParser)
-	pongo2.RegisterTag("unbanned_tag", tagSandboxDemoTagParser)
+	pongo2.RegisterFilter("banned_filter", BannedFilterFn)    //nolint:errcheck
+	pongo2.RegisterFilter("unbanned_filter", BannedFilterFn) //nolint:errcheck
+	pongo2.RegisterTag("banned_tag", tagSandboxDemoTagParser)   //nolint:errcheck
+	pongo2.RegisterTag("unbanned_tag", tagSandboxDemoTagParser) //nolint:errcheck
 
-	pongo2.DefaultSet.BanFilter("banned_filter")
-	pongo2.DefaultSet.BanTag("banned_tag")
+	pongo2.DefaultSet.BanFilter("banned_filter") //nolint:errcheck
+	pongo2.DefaultSet.BanTag("banned_tag")       //nolint:errcheck
 
 	f, err := os.CreateTemp(os.TempDir(), "pongo2_")
 	if err != nil {
 		panic(fmt.Sprintf("cannot write to %s", os.TempDir()))
 	}
-	defer f.Close()
+	defer f.Close() //nolint:errcheck
 	_, err = f.Write([]byte("Hello from pongo2"))
 	if err != nil {
 		panic(fmt.Sprintf("cannot write to %s", os.TempDir()))
@@ -605,7 +605,7 @@ func TestBaseDirectory(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, match := range matches {
-		match = strings.Replace(match, fmt.Sprintf("template_tests%cbase_dir_test%c", filepath.Separator, filepath.Separator), "", -1)
+		match = strings.ReplaceAll(match, fmt.Sprintf("template_tests%cbase_dir_test%c", filepath.Separator, filepath.Separator), "")
 
 		tpl, err := s.FromFile(match)
 		if err != nil {

@@ -54,13 +54,13 @@ func TestErrorRawLine(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Failed to create temp file: %v", err)
 		}
-		defer os.Remove(tmpFile.Name())
+		defer os.Remove(tmpFile.Name()) //nolint:errcheck
 
 		content := "line 1\nline 2\nline 3"
 		if _, err := tmpFile.WriteString(content); err != nil {
 			t.Fatalf("Failed to write to temp file: %v", err)
 		}
-		tmpFile.Close()
+		tmpFile.Close() //nolint:errcheck
 
 		e := &Error{Line: 2, Filename: tmpFile.Name()}
 		line, available, err := e.RawLine()
@@ -80,12 +80,12 @@ func TestErrorRawLine(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Failed to create temp file: %v", err)
 		}
-		defer os.Remove(tmpFile.Name())
+		defer os.Remove(tmpFile.Name()) //nolint:errcheck
 
 		if _, err := tmpFile.WriteString("line 1\nline 2"); err != nil {
 			t.Fatalf("Failed to write to temp file: %v", err)
 		}
-		tmpFile.Close()
+		tmpFile.Close() //nolint:errcheck
 
 		e := &Error{Line: 100, Filename: tmpFile.Name()}
 		_, available, err := e.RawLine()
