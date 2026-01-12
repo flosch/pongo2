@@ -163,7 +163,7 @@ func (l *lexer) emit(t TokenType) {
 
 	if t == TokenSymbol && len(tok.Val) == 3 && (strings.HasSuffix(tok.Val, "-") || strings.HasPrefix(tok.Val, "-")) {
 		tok.TrimWhitespaces = true
-		tok.Val = strings.Replace(tok.Val, "-", "", -1)
+		tok.Val = strings.ReplaceAll(tok.Val, "-", "")
 	}
 
 	l.tokens = append(l.tokens, tok)
