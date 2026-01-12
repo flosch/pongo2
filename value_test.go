@@ -239,6 +239,326 @@ func TestValueNegate(t *testing.T) {
 	}
 }
 
+func TestValueIsSliceOrArray(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    any
+		expected bool
+	}{
+		// Slices
+		{"string slice", []string{"a", "b", "c"}, true},
+		{"int slice", []int{1, 2, 3}, true},
+		{"empty slice", []string{}, true},
+		{"interface slice", []any{"a", 1, true}, true},
+		{"byte slice", []byte{1, 2, 3}, true},
+
+		// Arrays
+		{"string array", [3]string{"a", "b", "c"}, true},
+		{"int array", [3]int{1, 2, 3}, true},
+		{"empty array", [0]int{}, true},
+
+		// Pointers to slices/arrays
+		{"pointer to slice", &[]string{"a", "b"}, true},
+		{"pointer to array", &[2]int{1, 2}, true},
+
+		// Non-slice/array types
+		{"string", "not a slice", false},
+		{"empty string", "", false},
+		{"integer", 42, false},
+		{"float", 3.14, false},
+		{"bool", true, false},
+		{"nil", nil, false},
+		{"map", map[string]int{"a": 1}, false},
+		{"struct", struct{ Name string }{"test"}, false},
+
+		// Edge cases
+		{"pointer to string", func() any { s := "test"; return &s }(), false},
+		{"pointer to int", func() any { i := 42; return &i }(), false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			v := AsValue(tt.input)
+			result := v.IsSliceOrArray()
+			if result != tt.expected {
+				t.Errorf("IsSliceOrArray() = %v, want %v for input %T(%v)", result, tt.expected, tt.input, tt.input)
+			}
+		})
+	}
+}
+
+func TestValueIsMap(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    any
+		expected bool
+	}{
+		// Maps
+		{"string to int map", map[string]int{"a": 1}, true},
+		{"int to string map", map[int]string{1: "one"}, true},
+		{"empty map", map[string]int{}, true},
+		{"interface map", map[string]any{"a": 1}, true},
+
+		// Pointers to maps
+		{"pointer to map", &map[string]int{"a": 1}, true},
+
+		// Non-map types
+		{"string", "not a map", false},
+		{"integer", 42, false},
+		{"slice", []int{1, 2, 3}, false},
+		{"array", [3]int{1, 2, 3}, false},
+		{"struct", struct{ Name string }{"test"}, false},
+		{"nil", nil, false},
+		{"bool", true, false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			v := AsValue(tt.input)
+			result := v.IsMap()
+			if result != tt.expected {
+				t.Errorf("IsMap() = %v, want %v for input %T(%v)", result, tt.expected, tt.input, tt.input)
+			}
+		})
+	}
+}
+
+func TestValueIsStruct(t *testing.T) {
+	type TestStruct struct {
+		Name string
+		Age  int
+	}
+
+	tests := []struct {
+		name     string
+		input    any
+		expected bool
+	}{
+		// Structs
+		{"named struct", TestStruct{Name: "test", Age: 25}, true},
+		{"anonymous struct", struct{ Name string }{"test"}, true},
+		{"empty struct", struct{}{}, true},
+
+		// Pointers to structs
+		{"pointer to struct", &TestStruct{Name: "test"}, true},
+
+		// Non-struct types
+		{"string", "not a struct", false},
+		{"integer", 42, false},
+		{"slice", []int{1, 2, 3}, false},
+		{"map", map[string]int{"a": 1}, false},
+		{"nil", nil, false},
+		{"bool", true, false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			v := AsValue(tt.input)
+			result := v.IsStruct()
+			if result != tt.expected {
+				t.Errorf("IsStruct() = %v, want %v for input %T(%v)", result, tt.expected, tt.input, tt.input)
+			}
+		})
+	}
+}
+
+func TestValueGetItem(t *testing.T) {
+	type Person struct {
+		Name string
+		Age  int
+	}
+
+	t.Run("map with string key", func(t *testing.T) {
+		m := map[string]int{"a": 1, "b": 2, "c": 3}
+		v := AsValue(m)
+
+		result := v.GetItem(AsValue("b"))
+		if result.IsNil() {
+			t.Error("GetItem should return a value for existing key")
+		}
+		if result.Integer() != 2 {
+			t.Errorf("GetItem(\"b\") = %d, want 2", result.Integer())
+		}
+	})
+
+	t.Run("map with non-existent key", func(t *testing.T) {
+		m := map[string]int{"a": 1}
+		v := AsValue(m)
+
+		result := v.GetItem(AsValue("z"))
+		if !result.IsNil() {
+			t.Error("GetItem should return nil for non-existent key")
+		}
+	})
+
+	t.Run("map with int key", func(t *testing.T) {
+		m := map[int]string{1: "one", 2: "two", 3: "three"}
+		v := AsValue(m)
+
+		result := v.GetItem(AsValue(2))
+		if result.IsNil() {
+			t.Error("GetItem should return a value for existing int key")
+		}
+		if result.String() != "two" {
+			t.Errorf("GetItem(2) = %q, want %q", result.String(), "two")
+		}
+	})
+
+	t.Run("struct field access", func(t *testing.T) {
+		p := Person{Name: "Alice", Age: 30}
+		v := AsValue(p)
+
+		nameResult := v.GetItem(AsValue("Name"))
+		if nameResult.IsNil() {
+			t.Error("GetItem should return value for existing field")
+		}
+		if nameResult.String() != "Alice" {
+			t.Errorf("GetItem(\"Name\") = %q, want %q", nameResult.String(), "Alice")
+		}
+
+		ageResult := v.GetItem(AsValue("Age"))
+		if ageResult.Integer() != 30 {
+			t.Errorf("GetItem(\"Age\") = %d, want 30", ageResult.Integer())
+		}
+	})
+
+	t.Run("struct non-existent field", func(t *testing.T) {
+		p := Person{Name: "Alice", Age: 30}
+		v := AsValue(p)
+
+		result := v.GetItem(AsValue("NonExistent"))
+		if !result.IsNil() {
+			t.Error("GetItem should return nil for non-existent field")
+		}
+	})
+
+	t.Run("pointer to struct", func(t *testing.T) {
+		p := &Person{Name: "Bob", Age: 25}
+		v := AsValue(p)
+
+		result := v.GetItem(AsValue("Name"))
+		if result.IsNil() {
+			t.Error("GetItem should work with pointer to struct")
+		}
+		if result.String() != "Bob" {
+			t.Errorf("GetItem(\"Name\") = %q, want %q", result.String(), "Bob")
+		}
+	})
+
+	t.Run("pointer to map", func(t *testing.T) {
+		m := &map[string]int{"x": 10}
+		v := AsValue(m)
+
+		result := v.GetItem(AsValue("x"))
+		if result.IsNil() {
+			t.Error("GetItem should work with pointer to map")
+		}
+		if result.Integer() != 10 {
+			t.Errorf("GetItem(\"x\") = %d, want 10", result.Integer())
+		}
+	})
+
+	t.Run("nil key", func(t *testing.T) {
+		m := map[string]int{"a": 1}
+		v := AsValue(m)
+
+		result := v.GetItem(AsValue(nil))
+		if !result.IsNil() {
+			t.Error("GetItem with nil key should return nil")
+		}
+	})
+
+	t.Run("unsupported type", func(t *testing.T) {
+		v := AsValue("not a map or struct")
+		result := v.GetItem(AsValue("key"))
+		if !result.IsNil() {
+			t.Error("GetItem on unsupported type should return nil")
+		}
+	})
+
+	t.Run("slice type", func(t *testing.T) {
+		v := AsValue([]int{1, 2, 3})
+		result := v.GetItem(AsValue(0))
+		if !result.IsNil() {
+			t.Error("GetItem on slice should return nil (use Index instead)")
+		}
+	})
+
+	t.Run("integer type", func(t *testing.T) {
+		v := AsValue(42)
+		result := v.GetItem(AsValue("key"))
+		if !result.IsNil() {
+			t.Error("GetItem on integer should return nil")
+		}
+	})
+
+	t.Run("map with float64 key - convertible", func(t *testing.T) {
+		m := map[float64]string{1.5: "one-half", 2.5: "two-half"}
+		v := AsValue(m)
+
+		// Float key access - should work with direct conversion
+		result := v.GetItem(AsValue(1.5))
+		if result.IsNil() {
+			t.Error("GetItem should return value for existing float64 key")
+		}
+		if result.String() != "one-half" {
+			t.Errorf("GetItem(1.5) = %q, want %q", result.String(), "one-half")
+		}
+	})
+
+	t.Run("map with float64 key - non-existent", func(t *testing.T) {
+		m := map[float64]string{1.5: "one-half"}
+		v := AsValue(m)
+
+		result := v.GetItem(AsValue(9.9))
+		if !result.IsNil() {
+			t.Error("GetItem should return nil for non-existent float64 key")
+		}
+	})
+
+	t.Run("map with bool key - convertible", func(t *testing.T) {
+		m := map[bool]string{true: "yes", false: "no"}
+		v := AsValue(m)
+
+		result := v.GetItem(AsValue(true))
+		if result.IsNil() {
+			t.Error("GetItem should return value for existing bool key")
+		}
+		if result.String() != "yes" {
+			t.Errorf("GetItem(true) = %q, want %q", result.String(), "yes")
+		}
+	})
+
+	t.Run("map with uint key", func(t *testing.T) {
+		m := map[uint]string{1: "one", 2: "two"}
+		v := AsValue(m)
+
+		// uint keys are handled by the default case with direct conversion
+		result := v.GetItem(AsValue(uint(1)))
+		if result.IsNil() {
+			t.Error("GetItem should return value for existing uint key")
+		}
+		if result.String() != "one" {
+			t.Errorf("GetItem(uint(1)) = %q, want %q", result.String(), "one")
+		}
+	})
+
+	t.Run("map with incompatible key type", func(t *testing.T) {
+		// Create a map with a complex key type that can't be converted from string/int
+		type customKey struct {
+			id int
+		}
+		m := map[customKey]string{{id: 1}: "value"}
+		v := AsValue(m)
+
+		// String key can't be converted to customKey
+		result := v.GetItem(AsValue("key"))
+		if !result.IsNil() {
+			t.Error("GetItem should return nil when key can't be converted")
+		}
+	})
+}
+
 func TestValueIterateOrder(t *testing.T) {
 	t.Run("sorted iteration", func(t *testing.T) {
 		arr := []int{3, 1, 2}

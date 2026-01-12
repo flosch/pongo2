@@ -330,3 +330,29 @@ timeuntil
 {{ simple.time1|timeuntil:simple.time2 }}
 {{ "not a time"|timeuntil:simple.time2 }}
 {{ 12345|timeuntil:simple.time2 }}
+
+slugify
+{{ "Hello World"|slugify }}
+{{ "Hello, World!"|slugify }}
+{{ "10 Tips for Better Go Code!"|slugify }}
+{{ "  spaces  around  "|slugify }}
+{{ "multiple---hyphens"|slugify }}
+{{ ""|slugify }}
+
+filesizeformat
+{{ 0|filesizeformat }}
+{{ 1|filesizeformat }}
+{{ 1023|filesizeformat }}
+{{ 1024|filesizeformat }}
+{{ 1536|filesizeformat }}
+{{ 1048576|filesizeformat }}
+{{ 123456789|filesizeformat }}
+{{ 1073741824|filesizeformat }}
+
+unordered_list
+{{ simple.string_list|unordered_list }}
+
+dictsort
+{% for item in simple.people|dictsort:"name" %}{{ item.name }}{% if not forloop.Last %}, {% endif %}{% endfor %}
+{% for item in simple.people|dictsortreversed:"name" %}{{ item.name }}{% if not forloop.Last %}, {% endif %}{% endfor %}
+{% for item in simple.people|dictsort:"age" %}{{ item.age }}{% if not forloop.Last %}, {% endif %}{% endfor %}

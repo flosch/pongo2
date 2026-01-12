@@ -1,28 +1,11 @@
 package pongo2
 
-/* Filters that are provided through github.com/flosch/pongo2-addons:
-   ------------------------------------------------------------------
-
-   filesizeformat
-   slugify
-   timesince
-   timeuntil
-
-   Filters that won't be added:
+/* Filters that won't be added:
    ----------------------------
 
    get_static_prefix (reason: web-framework specific)
    pprint (reason: python-specific)
    static (reason: web-framework specific)
-
-   Reconsideration (not implemented yet):
-   --------------------------------------
-
-   force_escape (reason: not yet needed since this is the behaviour of pongo2's escape filter)
-   safeseq (reason: same reason as `force_escape`)
-   unordered_list (python-specific; not sure whether needed or not)
-   dictsort (python-specific; maybe one could add a filter to sort a list of structs by a specific field name)
-   dictsortreversed (see dictsort)
 */
 
 import (
@@ -31,8 +14,8 @@ import (
 	"fmt"
 	"math/rand"
 	"net/url"
-	"reflect"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -117,12 +100,16 @@ func init() {
 	mustRegisterFilter("wordcount", filterWordcount)
 	mustRegisterFilter("wordwrap", filterWordwrap)
 	mustRegisterFilter("yesno", filterYesno)
+	mustRegisterFilter("timesince", filterTimesince)
+	mustRegisterFilter("timeuntil", filterTimeuntil)
+	mustRegisterFilter("dictsort", filterDictsort)
+	mustRegisterFilter("dictsortreversed", filterDictsortReversed)
+	mustRegisterFilter("unordered_list", filterUnorderedList)
+	mustRegisterFilter("slugify", filterSlugify)
+	mustRegisterFilter("filesizeformat", filterFilesizeformat)
 
 	mustRegisterFilter("float", filterFloat)     // pongo-specific
 	mustRegisterFilter("integer", filterInteger) // pongo-specific
-	// Django compatibility filters
-	mustRegisterFilter("timesince", filterTimesince)
-	mustRegisterFilter("timeuntil", filterTimeuntil)
 }
 
 func filterTruncatecharsHelper(s string, newLen int) string {
@@ -794,7 +781,7 @@ func filterJoin(in *Value, param *Value) (*Value, error) {
 	// This is an optimization for very long strings. Index() splits `in` into runes with each
 	// function invocation which hurts performance. Hence we're doing it just once (with ranging
 	// over the string) and speeding things up.
-	if in.getResolvedValue().Kind() == reflect.String {
+	if in.IsString() {
 		for _, i := range in.String() {
 			sl = append(sl, string(i))
 		}
@@ -1819,4 +1806,213 @@ func timeDiff(from, to time.Time) string {
 	}
 
 	return strings.Join(parts, ", ")
+}
+
+// filterDictsort sorts a list of maps or structs by the specified key.
+//
+// Usage:
+//
+//	{{ items|dictsort:"name" }}
+//
+// For a list of maps, this sorts by the value of the specified key.
+// For a list of structs, this sorts by the specified field name.
+func filterDictsort(in *Value, param *Value) (*Value, error) {
+	return dictsortHelper(in, param, false)
+}
+
+// filterDictsortReversed sorts a list of maps or structs by the specified key in reverse order.
+//
+// Usage:
+//
+//	{{ items|dictsortreversed:"name" }}
+func filterDictsortReversed(in *Value, param *Value) (*Value, error) {
+	return dictsortHelper(in, param, true)
+}
+
+// dictsortItems implements sort.Interface for sorting by key
+type dictsortItems []struct {
+	item    *Value
+	sortKey string
+}
+
+func (d dictsortItems) Len() int           { return len(d) }
+func (d dictsortItems) Swap(i, j int)      { d[i], d[j] = d[j], d[i] }
+func (d dictsortItems) Less(i, j int) bool { return d[i].sortKey < d[j].sortKey }
+
+func dictsortHelper(in *Value, param *Value, reverse bool) (*Value, error) {
+	if !in.CanSlice() {
+		return in, nil
+	}
+
+	if param.IsNil() {
+		return nil, errors.New("dictsort requires a key argument")
+	}
+
+	// Collect items with their sort keys
+	var items dictsortItems
+
+	in.Iterate(func(idx, count int, k, value *Value) bool {
+		// Get the item (value for maps, key for slices/arrays)
+		item := value
+		if item == nil {
+			item = k
+		}
+
+		// Get the sort key value using Value methods
+		sortKeyVal := ""
+		if item.IsMap() || item.IsStruct() {
+			sortVal := item.GetItem(param)
+			if !sortVal.IsNil() {
+				sortKeyVal = sortVal.String()
+			}
+		}
+
+		items = append(items, struct {
+			item    *Value
+			sortKey string
+		}{item: item, sortKey: sortKeyVal})
+		return true
+	}, func() {})
+
+	// Sort by the key
+	if reverse {
+		sort.Sort(sort.Reverse(items))
+	} else {
+		sort.Sort(items)
+	}
+
+	// Build result
+	var result []any
+	for _, item := range items {
+		result = append(result, item.item.Interface())
+	}
+
+	return AsValue(result), nil
+}
+
+// filterUnorderedList recursively generates an unordered HTML list from nested lists.
+//
+// Usage:
+//
+//	{{ items|unordered_list }}
+//
+// For input: ["States", ["Kansas", ["Lawrence", "Topeka"], "Illinois"]]
+// Output: <li>States<ul><li>Kansas<ul><li>Lawrence</li><li>Topeka</li></ul></li><li>Illinois</li></ul></li>
+//
+// Note: This outputs the inner list items only; you need to wrap it in <ul></ul> tags.
+func filterUnorderedList(in *Value, param *Value) (*Value, error) {
+	var result strings.Builder
+	unorderedListHelper(&result, in, 0)
+	return AsSafeValue(result.String()), nil
+}
+
+const maxUnorderedListDepth = 100
+
+func unorderedListHelper(result *strings.Builder, in *Value, depth int) {
+	// Guard against excessive recursion
+	if depth > maxUnorderedListDepth {
+		return
+	}
+
+	// Only process actual arrays/slices, not strings
+	if !in.IsSliceOrArray() {
+		return
+	}
+
+	items := make([]*Value, 0)
+	in.Iterate(func(idx, count int, key, value *Value) bool {
+		if value != nil {
+			items = append(items, value)
+		} else {
+			items = append(items, key)
+		}
+		return true
+	}, func() {})
+
+	for i := 0; i < len(items); i++ {
+		item := items[i]
+		if item.IsSliceOrArray() {
+			// This is a nested list
+			result.WriteString("<ul>")
+			unorderedListHelper(result, item, depth+1)
+			result.WriteString("</ul>")
+		} else {
+			result.WriteString("<li>")
+			// Escape the content
+			escaped, _ := filterEscape(item, nil)
+			result.WriteString(escaped.String())
+			// Check if next item is a list (sublist for this item)
+			if i+1 < len(items) && items[i+1].IsSliceOrArray() {
+				result.WriteString("<ul>")
+				unorderedListHelper(result, items[i+1], depth+1)
+				result.WriteString("</ul>")
+				i++ // Skip the next item since we processed it
+			}
+			result.WriteString("</li>")
+		}
+	}
+}
+
+// filterSlugify converts a string to a URL-friendly slug.
+// It lowercases the string, removes non-alphanumeric characters (except hyphens and spaces),
+// converts spaces to hyphens, and removes consecutive hyphens.
+//
+// Usage:
+//
+//	{{ "Hello World!"|slugify }}
+//
+// Output: "hello-world"
+func filterSlugify(in *Value, param *Value) (*Value, error) {
+	s := in.String()
+	s = strings.ToLower(s)
+
+	// Replace spaces with hyphens
+	s = strings.ReplaceAll(s, " ", "-")
+
+	// Remove non-alphanumeric characters (except hyphens)
+	var result strings.Builder
+	for _, r := range s {
+		if (r >= 'a' && r <= 'z') || (r >= '0' && r <= '9') || r == '-' {
+			result.WriteRune(r)
+		}
+	}
+	s = result.String()
+
+	// Remove consecutive hyphens
+	for strings.Contains(s, "--") {
+		s = strings.ReplaceAll(s, "--", "-")
+	}
+
+	// Trim leading and trailing hyphens
+	s = strings.Trim(s, "-")
+
+	return AsValue(s), nil
+}
+
+// filterFilesizeformat formats a file size in bytes to a human-readable string.
+//
+// Usage:
+//
+//	{{ 123456789|filesizeformat }}
+//
+// Output: "117.7 MB"
+func filterFilesizeformat(in *Value, param *Value) (*Value, error) {
+	size := float64(in.Integer())
+	if size < 0 {
+		size = 0
+	}
+
+	units := []string{"bytes", "KB", "MB", "GB", "TB", "PB"}
+	unitIdx := 0
+
+	for size >= 1024 && unitIdx < len(units)-1 {
+		size /= 1024
+		unitIdx++
+	}
+
+	if unitIdx == 0 {
+		return AsValue(fmt.Sprintf("%.0f %s", size, units[unitIdx])), nil
+	}
+
+	return AsValue(fmt.Sprintf("%.1f %s", size, units[unitIdx])), nil
 }

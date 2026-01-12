@@ -204,6 +204,12 @@ Yep!`,
 			}
 			return true
 		},
+		"string_list": []string{"Item 1", "Item 2", "Item 3"},
+		"people": []map[string]any{
+			{"name": "Charlie", "age": 25},
+			{"name": "Alice", "age": 30},
+			{"name": "Bob", "age": 20},
+		},
 	},
 	"complex": map[string]any{
 		"is_admin": isAdmin,

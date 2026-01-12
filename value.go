@@ -36,10 +36,12 @@ func AsSafeValue(i any) *Value {
 }
 
 func (v *Value) getResolvedValue() reflect.Value {
-	if v.val.IsValid() && v.val.Kind() == reflect.Ptr {
-		return v.val.Elem()
+	rv := v.val
+	// Unwrap pointers and interfaces to get to the underlying value
+	for rv.IsValid() && (rv.Kind() == reflect.Ptr || rv.Kind() == reflect.Interface) {
+		rv = rv.Elem()
 	}
-	return v.val
+	return rv
 }
 
 // IsString checks whether the underlying value is a string
@@ -391,6 +393,74 @@ func (v *Value) CanSlice() bool {
 	return false
 }
 
+// IsSliceOrArray returns true if the value is a slice or array (not a string)
+func (v *Value) IsSliceOrArray() bool {
+	switch v.getResolvedValue().Kind() {
+	case reflect.Array, reflect.Slice:
+		return true
+	}
+	return false
+}
+
+// IsMap checks whether the underlying value is a map
+func (v *Value) IsMap() bool {
+	return v.getResolvedValue().Kind() == reflect.Map
+}
+
+// IsStruct checks whether the underlying value is a struct
+func (v *Value) IsStruct() bool {
+	return v.getResolvedValue().Kind() == reflect.Struct
+}
+
+// GetItem retrieves a value from a map by key or a field from a struct by name.
+// For maps, it attempts to convert the key to the map's key type.
+// For structs, it uses the key's string representation as the field name.
+// Returns nil Value if the key/field doesn't exist or the type doesn't support item access.
+func (v *Value) GetItem(key *Value) *Value {
+	if key.IsNil() {
+		return AsValue(nil)
+	}
+
+	rv := v.getResolvedValue()
+	switch rv.Kind() {
+	case reflect.Map:
+		keyStr := key.String()
+		mapKeyType := rv.Type().Key()
+
+		// Try to get the map value using appropriate key type
+		var mapKey reflect.Value
+		switch mapKeyType.Kind() {
+		case reflect.String:
+			mapKey = reflect.ValueOf(keyStr)
+		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+			mapKey = reflect.ValueOf(key.Integer()).Convert(mapKeyType)
+		default:
+			// Try direct conversion if the key type matches
+			if key.val.IsValid() && key.val.Type().ConvertibleTo(mapKeyType) {
+				mapKey = key.val.Convert(mapKeyType)
+			} else {
+				return AsValue(nil)
+			}
+		}
+
+		val := rv.MapIndex(mapKey)
+		if val.IsValid() {
+			return &Value{val: val}
+		}
+		return AsValue(nil)
+
+	case reflect.Struct:
+		field := rv.FieldByName(key.String())
+		if field.IsValid() {
+			return &Value{val: field}
+		}
+		return AsValue(nil)
+
+	default:
+		return AsValue(nil)
+	}
+}
+
 // Iterate iterates over a map, array, slice or a string. It calls the
 // function's first argument for every value with the following arguments:
 //
@@ -480,7 +550,7 @@ func (v *Value) IterateOrder(fn func(idx, count int, key, value *Value) bool, em
 				}
 			}
 
-			for i := 0; i < charCount; i++ {
+			for i := range charCount {
 				if !fn(i, charCount, &Value{val: reflect.ValueOf(string(rs[i]))}, nil) {
 					return
 				}
