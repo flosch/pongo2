@@ -559,6 +559,45 @@ func TestValueGetItem(t *testing.T) {
 	})
 }
 
+func TestValueIntegerOverflow(t *testing.T) {
+	t.Run("uint64 overflow clamps to MaxInt", func(t *testing.T) {
+		// Value larger than MaxInt should be clamped
+		var bigUint uint64 = 1<<63 + 100 // Larger than MaxInt64
+		v := AsValue(bigUint)
+		result := v.Integer()
+		if result < 0 {
+			t.Errorf("Integer() should not overflow to negative: got %d", result)
+		}
+	})
+
+	t.Run("uint64 within range converts correctly", func(t *testing.T) {
+		var smallUint uint64 = 12345
+		v := AsValue(smallUint)
+		result := v.Integer()
+		if result != 12345 {
+			t.Errorf("Integer() = %d, want 12345", result)
+		}
+	})
+
+	t.Run("uint8 converts correctly", func(t *testing.T) {
+		var u uint8 = 255
+		v := AsValue(u)
+		result := v.Integer()
+		if result != 255 {
+			t.Errorf("Integer() = %d, want 255", result)
+		}
+	})
+
+	t.Run("uint32 converts correctly", func(t *testing.T) {
+		var u uint32 = 4294967295 // MaxUint32
+		v := AsValue(u)
+		result := v.Integer()
+		if result != 4294967295 {
+			t.Errorf("Integer() = %d, want 4294967295", result)
+		}
+	})
+}
+
 func TestValueIterateOrder(t *testing.T) {
 	t.Run("sorted iteration", func(t *testing.T) {
 		arr := []int{3, 1, 2}

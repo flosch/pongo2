@@ -2,6 +2,7 @@ package pongo2
 
 import (
 	"fmt"
+	"math"
 	"reflect"
 	"sort"
 	"strconv"
@@ -145,7 +146,11 @@ func (v *Value) Integer() int {
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 		return int(rv.Int())
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-		return int(rv.Uint())
+		u := rv.Uint()
+		if u > math.MaxInt {
+			return math.MaxInt
+		}
+		return int(u)
 	case reflect.Float32, reflect.Float64:
 		return int(rv.Float())
 	case reflect.String:
