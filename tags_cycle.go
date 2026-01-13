@@ -135,6 +135,10 @@ func tagCycleParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, err
 		return nil, arguments.Error("Malformed cycle-tag.", nil)
 	}
 
+	if len(cycleNode.args) == 0 {
+		return nil, arguments.Error("'cycle' tag requires at least one argument.", nil)
+	}
+
 	return cycleNode, nil
 }
 
