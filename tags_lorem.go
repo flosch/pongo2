@@ -55,108 +55,52 @@ type tagLoremNode struct {
 	random   bool   // does not use the default paragraph "Lorem ipsum dolor sit amet, ..."
 }
 
+// writeLoremItems writes items from the source slice with separator, prefix, and suffix.
+func writeLoremItems(writer TemplateWriter, count int, source []string, sep, prefix, suffix string, random bool) error {
+	for i := range count {
+		if i > 0 {
+			if _, err := writer.WriteString(sep); err != nil {
+				return err
+			}
+		}
+		if prefix != "" {
+			if _, err := writer.WriteString(prefix); err != nil {
+				return err
+			}
+		}
+		var item string
+		if random {
+			item = source[rand.Intn(len(source))] //nolint:gosec // G404: lorem ipsum generation, cryptographic randomness not needed
+		} else {
+			item = source[i%len(source)]
+		}
+		if _, err := writer.WriteString(item); err != nil {
+			return err
+		}
+		if suffix != "" {
+			if _, err := writer.WriteString(suffix); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
 func (node *tagLoremNode) Execute(ctx *ExecutionContext, writer TemplateWriter) error {
 	if node.count > maxLoremCount {
 		return ctx.Error(fmt.Sprintf("max count for lorem is %d", maxLoremCount), node.position)
 	}
 
-	var err error
 	switch node.method {
 	case "b":
-		if node.random {
-			for i := 0; i < node.count; i++ {
-				if i > 0 {
-					if _, err = writer.WriteString("\n"); err != nil {
-						return err
-					}
-				}
-				par := tagLoremParagraphs[rand.Intn(len(tagLoremParagraphs))]
-				if _, err = writer.WriteString(par); err != nil {
-					return err
-				}
-			}
-		} else {
-			for i := 0; i < node.count; i++ {
-				if i > 0 {
-					if _, err = writer.WriteString("\n"); err != nil {
-						return err
-					}
-				}
-				par := tagLoremParagraphs[i%len(tagLoremParagraphs)]
-				if _, err = writer.WriteString(par); err != nil {
-					return err
-				}
-			}
-		}
+		return writeLoremItems(writer, node.count, tagLoremParagraphs, "\n", "", "", node.random)
 	case "w":
-		if node.random {
-			for i := 0; i < node.count; i++ {
-				if i > 0 {
-					if _, err = writer.WriteString(" "); err != nil {
-						return err
-					}
-				}
-				word := tagLoremWords[rand.Intn(len(tagLoremWords))]
-				if _, err = writer.WriteString(word); err != nil {
-					return err
-				}
-			}
-		} else {
-			for i := 0; i < node.count; i++ {
-				if i > 0 {
-					if _, err = writer.WriteString(" "); err != nil {
-						return err
-					}
-				}
-				word := tagLoremWords[i%len(tagLoremWords)]
-				if _, err = writer.WriteString(word); err != nil {
-					return err
-				}
-			}
-		}
+		return writeLoremItems(writer, node.count, tagLoremWords, " ", "", "", node.random)
 	case "p":
-		if node.random {
-			for i := 0; i < node.count; i++ {
-				if i > 0 {
-					if _, err = writer.WriteString("\n"); err != nil {
-						return err
-					}
-				}
-				if _, err = writer.WriteString("<p>"); err != nil {
-					return err
-				}
-				par := tagLoremParagraphs[rand.Intn(len(tagLoremParagraphs))]
-				if _, err = writer.WriteString(par); err != nil {
-					return err
-				}
-				if _, err = writer.WriteString("</p>"); err != nil {
-					return err
-				}
-			}
-		} else {
-			for i := 0; i < node.count; i++ {
-				if i > 0 {
-					if _, err = writer.WriteString("\n"); err != nil {
-						return err
-					}
-				}
-				if _, err = writer.WriteString("<p>"); err != nil {
-					return err
-				}
-				par := tagLoremParagraphs[i%len(tagLoremParagraphs)]
-				if _, err = writer.WriteString(par); err != nil {
-					return err
-				}
-				if _, err = writer.WriteString("</p>"); err != nil {
-					return err
-				}
-			}
-		}
+		return writeLoremItems(writer, node.count, tagLoremParagraphs, "\n", "<p>", "</p>", node.random)
 	default:
 		return ctx.OrigError(fmt.Errorf("unsupported method: %s", node.method), nil)
 	}
-
-	return nil
 }
 
 func tagLoremParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, error) {
