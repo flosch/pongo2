@@ -2510,31 +2510,54 @@ func TestFilterJSONScriptXSSPrevention(t *testing.T) {
 	}
 }
 
+// TestFilterJSONScriptOptionalID tests json_script without element_id (Django 4.1+)
+func TestFilterJSONScriptOptionalID(t *testing.T) {
+	t.Run("nil element_id outputs script without id", func(t *testing.T) {
+		result, err := filterJSONScript(AsValue("test"), AsValue(nil))
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		expected := `<script type="application/json">"test"</script>`
+		if result.String() != expected {
+			t.Errorf("got %q, want %q", result.String(), expected)
+		}
+		// Verify no id attribute
+		if strings.Contains(result.String(), "id=") {
+			t.Error("output should not contain id attribute when element_id is nil")
+		}
+	})
+
+	t.Run("empty string element_id outputs script without id", func(t *testing.T) {
+		result, err := filterJSONScript(AsValue("test"), AsValue(""))
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		expected := `<script type="application/json">"test"</script>`
+		if result.String() != expected {
+			t.Errorf("got %q, want %q", result.String(), expected)
+		}
+	})
+
+	t.Run("complex value without id", func(t *testing.T) {
+		input := map[string]any{"key": "value", "num": 42}
+		result, err := filterJSONScript(AsValue(input), nil)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if !strings.HasPrefix(result.String(), `<script type="application/json">`) {
+			t.Errorf("result should start with script tag without id, got %q", result.String())
+		}
+		if !strings.HasSuffix(result.String(), "</script>") {
+			t.Errorf("result should end with </script>, got %q", result.String())
+		}
+		if strings.Contains(result.String(), "id=") {
+			t.Error("output should not contain id attribute")
+		}
+	})
+}
+
 // TestFilterJSONScriptErrors tests error cases for json_script
 func TestFilterJSONScriptErrors(t *testing.T) {
-	t.Run("nil element_id", func(t *testing.T) {
-		result, err := filterJSONScript(AsValue("test"), AsValue(nil))
-		if err == nil {
-			t.Error("expected error for nil element_id")
-		}
-		if result != nil {
-			t.Error("expected nil result on error")
-		}
-		if !strings.Contains(err.Error(), "element_id") {
-			t.Errorf("error should mention element_id, got %v", err)
-		}
-	})
-
-	t.Run("empty string element_id", func(t *testing.T) {
-		result, err := filterJSONScript(AsValue("test"), AsValue(""))
-		if err == nil {
-			t.Error("expected error for empty element_id")
-		}
-		if result != nil {
-			t.Error("expected nil result on error")
-		}
-	})
-
 	t.Run("unmarshalable value - channel", func(t *testing.T) {
 		ch := make(chan int)
 		result, err := filterJSONScript(AsValue(ch), AsValue("data"))
@@ -2691,6 +2714,12 @@ func TestFilterJSONScriptViaTemplate(t *testing.T) {
 			template: `{{ html|json_script:"safe" }}`,
 			context:  Context{"html": "<script>alert(1)</script>"},
 			contains: []string{`\u003cscript\u003e`},
+		},
+		{
+			name:     "without element_id (Django 4.1+)",
+			template: `{{ data|json_script }}`,
+			context:  Context{"data": map[string]string{"hello": "world"}},
+			contains: []string{`<script type="application/json">`, `{"hello":"world"}`, `</script>`},
 		},
 	}
 

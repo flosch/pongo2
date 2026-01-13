@@ -2076,23 +2076,27 @@ func filterEscapeseq(in *Value, param *Value) (*Value, error) {
 }
 
 // filterJSONScript safely outputs a value as JSON inside a script tag.
-// The element_id argument is required and will be used as the script tag's id.
+// The element_id argument is optional and will be used as the script tag's id.
 //
 // Usage:
 //
 //	{{ value|json_script:"my-data" }}
+//	{{ value|json_script }}
 //
 // Output:
 //
 //	<script id="my-data" type="application/json">{"key": "value"}</script>
+//	<script type="application/json">{"key": "value"}</script>
 func filterJSONScript(in *Value, param *Value) (*Value, error) {
-	if param.IsNil() || param.String() == "" {
-		return nil, errors.New("json_script requires an element_id argument")
-	}
-
 	var result strings.Builder
-	elementID := strings.ReplaceAll(param.String(), `"`, `&quot;`)
-	fmt.Fprintf(&result, `<script id="%s" type="application/json">`, elementID)
+
+	// element_id is optional (Django 4.1+)
+	if param == nil || param.IsNil() || param.String() == "" {
+		result.WriteString(`<script type="application/json">`)
+	} else {
+		elementID := strings.ReplaceAll(param.String(), `"`, `&quot;`)
+		fmt.Fprintf(&result, `<script id="%s" type="application/json">`, elementID)
+	}
 
 	// Convert the value to JSON (json.Marshal doesn't add trailing newline)
 	jsonBytes, err := json.Marshal(in.Interface())
@@ -2101,6 +2105,6 @@ func filterJSONScript(in *Value, param *Value) (*Value, error) {
 	}
 	result.Write(jsonBytes)
 
-	fmt.Fprintf(&result, "</script>")
+	result.WriteString("</script>")
 	return AsSafeValue(result.String()), nil
 }
