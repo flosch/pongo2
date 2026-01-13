@@ -1,6 +1,8 @@
 package pongo2
 
-import "testing"
+import (
+	"testing"
+)
 
 func TestValueIterate(t *testing.T) {
 	t.Run("array iteration", func(t *testing.T) {
