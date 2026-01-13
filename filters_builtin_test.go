@@ -3404,6 +3404,143 @@ func FuzzFilterRemovetags(f *testing.F) {
 	f.Add("", "script")
 	f.Add("<b>bold</b>", "b,i,script")
 
+	// Case variations
+	f.Add("<ScRiPt>alert(1)</ScRiPt>", "script")
+	f.Add("<script  >alert(1)</script  >", "script")
+	f.Add("<script\t>alert(1)</script\t>", "script")
+	f.Add("<script\n>alert(1)</script\n>", "script")
+	f.Add("<script\r>alert(1)</script\r>", "script")
+	f.Add("<script/>", "script")
+	f.Add("<script type='text/javascript'>", "script")
+	f.Add("<script language='javascript'>", "script")
+	f.Add("<script defer>alert(1)</script>", "script")
+	f.Add("<script async>alert(1)</script>", "script")
+
+	// More nested injection attempts
+	f.Add("<script<script>>alert(1)</script</script>>", "script")
+	f.Add("<scri<script>pt>alert(1)</scri</script>pt>", "script")
+	f.Add("<s<script>cript>alert(1)</s</script>cript>", "script")
+	f.Add("<scr\x00ipt>alert(1)</scr\x00ipt>", "script")
+
+	// Encoding bypass attempts
+	f.Add("<\x00script>alert(1)</script>", "script")
+	f.Add("<script\x00>alert(1)</script>", "script")
+	f.Add("<%73cript>alert(1)</%73cript>", "script")
+	f.Add("<&#115;cript>alert(1)</&#115;cript>", "script")
+	f.Add("<&#x73;cript>alert(1)</&#x73;cript>", "script")
+	f.Add("<script&#x09;>alert(1)</script>", "script")
+	f.Add("<script&#x0A;>alert(1)</script>", "script")
+	f.Add("<script&#x0D;>alert(1)</script>", "script")
+
+	// Other dangerous tags - img
+	f.Add("<IMG SRC=x ONERROR=alert(1)>", "img")
+	f.Add("<img/src=x/onerror=alert(1)>", "img")
+	f.Add("<img src=x onerror='alert(1)'>", "img")
+	f.Add("<img src=1 onerror=alert(1) />", "img")
+	f.Add("<img src=x:alert(1) onerror=eval(src)>", "img")
+
+	// SVG variations
+	f.Add("<SVG ONLOAD=alert(1)>", "svg")
+	f.Add("<svg/onload=alert(1)>", "svg")
+	f.Add("<svg onload='alert(1)'/>", "svg")
+	f.Add("<svg><script>alert(1)</script></svg>", "svg,script")
+	f.Add("<svg><animate onbegin=alert(1)></svg>", "svg")
+
+	// Anchor tag variations
+	f.Add("<A HREF='javascript:alert(1)'>click</A>", "a")
+	f.Add("<a href='  javascript:alert(1)'>click</a>", "a")
+	f.Add("<a href=javascript:alert(1)>click</a>", "a")
+
+	// Iframe
+	f.Add("<iframe src='javascript:alert(1)'></iframe>", "iframe")
+	f.Add("<IFRAME SRC='javascript:alert(1)'></IFRAME>", "iframe")
+	f.Add("<iframe src=javascript:alert(1)>", "iframe")
+	f.Add("<iframe srcdoc='<script>alert(1)</script>'>", "iframe")
+
+	// Other dangerous elements
+	f.Add("<object data='javascript:alert(1)'>", "object")
+	f.Add("<embed src='javascript:alert(1)'>", "embed")
+	f.Add("<form action='javascript:alert(1)'>", "form")
+	f.Add("<input onfocus=alert(1) autofocus>", "input")
+	f.Add("<select onfocus=alert(1) autofocus>", "select")
+	f.Add("<textarea onfocus=alert(1) autofocus>", "textarea")
+	f.Add("<video><source onerror=alert(1)></video>", "video,source")
+	f.Add("<audio><source onerror=alert(1)></audio>", "audio,source")
+	f.Add("<body onload=alert(1)>", "body")
+	f.Add("<marquee onstart=alert(1)>", "marquee")
+
+	// Event handler variations
+	f.Add("<div onclick=alert(1)>click</div>", "div")
+	f.Add("<div onmouseover=alert(1)>hover</div>", "div")
+	f.Add("<div onmouseout=alert(1)>leave</div>", "div")
+	f.Add("<div onfocus=alert(1) tabindex=0>focus</div>", "div")
+	f.Add("<div onblur=alert(1) tabindex=0>blur</div>", "div")
+	f.Add("<div onkeydown=alert(1)>key</div>", "div")
+	f.Add("<div ondblclick=alert(1)>double</div>", "div")
+	f.Add("<div oncontextmenu=alert(1)>right</div>", "div")
+
+	// Style-based XSS
+	f.Add("<style>*{background:url('javascript:alert(1)')}</style>", "style")
+	f.Add("<div style='background:url(javascript:alert(1))'>", "div")
+	f.Add("<link rel=stylesheet href='javascript:alert(1)'>", "link")
+
+	// HTML5 elements
+	f.Add("<details open ontoggle=alert(1)>", "details")
+	f.Add("<base href='javascript:alert(1)//'>", "base")
+
+	// Multiple tags to remove
+	f.Add("<b><i><script>alert(1)</script></i></b>", "b,i,script")
+	f.Add("<p><script>x</script></p>", "p,script")
+	f.Add("<span><b><i>text</i></b></span>", "span,b,i")
+
+	// Edge cases
+	f.Add("<>", "script")
+	f.Add("</>", "script")
+	f.Add("< script>alert(1)</ script>", "script")
+	f.Add("<script >alert(1)< /script>", "script")
+	f.Add("<!--<script>alert(1)</script>-->", "script")
+	f.Add("<![CDATA[<script>alert(1)</script>]]>", "script")
+
+	// Unicode variations
+	f.Add("\u003cscript\u003ealert(1)\u003c/script\u003e", "script")
+
+	// Malformed HTML
+	f.Add("<script<", "script")
+	f.Add(">script<", "script")
+	f.Add("<script", "script")
+	f.Add("script>", "script")
+	f.Add("<script>>alert(1)</script>", "script")
+	f.Add("<<script>alert(1)</script>>", "script")
+	f.Add("<script>alert(1)<script>", "script")
+	f.Add("</script>alert(1)<script>", "script")
+	f.Add("<script x>alert(1)</script y>", "script")
+	f.Add("<script/x>alert(1)</script/y>", "script")
+
+	// Long inputs
+	f.Add("<script>"+string(make([]byte, 1000))+"</script>", "script")
+	f.Add(string(make([]byte, 100))+"<script>alert(1)</script>"+string(make([]byte, 100)), "script")
+
+	// Multiple tag names with different formats
+	f.Add("<script>x</script><style>y</style><iframe>z</iframe>", "script,style,iframe")
+	f.Add("<a>1</a><b>2</b><c>3</c>", "a, b, c")
+	f.Add("<a>1</a><b>2</b><c>3</c>", " a , b , c ")
+	f.Add("<tag>test</tag>", "tag")
+	f.Add("<customtag>test</customtag>", "customtag")
+
+	// Empty and whitespace
+	f.Add("<script></script>", "script")
+	f.Add("<script>   </script>", "script")
+	f.Add("<script>\n\t\r</script>", "script")
+	f.Add("   <script>x</script>   ", "script")
+
+	// Self-closing
+	f.Add("<script />", "script")
+	f.Add("<br/>", "br")
+	f.Add("<br />", "br")
+	f.Add("<hr/>", "hr")
+	f.Add("<img/>", "img")
+	f.Add("<input/>", "input")
+
 	f.Fuzz(func(t *testing.T, input, tags string) {
 		// Skip invalid tag names
 		if tags == "" {
@@ -3439,6 +3576,7 @@ func FuzzFilterRemovetags(f *testing.F) {
 }
 
 func FuzzBuiltinFilters(f *testing.F) {
+	// Original seed corpus
 	f.Add("foobar", "123")
 	f.Add("foobar", `123,456`)
 	f.Add("foobar", `123,456,"789"`)
@@ -3446,6 +3584,278 @@ func FuzzBuiltinFilters(f *testing.F) {
 	f.Add("foobar", `123,"test"`)
 	f.Add("foobar", "")
 	f.Add("123", "foobar")
+
+	// Empty and whitespace values
+	f.Add("", "")
+	f.Add("", "test")
+	f.Add("   ", "")
+	f.Add("   ", "test")
+	f.Add("\t\n\r", "")
+	f.Add("\t\n\r", "test")
+
+	// String values
+	f.Add("hello", "")
+	f.Add("hello world", "")
+	f.Add("hello world", " ")
+	f.Add("HELLO", "")
+	f.Add("Hello World", "")
+	f.Add("hello\nworld", "")
+	f.Add("hello\tworld", "")
+	f.Add("hello\r\nworld", "")
+	f.Add("  hello  ", "")
+	f.Add("a", "")
+	f.Add("ab", "")
+	f.Add("abc", "")
+
+	// Numeric string values
+	f.Add("0", "")
+	f.Add("1", "")
+	f.Add("-1", "")
+	f.Add("123", "")
+	f.Add("-123", "")
+	f.Add("123.456", "")
+	f.Add("-123.456", "")
+	f.Add("0.0", "")
+	f.Add("0.001", "")
+	f.Add(".5", "")
+	f.Add("5.", "")
+	f.Add("1e10", "")
+	f.Add("1E10", "")
+	f.Add("1e-10", "")
+	f.Add("1.5e10", "")
+	f.Add("999999999999999999", "")
+	f.Add("-999999999999999999", "")
+
+	// Numeric filter arguments
+	f.Add("test", "0")
+	f.Add("test", "1")
+	f.Add("test", "-1")
+	f.Add("test", "100")
+	f.Add("test", "-100")
+	f.Add("test", "0.5")
+	f.Add("test", "-0.5")
+	f.Add("test", "1.5")
+	f.Add("test", "999999999")
+	f.Add("test", "-999999999")
+
+	// Boolean-like values
+	f.Add("true", "")
+	f.Add("false", "")
+	f.Add("True", "")
+	f.Add("False", "")
+	f.Add("TRUE", "")
+	f.Add("FALSE", "")
+	f.Add("yes", "")
+	f.Add("no", "")
+	f.Add("on", "")
+	f.Add("off", "")
+	f.Add("1", "true")
+	f.Add("0", "false")
+
+	// HTML content
+	f.Add("<b>bold</b>", "")
+	f.Add("<script>alert(1)</script>", "")
+	f.Add("<p>paragraph</p>", "")
+	f.Add("<div><p>nested</p></div>", "")
+	f.Add("&lt;script&gt;", "")
+	f.Add("&amp;&lt;&gt;&quot;", "")
+	f.Add("<a href='test'>link</a>", "")
+	f.Add("<img src='test.png'>", "")
+
+	// URL content
+	f.Add("http://example.com", "")
+	f.Add("https://example.com/path?query=1&other=2", "")
+	f.Add("http://example.com/path with spaces", "")
+	f.Add("ftp://files.example.com", "")
+	f.Add("mailto:test@example.com", "")
+	f.Add("/path/to/file", "")
+	f.Add("../relative/path", "")
+
+	// Special characters
+	f.Add("hello'world", "")
+	f.Add(`hello"world`, "")
+	f.Add("hello\\world", "")
+	f.Add("hello/world", "")
+	f.Add("hello|world", "")
+	f.Add("hello:world", "")
+	f.Add("test@example.com", "")
+	f.Add("price: $100", "")
+	f.Add("100%", "")
+	f.Add("foo & bar", "")
+	f.Add("a < b > c", "")
+	f.Add("(parentheses)", "")
+	f.Add("[brackets]", "")
+	f.Add("{braces}", "")
+
+	// Unicode content
+	f.Add("你好世界", "")
+	f.Add("こんにちは", "")
+	f.Add("Привет мир", "")
+	f.Add("مرحبا", "")
+	f.Add("שלום", "")
+	f.Add("Ελληνικά", "")
+	f.Add("🎉🎊🎁", "")
+	f.Add("café", "")
+	f.Add("naïve", "")
+	f.Add("日本語テスト", "")
+	f.Add("你好", "2")
+	f.Add("🎉🎊", "1")
+
+	// Slice filter arguments
+	f.Add("hello world", ":5")
+	f.Add("hello world", "5:")
+	f.Add("hello world", "2:5")
+	f.Add("hello world", "-5:")
+	f.Add("hello world", ":-5")
+	f.Add("hello world", "-5:-2")
+	f.Add("hello world", ":0")
+	f.Add("hello world", "0:")
+	f.Add("hello world", ":")
+	f.Add("hello world", "::")
+	f.Add("hello world", "100:")
+	f.Add("hello world", ":100")
+	f.Add("hello world", "-100:")
+	f.Add("hello world", ":-100")
+
+	// Date/time format arguments
+	f.Add("2024-01-15", "Y-m-d")
+	f.Add("2024-01-15", "d/m/Y")
+	f.Add("2024-01-15", "F j, Y")
+	f.Add("15:30:45", "H:i:s")
+	f.Add("15:30:45", "g:i A")
+	f.Add("now", "Y-m-d H:i:s")
+
+	// Pluralize arguments
+	f.Add("1", "y,ies")
+	f.Add("2", "y,ies")
+	f.Add("0", "y,ies")
+	f.Add("1", "es")
+	f.Add("2", "es")
+	f.Add("1", "")
+	f.Add("2", "")
+
+	// Yesno arguments
+	f.Add("true", "yes,no")
+	f.Add("false", "yes,no")
+	f.Add("", "yes,no,maybe")
+	f.Add("true", "ja,nein,vielleicht")
+	f.Add("false", "是,否,也许")
+
+	// Float format arguments
+	f.Add("3.14159", "0")
+	f.Add("3.14159", "1")
+	f.Add("3.14159", "2")
+	f.Add("3.14159", "3")
+	f.Add("3.14159", "-1")
+	f.Add("3.14159", "-2")
+	f.Add("3.14159", "-3")
+	f.Add("100.00", "2")
+	f.Add("100.00", "-2")
+
+	// Truncation arguments
+	f.Add("hello world test", "5")
+	f.Add("hello world test", "10")
+	f.Add("hello world test", "0")
+	f.Add("hello world test", "1")
+	f.Add("hello world test", "100")
+	f.Add("hello world test", "-1")
+
+	// Width/alignment arguments
+	f.Add("test", "10")
+	f.Add("test", "20")
+	f.Add("test", "1")
+	f.Add("test", "0")
+	f.Add("test", "100")
+
+	// Stringformat arguments
+	f.Add("42", "%d")
+	f.Add("42", "%05d")
+	f.Add("42", "%-5d")
+	f.Add("3.14", "%.2f")
+	f.Add("3.14", "%10.2f")
+	f.Add("hello", "%s")
+	f.Add("hello", "%10s")
+	f.Add("hello", "%-10s")
+	f.Add("65", "%c")
+	f.Add("255", "%x")
+	f.Add("255", "%X")
+	f.Add("255", "%o")
+	f.Add("255", "%b")
+
+	// List-like values
+	f.Add("a,b,c", ",")
+	f.Add("a|b|c", "|")
+	f.Add("a b c", " ")
+	f.Add("a  b  c", " ")
+	f.Add("a::b::c", "::")
+	f.Add("", ",")
+	f.Add(",,,", ",")
+	f.Add("a,", ",")
+	f.Add(",a", ",")
+
+	// Edge cases for specific filters
+	f.Add("1234567890", "1")
+	f.Add("1234567890", "5")
+	f.Add("1234567890", "10")
+	f.Add("1234567890", "0")
+	f.Add("1234567890", "15")
+
+	// Filesizeformat values
+	f.Add("0", "")
+	f.Add("1", "")
+	f.Add("1023", "")
+	f.Add("1024", "")
+	f.Add("1048576", "")
+	f.Add("1073741824", "")
+	f.Add("1099511627776", "")
+
+	// Phone2numeric values
+	f.Add("1-800-TEST", "")
+	f.Add("1-800-PONGO", "")
+	f.Add("555-1234", "")
+	f.Add("ABC-DEFG", "")
+
+	// Slugify values
+	f.Add("Hello World", "")
+	f.Add("Hello, World!", "")
+	f.Add("  spaces  around  ", "")
+	f.Add("multiple---hyphens", "")
+	f.Add("UPPERCASE", "")
+	f.Add("Special!@#$%Characters", "")
+	f.Add("MixedCase123Numbers", "")
+
+	// JSON values
+	f.Add(`{"key": "value"}`, "")
+	f.Add(`[1, 2, 3]`, "")
+	f.Add(`"string"`, "")
+	f.Add(`123`, "")
+	f.Add(`true`, "")
+	f.Add(`null`, "")
+
+	// Complex filter arguments with quotes
+	f.Add("test", `"quoted"`)
+	f.Add("test", `'single'`)
+	f.Add("test", `"with spaces"`)
+	f.Add("test", `"with,comma"`)
+	f.Add("test", `"with:colon"`)
+	f.Add("test", `"with|pipe"`)
+
+	// Very long values
+	f.Add(string(make([]byte, 100)), "")
+	f.Add(string(make([]byte, 1000)), "")
+	f.Add("test", string(make([]byte, 100)))
+
+	// Null byte and control characters
+	f.Add("hello\x00world", "")
+	f.Add("test\x01\x02\x03", "")
+	f.Add("\x00", "")
+	f.Add("", "\x00")
+
+	// Mixed content
+	f.Add("Hello 世界 мир 🌍", "")
+	f.Add("<b>Hello</b> 世界", "")
+	f.Add("123 test 456", "")
+	f.Add("test\n<br>\nmore", "")
 
 	f.Fuzz(func(t *testing.T, value, filterArg string) {
 		ts := NewSet("fuzz-test", &DummyLoader{})
