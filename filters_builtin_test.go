@@ -2336,16 +2336,230 @@ func TestFilterDefaultIfNone(t *testing.T) {
 	})
 }
 
-// TestFilterEscapejsWithEscapeSequences tests escapejs with escape sequences
-func TestFilterEscapejsWithEscapeSequences(t *testing.T) {
+// TestFilterEscapejs tests escapejs with Django's test vectors.
+// Test cases from: https://github.com/django/django/blob/main/tests/utils_tests/test_html.py
+func TestFilterEscapejs(t *testing.T) {
 	tests := []struct {
 		name     string
 		input    string
-		contains string
+		expected string
 	}{
-		{"carriage return escape", "line1\\rline2", "\\u000D"},
-		{"newline escape", "line1\\nline2", "\\u000A"},
-		{"backslash", "path\\to\\file", "\\u005C"},
+		{
+			name:     "double and single quotes",
+			input:    `"double quotes" and 'single quotes'`,
+			expected: `\u0022double quotes\u0022 and \u0027single quotes\u0027`,
+		},
+		{
+			name:     "backslashes",
+			input:    `\ : backslashes, too`,
+			expected: `\u005C : backslashes, too`,
+		},
+		{
+			name:     "whitespace characters",
+			input:    "and lots of whitespace: \r\n\t\v\f\b",
+			expected: `and lots of whitespace: \u000D\u000A\u0009\u000B\u000C\u0008`,
+		},
+		{
+			name:     "script tags",
+			input:    `<script>and this</script>`,
+			expected: `\u003Cscript\u003Eand this\u003C/script\u003E`,
+		},
+		{
+			name:     "line and paragraph separators",
+			input:    "paragraph separator:\u2029and line separator:\u2028",
+			expected: `paragraph separator:\u2029and line separator:\u2028`,
+		},
+		{
+			name:     "backtick",
+			input:    "`",
+			expected: `\u0060`,
+		},
+		{
+			name:     "DEL character (0x7F)",
+			input:    "\u007f",
+			expected: `\u007F`,
+		},
+		{
+			name:     "C1 control start (0x80)",
+			input:    "\u0080",
+			expected: `\u0080`,
+		},
+		{
+			name:     "C1 control end (0x9F)",
+			input:    "\u009f",
+			expected: `\u009F`,
+		},
+		{
+			name:     "ampersand",
+			input:    "Tom & Jerry",
+			expected: `Tom \u0026 Jerry`,
+		},
+		{
+			name:     "equals sign",
+			input:    "a=b",
+			expected: `a\u003Db`,
+		},
+		{
+			name:     "hyphen/minus",
+			input:    "a-b",
+			expected: `a\u002Db`,
+		},
+		{
+			name:     "semicolon",
+			input:    "a;b",
+			expected: `a\u003Bb`,
+		},
+		{
+			name:     "NUL character",
+			input:    "a\x00b",
+			expected: `a\u0000b`,
+		},
+		{
+			name:     "plain text unchanged",
+			input:    "Hello World 123",
+			expected: "Hello World 123",
+		},
+		// Unicode character tests
+		{
+			name:     "emoji basic",
+			input:    "Hello 😀 World",
+			expected: "Hello 😀 World",
+		},
+		{
+			name:     "emoji sequence",
+			input:    "🎉🎊🎁",
+			expected: "🎉🎊🎁",
+		},
+		{
+			name:     "emoji with skin tone modifier",
+			input:    "👋🏽",
+			expected: "👋🏽",
+		},
+		{
+			name:     "emoji ZWJ sequence (family)",
+			input:    "👨‍👩‍👧‍👦",
+			expected: "👨‍👩‍👧‍👦",
+		},
+		{
+			name:     "Chinese characters",
+			input:    "你好世界",
+			expected: "你好世界",
+		},
+		{
+			name:     "Japanese hiragana and katakana",
+			input:    "こんにちはカタカナ",
+			expected: "こんにちはカタカナ",
+		},
+		{
+			name:     "Korean hangul",
+			input:    "안녕하세요",
+			expected: "안녕하세요",
+		},
+		{
+			name:     "Arabic text",
+			input:    "مرحبا بالعالم",
+			expected: "مرحبا بالعالم",
+		},
+		{
+			name:     "Hebrew text",
+			input:    "שלום עולם",
+			expected: "שלום עולם",
+		},
+		{
+			name:     "Thai text",
+			input:    "สวัสดีโลก",
+			expected: "สวัสดีโลก",
+		},
+		{
+			name:     "Greek text",
+			input:    "Γειά σου κόσμε",
+			expected: "Γειά σου κόσμε",
+		},
+		{
+			name:     "Cyrillic text",
+			input:    "Привет мир",
+			expected: "Привет мир",
+		},
+		{
+			name:     "combining characters (e with acute)",
+			input:    "café",
+			expected: "café",
+		},
+		{
+			name:     "combining diacritical marks",
+			input:    "a\u0301\u0327", // a + combining acute + combining cedilla
+			expected: "a\u0301\u0327",
+		},
+		{
+			name:     "mixed scripts with special chars",
+			input:    `日本語 & "English" <test>`,
+			expected: `日本語 \u0026 \u0022English\u0022 \u003Ctest\u003E`,
+		},
+		{
+			name:     "mathematical symbols",
+			input:    "∑∏∫∂∆",
+			expected: "∑∏∫∂∆",
+		},
+		{
+			name:     "currency symbols",
+			input:    "€£¥₹₽",
+			expected: "€£¥₹₽",
+		},
+		{
+			name:     "box drawing characters",
+			input:    "┌─┐│└─┘",
+			expected: "┌─┐│└─┘",
+		},
+		{
+			name:     "musical symbols",
+			input:    "♩♪♫♬",
+			expected: "♩♪♫♬",
+		},
+		{
+			name:     "zero width joiner",
+			input:    "a\u200Db",
+			expected: "a\u200Db",
+		},
+		{
+			name:     "zero width non-joiner",
+			input:    "a\u200Cb",
+			expected: "a\u200Cb",
+		},
+		{
+			name:     "byte order mark",
+			input:    "\uFEFFtext",
+			expected: "\uFEFFtext",
+		},
+		{
+			name:     "right-to-left override",
+			input:    "\u202Etext",
+			expected: "\u202Etext",
+		},
+		{
+			name:     "private use area",
+			input:    "\uE000\uE001",
+			expected: "\uE000\uE001",
+		},
+		{
+			name:     "supplementary plane character (Gothic letter)",
+			input:    "𐌰𐌱𐌲",
+			expected: "𐌰𐌱𐌲",
+		},
+		{
+			name:     "emoji in supplementary plane",
+			input:    "𝄞", // Musical G clef
+			expected: "𝄞",
+		},
+		{
+			name:     "all C0 control characters",
+			input:    "\x01\x02\x03\x04\x05\x06\x07\x0e\x0f\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1a\x1b\x1c\x1d\x1e\x1f",
+			expected: `\u0001\u0002\u0003\u0004\u0005\u0006\u0007\u000E\u000F\u0010\u0011\u0012\u0013\u0014\u0015\u0016\u0017\u0018\u0019\u001A\u001B\u001C\u001D\u001E\u001F`,
+		},
+		{
+			name:     "Unicode emoji with special chars",
+			input:    `<script>alert("🔥")</script>`,
+			expected: `\u003Cscript\u003Ealert(\u0022🔥\u0022)\u003C/script\u003E`,
+		},
 	}
 
 	for _, tt := range tests {
@@ -2354,22 +2568,54 @@ func TestFilterEscapejsWithEscapeSequences(t *testing.T) {
 			if err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
-			if !strings.Contains(result.String(), tt.contains) {
-				t.Errorf("expected %q to contain %q", result.String(), tt.contains)
+			if result.String() != tt.expected {
+				t.Errorf("got %q, want %q", result.String(), tt.expected)
 			}
 		})
 	}
 }
 
-// TestFilterEscapejsRuneError tests escapejs with invalid UTF-8
-func TestFilterEscapejsRuneError(t *testing.T) {
-	input := "hello\xffworld"
-	result, err := filterEscapejs(AsValue(input), nil)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
+// TestFilterEscapejsEscapeSequences tests pongo2-specific \r and \n escape sequence handling.
+// pongo2 interprets literal \r and \n in input strings as escape sequences.
+func TestFilterEscapejsEscapeSequences(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		expected string
+	}{
+		{
+			name:     "literal backslash-r",
+			input:    `line1\rline2`,
+			expected: `line1\u000Dline2`,
+		},
+		{
+			name:     "literal backslash-n",
+			input:    `line1\nline2`,
+			expected: `line1\u000Aline2`,
+		},
+		{
+			name:     "both escape sequences",
+			input:    `\r\n`,
+			expected: `\u000D\u000A`,
+		},
+		{
+			name:     "backslash followed by other char",
+			input:    `\t`,
+			expected: `\u005Ct`,
+		},
 	}
-	// Should handle invalid UTF-8 gracefully
-	_ = result.String()
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result, err := filterEscapejs(AsValue(tt.input), nil)
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if result.String() != tt.expected {
+				t.Errorf("got %q, want %q", result.String(), tt.expected)
+			}
+		})
+	}
 }
 
 // TestFilterTruncatewordsZero tests truncatewords with zero words

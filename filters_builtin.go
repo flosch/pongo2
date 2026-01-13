@@ -420,9 +420,21 @@ func filterSafe(in *Value, param *Value) (*Value, error) {
 	return in, nil // nothing to do here, just to keep track of the safe application
 }
 
-// filterEscapejs escapes characters for safe use in JavaScript strings.
+// filterEscapejs escapes characters for safe use in JavaScript string literals.
 // It converts special characters to their Unicode escape sequences (\uXXXX format).
-// Only alphanumeric characters, spaces, and forward slashes are left unescaped.
+//
+// Characters that are escaped (matching Django's behavior):
+//   - Backslash, quotes: \ ' " `
+//   - HTML special chars: < > & = -
+//   - Semicolon: ;
+//   - Control characters: 0x00-0x1F, 0x7F, 0x80-0x9F
+//   - Line separators: U+2028, U+2029
+//
+// Additionally, pongo2 interprets \r and \n escape sequences in the input
+// and converts them to their Unicode escapes (\u000D and \u000A).
+//
+// Note: This filter is for JavaScript string literals in single/double quotes.
+// It does NOT make strings safe for JavaScript template literals (backticks).
 //
 // Usage:
 //
@@ -436,42 +448,62 @@ func filterEscapejs(in *Value, param *Value) (*Value, error) {
 
 	var b bytes.Buffer
 
+	// Use index-based iteration to handle pongo2-specific \r and \n escape sequences
 	idx := 0
 	for idx < len(sin) {
 		c, size := utf8.DecodeRuneInString(sin[idx:])
-		if c == utf8.RuneError {
+		if c == utf8.RuneError && size == 1 {
+			// Invalid UTF-8, skip
 			idx += size
 			continue
 		}
 
-		if c == '\\' {
-			// Escape seq?
-			if idx+1 < len(sin) {
-				switch sin[idx+1] {
-				case 'r':
-					b.WriteString(fmt.Sprintf(`\u%04X`, '\r'))
-					idx += 2
-					continue
-				case 'n':
-					b.WriteString(fmt.Sprintf(`\u%04X`, '\n'))
-					idx += 2
-					continue
-					/*case '\'':
-						b.WriteString(fmt.Sprintf(`\u%04X`, '\''))
-						idx += 2
-						continue
-					case '"':
-						b.WriteString(fmt.Sprintf(`\u%04X`, '"'))
-						idx += 2
-						continue*/
-				}
+		// Handle pongo2-specific escape sequences: \r -> \u000D, \n -> \u000A
+		if c == '\\' && idx+size < len(sin) {
+			nextByte := sin[idx+size]
+			switch nextByte {
+			case 'r':
+				b.WriteString(`\u000D`)
+				idx += size + 1
+				continue
+			case 'n':
+				b.WriteString(`\u000A`)
+				idx += size + 1
+				continue
 			}
 		}
 
-		if (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == ' ' || c == '/' {
+		switch {
+		// Characters that must be escaped for JavaScript string safety
+		case c == '\\':
+			b.WriteString(`\u005C`)
+		case c == '\'':
+			b.WriteString(`\u0027`)
+		case c == '"':
+			b.WriteString(`\u0022`)
+		case c == '`':
+			b.WriteString(`\u0060`)
+		case c == '<':
+			b.WriteString(`\u003C`)
+		case c == '>':
+			b.WriteString(`\u003E`)
+		case c == '&':
+			b.WriteString(`\u0026`)
+		case c == '=':
+			b.WriteString(`\u003D`)
+		case c == '-':
+			b.WriteString(`\u002D`)
+		case c == ';':
+			b.WriteString(`\u003B`)
+		case c == '\u2028': // Line separator
+			b.WriteString(`\u2028`)
+		case c == '\u2029': // Paragraph separator
+			b.WriteString(`\u2029`)
+		// Control characters (0x00-0x1F, 0x7F, 0x80-0x9F)
+		case c <= 0x1F, c == 0x7F, (c >= 0x80 && c <= 0x9F):
+			fmt.Fprintf(&b, `\u%04X`, c)
+		default:
 			b.WriteRune(c)
-		} else {
-			b.WriteString(fmt.Sprintf(`\u%04X`, c))
 		}
 
 		idx += size
