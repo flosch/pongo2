@@ -1398,11 +1398,17 @@ func filterRandom(in *Value, param *Value) (*Value, error) {
 	return in.Index(i), nil
 }
 
-var reTag = regexp.MustCompile(`^[a-zA-Z]$`)
+var reTagName = regexp.MustCompile(`^[a-zA-Z][a-zA-Z0-9]*$`)
 
 // filterRemovetags removes specified HTML tags from the string while keeping the content.
-// Tag names are provided as a comma-separated list (single letters only).
-// Note: Use striptags to remove all HTML tags.
+// Tag names are provided as a comma-separated list.
+//
+// SECURITY WARNING: While this implementation applies stripping recursively to handle
+// obfuscated tags like "<sc<script>ript>", it is NOT guaranteed to be XSS-safe.
+// For security-critical applications, use a proper HTML sanitization library instead.
+//
+// This filter was removed from Django 1.10. See:
+// https://www.djangoproject.com/weblog/2014/aug/11/remove-tags-advisory/
 //
 // Usage:
 //
@@ -1410,30 +1416,61 @@ var reTag = regexp.MustCompile(`^[a-zA-Z]$`)
 //
 // Output: "bold and <i>italic</i>"
 //
-//	{{ "<a><b>text</b></a>"|removetags:"a,b" }}
+//	{{ "<script>alert('xss')</script>"|removetags:"script" }}
 //
-// Output: "text"
+// Output: "alert('xss')"
+//
+// Note: For XSS prevention, use a proper HTML sanitization library.
 func filterRemovetags(in *Value, param *Value) (*Value, error) {
 	s := in.String()
 	tags := strings.Split(param.String(), ",")
 
-	// Strip only specific tags
+	// Build regex patterns for all specified tags
+	var patterns []*regexp.Regexp
 	for _, tag := range tags {
-		if !reTag.MatchString(tag) {
+		tag = strings.TrimSpace(tag)
+		if tag == "" {
+			continue
+		}
+		if !reTagName.MatchString(tag) {
 			return nil, &Error{
 				Sender:    "filter:removetags",
-				OrigError: fmt.Errorf("invalid tag '%s'", tag),
+				OrigError: fmt.Errorf("invalid tag name '%s'", tag),
 			}
 		}
 
-		re, err := regexp.Compile(fmt.Sprintf("</?%s/?>", tag))
+		// Match opening tags (with optional attributes), closing tags, and self-closing tags
+		// Case-insensitive matching
+		// Pattern matches: <tag>, <tag attr>, </tag>, <tag/>, <tag />
+		re, err := regexp.Compile(fmt.Sprintf(`(?i)</?%s(?:\s[^>]*)?/?>`, regexp.QuoteMeta(tag)))
 		if err != nil {
 			return nil, &Error{
 				Sender:    "filter:removetags",
 				OrigError: fmt.Errorf("removetags-filter regexp error with tag '%s': %v", tag, err),
 			}
 		}
-		s = re.ReplaceAllString(s, "")
+		patterns = append(patterns, re)
+	}
+
+	// Apply stripping recursively until no more changes occur
+	// This handles obfuscated tags like "<sc<script>ript>"
+	const maxIterations = 100 // Prevent infinite loops
+	for i := range maxIterations {
+		prev := s
+		for _, re := range patterns {
+			s = re.ReplaceAllString(s, "")
+		}
+		if s == prev {
+			// No more changes, we're done
+			return AsValue(strings.TrimSpace(s)), nil
+		}
+		if i == maxIterations-1 {
+			// Reached max iterations without converging - return error for security
+			return nil, &Error{
+				Sender:    "filter:removetags",
+				OrigError: errors.New("max iterations reached; aborted for security reasons"),
+			}
+		}
 	}
 
 	return AsValue(strings.TrimSpace(s)), nil

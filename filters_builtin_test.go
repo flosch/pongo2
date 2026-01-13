@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"testing"
 	"time"
@@ -1724,17 +1725,17 @@ func TestFilterRemovetagsEdgeCases(t *testing.T) {
 		}
 	})
 
-	t.Run("invalid tag name - multiple letters", func(t *testing.T) {
+	t.Run("valid tag name - multiple letters", func(t *testing.T) {
 		result, err := filterRemovetags(AsValue("<div>content</div>"), AsValue("div"))
-		if err == nil {
-			t.Error("expected error for invalid tag name")
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
 		}
-		if result != nil {
-			t.Error("expected nil result on error")
+		if result.String() != "content" {
+			t.Errorf("got %q, want %q", result.String(), "content")
 		}
 	})
 
-	t.Run("invalid tag name - number", func(t *testing.T) {
+	t.Run("invalid tag name - starts with number", func(t *testing.T) {
 		result, err := filterRemovetags(AsValue("<1>content</1>"), AsValue("1"))
 		if err == nil {
 			t.Error("expected error for invalid tag name")
@@ -1763,6 +1764,122 @@ func TestFilterRemovetagsEdgeCases(t *testing.T) {
 			t.Errorf("got %q, want %q", result.String(), "text")
 		}
 	})
+}
+
+// TestFilterRemovetagsNested tests removetags with nested/obfuscated tags
+func TestFilterRemovetagsNested(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		tags     string
+		expected string
+	}{
+		{
+			name:     "simple tag removal",
+			input:    "<b>bold</b> text",
+			tags:     "b",
+			expected: "bold text",
+		},
+		{
+			name:     "nested obfuscated tag - security test",
+			input:    "<sc<script>ript>alert('XSS')</sc</script>ript>",
+			tags:     "script",
+			expected: "alert('XSS')",
+		},
+		{
+			name:     "double nested",
+			input:    "<scr<scr<script>ipt>ipt>alert(1)</scr</scr</script>ipt>ipt>",
+			tags:     "script",
+			expected: "alert(1)",
+		},
+		{
+			name:     "tag with attributes",
+			input:    `<a href="http://example.com" class="link">click</a>`,
+			tags:     "a",
+			expected: "click",
+		},
+		{
+			name:     "multiple tags",
+			input:    "<b><i>bold italic</i></b>",
+			tags:     "b,i",
+			expected: "bold italic",
+		},
+		{
+			name:     "case insensitive",
+			input:    "<SCRIPT>alert(1)</SCRIPT>",
+			tags:     "script",
+			expected: "alert(1)",
+		},
+		{
+			name:     "self-closing tag",
+			input:    "line1<br>line2<br/>line3",
+			tags:     "br",
+			expected: "line1line2line3",
+		},
+		{
+			name:     "tag not in list preserved",
+			input:    "<b>bold</b> and <i>italic</i>",
+			tags:     "b",
+			expected: "bold and <i>italic</i>",
+		},
+		{
+			name:     "empty input",
+			input:    "",
+			tags:     "script",
+			expected: "",
+		},
+		{
+			name:     "no tags present",
+			input:    "plain text",
+			tags:     "script",
+			expected: "plain text",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result, err := filterRemovetags(AsValue(tt.input), AsValue(tt.tags))
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if result.String() != tt.expected {
+				t.Errorf("got %q, want %q", result.String(), tt.expected)
+			}
+		})
+	}
+}
+
+// TestFilterRemovetagsInvalidTag tests error handling for invalid tag names
+func TestFilterRemovetagsInvalidTag(t *testing.T) {
+	invalidTags := []string{
+		"<script>",
+		"123",
+		"tag with space",
+		"tag<>",
+	}
+
+	for _, tag := range invalidTags {
+		t.Run(tag, func(t *testing.T) {
+			_, err := filterRemovetags(AsValue("test"), AsValue(tag))
+			if err == nil {
+				t.Errorf("expected error for invalid tag %q", tag)
+			}
+		})
+	}
+}
+
+// TestFilterRemovetagsMaxIterations tests that removetags returns an error when max iterations is reached
+func TestFilterRemovetagsMaxIterations(t *testing.T) {
+	// Create a pathological input that would require more than 100 iterations
+	// by deeply nesting tag fragments
+	input := strings.Repeat("<scr", 150) + "ipt>" + strings.Repeat("ipt>", 149)
+	_, err := filterRemovetags(AsValue(input), AsValue("script"))
+	if err == nil {
+		t.Error("expected error when max iterations reached")
+	}
+	if err != nil && !strings.Contains(err.Error(), "max iterations") {
+		t.Errorf("expected max iterations error, got: %v", err)
+	}
 }
 
 // TestFilterSliceInvalidFormat tests the error case for invalid slice format
@@ -3265,6 +3382,60 @@ func TestFilterEscapeseqViaTemplate(t *testing.T) {
 			}
 		})
 	}
+}
+
+// FuzzFilterRemovetags fuzzes the removetags filter for security testing
+func FuzzFilterRemovetags(f *testing.F) {
+	// Add seed corpus with known problematic inputs
+	f.Add("<script>alert(1)</script>", "script")
+	f.Add("<sc<script>ript>alert(1)</sc</script>ript>", "script")
+	f.Add("<scr<scr<script>ipt>ipt>x</scr</scr</script>ipt>ipt>", "script")
+	f.Add("<SCRIPT>alert(1)</SCRIPT>", "script")
+	f.Add("<script src='x'>", "script")
+	f.Add("<script>", "script")
+	f.Add("</script>", "script")
+	f.Add("<script >alert(1)</script >", "script")
+	f.Add("<a href='javascript:alert(1)'>click</a>", "a")
+	f.Add("<img src=x onerror=alert(1)>", "img")
+	f.Add("<<script>script>alert(1)<</script>/script>", "script")
+	f.Add("<svg onload=alert(1)>", "svg")
+	f.Add("<div><script>alert(1)</script></div>", "script")
+	f.Add("normal text", "script")
+	f.Add("", "script")
+	f.Add("<b>bold</b>", "b,i,script")
+
+	f.Fuzz(func(t *testing.T, input, tags string) {
+		// Skip invalid tag names
+		if tags == "" {
+			return
+		}
+
+		result, err := filterRemovetags(AsValue(input), AsValue(tags))
+		if err != nil {
+			// Errors are expected for invalid tag names
+			return
+		}
+
+		// The result should not contain any of the specified tags
+		tagList := strings.Split(tags, ",")
+		for _, tag := range tagList {
+			tag = strings.TrimSpace(tag)
+			if tag == "" {
+				continue
+			}
+			// Skip invalid tag names (same validation as the filter)
+			if !reTagName.MatchString(tag) {
+				continue
+			}
+			// Check for opening/closing tags using the same regex pattern as the filter
+			// This ensures we only match actual tags, not substrings (e.g., <s vs <svg)
+			re := regexp.MustCompile(fmt.Sprintf(`(?i)</?%s(?:\s[^>]*)?/?>`, regexp.QuoteMeta(tag)))
+			if re.MatchString(result.String()) {
+				t.Errorf("result still contains <%s> tag: input=%q, tags=%q, result=%q",
+					tag, input, tags, result.String())
+			}
+		}
+	})
 }
 
 func FuzzBuiltinFilters(f *testing.F) {
