@@ -2277,27 +2277,74 @@ func TestFilterTruncatewordsNegative(t *testing.T) {
 	}
 }
 
-// TestFilterTruncatecharsZero tests truncatechars with zero length
+// TestFilterTruncatecharsZero tests truncatechars with zero length.
+// Django returns just the ellipsis for length <= 0 when the string is longer.
 func TestFilterTruncatecharsZero(t *testing.T) {
 	result, err := filterTruncatechars(AsValue("hello"), AsValue(0))
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if result.String() != "hello" {
-		t.Errorf("got %q, want %q", result.String(), "hello")
+	if result.String() != "…" {
+		t.Errorf("got %q, want %q", result.String(), "…")
 	}
 }
 
-// TestFilterTruncatecharsLessThanThree tests truncatechars with length < 3
-func TestFilterTruncatecharsLessThanThree(t *testing.T) {
-	result, err := filterTruncatechars(AsValue("hello"), AsValue(2))
+// TestFilterTruncatecharsLengthOne tests truncatechars with length = 1
+func TestFilterTruncatecharsLengthOne(t *testing.T) {
+	result, err := filterTruncatechars(AsValue("hello"), AsValue(1))
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	// Less than 3 chars: no room for ellipsis, just truncate
-	if result.String() != "he" {
-		t.Errorf("got %q, want %q", result.String(), "he")
+	// Length 1 means just ellipsis (using proper ellipsis character "…")
+	if result.String() != "…" {
+		t.Errorf("got %q, want %q", result.String(), "…")
 	}
+}
+
+// TestFilterTruncatecharsEllipsis tests that truncatechars uses proper ellipsis character
+func TestFilterTruncatecharsEllipsis(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		length   int
+		contains string
+	}{
+		{
+			name:     "truncated string has ellipsis",
+			input:    "Hello World",
+			length:   8,
+			contains: "…", // Unicode ellipsis U+2026
+		},
+		{
+			name:     "short string not truncated",
+			input:    "Hi",
+			length:   10,
+			contains: "Hi",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result, err := filterTruncatechars(AsValue(tt.input), AsValue(tt.length))
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if !strings.Contains(result.String(), tt.contains) {
+				t.Errorf("got %q, want to contain %q", result.String(), tt.contains)
+			}
+		})
+	}
+
+	// Verify we're NOT using three dots
+	t.Run("not using three dots", func(t *testing.T) {
+		result, err := filterTruncatechars(AsValue("Hello World"), AsValue(8))
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if strings.Contains(result.String(), "...") {
+			t.Errorf("should use ellipsis (…) not three dots (...), got %q", result.String())
+		}
+	})
 }
 
 // TestFilterRjustSmallerThanInput tests rjust when width is smaller than input

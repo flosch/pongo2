@@ -116,17 +116,17 @@ func init() {
 	mustRegisterFilter("integer", filterInteger) // pongo-specific
 }
 
+const truncateEllipsis = "…"
+
 func filterTruncatecharsHelper(s string, newLen int) string {
-	if newLen <= 0 {
-		return s
-	}
 	runes := []rune(s)
 	if newLen < len(runes) {
-		if newLen >= 3 {
-			return fmt.Sprintf("%s...", string(runes[:newLen-3]))
+		if newLen >= 1 {
+			// Use proper ellipsis character (…) like Django does
+			return string(runes[:newLen-1]) + truncateEllipsis
 		}
-		// Not enough space for the ellipsis
-		return string(runes[:newLen])
+		// Django returns just the ellipsis for length <= 0
+		return truncateEllipsis
 	}
 	return string(runes)
 }
@@ -237,43 +237,46 @@ func filterTruncateHTMLHelper(value string, newOutput *bytes.Buffer, cond func()
 	}
 }
 
-// filterTruncatechars truncates a string to the specified number of characters.
-// If the string is longer than the specified length, it will be truncated and
-// an ellipsis ("...") will be appended. The ellipsis counts towards the character limit.
+// filterTruncatechars truncates a string if it is longer than the specified number
+// of characters. Truncated strings will end with a translatable ellipsis character ("…").
+// The ellipsis counts towards the character limit.
 //
 // Usage:
 //
-//	{{ "Hello World"|truncatechars:5 }}
+//	{{ "Joel is a slug"|truncatechars:7 }}
 //
-// Output: "He..."
+// Output: "Joel i…"
 //
-// {{ "Hi"|truncatechars:5 }}
+//	{{ "Hi"|truncatechars:5 }}
 //
-// Output: "Hi"
+// Output: "Hi" (no truncation needed)
 func filterTruncatechars(in *Value, param *Value) (*Value, error) {
 	s := in.String()
 	newLen := param.Integer()
 	return AsValue(filterTruncatecharsHelper(s, newLen)), nil
 }
 
-// filterTruncatecharsHTML truncates a string to the specified number of characters,
-// preserving HTML tags. HTML tags are not counted towards the character limit.
-// If truncated, an ellipsis ("...") is appended. Open HTML tags are properly closed.
+// filterTruncatecharsHTML truncates a string if it is longer than the specified number
+// of characters, similar to truncatechars but aware of HTML tags. Any tags that are
+// opened in the string and not closed before the truncation point are closed immediately
+// after the truncation. HTML tags are not counted towards the character limit.
+// Truncated strings will end with an ellipsis character ("…") which counts towards the limit.
+// Newlines in the HTML content will be preserved.
 //
 // Usage:
 //
-//	{{ "<p>Hello World</p>"|truncatechars_html:8 }}
+//	{{ "<p>Joel is a slug</p>"|truncatechars_html:7 }}
 //
-// Output: "<p>Hello...</p>"
+// Output: "<p>Joel i…</p>"
 func filterTruncatecharsHTML(in *Value, param *Value) (*Value, error) {
 	value := in.String()
-	newLen := max(param.Integer()-3, 0)
+	newLen := max(param.Integer()-1, 0)
 
-	newOutput := bytes.NewBuffer(nil)
+	var newOutput bytes.Buffer
 
 	textcounter := 0
 
-	filterTruncateHTMLHelper(value, newOutput, func() bool {
+	filterTruncateHTMLHelper(value, &newOutput, func() bool {
 		return textcounter >= newLen
 	}, func(c rune, s int, idx int) int {
 		textcounter++
@@ -282,7 +285,7 @@ func filterTruncatecharsHTML(in *Value, param *Value) (*Value, error) {
 		return idx + s
 	}, func() {
 		if textcounter >= newLen && textcounter < len(value) {
-			newOutput.WriteString("...")
+			newOutput.WriteString(truncateEllipsis)
 		}
 	})
 

@@ -58,11 +58,11 @@ Hello There!
 你好世界
 
 truncatechars
-Joel i...
-Joel is a ...
+Joel is …
+Joel is a sl…
 Joel is a slug
-你
-你好
+…
+你…
 
 divisibleby
 True
@@ -319,12 +319,12 @@ es
 好世
 
 truncatechars_html
-This is a long test wh...
-<div class="foo"><ul class="foo"><li class="foo"><p class="foo">This is a long test wh...</p></li></ul></div>
-<p class='test' id='foo'>This is a long test wh...</p>
-<a name='link'><p>This </a>is a long test wh...</p>
-<p>This </a>is a long test wh...</p>
-<p>This...</p>
+This is a long test whic…
+<div class="foo"><ul class="foo"><li class="foo"><p class="foo">This is a long test whic…</p></li></ul></div>
+<p class='test' id='foo'>This is a long test whic…</p>
+<a name='link'><p>This </a>is a long test whic…</p>
+<p>This </a>is a long test whic…</p>
+<p>This i…</p>
 
 truncatewords_html
 This is a long test which will be cutted after some words.
