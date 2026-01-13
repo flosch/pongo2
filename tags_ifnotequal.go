@@ -2,8 +2,10 @@ package pongo2
 
 // tagIfNotEqualNode represents the {% ifnotequal %} tag.
 //
+// DEPRECATED: This tag is considered legacy in Django. Use {% if %} with
+// comparison operators instead: {% if var1 != var2 %}
+//
 // The ifnotequal tag compares two values and renders the block if they are NOT equal.
-// This is a legacy tag; prefer using {% if var1 != var2 %} instead.
 //
 // Basic usage:
 //
@@ -11,22 +13,13 @@ package pongo2
 //	    Welcome, regular user!
 //	{% endifnotequal %}
 //
-// Comparing two variables:
+// Preferred alternative using {% if %}:
 //
-//	{% ifnotequal user.id post.author_id %}
-//	    You are not the author of this post.
-//	{% endifnotequal %}
+//	{% if user.name != "Admin" %}
+//	    Welcome, regular user!
+//	{% endif %}
 //
-// Using else clause:
-//
-//	{% ifnotequal status "banned" %}
-//	    <span class="green">Account in good standing</span>
-//	{% else %}
-//	    <span class="red">Account banned</span>
-//	{% endifnotequal %}
-//
-// Note: This tag is equivalent to {% if var1 != var2 %}. The if tag is
-// preferred as it supports more complex expressions.
+// Deprecated: Use {% if var1 != var2 %} instead.
 type tagIfNotEqualNode struct {
 	var1, var2  IEvaluator
 	thenWrapper *NodeWrapper

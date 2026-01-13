@@ -2,8 +2,10 @@ package pongo2
 
 // tagIfEqualNode represents the {% ifequal %} tag.
 //
+// DEPRECATED: This tag is considered legacy in Django. Use {% if %} with
+// comparison operators instead: {% if var1 == var2 %}
+//
 // The ifequal tag compares two values and renders the block if they are equal.
-// This is a legacy tag; prefer using {% if var1 == var2 %} instead.
 //
 // Basic usage:
 //
@@ -11,22 +13,13 @@ package pongo2
 //	    Hello, John!
 //	{% endifequal %}
 //
-// Comparing two variables:
+// Preferred alternative using {% if %}:
 //
-//	{% ifequal user.id comment.author_id %}
-//	    <span class="author-badge">Author</span>
-//	{% endifequal %}
+//	{% if user.name == "John" %}
+//	    Hello, John!
+//	{% endif %}
 //
-// Using else clause:
-//
-//	{% ifequal status "active" %}
-//	    <span class="green">Active</span>
-//	{% else %}
-//	    <span class="red">Inactive</span>
-//	{% endifequal %}
-//
-// Note: This tag is equivalent to {% if var1 == var2 %}. The if tag is
-// preferred as it supports more complex expressions.
+// Deprecated: Use {% if var1 == var2 %} instead.
 type tagIfEqualNode struct {
 	var1, var2  IEvaluator
 	thenWrapper *NodeWrapper
