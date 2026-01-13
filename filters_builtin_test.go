@@ -4116,3 +4116,664 @@ func FuzzBuiltinFilters(f *testing.F) {
 		}
 	})
 }
+
+// TestFilterStriptags tests striptags filter with Django test vectors and edge cases.
+// The filter uses a regex that handles quoted attributes containing >, and applies
+// stripping recursively to handle obfuscated tags.
+func TestFilterStriptags(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		expected string
+	}{
+		// Django test vectors
+		{
+			name:     "basic paragraph with entities",
+			input:    "<p>See: &#39;&eacute; is an apostrophe followed by e acute</p>",
+			expected: "See: &#39;&eacute; is an apostrophe followed by e acute",
+		},
+		{
+			name:     "unclosed tag at start",
+			input:    "<adf>a",
+			expected: "a",
+		},
+		{
+			name:     "closing tag without opener",
+			input:    "</adf>a",
+			expected: "a",
+		},
+		{
+			name:     "nested unclosed tags",
+			input:    "<asdf><asdf>e",
+			expected: "e",
+		},
+		{
+			name:     "incomplete tag not stripped",
+			input:    "hi, <f x",
+			expected: "hi, <f x",
+		},
+		{
+			name:     "less-than comparison not stripped",
+			input:    "234<235, right?",
+			expected: "234<235, right?",
+		},
+		{
+			name:     "single char between tags",
+			input:    "<x>b<y>",
+			expected: "b",
+		},
+		{
+			name:     "onclick with embedded quotes",
+			input:    "a<p onclick=\"alert('<test>')\">b</p>c",
+			expected: "abc",
+		},
+		{
+			name:     "adjacent tags no space",
+			input:    "<strong>foo</strong><a href=\"...\">bar</a>",
+			expected: "foobar",
+		},
+		{
+			name:     "ampersand and entities preserved",
+			input:    "&gotcha&#;<>",
+			expected: "&gotcha&#;<>",
+		},
+		// Additional edge cases
+		{
+			name:     "empty string",
+			input:    "",
+			expected: "",
+		},
+		{
+			name:     "no tags",
+			input:    "Hello World",
+			expected: "Hello World",
+		},
+		{
+			name:     "self-closing tags",
+			input:    "Hello<br/>World<hr />!",
+			expected: "HelloWorld!",
+		},
+		{
+			name:     "multiple spaces in tag",
+			input:    "<div   class=\"foo\"  >content</div>",
+			expected: "content",
+		},
+		{
+			name:     "newlines in tag",
+			input:    "<div\nclass=\"foo\"\n>content</div>",
+			expected: "content",
+		},
+		{
+			name:     "tabs in tag",
+			input:    "<div\tclass=\"foo\">content</div>",
+			expected: "content",
+		},
+		{
+			name:     "deeply nested tags",
+			input:    "<div><span><b><i>text</i></b></span></div>",
+			expected: "text",
+		},
+		{
+			name:     "tag with many attributes",
+			input:    `<a href="url" class="cls" id="id" data-x="y">link</a>`,
+			expected: "link",
+		},
+		{
+			name:     "uppercase tags",
+			input:    "<DIV>content</DIV>",
+			expected: "content",
+		},
+		{
+			name:     "mixed case tags",
+			input:    "<DiV>content</dIv>",
+			expected: "content",
+		},
+		{
+			name:     "script tag",
+			input:    "<script>alert('xss')</script>",
+			expected: "alert('xss')",
+		},
+		{
+			name:     "style tag",
+			input:    "<style>.foo { color: red; }</style>",
+			expected: ".foo { color: red; }",
+		},
+		{
+			name:     "html comment",
+			input:    "before<!-- comment -->after",
+			expected: "beforeafter",
+		},
+		{
+			name:     "multiline comment",
+			input:    "a<!--\nmultiline\ncomment\n-->b",
+			expected: "ab",
+		},
+		{
+			name:     "DOCTYPE",
+			input:    "<!DOCTYPE html><html>content</html>",
+			expected: "content",
+		},
+		{
+			name:     "CDATA section",
+			input:    "<![CDATA[some data]]>text",
+			expected: "text",
+		},
+		{
+			name:     "XML processing instruction",
+			input:    "<?xml version=\"1.0\"?>content",
+			expected: "content",
+		},
+		{
+			name:     "unicode content preserved",
+			input:    "<p>你好世界</p>",
+			expected: "你好世界",
+		},
+		{
+			name:     "emoji preserved",
+			input:    "<span>Hello 😀 World</span>",
+			expected: "Hello 😀 World",
+		},
+		{
+			name:     "RTL text preserved",
+			input:    "<div>مرحبا</div>",
+			expected: "مرحبا",
+		},
+		{
+			name:     "tag inside attribute value",
+			input:    `<a title="<b>bold</b>">link</a>`,
+			expected: "link",
+		},
+		{
+			name:     "greater-than in attribute",
+			input:    `<div data-value="a>b">content</div>`,
+			expected: "content",
+		},
+		{
+			name:     "single quotes in attribute",
+			input:    "<div class='foo'>content</div>",
+			expected: "content",
+		},
+		{
+			name:     "unquoted attribute",
+			input:    "<div class=foo>content</div>",
+			expected: "content",
+		},
+		{
+			name:     "multiple tags on line",
+			input:    "<b>a</b> <i>b</i> <u>c</u>",
+			expected: "a b c",
+		},
+		{
+			name:     "whitespace between tags trimmed",
+			input:    "  <p>text</p>  ",
+			expected: "text",
+		},
+		{
+			name:     "void elements",
+			input:    "a<br>b<hr>c<img src='x'>d",
+			expected: "abcd",
+		},
+		{
+			name:     "SVG tag",
+			input:    "<svg><circle cx=\"50\"/></svg>text",
+			expected: "text",
+		},
+		{
+			name:     "math tag",
+			input:    "<math><mi>x</mi></math>",
+			expected: "x",
+		},
+		// Security-sensitive edge cases
+		{
+			name:     "null byte in tag name",
+			input:    "<scr\x00ipt>alert(1)</script>",
+			expected: "alert(1)",
+		},
+		{
+			name:     "null byte before tag",
+			input:    "\x00<script>x</script>",
+			expected: "x",
+		},
+		{
+			name:     "encoded angle brackets",
+			input:    "&lt;script&gt;alert(1)&lt;/script&gt;",
+			expected: "&lt;script&gt;alert(1)&lt;/script&gt;",
+		},
+		{
+			name:     "double encoded not decoded",
+			input:    "&amp;lt;script&amp;gt;",
+			expected: "&amp;lt;script&amp;gt;",
+		},
+		{
+			name:     "incomplete close tag",
+			input:    "text</",
+			expected: "text</",
+		},
+		{
+			name:     "incomplete open tag at end",
+			input:    "text<div",
+			expected: "text<div",
+		},
+		{
+			name:     "just angle brackets",
+			input:    "<>",
+			expected: "<>",
+		},
+		{
+			name:     "angle bracket space",
+			input:    "< >",
+			expected: "< >",
+		},
+		{
+			name:     "multiple less-than",
+			input:    "a<<b",
+			expected: "a<<b",
+		},
+		{
+			name:     "multiple greater-than",
+			input:    "a>>b",
+			expected: "a>>b",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result, err := filterStriptags(AsValue(tt.input), nil)
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if result.String() != tt.expected {
+				t.Errorf("got %q, want %q", result.String(), tt.expected)
+			}
+		})
+	}
+}
+
+// TestFilterStriptagsDjangoCompatibility verifies behavior matches Django's strip_tags.
+// Test vectors verified against Django's HTMLParser-based implementation.
+// Some obfuscation patterns leave partial content - this is expected Django behavior.
+func TestFilterStriptagsDjangoCompatibility(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		expected string
+		comment  string
+	}{
+		// Django test vectors from tests/utils_tests/test_html.py
+		{
+			name:     "paragraph with entities",
+			input:    "<p>See: &#39;&eacute; is an apostrophe followed by e acute</p>",
+			expected: "See: &#39;&eacute; is an apostrophe followed by e acute",
+			comment:  "entities preserved",
+		},
+		{
+			name:     "unclosed tag at start",
+			input:    "<adf>a",
+			expected: "a",
+			comment:  "unclosed tag stripped",
+		},
+		{
+			name:     "closing tag without opener",
+			input:    "</adf>a",
+			expected: "a",
+			comment:  "orphan closing tag stripped",
+		},
+		{
+			name:     "nested unclosed tags",
+			input:    "<asdf><asdf>e",
+			expected: "e",
+			comment:  "multiple unclosed tags stripped",
+		},
+		{
+			name:     "incomplete tag not stripped",
+			input:    "hi, <f x",
+			expected: "hi, <f x",
+			comment:  "incomplete tag preserved (no closing >)",
+		},
+		{
+			name:     "less-than comparison",
+			input:    "234<235, right?",
+			expected: "234<235, right?",
+			comment:  "math comparison preserved",
+		},
+		{
+			name:     "single char between tags",
+			input:    "<x>b<y>",
+			expected: "b",
+			comment:  "content extracted",
+		},
+		{
+			name:     "adjacent tags",
+			input:    "<strong>foo</strong><a href=\"...\">bar</a>",
+			expected: "foobar",
+			comment:  "both tags stripped",
+		},
+		{
+			name:     "ampersand and entities",
+			input:    "&gotcha&#;<>",
+			expected: "&gotcha&#;<>",
+			comment:  "non-tags preserved",
+		},
+		// Obfuscation patterns - Django also leaves partial content
+		{
+			name:     "nested script tags",
+			input:    "<sc<script>ript>alert(1)</script>",
+			expected: "ript>alert(1)",
+			comment:  "Django: inner tag breaks outer structure",
+		},
+		{
+			name:     "comment obfuscation",
+			input:    "<sc<!-- -->ript>test</script>",
+			expected: "ript>test",
+			comment:  "Django: comment stripped first leaves broken tag",
+		},
+		{
+			name:     "double angle bracket",
+			input:    "<<script>script>alert(1)</script>",
+			expected: "alert(1)",
+			comment:  "multi-pass handles this case",
+		},
+		{
+			name:     "triple nested",
+			input:    "<<<script>>script>alert(1)</script>",
+			expected: "<<>script>alert(1)",
+			comment:  "Django: leaves <<> as non-tag",
+		},
+		// More obfuscation attempts
+		{
+			name:     "tag inside tag name",
+			input:    "<scr<b>ipt>alert(1)</script>",
+			expected: "ipt>alert(1)",
+			comment:  "inner tag breaks tag name",
+		},
+		{
+			name:     "closing tag inside opener",
+			input:    "<scr</b>ipt>alert(1)</script>",
+			expected: "ipt>alert(1)",
+			comment:  "closing tag in opener breaks structure",
+		},
+		{
+			name:     "multiple nested tags",
+			input:    "<s<s<script>cript>cript>x</script>",
+			expected: "cript>cript>x",
+			comment:  "multiple nested breaks",
+		},
+		{
+			name:     "attribute with nested tag",
+			input:    "<div title=\"<script>\">content</div>",
+			expected: "content",
+			comment:  "quoted attributes handled correctly",
+		},
+		{
+			name:     "newline in tag",
+			input:    "<script\n>alert(1)</script\n>",
+			expected: "alert(1)",
+			comment:  "newlines in tags handled",
+		},
+		{
+			name:     "tab in tag",
+			input:    "<script\t>alert(1)</script\t>",
+			expected: "alert(1)",
+			comment:  "tabs in tags handled",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result, err := filterStriptags(AsValue(tt.input), nil)
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if result.String() != tt.expected {
+				t.Errorf("got %q, want %q (%s)", result.String(), tt.expected, tt.comment)
+			}
+		})
+	}
+}
+
+// TestFilterStriptagsMaxIterations tests that striptags returns an error when max iterations is reached.
+// This protects against denial-of-service attacks with maliciously crafted input.
+func TestFilterStriptagsMaxIterations(t *testing.T) {
+	// Create input that requires more than 50 iterations to fully strip.
+	// Pattern: N opening brackets followed by N letter-closing pairs
+	// Example: <<<a>b>c> requires 3 iterations because:
+	//   - Iter 0: removes <a>, leaves <<b>c>
+	//   - Iter 1: removes <b>, leaves <c>
+	//   - Iter 2: removes <c>, leaves empty
+	// With 60 levels, we need 60 iterations to fully strip.
+	var builder strings.Builder
+	for range 60 {
+		builder.WriteByte('<')
+	}
+	for i := range 60 {
+		builder.WriteByte('a' + byte(i%26))
+		builder.WriteByte('>')
+	}
+
+	input := builder.String()
+
+	_, err := filterStriptags(AsValue(input), nil)
+	if err == nil {
+		t.Error("expected error when max iterations reached")
+	}
+	if err != nil && !strings.Contains(err.Error(), "did not converge") {
+		t.Errorf("expected convergence error, got: %v", err)
+	}
+}
+
+// TestFilterStriptagsConverges tests that normal input converges within the iteration limit.
+func TestFilterStriptagsConverges(t *testing.T) {
+	tests := []struct {
+		name  string
+		input string
+	}{
+		{"simple tag", "<script>alert(1)</script>"},
+		{"nested tags", "<div><span><b>text</b></span></div>"},
+		{"double nested", "<<script>script>alert(1)</script>"},
+		{"triple nested angle", "<<<div>>>content</div>"},
+		{"many tags", strings.Repeat("<b>x</b>", 100)},
+		{"deep nesting", strings.Repeat("<div>", 20) + "content" + strings.Repeat("</div>", 20)},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := filterStriptags(AsValue(tt.input), nil)
+			if err != nil {
+				t.Errorf("unexpected error for input %q: %v", tt.input, err)
+			}
+		})
+	}
+}
+
+// FuzzFilterStriptags fuzzes the striptags filter for security testing
+func FuzzFilterStriptags(f *testing.F) {
+	// Django test vectors from tests/utils_tests/test_html.py
+	f.Add("<p>See: &#39;&eacute; is an apostrophe followed by e acute</p>")
+	f.Add("<adf>a")
+	f.Add("</adf>a")
+	f.Add("<asdf><asdf>e")
+	f.Add("hi, <f x")
+	f.Add("234<235, right?")
+	f.Add("<x>b<y>")
+	f.Add("<strong>foo</strong><a href=\"...\">bar</a>")
+	f.Add("&gotcha&#;<>")
+
+	// Basic HTML tags
+	f.Add("<p>Hello World</p>")
+	f.Add("<div>content</div>")
+	f.Add("<span>text</span>")
+	f.Add("<b>bold</b>")
+	f.Add("<i>italic</i>")
+	f.Add("<strong>strong</strong>")
+	f.Add("<em>emphasis</em>")
+
+	// Script and style tags (dangerous)
+	f.Add("<script>alert(1)</script>")
+	f.Add("<SCRIPT>alert(1)</SCRIPT>")
+	f.Add("<ScRiPt>alert(1)</ScRiPt>")
+	f.Add("<style>.x{color:red}</style>")
+	f.Add("<script src='evil.js'></script>")
+	f.Add("<script type='text/javascript'>x</script>")
+
+	// Tags with attributes containing >
+	f.Add("<p onclick=\"alert('>')\">text</p>")
+	f.Add("<div data-x=\"a>b\">content</div>")
+	f.Add("<a title=\"<b>bold</b>\">link</a>")
+	f.Add("<input value=\"test>value\">")
+	f.Add("<div style=\"content: '>'\">x</div>")
+
+	// Single-quoted attributes with >
+	f.Add("<p onclick='alert(\">\")'>text</p>")
+	f.Add("<div data-x='a>b'>content</div>")
+	f.Add("<a title='<b>bold</b>'>link</a>")
+
+	// Mixed quotes
+	f.Add("<div data-x=\"'>\" data-y='\"<'>x</div>")
+	f.Add("<a href=\"test\" title='<script>'>link</a>")
+
+	// Self-closing tags
+	f.Add("<br/>")
+	f.Add("<br />")
+	f.Add("<hr/>")
+	f.Add("<img src='x'/>")
+	f.Add("<input type='text'/>")
+
+	// Comments
+	f.Add("<!-- comment -->")
+	f.Add("<!--<script>x</script>-->")
+	f.Add("before<!-- -->after")
+	f.Add("<!--\nmultiline\n-->")
+
+	// DOCTYPE and XML
+	f.Add("<!DOCTYPE html>")
+	f.Add("<?xml version=\"1.0\"?>")
+	f.Add("<![CDATA[data]]>")
+
+	// Nested tags
+	f.Add("<div><span><b>text</b></span></div>")
+	f.Add("<p><script>x</script></p>")
+	f.Add("<a><b><c><d>deep</d></c></b></a>")
+
+	// Obfuscated/nested injection attempts (Django-verified test vectors)
+	f.Add("<sc<script>ript>alert(1)</script>")
+	f.Add("<scr<scr<script>ipt>ipt>x</scr</scr</script>ipt>ipt>")
+	f.Add("<<script>script>alert(1)</script>")
+	f.Add("<script<script>>x</script</script>>")
+	f.Add("<<<script>>script>alert(1)</script>")
+	f.Add("<sc<!-- -->ript>test</script>")
+	f.Add("<scr<b>ipt>alert(1)</script>")
+	f.Add("<scr</b>ipt>alert(1)</script>")
+	f.Add("<s<s<script>cript>cript>x</script>")
+	f.Add("<div title=\"<script>\">content</div>")
+	f.Add("<script\n>alert(1)</script\n>")
+	f.Add("<script\t>alert(1)</script\t>")
+
+	// Incomplete/malformed tags
+	f.Add("<div")
+	f.Add("div>")
+	f.Add("</div")
+	f.Add("<>")
+	f.Add("< >")
+	f.Add("</>")
+	f.Add("<<")
+	f.Add(">>")
+	f.Add("<div<")
+	f.Add(">div>")
+	f.Add("hi, <f x")
+	f.Add("234<235, right?")
+
+	// Null bytes and control characters
+	f.Add("<scr\x00ipt>x</script>")
+	f.Add("\x00<script>x</script>")
+	f.Add("<script\x00>x</script>")
+	f.Add("<script>\x00</script>")
+	f.Add("<div\x01class='x'>y</div>")
+
+	// Event handlers
+	f.Add("<div onclick=alert(1)>x</div>")
+	f.Add("<img src=x onerror=alert(1)>")
+	f.Add("<svg onload=alert(1)>")
+	f.Add("<body onload=alert(1)>")
+	f.Add("<input onfocus=alert(1) autofocus>")
+
+	// URL-based XSS vectors
+	f.Add("<a href='javascript:alert(1)'>x</a>")
+	f.Add("<iframe src='javascript:alert(1)'></iframe>")
+	f.Add("<object data='javascript:alert(1)'>")
+	f.Add("<embed src='javascript:alert(1)'>")
+
+	// Unicode content
+	f.Add("<p>你好世界</p>")
+	f.Add("<div>مرحبا</div>")
+	f.Add("<span>שלום</span>")
+	f.Add("<b>Привет</b>")
+	f.Add("<p>Hello 😀 World</p>")
+	f.Add("<div>🎉🎊🎁</div>")
+
+	// Entities
+	f.Add("&lt;script&gt;")
+	f.Add("&#60;script&#62;")
+	f.Add("&#x3c;script&#x3e;")
+	f.Add("&amp;lt;script&amp;gt;")
+	f.Add("&gotcha&#;<>")
+
+	// Whitespace variations
+	f.Add("<div   class='x'  >y</div>")
+	f.Add("<div\nclass='x'\n>y</div>")
+	f.Add("<div\tclass='x'\t>y</div>")
+	f.Add("<div\rclass='x'\r>y</div>")
+	f.Add("  <p>text</p>  ")
+
+	// Empty and special cases
+	f.Add("")
+	f.Add("   ")
+	f.Add("no tags here")
+	f.Add("Hello World 123")
+	f.Add("<")
+	f.Add(">")
+	f.Add("a<b")
+	f.Add("a>b")
+	f.Add("a<<b")
+	f.Add("a>>b")
+	f.Add("a<>b")
+
+	// Long inputs
+	f.Add("<div>" + string(make([]byte, 1000)) + "</div>")
+	f.Add(string(make([]byte, 100)) + "<script>x</script>" + string(make([]byte, 100)))
+
+	// SVG and MathML
+	f.Add("<svg><circle cx='50'/></svg>")
+	f.Add("<math><mi>x</mi></math>")
+	f.Add("<svg><script>x</script></svg>")
+
+	// Multiple adjacent tags
+	f.Add("<b>a</b><i>b</i><u>c</u>")
+	f.Add("<strong>x</strong><a href='#'>y</a>")
+
+	f.Fuzz(func(t *testing.T, input string) {
+		result, err := filterStriptags(AsValue(input), nil)
+		if err != nil {
+			// Errors are expected for maliciously crafted input that doesn't converge
+			return
+		}
+
+		// Basic sanity checks
+		output := result.String()
+
+		// Output should not contain valid HTML tags (tags that actually match our pattern)
+		// We use the same regex as the filter to check
+		if reStriptags.MatchString(output) {
+			t.Errorf("output still contains tags: input=%q, output=%q", input, output)
+		}
+
+		// Output should not contain null bytes (we strip them)
+		if strings.Contains(output, "\x00") {
+			t.Errorf("output contains null bytes: input=%q, output=%q", input, output)
+		}
+
+		// Output should be trimmed
+		if output != strings.TrimSpace(output) {
+			t.Errorf("output not trimmed: input=%q, output=%q", input, output)
+		}
+	})
+}

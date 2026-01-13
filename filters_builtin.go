@@ -433,8 +433,8 @@ func filterSafe(in *Value, param *Value) (*Value, error) {
 // Additionally, pongo2 interprets \r and \n escape sequences in the input
 // and converts them to their Unicode escapes (\u000D and \u000A).
 //
-// Note: This filter is for JavaScript string literals in single/double quotes.
-// It does NOT make strings safe for JavaScript template literals (backticks).
+// Note: This filter escapes backticks, making it safe for JavaScript template
+// literals as well as single/double quoted strings.
 //
 // Usage:
 //
@@ -1300,10 +1300,23 @@ func filterStringformat(in *Value, param *Value) (*Value, error) {
 	return AsValue(fmt.Sprintf(param.String(), in.Interface())), nil
 }
 
-var reStriptags = regexp.MustCompile("<[^>]*?>")
+// reStriptags matches HTML/XML tags including those with quoted attributes containing >.
+// Pattern breakdown:
+// - < : opening angle bracket
+// - [a-zA-Z!/?\[] : tag must start with letter, !, /, ?, or [ (for CDATA/comments)
+// - (?: ... )* : non-capturing group for tag content, zero or more times
+//   - "[^"]*" : double-quoted string (can contain >)
+//   - '[^']*' : single-quoted string (can contain >)
+//   - [^>] : any char except >
+// - > : closing angle bracket
+var reStriptags = regexp.MustCompile(`<[a-zA-Z!/?\[](?:"[^"]*"|'[^']*'|[^>])*>`)
 
 // filterStriptags strips all HTML/XML tags from the value, returning plain text.
-// The result is also trimmed of leading/trailing whitespace.
+// Null bytes are removed from the input, and the result is trimmed of leading/trailing whitespace.
+//
+// SECURITY WARNING: This filter does NOT guarantee HTML-safe output, particularly
+// with malformed or malicious HTML input. Never apply the |safe filter to striptags
+// output. For security-critical applications, use a proper HTML sanitization library.
 //
 // Usage:
 //
@@ -1317,8 +1330,28 @@ var reStriptags = regexp.MustCompile("<[^>]*?>")
 func filterStriptags(in *Value, param *Value) (*Value, error) {
 	s := in.String()
 
-	// Strip all tags
-	s = reStriptags.ReplaceAllString(s, "")
+	// Remove null bytes which could be used to bypass filters
+	s = strings.ReplaceAll(s, "\x00", "")
+
+	// Strip all tags repeatedly until no more changes occur
+	// This handles obfuscated tags like "<<script>script>" which become "<script>" after first pass
+	const maxIterations = 50
+	for i := range maxIterations {
+		prev := s
+		s = reStriptags.ReplaceAllString(s, "")
+		if s == prev {
+			break
+		}
+		if i == maxIterations-1 {
+			// Input appears to be crafted to cause excessive iterations.
+			// This could indicate a denial-of-service attempt or malformed input
+			// designed to bypass tag stripping. Abort for security.
+			return nil, &Error{
+				Sender:    "filter:striptags",
+				OrigError: errors.New("tag stripping did not converge after 50 iterations; input may be maliciously crafted"),
+			}
+		}
+	}
 
 	return AsValue(strings.TrimSpace(s)), nil
 }
