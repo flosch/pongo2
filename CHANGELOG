@@ -23,6 +23,7 @@
 - Fix nil subscript panic.
 - Fix `ifchanged` tag to only evaluate else block if it exists.
 - Fix `in` operator type compatibility for maps.
+- Fix `Contains` method to support all map key types (float64, bool, etc.).
 - Fix array parser panic introduced by subscript feature.
 - Support virtual filesystems in `ssi` tag plaintext mode and `Error.RawLine()`.
 - Prevent memory exhaustion by limiting `lorem` tag generation.

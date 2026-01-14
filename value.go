@@ -358,17 +358,8 @@ func (v *Value) Contains(other *Value) bool {
 			return false
 		}
 
-		var mapValue reflect.Value
-		switch other.Interface().(type) {
-		case int:
-			mapValue = baseValue.MapIndex(other.getResolvedValue())
-		case string:
-			mapValue = baseValue.MapIndex(other.getResolvedValue())
-		default:
-			logf("Value.Contains() does not support lookup type '%s'\n", other.getResolvedValue().Kind().String())
-			return false
-		}
-
+		// Use MapIndex directly - type check already verified key type matches
+		mapValue := baseValue.MapIndex(other.getResolvedValue())
 		return mapValue.IsValid()
 	case reflect.String:
 		return strings.Contains(baseValue.String(), other.String())

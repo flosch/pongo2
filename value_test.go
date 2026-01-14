@@ -661,3 +661,89 @@ func TestValueIterateOrder(t *testing.T) {
 		}
 	})
 }
+
+// TestValueContainsMapKeys tests Contains with various map key types.
+// This is a regression test for the bug where Contains only worked with
+// string and int keys, failing silently for float64 and other types.
+func TestValueContainsMapKeys(t *testing.T) {
+	t.Run("map with float64 keys", func(t *testing.T) {
+		m := map[float64]string{1.5: "one-half", 2.5: "two-half", 3.0: "three"}
+		v := AsValue(m)
+
+		// These should all return true
+		if !v.Contains(AsValue(1.5)) {
+			t.Error("Contains(1.5) should return true for existing float64 key")
+		}
+		if !v.Contains(AsValue(2.5)) {
+			t.Error("Contains(2.5) should return true for existing float64 key")
+		}
+		if !v.Contains(AsValue(3.0)) {
+			t.Error("Contains(3.0) should return true for existing float64 key")
+		}
+
+		// This should return false
+		if v.Contains(AsValue(4.5)) {
+			t.Error("Contains(4.5) should return false for non-existing key")
+		}
+	})
+
+	t.Run("map with bool keys", func(t *testing.T) {
+		m := map[bool]string{true: "yes", false: "no"}
+		v := AsValue(m)
+
+		if !v.Contains(AsValue(true)) {
+			t.Error("Contains(true) should return true for existing bool key")
+		}
+		if !v.Contains(AsValue(false)) {
+			t.Error("Contains(false) should return true for existing bool key")
+		}
+	})
+
+	t.Run("in operator with float64 key in template", func(t *testing.T) {
+		tpl, err := FromString(`{% if key in mymap %}found{% else %}not found{% endif %}`)
+		if err != nil {
+			t.Fatalf("Parse error: %v", err)
+		}
+
+		result, err := tpl.Execute(Context{
+			"mymap": map[float64]string{1.5: "value", 2.5: "other"},
+			"key":   1.5,
+		})
+		if err != nil {
+			t.Fatalf("Execute error: %v", err)
+		}
+		if result != "found" {
+			t.Errorf("'in' operator should find float64 key, got %q", result)
+		}
+
+		// Test with non-existing key
+		result, err = tpl.Execute(Context{
+			"mymap": map[float64]string{1.5: "value"},
+			"key":   9.9,
+		})
+		if err != nil {
+			t.Fatalf("Execute error: %v", err)
+		}
+		if result != "not found" {
+			t.Errorf("'in' operator should not find non-existing key, got %q", result)
+		}
+	})
+
+	t.Run("in operator with bool key in template", func(t *testing.T) {
+		tpl, err := FromString(`{% if key in mymap %}found{% else %}not found{% endif %}`)
+		if err != nil {
+			t.Fatalf("Parse error: %v", err)
+		}
+
+		result, err := tpl.Execute(Context{
+			"mymap": map[bool]string{true: "yes"},
+			"key":   true,
+		})
+		if err != nil {
+			t.Fatalf("Execute error: %v", err)
+		}
+		if result != "found" {
+			t.Errorf("'in' operator should find bool key, got %q", result)
+		}
+	})
+}
