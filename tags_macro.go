@@ -5,6 +5,12 @@ import (
 	"fmt"
 )
 
+// maxMacroDepth limits the maximum depth of recursive macro calls.
+// This prevents infinite recursion (e.g., a macro calling itself without
+// a base case) from causing a stack overflow. When a macro is called,
+// macroDepth in ExecutionContext is incremented; if it exceeds this limit,
+// an error is returned. The limit of 1000 allows for reasonable nesting
+// while protecting against runaway recursion.
 const maxMacroDepth = 1000
 
 // tagMacroNode represents the {% macro %} tag.
@@ -60,6 +66,8 @@ type tagMacroNode struct {
 	wrapper *NodeWrapper
 }
 
+// Execute registers the macro as a callable function in the private context.
+// The macro can then be called like {{ macro_name(args) }}.
 func (node *tagMacroNode) Execute(ctx *ExecutionContext, writer TemplateWriter) error {
 	ctx.Private[node.name] = func(args ...*Value) (*Value, error) {
 		ctx.macroDepth++
@@ -77,6 +85,8 @@ func (node *tagMacroNode) Execute(ctx *ExecutionContext, writer TemplateWriter) 
 	return nil
 }
 
+// call executes the macro body with the provided arguments and returns the
+// rendered output as a safe value. It creates an isolated context for execution.
 func (node *tagMacroNode) call(ctx *ExecutionContext, args ...*Value) (*Value, error) {
 	argsCtx := make(Context)
 
@@ -123,6 +133,8 @@ func (node *tagMacroNode) call(ctx *ExecutionContext, args ...*Value) (*Value, e
 	return AsSafeValue(b.String()), nil
 }
 
+// tagMacroParser parses the {% macro %} tag. It requires a name, argument list
+// with optional defaults, and optionally "export" to make it available via import.
 func tagMacroParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, error) {
 	macroNode := &tagMacroNode{
 		position: start,

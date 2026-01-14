@@ -75,6 +75,8 @@ type tagForLoopInformation struct {
 	Parentloop  *tagForLoopInformation
 }
 
+// Execute iterates over the object and renders the body for each item.
+// If the object is empty, it renders the empty wrapper (if present).
 func (node *tagForNode) Execute(ctx *ExecutionContext, writer TemplateWriter) (forError error) {
 	// Backup forloop (as parentloop in public context), key-name and value-name
 	forCtx := NewChildExecutionContext(ctx)
@@ -137,6 +139,8 @@ func (node *tagForNode) Execute(ctx *ExecutionContext, writer TemplateWriter) (f
 	return forError
 }
 
+// tagForParser parses the {% for %} tag. It supports key/value iteration,
+// "in" keyword, and optional "reversed" and "sorted" modifiers.
 func tagForParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, error) {
 	forNode := &tagForNode{}
 

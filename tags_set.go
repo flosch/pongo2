@@ -35,6 +35,8 @@ type tagSetNode struct {
 	expression IEvaluator
 }
 
+// Execute evaluates the expression and assigns the result to the named
+// variable in the private context.
 func (node *tagSetNode) Execute(ctx *ExecutionContext, writer TemplateWriter) error {
 	// Evaluate expression
 	value, err := node.expression.Evaluate(ctx)
@@ -46,6 +48,8 @@ func (node *tagSetNode) Execute(ctx *ExecutionContext, writer TemplateWriter) er
 	return nil
 }
 
+// tagSetParser parses the {% set %} tag. It requires an identifier,
+// an equals sign, and an expression: {% set name = expression %}.
 func tagSetParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, error) {
 	node := &tagSetNode{}
 

@@ -26,6 +26,8 @@ type tagIfEqualNode struct {
 	elseWrapper *NodeWrapper
 }
 
+// Execute compares two values and renders the then block if equal,
+// otherwise renders the else block (if present).
 func (node *tagIfEqualNode) Execute(ctx *ExecutionContext, writer TemplateWriter) error {
 	r1, err := node.var1.Evaluate(ctx)
 	if err != nil {
@@ -47,6 +49,8 @@ func (node *tagIfEqualNode) Execute(ctx *ExecutionContext, writer TemplateWriter
 	return nil
 }
 
+// tagIfEqualParser parses the {% ifequal %} tag. It requires exactly
+// two expression arguments to compare for equality.
 func tagIfEqualParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, error) {
 	ifequalNode := &tagIfEqualNode{}
 

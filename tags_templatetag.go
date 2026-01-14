@@ -40,6 +40,7 @@ type tagTemplateTagNode struct {
 	content string
 }
 
+// templateTagMapping maps argument names to their literal template syntax output.
 var templateTagMapping = map[string]string{
 	"openblock":     "{%",
 	"closeblock":    "%}",
@@ -51,11 +52,14 @@ var templateTagMapping = map[string]string{
 	"closecomment":  "#}",
 }
 
+// Execute outputs the literal template syntax string (e.g., "{{" or "%}").
 func (node *tagTemplateTagNode) Execute(ctx *ExecutionContext, writer TemplateWriter) error {
 	_, err := writer.WriteString(node.content)
 	return err
 }
 
+// tagTemplateTagParser parses the {% templatetag %} tag. It requires one
+// identifier argument from the templateTagMapping (e.g., "openblock").
 func tagTemplateTagParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, error) {
 	ttNode := &tagTemplateTagNode{}
 

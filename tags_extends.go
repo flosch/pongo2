@@ -38,10 +38,14 @@ type tagExtendsNode struct {
 	filename string
 }
 
+// Execute is a no-op for extends nodes. The inheritance relationship is
+// established at parse time; execution happens through the parent template.
 func (node *tagExtendsNode) Execute(ctx *ExecutionContext, writer TemplateWriter) error {
 	return nil
 }
 
+// tagExtendsParser parses the {% extends %} tag. It requires a string filename
+// argument and establishes the parent-child template relationship at parse time.
 func tagExtendsParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, error) {
 	extendsNode := &tagExtendsNode{}
 

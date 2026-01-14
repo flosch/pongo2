@@ -45,6 +45,8 @@ type tagWithNode struct {
 	wrapper   *NodeWrapper
 }
 
+// Execute creates a child context with the with-pairs and executes the
+// wrapped content. The with-pairs are only visible within the block.
 func (node *tagWithNode) Execute(ctx *ExecutionContext, writer TemplateWriter) error {
 	// new context for block
 	withctx := NewChildExecutionContext(ctx)
@@ -61,6 +63,8 @@ func (node *tagWithNode) Execute(ctx *ExecutionContext, writer TemplateWriter) e
 	return node.wrapper.Execute(withctx, writer)
 }
 
+// tagWithParser parses the {% with %} tag. It supports both new style (name=value)
+// and old style (value as name) syntax for defining context variables.
 func tagWithParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, error) {
 	withNode := &tagWithNode{
 		withPairs: make(map[string]IEvaluator),

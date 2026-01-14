@@ -51,6 +51,8 @@ type tagIfchangedNode struct {
 	elseWrapper *NodeWrapper
 }
 
+// Execute checks if watched expressions (or rendered content) have changed
+// since the last call. Renders the then block if changed, else block otherwise.
 func (node *tagIfchangedNode) Execute(ctx *ExecutionContext, writer TemplateWriter) error {
 	if len(node.watchedExpr) == 0 {
 		// Check against own rendered body
@@ -111,6 +113,8 @@ func (node *tagIfchangedNode) Execute(ctx *ExecutionContext, writer TemplateWrit
 	return nil
 }
 
+// tagIfchangedParser parses the {% ifchanged %} tag. It accepts zero or more
+// expressions to watch; if none are given, it watches the rendered content.
 func tagIfchangedParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, error) {
 	ifchangedNode := &tagIfchangedNode{}
 

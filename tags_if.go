@@ -54,6 +54,8 @@ type tagIfNode struct {
 	wrappers   []*NodeWrapper
 }
 
+// Execute evaluates conditions in order and renders the first matching block.
+// If no condition is true and an else block exists, it renders the else block.
 func (node *tagIfNode) Execute(ctx *ExecutionContext, writer TemplateWriter) error {
 	for i, condition := range node.conditions {
 		result, err := condition.Evaluate(ctx)
@@ -72,6 +74,8 @@ func (node *tagIfNode) Execute(ctx *ExecutionContext, writer TemplateWriter) err
 	return nil
 }
 
+// tagIfParser parses the {% if %} tag along with any {% elif %} and {% else %}
+// clauses. Each if/elif requires a condition expression.
 func tagIfParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, error) {
 	ifNode := &tagIfNode{}
 

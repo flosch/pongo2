@@ -30,10 +30,14 @@ package pongo2
 //	<p>More visible content</p>
 type tagCommentNode struct{}
 
+// Execute is a no-op for comment nodes. The content between {% comment %}
+// and {% endcomment %} is completely ignored and never rendered.
 func (node *tagCommentNode) Execute(ctx *ExecutionContext, writer TemplateWriter) error {
 	return nil
 }
 
+// tagCommentParser parses the {% comment %} tag. It skips all content
+// until {% endcomment %} and does not accept any arguments.
 func tagCommentParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, error) {
 	commentNode := &tagCommentNode{}
 

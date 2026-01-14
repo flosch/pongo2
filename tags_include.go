@@ -44,6 +44,9 @@ type tagIncludeNode struct {
 	ifExists          bool
 }
 
+// Execute renders the included template with the appropriate context.
+// For lazy includes, the filename is evaluated at runtime; otherwise
+// the pre-parsed template is executed directly.
 func (node *tagIncludeNode) Execute(ctx *ExecutionContext, writer TemplateWriter) error {
 	// Building the context for the template
 	includeCtx := make(Context)
@@ -100,12 +103,17 @@ func (node *tagIncludeNode) Execute(ctx *ExecutionContext, writer TemplateWriter
 	return nil
 }
 
+// tagIncludeEmptyNode is a placeholder node returned when a static include
+// with "if_exists" references a non-existent file at parse time.
 type tagIncludeEmptyNode struct{}
 
+// Execute is a no-op for empty include nodes (missing template with if_exists).
 func (node *tagIncludeEmptyNode) Execute(ctx *ExecutionContext, writer TemplateWriter) error {
 	return nil
 }
 
+// tagIncludeParser parses the {% include %} tag. It supports static or dynamic
+// filenames, "if_exists" flag, "with" context pairs, and "only" isolation.
 func tagIncludeParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, error) {
 	includeNode := &tagIncludeNode{
 		withPairs: make(map[string]IEvaluator),

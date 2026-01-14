@@ -43,8 +43,13 @@ type tagSpacelessNode struct {
 	wrapper *NodeWrapper
 }
 
+// tagSpacelessRegexp matches whitespace between HTML tags. It captures
+// an HTML tag, followed by whitespace, followed by another HTML tag.
+// The replacement removes the whitespace, joining the tags directly.
 var tagSpacelessRegexp = regexp.MustCompile(`(?U:(<.*>))([\t\n\v\f\r ]+)(?U:(<.*>))`)
 
+// Execute renders the block content and removes whitespace between HTML tags.
+// The removal is applied recursively until no more whitespace can be removed.
 func (node *tagSpacelessNode) Execute(ctx *ExecutionContext, writer TemplateWriter) error {
 	b := bytes.NewBuffer(make([]byte, 0, 1024)) // 1 KiB
 
@@ -66,6 +71,8 @@ func (node *tagSpacelessNode) Execute(ctx *ExecutionContext, writer TemplateWrit
 	return err
 }
 
+// tagSpacelessParser parses the {% spaceless %} tag. It takes no arguments
+// and wraps content until {% endspaceless %}.
 func tagSpacelessParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, error) {
 	spacelessNode := &tagSpacelessNode{}
 

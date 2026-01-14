@@ -41,6 +41,8 @@ type tagImportNode struct {
 	macros   map[string]*tagMacroNode // alias/name -> macro instance
 }
 
+// Execute registers imported macros as callable functions in the private context.
+// Each macro becomes available under its name (or alias) as a function.
 func (node *tagImportNode) Execute(ctx *ExecutionContext, writer TemplateWriter) error {
 	for name, macro := range node.macros {
 		func(name string, macro *tagMacroNode) {
@@ -52,6 +54,8 @@ func (node *tagImportNode) Execute(ctx *ExecutionContext, writer TemplateWriter)
 	return nil
 }
 
+// tagImportParser parses the {% import %} tag. It requires a filename string
+// followed by one or more macro names to import, with optional "as" aliases.
 func tagImportParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, error) {
 	importNode := &tagImportNode{
 		position: start,

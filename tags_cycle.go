@@ -46,10 +46,14 @@ type tagCycleNode struct {
 	silent   bool
 }
 
+// String returns the string representation of the current cycle value.
 func (cv *tagCycleValue) String() string {
 	return cv.value.String()
 }
 
+// Execute outputs the next value in the cycle sequence. If the cycle was
+// stored with "as", it updates the stored value and optionally outputs it
+// (unless "silent" was specified).
 func (node *tagCycleNode) Execute(ctx *ExecutionContext, writer TemplateWriter) error {
 	item := node.args[node.idx%len(node.args)]
 	node.idx++
@@ -100,6 +104,9 @@ func (node *tagCycleNode) Execute(ctx *ExecutionContext, writer TemplateWriter) 
 	return nil
 }
 
+// tagCycleParser parses the {% cycle %} tag. It accepts multiple values
+// to cycle through, with optional "as name" to store the cycle and "silent"
+// to suppress output.
 // HINT: We're not supporting the old comma-separated list of expressions argument-style
 func tagCycleParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, error) {
 	cycleNode := &tagCycleNode{

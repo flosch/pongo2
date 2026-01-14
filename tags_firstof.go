@@ -29,6 +29,8 @@ type tagFirstofNode struct {
 	args     []IEvaluator
 }
 
+// Execute evaluates arguments in order and outputs the first truthy value.
+// HTML escaping is applied when autoescape is enabled (unless |safe is used).
 func (node *tagFirstofNode) Execute(ctx *ExecutionContext, writer TemplateWriter) error {
 	for _, arg := range node.args {
 		val, err := arg.Evaluate(ctx)
@@ -52,6 +54,8 @@ func (node *tagFirstofNode) Execute(ctx *ExecutionContext, writer TemplateWriter
 	return nil
 }
 
+// tagFirstofParser parses the {% firstof %} tag. It requires at least one
+// expression argument; all arguments are parsed as potential fallback values.
 func tagFirstofParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, error) {
 	firstofNode := &tagFirstofNode{
 		position: start,

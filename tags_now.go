@@ -42,6 +42,7 @@ type tagNowNode struct {
 	fake     bool
 }
 
+// Execute formats and outputs the current time (or a fixed test time if "fake").
 func (node *tagNowNode) Execute(ctx *ExecutionContext, writer TemplateWriter) error {
 	var t time.Time
 	if node.fake {
@@ -54,6 +55,8 @@ func (node *tagNowNode) Execute(ctx *ExecutionContext, writer TemplateWriter) er
 	return err
 }
 
+// tagNowParser parses the {% now %} tag. It requires a format string argument
+// and optionally accepts "fake" for deterministic testing output.
 func tagNowParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, error) {
 	nowNode := &tagNowNode{
 		position: start,

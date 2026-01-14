@@ -32,6 +32,8 @@ type tagSSINode struct {
 	template *Template
 }
 
+// Execute outputs the file content. If "parsed" was specified, the content
+// is executed as a template with the current context; otherwise it's output as-is.
 func (node *tagSSINode) Execute(ctx *ExecutionContext, writer TemplateWriter) error {
 	if node.template != nil {
 		// Execute the template within the current context
@@ -51,6 +53,8 @@ func (node *tagSSINode) Execute(ctx *ExecutionContext, writer TemplateWriter) er
 	return nil
 }
 
+// tagSSIParser parses the {% ssi %} tag. It requires a filename string and
+// optionally accepts "parsed" to treat the file as a template.
 func tagSSIParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, error) {
 	SSINode := &tagSSINode{}
 

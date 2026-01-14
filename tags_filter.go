@@ -4,6 +4,7 @@ import (
 	"bytes"
 )
 
+// nodeFilterCall represents a single filter call with its name and optional parameter.
 type nodeFilterCall struct {
 	name      string
 	paramExpr IEvaluator
@@ -53,6 +54,8 @@ type tagFilterNode struct {
 	filterChain []*nodeFilterCall
 }
 
+// Execute renders the block content, then applies the filter chain to the
+// result. Each filter transforms the output of the previous one.
 func (node *tagFilterNode) Execute(ctx *ExecutionContext, writer TemplateWriter) error {
 	temp := bytes.NewBuffer(make([]byte, 0, 1024)) // 1 KiB size
 
@@ -83,6 +86,8 @@ func (node *tagFilterNode) Execute(ctx *ExecutionContext, writer TemplateWriter)
 	return err
 }
 
+// tagFilterParser parses the {% filter %} tag. It requires at least one filter
+// name and supports filter chaining with | and parameters with :.
 func tagFilterParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, error) {
 	filterNode := &tagFilterNode{
 		position: start,

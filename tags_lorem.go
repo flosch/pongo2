@@ -6,8 +6,10 @@ import (
 	"strings"
 )
 
+// maxLoremCount limits the maximum number of lorem items to prevent abuse.
 const maxLoremCount = 100000
 
+// tagLoremParagraphs and tagLoremWords are pre-split lorem ipsum text.
 var (
 	tagLoremParagraphs = strings.Split(tagLoremText, "\n")
 	tagLoremWords      = strings.Fields(tagLoremText)
@@ -86,6 +88,8 @@ func writeLoremItems(writer TemplateWriter, count int, source []string, sep, pre
 	return nil
 }
 
+// Execute outputs lorem ipsum text according to the configured method
+// (words, paragraphs, or HTML paragraphs) and count.
 func (node *tagLoremNode) Execute(ctx *ExecutionContext, writer TemplateWriter) error {
 	if node.count > maxLoremCount {
 		return ctx.Error(fmt.Sprintf("max count for lorem is %d", maxLoremCount), node.position)
@@ -103,6 +107,8 @@ func (node *tagLoremNode) Execute(ctx *ExecutionContext, writer TemplateWriter) 
 	}
 }
 
+// tagLoremParser parses the {% lorem %} tag. It accepts an optional count,
+// method (w/p/b), and "random" flag.
 func tagLoremParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, error) {
 	loremNode := &tagLoremNode{
 		position: start,

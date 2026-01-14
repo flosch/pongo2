@@ -28,6 +28,9 @@ type tagAutoescapeNode struct {
 	autoescape bool
 }
 
+// Execute renders the block content with the configured autoescape setting.
+// It temporarily changes the autoescape state in the context, executes the
+// wrapped content, and restores the original autoescape state afterward.
 func (node *tagAutoescapeNode) Execute(ctx *ExecutionContext, writer TemplateWriter) error {
 	old := ctx.Autoescape
 	ctx.Autoescape = node.autoescape
@@ -42,6 +45,8 @@ func (node *tagAutoescapeNode) Execute(ctx *ExecutionContext, writer TemplateWri
 	return nil
 }
 
+// tagAutoescapeParser parses the {% autoescape %} tag.
+// It expects a single argument "on" or "off" to control HTML escaping.
 func tagAutoescapeParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, error) {
 	autoescapeNode := &tagAutoescapeNode{}
 

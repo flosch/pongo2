@@ -47,6 +47,8 @@ type tagWidthratioNode struct {
 	ctxName      string
 }
 
+// Execute calculates the ratio (current/max*width), rounds up, and either
+// outputs the result or stores it in the context if "as" was specified.
 func (node *tagWidthratioNode) Execute(ctx *ExecutionContext, writer TemplateWriter) error {
 	current, err := node.current.Evaluate(ctx)
 	if err != nil {
@@ -76,6 +78,8 @@ func (node *tagWidthratioNode) Execute(ctx *ExecutionContext, writer TemplateWri
 	return nil
 }
 
+// tagWidthratioParser parses the {% widthratio %} tag. It requires three
+// expressions (current, max, width) and optionally "as name" to store the result.
 func tagWidthratioParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, error) {
 	widthratioNode := &tagWidthratioNode{
 		position: start,

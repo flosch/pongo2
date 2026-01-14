@@ -58,29 +58,37 @@ func (c Context) Update(other Context) Context {
 	return c
 }
 
-// ExecutionContext contains all data important for the current rendering state.
+// ExecutionContext holds the runtime state during template rendering.
 //
-// If you're writing a custom tag, your tag's Execute()-function will
-// have access to the ExecutionContext. This struct stores anything
-// about the current rendering process's Context including
-// the Context provided by the user (field Public).
-// You can safely use the Private context to provide data to the user's
-// template (like a 'forloop'-information). The Shared-context is used
-// to share data between tags. All ExecutionContexts share this context.
+// Custom tags receive this in their Execute() method. Use NewChildExecutionContext
+// to create scoped child contexts within tags.
 //
-// Please be careful when accessing the Public data.
-// PLEASE DO NOT MODIFY THE PUBLIC CONTEXT (read-only).
-//
-// To create your own execution context within tags, use the
-// NewChildExecutionContext(parent) function.
+// Context hierarchy:
+//   - Public: User data (READ-ONLY)
+//   - Private: Scoped engine data (copied per child context)
+//   - Shared: Global state (same instance across all contexts)
 type ExecutionContext struct {
-	template   *Template
+	// The template being executed (provides config, inheritance, and TemplateSet access).
+	template *Template
+
+	// Tracks recursive macro call depth; errors if exceeding maxMacroDepth.
 	macroDepth int
 
+	// When true, {{ variable }} output is HTML-escaped. Toggle with {% autoescape %}.
+	// The |safe filter bypasses escaping.
 	Autoescape bool
-	Public     Context
-	Private    Context
-	Shared     Context
+
+	// User-provided data from Execute(). Treat as READ-ONLY to avoid side effects.
+	Public Context
+
+	// Engine-managed scoped data (e.g., "forloop" from {% for %}, variables
+	// from {% set %}, or macros). Child contexts receive a copy, enabling
+	// isolated modifications.
+	Private Context
+
+	// Data shared across all contexts during a single render. Use for cross-scope
+	// tag communication.
+	Shared Context
 }
 
 var pongo2MetaContext = Context{
