@@ -2,6 +2,7 @@ package pongo2_test
 
 import (
 	"testing"
+	"testing/fstest"
 
 	"github.com/flosch/pongo2/v6"
 )
@@ -70,6 +71,51 @@ func TestIssue289(t *testing.T) {
 	if str != "3.500000" {
 		t.Fatalf("Expected '3.500000', but got '%s'.", str)
  	}
+}
+
+func TestIssue338(t *testing.T) {
+	// Test that include with 'with' clause works inside a for loop
+	// that iterates over a map with a single variable.
+	// Bug: {% for key in map %} was setting Private[""] = value for maps,
+	// which caused errors when include copied the context.
+	// See: https://github.com/flosch/pongo2/issues/338
+
+	memFS := fstest.MapFS{
+		"main.tpl": &fstest.MapFile{
+			Data: []byte(`{% for key in mymap %}{% include "field.html" with name=key id="test" %}{% endfor %}`),
+		},
+		"field.html": &fstest.MapFile{
+			Data: []byte(`<label for="{{ id }}">{{ name }}</label>`),
+		},
+	}
+
+	loader := pongo2.NewFSLoader(memFS)
+	set := pongo2.NewSet("test", loader)
+
+	tpl, err := set.FromFile("main.tpl")
+	if err != nil {
+		t.Fatalf("failed to load template: %v", err)
+	}
+
+	ctx := pongo2.Context{
+		"mymap": map[string]string{
+			"a": "1",
+			"b": "2",
+		},
+	}
+
+	result, err := tpl.Execute(ctx)
+	if err != nil {
+		t.Fatalf("failed to execute template: %v", err)
+	}
+
+	// Should render the label twice with keys from the map
+	// Map iteration order is not guaranteed, so check for both possible outputs
+	expected1 := `<label for="test">a</label><label for="test">b</label>`
+	expected2 := `<label for="test">b</label><label for="test">a</label>`
+	if result != expected1 && result != expected2 {
+		t.Errorf("expected %q or %q, got %q", expected1, expected2, result)
+	}
 }
 
 func TestIssue343(t *testing.T) {

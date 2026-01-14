@@ -41,6 +41,9 @@ func (c Context) checkForValidIdentifiers() error {
 }
 
 func isValidIdentifier(s string) bool {
+	if len(s) == 0 {
+		return false
+	}
 	for i := range s {
 		if !isValidIdentifierChar(s[i]) {
 			return false

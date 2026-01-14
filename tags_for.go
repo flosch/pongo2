@@ -103,7 +103,7 @@ func (node *tagForNode) Execute(ctx *ExecutionContext, writer TemplateWriter) (f
 
 		// Update loop infos and public context
 		forCtx.Private[node.key] = key
-		if value != nil {
+		if value != nil && node.value != "" {
 			forCtx.Private[node.value] = value
 		}
 		loopInfo.Counter = idx + 1
