@@ -63,6 +63,18 @@ Please use the [issue tracker](https://github.com/flosch/pongo2/issues) if you'r
 </html>
 ```
 
+## Documentation
+
+- [Getting Started](docs/getting-started.md) - Installation, basic usage, and first steps
+- [Template Syntax](docs/template-syntax.md) - Variables, expressions, operators, and comments
+- [Filters Reference](docs/filters.md) - Complete list of all built-in filters
+- [Tags Reference](docs/tags.md) - Complete list of all built-in tags
+- [Macros](docs/macros.md) - Reusable template fragments with arguments
+- [Template Sets](docs/template-sets.md) - Loaders, caching, globals, and sandbox features
+- [Security and Sandboxing](docs/security-sandboxing.md) - Autoescape, sandboxing, and security best practices
+- [Custom Extensions](docs/custom-extensions.md) - Creating your own filters and tags
+- [Changelog](CHANGELOG.md) - Version history and release notes
+
 ## Features
 
 - Syntax- and feature-set-compatible with [Django templates](https://docs.djangoproject.com/en/stable/topics/templates/)
