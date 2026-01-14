@@ -1308,6 +1308,7 @@ func filterStringformat(in *Value, param *Value) (*Value, error) {
 //   - "[^"]*" : double-quoted string (can contain >)
 //   - '[^']*' : single-quoted string (can contain >)
 //   - [^>] : any char except >
+//
 // - > : closing angle bracket
 var reStriptags = regexp.MustCompile(`<[a-zA-Z!/?\[](?:"[^"]*"|'[^']*'|[^>])*>`)
 

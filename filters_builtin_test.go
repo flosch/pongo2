@@ -1670,7 +1670,7 @@ func TestFilterFloatformatEdgeCases(t *testing.T) {
 		expected string
 	}{
 		{"whole number with negative param", 34.0, -3, "34"},
-		{"decimal with zero param trims", 34.5, 0, "34"},   // zero param means trim, whole part only
+		{"decimal with zero param trims", 34.5, 0, "34"}, // zero param means trim, whole part only
 		{"nil param on whole number", 42.0, nil, "42"},
 		{"nil param on decimal", 42.5, nil, "42.5"},
 		{"non-number param trims whole", 42.0, "abc", "42"}, // non-number param with whole number
@@ -2841,66 +2841,66 @@ func TestFilterJSONScript(t *testing.T) {
 // TestFilterJSONScriptXSSPrevention tests XSS prevention in json_script
 func TestFilterJSONScriptXSSPrevention(t *testing.T) {
 	tests := []struct {
-		name        string
-		input       any
-		elementID   string
-		shouldHave  []string
+		name          string
+		input         any
+		elementID     string
+		shouldHave    []string
 		shouldNotHave []string
 	}{
 		{
-			name:        "element ID with quotes is escaped",
-			input:       "test",
-			elementID:   `my"data`,
-			shouldHave:  []string{`id="my&quot;data"`},
+			name:          "element ID with quotes is escaped",
+			input:         "test",
+			elementID:     `my"data`,
+			shouldHave:    []string{`id="my&quot;data"`},
 			shouldNotHave: []string{`id="my"data"`},
 		},
 		{
-			name:        "JSON with script tag is escaped",
-			input:       "</script><script>alert('xss')</script>",
-			elementID:   "safe-data",
-			shouldHave:  []string{`\u003c/script\u003e`, `\u003cscript\u003e`},
+			name:          "JSON with script tag is escaped",
+			input:         "</script><script>alert('xss')</script>",
+			elementID:     "safe-data",
+			shouldHave:    []string{`\u003c/script\u003e`, `\u003cscript\u003e`},
 			shouldNotHave: []string{`</script><script>`},
 		},
 		{
-			name:        "JSON with less than is escaped",
-			input:       "a < b",
-			elementID:   "data",
-			shouldHave:  []string{`\u003c`},
+			name:          "JSON with less than is escaped",
+			input:         "a < b",
+			elementID:     "data",
+			shouldHave:    []string{`\u003c`},
 			shouldNotHave: []string{`"a < b"`},
 		},
 		{
-			name:        "JSON with greater than is escaped",
-			input:       "a > b",
-			elementID:   "data",
-			shouldHave:  []string{`\u003e`},
+			name:          "JSON with greater than is escaped",
+			input:         "a > b",
+			elementID:     "data",
+			shouldHave:    []string{`\u003e`},
 			shouldNotHave: []string{`"a > b"`},
 		},
 		{
-			name:        "JSON with ampersand is escaped",
-			input:       "a & b",
-			elementID:   "data",
-			shouldHave:  []string{`\u0026`},
+			name:          "JSON with ampersand is escaped",
+			input:         "a & b",
+			elementID:     "data",
+			shouldHave:    []string{`\u0026`},
 			shouldNotHave: []string{`"a & b"`},
 		},
 		{
-			name:        "multiple XSS vectors in one value",
-			input:       "<script>alert('xss')</script>&<div>",
-			elementID:   "xss-test",
-			shouldHave:  []string{`\u003cscript\u003e`, `\u0026`, `\u003cdiv\u003e`},
+			name:          "multiple XSS vectors in one value",
+			input:         "<script>alert('xss')</script>&<div>",
+			elementID:     "xss-test",
+			shouldHave:    []string{`\u003cscript\u003e`, `\u0026`, `\u003cdiv\u003e`},
 			shouldNotHave: []string{`<script>`, `&`, `<div>`},
 		},
 		{
-			name:        "XSS in map values",
-			input:       map[string]string{"html": "<script>evil()</script>"},
-			elementID:   "map-xss",
-			shouldHave:  []string{`\u003cscript\u003e`},
+			name:          "XSS in map values",
+			input:         map[string]string{"html": "<script>evil()</script>"},
+			elementID:     "map-xss",
+			shouldHave:    []string{`\u003cscript\u003e`},
 			shouldNotHave: []string{`<script>`},
 		},
 		{
-			name:        "XSS in slice elements",
-			input:       []string{"<img src=x onerror=alert(1)>"},
-			elementID:   "arr-xss",
-			shouldHave:  []string{`\u003cimg`},
+			name:          "XSS in slice elements",
+			input:         []string{"<img src=x onerror=alert(1)>"},
+			elementID:     "arr-xss",
+			shouldHave:    []string{`\u003cimg`},
 			shouldNotHave: []string{`<img`},
 		},
 	}
@@ -3010,17 +3010,17 @@ func TestFilterJSONScriptComplexTypes(t *testing.T) {
 	}
 
 	type Config struct {
-		Debug   bool                `json:"debug"`
-		Timeout int                 `json:"timeout"`
-		Tags    []string            `json:"tags"`
+		Debug   bool           `json:"debug"`
+		Timeout int            `json:"timeout"`
+		Tags    []string       `json:"tags"`
 		Meta    map[string]any `json:"meta"`
 	}
 
 	tests := []struct {
-		name     string
-		input    any
+		name      string
+		input     any
 		elementID string
-		contains []string
+		contains  []string
 	}{
 		{
 			name:      "struct with json tags",

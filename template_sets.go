@@ -74,10 +74,10 @@ func NewSet(name string, loaders ...TemplateLoader) *TemplateSet {
 	}
 
 	return &TemplateSet{
-		name:          name,
-		loaders:       loaders,
-		Globals:       make(Context),
-		autoescape:    true,
+		name:       name,
+		loaders:    loaders,
+		Globals:    make(Context),
+		autoescape: true,
 		// tags and filters are lazily initialized via initOnce
 		bannedTags:    make(map[string]bool),
 		bannedFilters: make(map[string]bool),
