@@ -2,12 +2,10 @@ package pongo2
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 	"io"
 	"io/fs"
 	"log"
-	"net/http"
 	"os"
 	"path/filepath"
 )
@@ -127,59 +125,4 @@ func (fs *LocalFilesystemLoader) Abs(base, name string) string {
 	}
 
 	return filepath.Join(fs.baseDir, name)
-}
-
-// HttpFilesystemLoader supports loading templates
-// from an http.FileSystem - useful for using one of several
-// file-to-code generators that packs static files into
-// a go binary (ex: https://github.com/jteeuwen/go-bindata)
-type HttpFilesystemLoader struct {
-	fs      http.FileSystem
-	baseDir string
-}
-
-// MustNewHttpFileSystemLoader creates a new HttpFilesystemLoader instance
-// and panics if there's any error during instantiation. The parameters
-// are the same like NewHttpFilesystemLoader.
-func MustNewHttpFileSystemLoader(httpfs http.FileSystem, baseDir string) *HttpFilesystemLoader {
-	fs, err := NewHttpFileSystemLoader(httpfs, baseDir)
-	if err != nil {
-		log.Panic(err)
-	}
-	return fs
-}
-
-// NewHttpFileSystemLoader creates a new HttpFileSystemLoader and allows
-// templates to be loaded from the virtual filesystem. The path
-// is calculated based relatively from the root of the http.Filesystem.
-func NewHttpFileSystemLoader(httpfs http.FileSystem, baseDir string) (*HttpFilesystemLoader, error) {
-	hfs := &HttpFilesystemLoader{
-		fs:      httpfs,
-		baseDir: baseDir,
-	}
-	if httpfs == nil {
-		err := errors.New("httpfs cannot be nil")
-		return nil, err
-	}
-	return hfs, nil
-}
-
-// Abs in this instance simply returns the filename, since
-// there's no potential for an unexpanded path in an http.FileSystem
-func (h *HttpFilesystemLoader) Abs(base, name string) string {
-	return name
-}
-
-// Get returns an io.Reader where the template's content can be read from.
-func (h *HttpFilesystemLoader) Get(path string) (io.Reader, error) {
-	fullPath := path
-	if h.baseDir != "" {
-		fullPath = fmt.Sprintf(
-			"%s/%s",
-			h.baseDir,
-			fullPath,
-		)
-	}
-
-	return h.fs.Open(fullPath)
 }
