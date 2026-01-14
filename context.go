@@ -81,6 +81,8 @@ type ExecutionContext struct {
 	Public     Context
 	Private    Context
 	Shared     Context
+
+	DisallowNotExistedVar bool
 }
 
 var pongo2MetaContext = Context{
