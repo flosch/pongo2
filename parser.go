@@ -6,6 +6,10 @@ import (
 	"strings"
 )
 
+// INode is the base interface for all executable template nodes.
+// See INodeTag for template tags returned by tag parsers.
+//
+//nolint:iface // base interface used for polymorphism across node types
 type INode interface {
 	Execute(*ExecutionContext, TemplateWriter) error
 }

@@ -24,6 +24,10 @@ import (
 	"maps"
 )
 
+// INodeTag is a semantic interface for template tags returned by TagParser functions.
+// While structurally identical to INode, it provides API clarity and future extensibility.
+//
+//nolint:iface // intentional semantic type for public API clarity and future extension
 type INodeTag interface {
 	INode
 }
