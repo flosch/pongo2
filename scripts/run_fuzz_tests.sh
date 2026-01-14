@@ -16,20 +16,22 @@ Arguments:
   workers     Number of fuzz workers per test (default: 2)
 
 Options:
-  -h, --help      Show this help message and exit
-  -u, --unlimited Run continuously, restarting after all tests complete
+  -h, --help           Show this help message and exit
+  -u, --unlimited      Run continuously, restarting after all tests complete
+  -c, --cache-dir DIR  Directory for fuzz cache data (default: Go's cache)
 
 Examples:
-  $(basename "$0")              # Run with defaults (10s, 4 parallel, 2 workers)
-  $(basename "$0") 30s 2        # Run for 30s each, 2 tests at a time
-  $(basename "$0") 1m 4 1       # Run for 1 minute, 4 parallel, 1 worker each
-  $(basename "$0") -u 10s 2 1   # Run continuously with 10s per test
+  $(basename "$0")                       # Run with defaults
+  $(basename "$0") 30s 2                 # Run for 30s each, 2 tests at a time
+  $(basename "$0") -u 10s 2 1            # Run continuously with 10s per test
+  $(basename "$0") -c /mnt/cache 10s 4 2 # Use custom cache directory
 EOF
     exit 0
 }
 
 # Parse options
 UNLIMITED=0
+FUZZ_CACHE_DIR=""
 while [[ $# -gt 0 ]]; do
     case "$1" in
         -h|--help)
@@ -38,6 +40,14 @@ while [[ $# -gt 0 ]]; do
         -u|--unlimited)
             UNLIMITED=1
             shift
+            ;;
+        -c|--cache-dir)
+            if [[ -z "${2:-}" ]]; then
+                echo "Error: --cache-dir requires a directory argument" >&2
+                exit 1
+            fi
+            FUZZ_CACHE_DIR="$2"
+            shift 2
             ;;
         -*)
             echo "Error: Unknown option $1" >&2
@@ -78,6 +88,20 @@ if ! [[ "$FUZZ_WORKERS" =~ ^[1-9][0-9]*$ ]]; then
     exit 1
 fi
 
+# Validate and create cache directory if specified
+if [[ -n "$FUZZ_CACHE_DIR" ]]; then
+    if [[ ! -d "$FUZZ_CACHE_DIR" ]]; then
+        if ! mkdir -p "$FUZZ_CACHE_DIR" 2>/dev/null; then
+            echo "Error: Cannot create cache directory '$FUZZ_CACHE_DIR'" >&2
+            exit 1
+        fi
+    fi
+    if [[ ! -w "$FUZZ_CACHE_DIR" ]]; then
+        echo "Error: Cache directory '$FUZZ_CACHE_DIR' is not writable" >&2
+        exit 1
+    fi
+fi
+
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -95,6 +119,9 @@ echo -e "${BLUE}=== Fuzz Test Runner ===${NC}"
 echo -e "Duration per test: ${YELLOW}$DURATION${NC}"
 echo -e "Parallel tests:    ${YELLOW}$PARALLEL${NC}"
 echo -e "Fuzz workers:      ${YELLOW}$FUZZ_WORKERS${NC}"
+if [[ -n "$FUZZ_CACHE_DIR" ]]; then
+    echo -e "Cache directory:   ${YELLOW}$FUZZ_CACHE_DIR${NC}"
+fi
 if [[ $UNLIMITED -eq 1 ]]; then
     echo -e "Mode:              ${YELLOW}unlimited (Ctrl+C to stop)${NC}"
 fi
@@ -153,10 +180,15 @@ run_fuzz() {
     local test_name="$1"
     local result_file="$RESULTS_DIR/$test_name.result"
     local log_file="$RESULTS_DIR/$test_name.log"
+    local -a extra_args=()
+
+    if [[ -n "$FUZZ_CACHE_DIR" ]]; then
+        extra_args+=("-test.fuzzcachedir=$FUZZ_CACHE_DIR")
+    fi
 
     echo -e "${BLUE}Starting${NC} $test_name"
 
-    if go test -fuzz="^${test_name}\$" -fuzztime="$DURATION" -parallel="$FUZZ_WORKERS" ./... > "$log_file" 2>&1; then
+    if go test -fuzz="^${test_name}\$" -fuzztime="$DURATION" -parallel="$FUZZ_WORKERS" "${extra_args[@]}" ./... > "$log_file" 2>&1; then
         echo "PASS" > "$result_file"
         echo -e "${GREEN}PASS${NC} $test_name"
     else
