@@ -739,6 +739,26 @@ func TestComplexExpressions(t *testing.T) {
 	}
 }
 
+// TestTagFilterEmpty tests that an empty filter tag returns an error.
+// Django requires at least one filter in the filter tag.
+// This is a regression test for Django compatibility.
+func TestTagFilterEmpty(t *testing.T) {
+	_, err := FromString("{% filter %}hello{% endfilter %}")
+	if err == nil {
+		t.Error("Empty filter tag should return a parse error, but got nil")
+	}
+}
+
+// TestTagFirstofEmpty tests that an empty firstof tag returns an error.
+// Django requires at least one argument in the firstof tag.
+// This is a regression test for Django compatibility.
+func TestTagFirstofEmpty(t *testing.T) {
+	_, err := FromString("{% firstof %}")
+	if err == nil {
+		t.Error("Empty firstof tag should return a parse error, but got nil")
+	}
+}
+
 func TestTagSSI(t *testing.T) {
 	t.Run("FSLoader plaintext", func(t *testing.T) {
 		// Create an in-memory filesystem with templates

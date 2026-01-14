@@ -94,6 +94,11 @@ func tagFilterParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, er
 	}
 	filterNode.bodyWrapper = wrapper
 
+	// Django requires at least one filter
+	if arguments.Count() == 0 {
+		return nil, arguments.Error("Tag 'filter' requires at least one filter.", nil)
+	}
+
 	for arguments.Remaining() > 0 {
 		filterCall := &nodeFilterCall{}
 

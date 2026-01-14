@@ -8,6 +8,7 @@
 - **[Backwards-Incompatible]** Improved `escapejs` filter to match Django behavior.
 - **[Backwards-Incompatible]** Improved `striptags` and `removetags` filters with better security (recursive stripping, iteration limits).
 - **[Backwards-Incompatible]** Use proper ellipsis character (…) in `truncatechars` and `truncatechars_html` filters.
+- **[Backwards-Incompatible]** Empty `{% filter %}` tag now returns a parse error (Django compatibility).
 - Support for negative number literals in arguments.
 - Support for escape sequences in string literals (`\n`, `\t`, etc.).
 - Support for sorted and reversed iteration over strings.
