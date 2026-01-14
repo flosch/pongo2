@@ -53,6 +53,12 @@ DURATION="${1:-10s}"
 PARALLEL="${2:-4}"
 FUZZ_WORKERS="${3:-2}"
 
+# Check for required commands
+if ! command -v go &>/dev/null; then
+    echo "Error: 'go' command not found. Please install Go." >&2
+    exit 1
+fi
+
 # Validate duration format (Go duration: e.g., 10s, 1m, 2h, 500ms)
 if ! [[ "$DURATION" =~ ^[0-9]+([.][0-9]+)?(ns|us|µs|ms|s|m|h)$ ]]; then
     echo "Error: Invalid duration format '$DURATION'" >&2
@@ -166,7 +172,7 @@ count_running() {
     if [[ ${#ACTIVE_PIDS[@]} -gt 0 ]]; then
         for pid in "${ACTIVE_PIDS[@]}"; do
             if kill -0 "$pid" 2>/dev/null; then
-                ((count++))
+                ((count++)) || true
             fi
         done
     fi
@@ -176,7 +182,7 @@ count_running() {
 # Main test execution loop
 ROUND=0
 while true; do
-    ((ROUND++))
+    ((ROUND++)) || true  # Prevent exit when ROUND was 0
 
     # Run fuzz tests in parallel using background jobs
     if [[ $UNLIMITED -eq 1 ]]; then
@@ -186,7 +192,8 @@ while true; do
     echo ""
 
     # Clear previous results
-    rm -f "$RESULTS_DIR"/*.result "$RESULTS_DIR"/*.log
+    find "$RESULTS_DIR" -name "*.result" -delete 2>/dev/null || true
+    find "$RESULTS_DIR" -name "*.log" -delete 2>/dev/null || true
     : > "$PIDS_FILE"
 
     ACTIVE_PIDS=()
@@ -226,9 +233,9 @@ while true; do
     for test_name in $FUZZ_TESTS; do
         result_file="$RESULTS_DIR/$test_name.result"
         if [[ -f "$result_file" ]] && [[ "$(cat "$result_file")" == "PASS" ]]; then
-            ((PASSED++))
+            ((PASSED++)) || true
         else
-            ((FAILED++))
+            ((FAILED++)) || true
             FAILED_TESTS="$FAILED_TESTS $test_name"
         fi
     done
