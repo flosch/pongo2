@@ -92,8 +92,8 @@ func BannedFilterFn(in *pongo2.Value, params *pongo2.Value) (*pongo2.Value, erro
 func init() {
 	pongo2.DefaultSet.Debug = true
 
-	pongo2.RegisterFilter("banned_filter", BannedFilterFn)    //nolint:errcheck
-	pongo2.RegisterFilter("unbanned_filter", BannedFilterFn) //nolint:errcheck
+	pongo2.RegisterFilter("banned_filter", BannedFilterFn)      //nolint:errcheck
+	pongo2.RegisterFilter("unbanned_filter", BannedFilterFn)    //nolint:errcheck
 	pongo2.RegisterTag("banned_tag", tagSandboxDemoTagParser)   //nolint:errcheck
 	pongo2.RegisterTag("unbanned_tag", tagSandboxDemoTagParser) //nolint:errcheck
 

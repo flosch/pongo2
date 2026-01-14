@@ -1,0 +1,22 @@
+version: "2"
+
+linters:
+  enable:
+    - asciicheck
+    - bodyclose
+    - durationcheck
+    - dupword
+    - errcheck
+    - gosec
+    - iface
+    - sloglint
+    - staticcheck
+    - testifylint
+    - unused
+    - usestdlibvars
+    - usetesting
+
+formatters:
+  enable:
+    - gofmt
+    - goimports

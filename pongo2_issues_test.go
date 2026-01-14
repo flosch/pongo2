@@ -70,7 +70,7 @@ func TestIssue289(t *testing.T) {
 	}
 	if str != "3.500000" {
 		t.Fatalf("Expected '3.500000', but got '%s'.", str)
- 	}
+	}
 }
 
 func TestIssue338(t *testing.T) {
