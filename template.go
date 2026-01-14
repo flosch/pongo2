@@ -24,31 +24,87 @@ func (tw *templateWriter) Write(b []byte) (int, error) {
 	return tw.w.Write(b)
 }
 
+// Template represents a parsed pongo2 template ready for execution.
+// It holds the parsed AST (Abstract Syntax Tree) and supports template
+// inheritance through parent/child relationships and block overrides.
+//
+// Templates are created via TemplateSet methods (FromString, FromFile, etc.)
+// and should not be instantiated directly. Once parsed, a Template can be
+// executed multiple times with different contexts.
+//
+// The execution flow is:
+//
+//	Template String → Lexer → Tokens → Parser → AST (root) → Execute → Output
 type Template struct {
+	// set is the TemplateSet this template belongs to. It provides access to
+	// shared configuration, registered tags/filters, template loaders, and
+	// global variables. Every template must belong to a TemplateSet.
 	set *TemplateSet
 
-	// Input
+	// --- Input fields (set during template creation) ---
+
+	// isTplString indicates whether this template was created from a string
+	// (true) or loaded from a file via a TemplateLoader (false). This affects
+	// how template paths are resolved for {% include %} and {% extends %} tags.
 	isTplString bool
-	name        string
-	tpl         string
-	size        int
 
-	// Calculation
+	// name is the identifier for this template. For file-based templates, this
+	// is the file path. For string-based templates, this is "<string>". The name
+	// is used in error messages and for template caching in the TemplateSet.
+	name string
+
+	// size is the length of the template source in bytes. Used to estimate
+	// output buffer sizes (templates typically expand ~30% during rendering).
+	size int
+
+	// Template inheritance fields: These fields implement Django-style template
+	// inheritance. Child templates can extend parent templates and override
+	// specific blocks. The inheritance chain is resolved at execution time by
+	// walking up the parent chain.
+	//
+	// IMPORTANT: Block and macro maps use first-come-first-serve semantics.
+	// Existing entries must not be overwritten to preserve inheritance
+	// behavior.
+
+	// level indicates the depth in the template inheritance hierarchy.
+	// The base template has level 0, its child has level 1, and so on.
+	// Used for debugging and to prevent infinite inheritance loops.
+	level int
+
+	// tokens is the sequence of lexer tokens produced from the template source.
+	// These are consumed by the parser to build the AST. Token types include
+	// HTML content, variable tags ({{ }}), block tags ({% %}), and comments ({# #}).
 	tokens []*Token
-	parser *Parser
 
-	// first come, first serve (it's important to not override existing entries in here)
-	level          int
-	parent         *Template
-	child          *Template
-	blocks         map[string]*NodeWrapper
+	// parent points to the template this one extends (via {% extends %} tag).
+	// nil if this is a base template with no parent. During execution,
+	// the engine walks up this chain to find the root template to render.
+	parent *Template
+
+	// child points to the template that extends this one. This reverse link
+	// allows parent templates to delegate block rendering to their children.
+	// nil if no template extends this one.
+	child *Template
+
+	// blocks maps block names to their NodeWrapper implementations. When a
+	// child template defines {% block name %}...{% endblock %}, it registers
+	// here. During execution, the most-derived (child-most) block is rendered.
+	// Keys are block names, values are the parsed block node wrappers.
+	blocks map[string]*NodeWrapper
+
+	// exportedMacros contains macros defined in this template that are available
+	// for use in other templates via {% import %}. Only macros explicitly marked
+	// for export (or all macros in imported templates) appear here.
 	exportedMacros map[string]*tagMacroNode
 
-	// Output
+	// root is the root node of the parsed AST (Abstract Syntax Tree).
+	// This nodeDocument contains all parsed template nodes and is the entry
+	// point for template execution. Execute() calls root.Execute() to render.
 	root *nodeDocument
 
 	// Options allow you to change the behavior of template-engine.
 	// You can change the options before calling the Execute method.
+	// Includes settings like TrimBlocks and LStripBlocks for whitespace control.
 	Options *Options
 }
 
@@ -67,7 +123,6 @@ func newTemplate(set *TemplateSet, name string, isTplString bool, tpl []byte) (*
 		set:            set,
 		isTplString:    isTplString,
 		name:           name,
-		tpl:            strTpl,
 		size:           len(strTpl),
 		blocks:         make(map[string]*NodeWrapper),
 		exportedMacros: make(map[string]*tagMacroNode),
@@ -180,8 +235,8 @@ func (tpl *Template) newTemplateWriterAndExecute(context Context, writer io.Writ
 }
 
 func (tpl *Template) newBufferAndExecute(context Context) (*bytes.Buffer, error) {
-	// Create output buffer
-	// We assume that the rendered template will be 30% larger
+	// Create output buffer. We assume that the rendered template will be 30%
+	// larger
 	buffer := bytes.NewBuffer(make([]byte, 0, int(float64(tpl.size)*1.3)))
 	if err := tpl.execute(context, buffer); err != nil {
 		return nil, err

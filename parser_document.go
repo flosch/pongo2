@@ -35,8 +35,8 @@ func (p *Parser) parseDocElement() (INode, error) {
 }
 
 func (tpl *Template) parse() error {
-	tpl.parser = newParser(tpl.name, tpl.tokens, tpl)
-	doc, err := tpl.parser.parseDocument()
+	parser := newParser(tpl.name, tpl.tokens, tpl)
+	doc, err := parser.parseDocument()
 	if err != nil {
 		return err
 	}

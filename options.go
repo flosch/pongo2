@@ -1,12 +1,14 @@
 package pongo2
 
-// Options allow you to change the behavior of template-engine.
-// You can change the options before calling the Execute method.
+// Options allow you to change the behavior of template-engine. You can change
+// the options before calling the Execute method.
 type Options struct {
-	// If this is set to true the first newline after a block is removed (block, not variable tag!). Defaults to false.
+	// If this is set to true the first newline after a block is removed (block,
+	// not variable tag!). Defaults to false.
 	TrimBlocks bool
 
-	// If this is set to true leading spaces and tabs are stripped from the start of a line to a block. Defaults to false
+	// If this is set to true leading spaces and tabs are stripped from the
+	// start of a line to a block. Defaults to false
 	LStripBlocks bool
 }
 
