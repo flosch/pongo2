@@ -212,3 +212,72 @@ func TestIssue343(t *testing.T) {
 		t.Fatalf(`Expected "back\\slash", but got %q`, str)
 	}
 }
+
+func TestIssue341(t *testing.T) {
+	// Test that comparing two undefined/missing variables returns True
+	// Bug: {{ _missing == null }} returned False on master but True in v6.0.0
+	// Both _missing and null are undefined, so they should be equal.
+	// See: https://github.com/flosch/pongo2/issues/341
+
+	tests := []struct {
+		name     string
+		template string
+		context  pongo2.Context
+		expected string
+	}{
+		{
+			name:     "two missing variables are equal",
+			template: "{{ _missing == _also_missing }}",
+			context:  pongo2.Context{},
+			expected: "True",
+		},
+		{
+			name:     "missing variable equals undefined literal",
+			template: "{{ _missing == null }}",
+			context:  pongo2.Context{},
+			expected: "True",
+		},
+		{
+			name:     "missing variable not equal to defined value",
+			template: "{{ _missing == defined }}",
+			context:  pongo2.Context{"defined": "value"},
+			expected: "False",
+		},
+		{
+			name:     "missing variable not equal to empty string",
+			template: "{{ _missing == '' }}",
+			context:  pongo2.Context{},
+			expected: "False",
+		},
+		{
+			name:     "missing variable not equal to zero",
+			template: "{{ _missing == 0 }}",
+			context:  pongo2.Context{},
+			expected: "False",
+		},
+		{
+			name:     "nil context value equals missing variable",
+			template: "{{ nil_value == _missing }}",
+			context:  pongo2.Context{"nil_value": nil},
+			expected: "True",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tpl, err := pongo2.FromString(tt.template)
+			if err != nil {
+				t.Fatalf("failed to parse template: %v", err)
+			}
+
+			result, err := tpl.Execute(tt.context)
+			if err != nil {
+				t.Fatalf("failed to execute template: %v", err)
+			}
+
+			if result != tt.expected {
+				t.Errorf("expected %q, got %q", tt.expected, result)
+			}
+		})
+	}
+}

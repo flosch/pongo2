@@ -255,9 +255,8 @@ func TestValueEqualTo(t *testing.T) {
 		{"different bools", true, false, false},
 
 		// Nil values
-		// Note: Current implementation returns false for two nil values
-		// Using reflect.Value.Equal would return true for two invalid values
-		{"both nil", nil, nil, false},
+		// Two nil/undefined values are considered equal (see issue #341)
+		{"both nil", nil, nil, true},
 		{"one nil", nil, "hello", false},
 
 		// Slices (not comparable, should return false)

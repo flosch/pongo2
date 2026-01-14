@@ -578,6 +578,12 @@ func (v *Value) EqualValueTo(other *Value) bool {
 	if v.IsTime() && other.IsTime() {
 		return v.Time().Equal(other.Time())
 	}
+	// Handle nil/undefined values (see issue #341)
+	// Two nil values are considered equal
+	if !v.val.IsValid() && !other.val.IsValid() {
+		return true
+	}
+	// One nil and one non-nil are not equal
 	if !v.val.IsValid() || !other.val.IsValid() {
 		return false
 	}
