@@ -57,6 +57,11 @@ func tagFirstofParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, e
 		position: start,
 	}
 
+	// Django requires at least one argument
+	if arguments.Count() == 0 {
+		return nil, arguments.Error("Tag 'firstof' requires at least one argument.", nil)
+	}
+
 	for arguments.Remaining() > 0 {
 		node, err := arguments.ParseExpression()
 		if err != nil {
