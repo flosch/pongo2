@@ -215,7 +215,7 @@ func TestResolveIntIndex(t *testing.T) {
 			name:     "string index",
 			template: "{{ s.0 }}",
 			context:  Context{"s": "hello"},
-			expected: "104", // ASCII code for 'h'
+			expected: "h", // character at index (Django-compatible)
 		},
 		{
 			name:     "out of bounds returns empty",

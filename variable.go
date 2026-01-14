@@ -379,7 +379,14 @@ func (vr *variableResolver) resolvePartByType(
 // resolveIntIndex resolves an integer index access on a slice/array/string.
 func (vr *variableResolver) resolveIntIndex(current reflect.Value, part *variablePart) (reflect.Value, bool, error) {
 	switch current.Kind() {
-	case reflect.String, reflect.Array, reflect.Slice:
+	case reflect.String:
+		// For strings, return the character at the index (Django-compatible behavior)
+		s := current.String()
+		if part.i >= 0 && len(s) > part.i {
+			return reflect.ValueOf(string(s[part.i])), false, nil
+		}
+		return reflect.Value{}, true, nil
+	case reflect.Array, reflect.Slice:
 		if part.i >= 0 && current.Len() > part.i {
 			return current.Index(part.i), false, nil
 		}
@@ -415,7 +422,15 @@ func (vr *variableResolver) resolveSubscript(
 	}
 
 	switch current.Kind() {
-	case reflect.String, reflect.Array, reflect.Slice:
+	case reflect.String:
+		// For strings, return the character at the index (Django-compatible behavior)
+		s := current.String()
+		si := sv.Integer()
+		if si >= 0 && len(s) > si {
+			return reflect.ValueOf(string(s[si])), false, nil
+		}
+		return reflect.Value{}, true, nil
+	case reflect.Array, reflect.Slice:
 		si := sv.Integer()
 		if si >= 0 && current.Len() > si {
 			return current.Index(si), false, nil

@@ -501,7 +501,7 @@ func (v *Value) IterateOrder(fn func(idx, count int, key, value *Value) bool, em
 		var items valuesList
 
 		itemCount := rv.Len()
-		for i := 0; i < itemCount; i++ {
+		for i := range itemCount {
 			items = append(items, &Value{val: rv.Index(i)})
 		}
 
