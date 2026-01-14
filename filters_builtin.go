@@ -190,7 +190,7 @@ func filterTruncateHTMLHelper(value string, newOutput *bytes.Buffer, cond func()
 				} else {
 					// Open tag
 
-					tag := ""
+					var tag strings.Builder
 
 					params := false
 					for idx < vLen {
@@ -212,7 +212,7 @@ func filterTruncateHTMLHelper(value string, newOutput *bytes.Buffer, cond func()
 							if c2 == ' ' {
 								params = true
 							} else {
-								tag += string(c2)
+								tag.WriteString(string(c2))
 							}
 						}
 
@@ -220,7 +220,7 @@ func filterTruncateHTMLHelper(value string, newOutput *bytes.Buffer, cond func()
 					}
 
 					// Add tag to stack
-					tagStack = append(tagStack, tag)
+					tagStack = append(tagStack, tag.String())
 				}
 			}
 		} else {
@@ -312,7 +312,7 @@ func filterTruncatewords(in *Value, param *Value) (*Value, error) {
 	}
 	nlen := min(len(words), n)
 	out := make([]string, 0, nlen)
-	for i := 0; i < nlen; i++ {
+	for i := range nlen {
 		out = append(out, words[i])
 	}
 
@@ -1133,10 +1133,7 @@ func filterLinenumbers(in *Value, param *Value) (*Value, error) {
 //
 // Output: "[hello     ]"
 func filterLjust(in *Value, param *Value) (*Value, error) {
-	times := param.Integer() - in.Len()
-	if times < 0 {
-		times = 0
-	}
+	times := max(param.Integer()-in.Len(), 0)
 	if times > maxCharPadding {
 		return nil, &Error{
 			Sender:    "filter:ljust",

@@ -232,8 +232,8 @@ func TestUrlizeFilter(t *testing.T) {
 func TestValueEqualTo(t *testing.T) {
 	tests := []struct {
 		name     string
-		v1       interface{}
-		v2       interface{}
+		v1       any
+		v2       any
 		expected bool
 	}{
 		// Integers

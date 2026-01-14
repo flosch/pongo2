@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 	"testing"
@@ -50,12 +51,7 @@ type comment struct {
 }
 
 func isAdmin(u *user) bool {
-	for _, a := range adminList {
-		if a == u.Name {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(adminList, u.Name)
 }
 
 func (u *user) Is_admin() *pongo2.Value {

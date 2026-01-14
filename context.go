@@ -3,6 +3,7 @@ package pongo2
 import (
 	"errors"
 	"fmt"
+	"maps"
 )
 
 // A Context type provides constants, variables, instances or functions to a template.
@@ -52,9 +53,7 @@ func isValidIdentifierChar(c byte) bool {
 
 // Update updates this context with the key/value-pairs from another context.
 func (c Context) Update(other Context) Context {
-	for k, v := range other {
-		c[k] = v
-	}
+	maps.Copy(c, other)
 	return c
 }
 

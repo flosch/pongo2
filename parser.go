@@ -3,6 +3,7 @@ package pongo2
 import (
 	"errors"
 	"fmt"
+	"slices"
 	"strings"
 )
 
@@ -226,13 +227,7 @@ func (p *Parser) WrapUntilTag(names ...string) (*NodeWrapper, *Parser, error) {
 			if tagIdent != nil {
 				// We've found a (!) end-tag
 
-				found := false
-				for _, n := range names {
-					if tagIdent.Val == n {
-						found = true
-						break
-					}
-				}
+				found := slices.Contains(names, tagIdent.Val)
 
 				// We only process the tag if we've found an end tag
 				if found {
@@ -279,13 +274,7 @@ func (p *Parser) SkipUntilTag(names ...string) error {
 			if tagIdent != nil {
 				// We've found an (!) end-tag
 
-				found := false
-				for _, n := range names {
-					if tagIdent.Val == n {
-						found = true
-						break
-					}
-				}
+				found := slices.Contains(names, tagIdent.Val)
 
 				// We only process the tag if we've found an end tag
 				if found {

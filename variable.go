@@ -17,8 +17,8 @@ const (
 )
 
 var (
-	typeOfValuePtr   = reflect.TypeOf(new(Value))
-	typeOfExecCtxPtr = reflect.TypeOf(new(ExecutionContext))
+	typeOfValuePtr   = reflect.TypeFor[*Value]()
+	typeOfExecCtxPtr = reflect.TypeFor[*ExecutionContext]()
 )
 
 type variablePart struct {

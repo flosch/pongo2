@@ -1276,8 +1276,8 @@ func FuzzFilterRemovetags(f *testing.F) {
 		}
 
 		// The result should not contain any of the specified tags
-		tagList := strings.Split(tags, ",")
-		for _, tag := range tagList {
+		tagList := strings.SplitSeq(tags, ",")
+		for tag := range tagList {
 			tag = strings.TrimSpace(tag)
 			if tag == "" {
 				continue
