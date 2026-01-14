@@ -116,17 +116,17 @@ func init() {
 	mustRegisterFilter("integer", filterInteger) // pongo-specific
 }
 
-const truncateEllipsis = "…"
+const ellipsis = "…"
 
 func filterTruncatecharsHelper(s string, newLen int) string {
 	runes := []rune(s)
 	if newLen < len(runes) {
 		if newLen >= 1 {
 			// Use proper ellipsis character (…) like Django does
-			return string(runes[:newLen-1]) + truncateEllipsis
+			return string(runes[:newLen-1]) + ellipsis
 		}
 		// Django returns just the ellipsis for length <= 0
-		return truncateEllipsis
+		return ellipsis
 	}
 	return string(runes)
 }
@@ -285,7 +285,7 @@ func filterTruncatecharsHTML(in *Value, param *Value) (*Value, error) {
 		return idx + s
 	}, func() {
 		if textcounter >= newLen && textcounter < len(value) {
-			newOutput.WriteString(truncateEllipsis)
+			newOutput.WriteString(ellipsis)
 		}
 	})
 
@@ -1199,8 +1199,8 @@ func filterUrlizeHelper(input string, autoescape bool, trunc int) (string, error
 
 		title := raw_url
 
-		if trunc > 3 && len(title) > trunc {
-			title = fmt.Sprintf("%s...", title[:trunc-3])
+		if trunc > 1 && len(title) > trunc {
+			title = title[:trunc-1] + ellipsis
 		}
 
 		if autoescape {
@@ -1221,8 +1221,8 @@ func filterUrlizeHelper(input string, autoescape bool, trunc int) (string, error
 	sout = filterUrlizeEmailRegexp.ReplaceAllStringFunc(sout, func(mail string) string {
 		title := mail
 
-		if trunc > 3 && len(title) > trunc {
-			title = fmt.Sprintf("%s...", title[:trunc-3])
+		if trunc > 1 && len(title) > trunc {
+			title = title[:trunc-1] + ellipsis
 		}
 
 		return fmt.Sprintf(`<a href="mailto:%s">%s</a>`, mail, title)

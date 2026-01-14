@@ -281,13 +281,13 @@ Please mail me at <a href="mailto:demo@example.com">demo@example.com</a> or visi
 
 urlizetrunc
 
-Please mail me at <a href="mailto:demo@example.com">demo@example...</a> or visit mit on:
-- lorem ipsum <a href="http://github.com/flosch/pongo2" rel="nofollow">github.com/f...</a> lorem ipsum
-- lorem ipsum <a href="http://www.florian-schlachter.de" rel="nofollow">http://www.f...</a> lorem ipsum
-- lorem ipsum <a href="https://www.florian-schlachter.de" rel="nofollow">https://www....</a> lorem ipsum
-- lorem ipsum <a href="https://www.florian-schlachter.de" rel="nofollow">https://www....</a> lorem ipsum
-- lorem ipsum <a href="http://www.florian-schlachter.de" rel="nofollow">www.florian-...</a> lorem ipsum
-- lorem ipsum <a href="http://www.florian-schlachter.de/test=%22test%22" rel="nofollow">www.florian-...</a> lorem ipsum
+Please mail me at <a href="mailto:demo@example.com">demo@example.c…</a> or visit mit on:
+- lorem ipsum <a href="http://github.com/flosch/pongo2" rel="nofollow">github.com/flo…</a> lorem ipsum
+- lorem ipsum <a href="http://www.florian-schlachter.de" rel="nofollow">http://www.flo…</a> lorem ipsum
+- lorem ipsum <a href="https://www.florian-schlachter.de" rel="nofollow">https://www.fl…</a> lorem ipsum
+- lorem ipsum <a href="https://www.florian-schlachter.de" rel="nofollow">https://www.fl…</a> lorem ipsum
+- lorem ipsum <a href="http://www.florian-schlachter.de" rel="nofollow">www.florian-sc…</a> lorem ipsum
+- lorem ipsum <a href="http://www.florian-schlachter.de/test=%22test%22" rel="nofollow">www.florian-sc…</a> lorem ipsum
 
 
 escapejs

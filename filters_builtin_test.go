@@ -2008,17 +2008,22 @@ func TestFilterUrlizeWithAutoescape(t *testing.T) {
 	})
 }
 
-// TestFilterUrlizetruncEdgeCases tests urlizetrunc edge cases
+// TestFilterUrlizetruncEdgeCases tests urlizetrunc edge cases.
+// Django uses Unicode ellipsis (…, U+2026) for truncation, not three dots.
 func TestFilterUrlizetruncEdgeCases(t *testing.T) {
-	t.Run("truncate long URL", func(t *testing.T) {
+	t.Run("truncate long URL uses Unicode ellipsis", func(t *testing.T) {
 		input := "Visit www.verylongdomainname.com/with/long/path/here"
 		result, err := filterUrlizetrunc(AsValue(input), AsValue(15))
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
-		// Should contain truncated title with ...
-		if !strings.Contains(result.String(), "...") {
-			t.Errorf("expected truncated URL with ellipsis, got %q", result.String())
+		// Should contain truncated title with Unicode ellipsis (…), not three dots
+		if !strings.Contains(result.String(), "…") {
+			t.Errorf("expected truncated URL with Unicode ellipsis (…), got %q", result.String())
+		}
+		// Should NOT contain three dots
+		if strings.Contains(result.String(), "...") {
+			t.Errorf("should use Unicode ellipsis (…) not three dots (...), got %q", result.String())
 		}
 	})
 
@@ -2029,20 +2034,24 @@ func TestFilterUrlizetruncEdgeCases(t *testing.T) {
 			t.Fatalf("unexpected error: %v", err)
 		}
 		// Should not contain ellipsis
-		if strings.Contains(result.String(), "...") {
+		if strings.Contains(result.String(), "…") {
 			t.Errorf("short URL should not be truncated, got %q", result.String())
 		}
 	})
 
-	t.Run("truncate email", func(t *testing.T) {
+	t.Run("truncate email uses Unicode ellipsis", func(t *testing.T) {
 		input := "Email verylongusername@verylongdomain.com"
 		result, err := filterUrlizetrunc(AsValue(input), AsValue(10))
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
-		// Should contain truncated email with ...
-		if !strings.Contains(result.String(), "...") {
-			t.Errorf("expected truncated email with ellipsis, got %q", result.String())
+		// Should contain truncated email with Unicode ellipsis (…), not three dots
+		if !strings.Contains(result.String(), "…") {
+			t.Errorf("expected truncated email with Unicode ellipsis (…), got %q", result.String())
+		}
+		// Should NOT contain three dots
+		if strings.Contains(result.String(), "...") {
+			t.Errorf("should use Unicode ellipsis (…) not three dots (...), got %q", result.String())
 		}
 	})
 }
