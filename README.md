@@ -65,7 +65,7 @@ Please use the [issue tracker](https://github.com/flosch/pongo2/issues) if you'r
 
 ## Features
 
-- Syntax- and feature-set-compatible with [Django 1.7](https://django.readthedocs.io/en/1.7.x/topics/templates.html)
+- Syntax- and feature-set-compatible with [Django templates](https://docs.djangoproject.com/en/stable/topics/templates/)
 - [Advanced C-like expressions](https://github.com/flosch/pongo2/blob/master/template_tests/expressions.tpl).
 - [Complex function calls within expressions](https://github.com/flosch/pongo2/blob/master/template_tests/function_calls_wrapper.tpl).
 - [Easy API to create new filters and tags](http://godoc.org/github.com/flosch/pongo2#RegisterFilter) ([including parsing arguments](http://godoc.org/github.com/flosch/pongo2#Parser))
