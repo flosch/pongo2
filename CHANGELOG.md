@@ -33,6 +33,8 @@
 - Prevent stack overflow by limiting macro call depth.
 - Prevent DoS via huge parameters in certain filters.
 - Prevent panic from integer divide by zero.
+- Fix string indexing to return character instead of byte (Django compatibility).
+- Fix `NewSet` to validate that loaders are not nil.
 
 ### Performance
 
@@ -47,10 +49,16 @@
 - `ifequal` and `ifnotequal` tags now emit deprecation warnings (use `{% if %}` instead).
 - `ssi` tag is deprecated.
 
+### Breaking Changes
+
+- **[Backwards-Incompatible]** Remove `HttpFilesystemLoader`. Use `FSLoader` with `NewFSLoader()` instead, which supports Go's `fs.FS` interface including `os.DirFS()` and `embed.FS`.
+- **[Backwards-Incompatible]** Remove incomplete `SandboxedFilesystemLoader`. For sandboxing, use `BanTag()` to restrict `include`/`import`/`ssi`/`extends` tags.
+
 ### Other
 
 - Go 1.25 is now the minimum required Go version.
 - Added comprehensive fuzz testing infrastructure.
+- Comprehensive documentation overhaul with new guides for getting started, template syntax, security, and custom extensions.
 
 Thanks to all contributors.
 
