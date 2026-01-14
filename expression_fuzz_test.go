@@ -115,7 +115,7 @@ func FuzzExpressionParsing(f *testing.F) {
 	f.Add("false")
 	f.Add("true && false || true")
 	f.Add("!(!(!true))")
-	f.Add("not not not true")
+	f.Add("not not not true") //nolint:dupword // intentional triple negation test case
 
 	// Power operations
 	f.Add("2 ^ 0")
