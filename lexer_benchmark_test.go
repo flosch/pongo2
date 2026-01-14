@@ -30,8 +30,8 @@ func BenchmarkLexer(b *testing.B) {
 	}
 }
 
-// BenchmarkLexerEmit measures string escape handling performance
-func BenchmarkLexerEmit(b *testing.B) {
+// BenchmarkLexerStrings measures string escape handling performance
+func BenchmarkLexerStrings(b *testing.B) {
 	testCases := []struct {
 		name  string
 		input string

@@ -657,7 +657,7 @@ func BenchmarkCacheDebugOn(b *testing.B) {
 	}
 }
 
-func BenchmarkExecuteComplexWithSandboxActive(b *testing.B) {
+func BenchmarkExecuteComplex(b *testing.B) {
 	tpl, err := pongo2.FromFile("template_tests/complex.tpl")
 	if err != nil {
 		b.Fatal(err)
@@ -671,7 +671,7 @@ func BenchmarkExecuteComplexWithSandboxActive(b *testing.B) {
 	}
 }
 
-func BenchmarkCompileAndExecuteComplexWithSandboxActive(b *testing.B) {
+func BenchmarkCompileAndExecuteComplex(b *testing.B) {
 	buf, err := os.ReadFile("template_tests/complex.tpl")
 	if err != nil {
 		b.Fatal(err)
@@ -691,7 +691,7 @@ func BenchmarkCompileAndExecuteComplexWithSandboxActive(b *testing.B) {
 	}
 }
 
-func BenchmarkParallelExecuteComplexWithSandboxActive(b *testing.B) {
+func BenchmarkParallelExecuteComplex(b *testing.B) {
 	tpl, err := pongo2.FromFile("template_tests/complex.tpl")
 	if err != nil {
 		b.Fatal(err)
@@ -707,62 +707,7 @@ func BenchmarkParallelExecuteComplexWithSandboxActive(b *testing.B) {
 	})
 }
 
-func BenchmarkExecuteComplexWithoutSandbox(b *testing.B) {
-	s := pongo2.NewSet("set without sandbox", pongo2.MustNewLocalFileSystemLoader(""))
-	tpl, err := s.FromFile("template_tests/complex.tpl")
-	if err != nil {
-		b.Fatal(err)
-	}
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		err = tpl.ExecuteWriterUnbuffered(tplContext, io.Discard)
-		if err != nil {
-			b.Fatal(err)
-		}
-	}
-}
-
-func BenchmarkCompileAndExecuteComplexWithoutSandbox(b *testing.B) {
-	buf, err := os.ReadFile("template_tests/complex.tpl")
-	if err != nil {
-		b.Fatal(err)
-	}
-	preloadedTpl := string(buf)
-
-	s := pongo2.NewSet("set without sandbox", pongo2.MustNewLocalFileSystemLoader(""))
-
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		tpl, err := s.FromString(preloadedTpl)
-		if err != nil {
-			b.Fatal(err)
-		}
-
-		err = tpl.ExecuteWriterUnbuffered(tplContext, io.Discard)
-		if err != nil {
-			b.Fatal(err)
-		}
-	}
-}
-
-func BenchmarkParallelExecuteComplexWithoutSandbox(b *testing.B) {
-	s := pongo2.NewSet("set without sandbox", pongo2.MustNewLocalFileSystemLoader(""))
-	tpl, err := s.FromFile("template_tests/complex.tpl")
-	if err != nil {
-		b.Fatal(err)
-	}
-	b.ResetTimer()
-	b.RunParallel(func(pb *testing.PB) {
-		for pb.Next() {
-			err := tpl.ExecuteWriterUnbuffered(tplContext, io.Discard)
-			if err != nil {
-				b.Fatal(err)
-			}
-		}
-	})
-}
-
-func BenchmarkExecuteBlocksWithSandboxActive(b *testing.B) {
+func BenchmarkExecuteBlocks(b *testing.B) {
 	blockNames := []string{"content", "more_content"}
 	tpl, err := pongo2.FromFile("template_tests/block_render/block.tpl")
 	if err != nil {
@@ -777,7 +722,7 @@ func BenchmarkExecuteBlocksWithSandboxActive(b *testing.B) {
 	}
 }
 
-func BenchmarkExecuteBlocksDeepWithSandboxActive(b *testing.B) {
+func BenchmarkExecuteBlocksDeep(b *testing.B) {
 	blockNames := []string{"body", "more_content"}
 	tpl, err := pongo2.FromFile("template_tests/block_render/deep.tpl")
 	if err != nil {
@@ -792,25 +737,9 @@ func BenchmarkExecuteBlocksDeepWithSandboxActive(b *testing.B) {
 	}
 }
 
-func BenchmarkExecuteBlocksWithEmptyBlocksSandboxActive(b *testing.B) {
+func BenchmarkExecuteBlocksEmpty(b *testing.B) {
 	blockNames := []string{}
 	tpl, err := pongo2.FromFile("template_tests/block_render/block.tpl")
-	if err != nil {
-		b.Fatal(err)
-	}
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		_, err = tpl.ExecuteBlocks(tplContext, blockNames)
-		if err != nil {
-			b.Fatal(err)
-		}
-	}
-}
-
-func BenchmarkExecuteBlocksWithoutSandbox(b *testing.B) {
-	blockNames := []string{"content", "more_content"}
-	s := pongo2.NewSet("set without sandbox", pongo2.MustNewLocalFileSystemLoader(""))
-	tpl, err := s.FromFile("template_tests/block_render/block.tpl")
 	if err != nil {
 		b.Fatal(err)
 	}
