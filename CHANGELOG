@@ -1,5 +1,56 @@
 # Changelog
 
+## v7.0.0 (WIP)
+
+### Features
+
+- New filters: `json_script`, `safeseq`, `escapeseq`, `dictsort`, `unordered_list`, `slugify`, `filesizeformat`, `timesince`, `timeuntil`.
+- **[Backwards-Incompatible]** Improved `escapejs` filter to match Django behavior.
+- **[Backwards-Incompatible]** Improved `striptags` and `removetags` filters with better security (recursive stripping, iteration limits).
+- **[Backwards-Incompatible]** Use proper ellipsis character (…) in `truncatechars` and `truncatechars_html` filters.
+- Support for negative number literals in arguments.
+- Support for escape sequences in string literals (`\n`, `\t`, etc.).
+- Support for sorted and reversed iteration over strings.
+- Inline variable definitions (`{% set foo = "bar" %}`).
+- Expand `urlize` filter to support more TLDs.
+
+### Bug Fixes
+
+- **[Backwards-Incompatible]** Fix `and`/`or` operators to return actual values instead of booleans (#362).
+- Fix panic in `cycle` tag with no arguments.
+- Fix integer overflow when converting `uint64` to `int`.
+- Fix panic on uncomparable types in comparisons.
+- Fix nil subscript panic.
+- Fix `ifchanged` tag to only evaluate else block if it exists.
+- Fix `in` operator type compatibility for maps.
+- Fix array parser panic introduced by subscript feature.
+- Support virtual filesystems in `ssi` tag plaintext mode and `Error.RawLine()`.
+- Prevent memory exhaustion by limiting `lorem` tag generation.
+- Prevent infinite loop in unclosed parameterized tag situations.
+- Prevent stack overflow by limiting macro call depth.
+- Prevent DoS via huge parameters in certain filters.
+- Prevent panic from integer divide by zero.
+
+### Performance
+
+- Optimize lexer with keyword map and pre-compiled string replacer.
+- Use pre-compiled `strings.Replacer` for HTML escaping filters.
+- Cache `getResolvedValue()` result in Value methods.
+- Optimize context valid identifier check (#340).
+- Speed optimizations for `join` filter on long strings.
+
+### Deprecations
+
+- `ifequal` and `ifnotequal` tags now emit deprecation warnings (use `{% if %}` instead).
+- `ssi` tag is deprecated.
+
+### Other
+
+- Go 1.25 is now the minimum required Go version.
+- Added comprehensive fuzz testing infrastructure.
+
+Thanks to all contributors.
+
 ## v6.0.0
 
 - Go 1.18 is now the minimum required Go version.
