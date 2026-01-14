@@ -50,11 +50,10 @@ func TestErrorRawLine(t *testing.T) {
 	})
 
 	t.Run("valid file", func(t *testing.T) {
-		tmpFile, err := os.CreateTemp("", "test*.tpl")
+		tmpFile, err := os.CreateTemp(t.TempDir(), "test*.tpl")
 		if err != nil {
 			t.Fatalf("Failed to create temp file: %v", err)
 		}
-		defer os.Remove(tmpFile.Name()) //nolint:errcheck
 
 		content := "line 1\nline 2\nline 3"
 		if _, err := tmpFile.WriteString(content); err != nil {
@@ -76,11 +75,10 @@ func TestErrorRawLine(t *testing.T) {
 	})
 
 	t.Run("line exceeds file length", func(t *testing.T) {
-		tmpFile, err := os.CreateTemp("", "test*.tpl")
+		tmpFile, err := os.CreateTemp(t.TempDir(), "test*.tpl")
 		if err != nil {
 			t.Fatalf("Failed to create temp file: %v", err)
 		}
-		defer os.Remove(tmpFile.Name()) //nolint:errcheck
 
 		if _, err := tmpFile.WriteString("line 1\nline 2"); err != nil {
 			t.Fatalf("Failed to write to temp file: %v", err)
