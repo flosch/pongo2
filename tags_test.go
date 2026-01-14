@@ -16,8 +16,8 @@ func TestReplaceTag(t *testing.T) {
 	})
 
 	t.Run("existing tag", func(t *testing.T) {
-		originalTag := tags["comment"]
-		defer func() { tags["comment"] = originalTag }()
+		originalTag := builtinTags["comment"]
+		defer func() { builtinTags["comment"] = originalTag }()
 
 		newParser := func(doc *Parser, start *Token, arguments *Parser) (INodeTag, error) {
 			return originalTag.parser(doc, start, arguments)

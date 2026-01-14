@@ -2,46 +2,47 @@ package pongo2
 
 import (
 	"fmt"
+	"maps"
 )
 
 // FilterFunction is the type filter functions must fulfil
 type FilterFunction func(in *Value, param *Value) (out *Value, err error)
 
-var filters map[string]FilterFunction
+var builtinFilters = make(map[string]FilterFunction)
 
-func init() {
-	filters = make(map[string]FilterFunction)
+// copyFilters creates a shallow copy of a filter map.
+func copyFilters(src map[string]FilterFunction) map[string]FilterFunction {
+	dst := make(map[string]FilterFunction, len(src))
+	maps.Copy(dst, src)
+	return dst
 }
 
-// FilterExists returns true if the given filter is already registered
-func FilterExists(name string) bool {
-	_, existing := filters[name]
+// BuiltinFilterExists returns true if the given filter is a built-in filter.
+// Use TemplateSet.FilterExists to check filters in a specific template set.
+func BuiltinFilterExists(name string) bool {
+	_, existing := builtinFilters[name]
 	return existing
 }
 
-// RegisterFilter registers a new filter. If there's already a filter with the same. You usually
-// want to call this function in the filter's init() function:
-//
-//	http://golang.org/doc/effective_go.html#init
-func RegisterFilter(name string, fn FilterFunction) error {
-	if FilterExists(name) {
-		return fmt.Errorf("filter with name '%s' is already registered", name)
-	}
-	filters[name] = fn
-	return nil
+// BuiltinTagExists returns true if the given tag is registered in builtinTags.
+// Use TemplateSet.TagExists to check tags in a specific template set.
+func BuiltinTagExists(name string) bool {
+	_, existing := builtinTags[name]
+	return existing
 }
 
-// ReplaceFilter replaces an already registered filter with a new implementation. Use this
-// function with caution since it allows you to change existing filter behaviour.
-func ReplaceFilter(name string, fn FilterFunction) error {
-	if !FilterExists(name) {
-		return fmt.Errorf("filter with name '%s' does not exist (therefore cannot be overridden)", name)
+// registerFilterBuiltin registers a new filter to the global filter map.
+// This is used during package initialization to register builtin filters.
+func registerFilterBuiltin(name string, fn FilterFunction) error {
+	if BuiltinFilterExists(name) {
+		return fmt.Errorf("filter with name '%s' is already registered", name)
 	}
-	filters[name] = fn
+	builtinFilters[name] = fn
 	return nil
 }
 
 // MustApplyFilter behaves like ApplyFilter, but panics on an error.
+// This function uses builtinFilters. Use TemplateSet.MustApplyFilter for set-specific filters.
 func MustApplyFilter(name string, value *Value, param *Value) *Value {
 	val, err := ApplyFilter(name, value, param)
 	if err != nil {
@@ -50,10 +51,11 @@ func MustApplyFilter(name string, value *Value, param *Value) *Value {
 	return val
 }
 
-// ApplyFilter applies a filter to a given value using the given parameters.
-// Returns a *pongo2.Value or an error.
+// ApplyFilter applies a built-infilter to a given value using the given
+// parameters. Returns a *pongo2.Value or an error. Use TemplateSet.ApplyFilter
+// for set-specific filters.
 func ApplyFilter(name string, value *Value, param *Value) (*Value, error) {
-	fn, existing := filters[name]
+	fn, existing := builtinFilters[name]
 	if !existing {
 		return nil, &Error{
 			Sender:    "applyfilter",
@@ -112,8 +114,13 @@ func (p *Parser) parseFilter() (*filterCall, error) {
 		name:  identToken.Val,
 	}
 
+	// Check sandbox filter restriction
+	if _, isBanned := p.template.set.bannedFilters[identToken.Val]; isBanned {
+		return nil, p.Error(fmt.Sprintf("Usage of filter '%s' is not allowed (sandbox restriction active).", identToken.Val), identToken)
+	}
+
 	// Get the appropriate filter function and bind it
-	filterFn, exists := filters[identToken.Val]
+	filterFn, exists := p.template.set.filters[identToken.Val]
 	if !exists {
 		return nil, p.Error(fmt.Sprintf("Filter '%s' does not exist.", identToken.Val), identToken)
 	}

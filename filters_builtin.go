@@ -27,7 +27,7 @@ import (
 )
 
 func mustRegisterFilter(name string, fn FilterFunction) {
-	if err := RegisterFilter(name, fn); err != nil {
+	if err := registerFilterBuiltin(name, fn); err != nil {
 		panic(err)
 	}
 }

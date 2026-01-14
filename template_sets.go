@@ -37,9 +37,18 @@ type TemplateSet struct {
 	// variable during program execution (and template compilation/execution).
 	Debug bool
 
+	// autoescape controls whether template output is automatically HTML-escaped.
+	// When true (default), string output will be escaped for safety.
+	autoescape bool
+
 	// Options allow you to change the behavior of template-engine.
 	// You can change the options before calling the Execute method.
 	Options *Options
+
+	// Per-set tag and filter registries (lazily initialized via initOnce)
+	tags     map[string]*tag
+	filters  map[string]FilterFunction
+	initOnce sync.Once
 
 	// Sandbox features
 	// - Disallow access to specific tags and/or filters (using BanTag() and BanFilter())
@@ -68,6 +77,8 @@ func NewSet(name string, loaders ...TemplateLoader) *TemplateSet {
 		name:          name,
 		loaders:       loaders,
 		Globals:       make(Context),
+		autoescape:    true,
+		// tags and filters are lazily initialized via initOnce
 		bannedTags:    make(map[string]bool),
 		bannedFilters: make(map[string]bool),
 		templateCache: make(map[string]*Template),
@@ -77,6 +88,14 @@ func NewSet(name string, loaders ...TemplateLoader) *TemplateSet {
 
 func (set *TemplateSet) AddLoader(loaders ...TemplateLoader) {
 	set.loaders = append(set.loaders, loaders...)
+}
+
+// initBuiltins copies the builtin tags and filters into this template set.
+// This is called lazily via initOnce to ensure builtinTags and builtinFilters
+// have been populated by init() functions before copying.
+func (set *TemplateSet) initBuiltins() {
+	set.tags = copyTags(builtinTags)
+	set.filters = copyFilters(builtinFilters)
 }
 
 func (set *TemplateSet) resolveFilename(tpl *Template, path string) string {
@@ -97,7 +116,8 @@ func (set *TemplateSet) resolveFilenameForLoader(loader TemplateLoader, tpl *Tem
 
 // BanTag bans a specific tag for this template set. See more in the documentation for TemplateSet.
 func (set *TemplateSet) BanTag(name string) error {
-	_, has := tags[name]
+	set.initOnce.Do(set.initBuiltins)
+	_, has := set.tags[name]
 	if !has {
 		return fmt.Errorf("tag '%s' not found", name)
 	}
@@ -115,7 +135,8 @@ func (set *TemplateSet) BanTag(name string) error {
 
 // BanFilter bans a specific filter for this template set. See more in the documentation for TemplateSet.
 func (set *TemplateSet) BanFilter(name string) error {
-	_, has := filters[name]
+	set.initOnce.Do(set.initBuiltins)
+	_, has := set.filters[name]
 	if !has {
 		return fmt.Errorf("filter '%s' not found", name)
 	}
@@ -129,6 +150,113 @@ func (set *TemplateSet) BanFilter(name string) error {
 	set.bannedFilters[name] = true
 
 	return nil
+}
+
+// RegisterFilter registers a new filter for this template set.
+func (set *TemplateSet) RegisterFilter(name string, fn FilterFunction) error {
+	set.initOnce.Do(set.initBuiltins)
+	_, existing := set.filters[name]
+	if existing {
+		return fmt.Errorf("filter with name '%s' is already registered", name)
+	}
+	set.filters[name] = fn
+	return nil
+}
+
+// RegisterFilter registers a new filter for this template set.
+func (set *TemplateSet) SetAutoescape(v bool) {
+	set.autoescape = v
+}
+
+// ReplaceFilter replaces an already registered filter in this template set.
+// Use this function with caution since it allows you to change existing filter behaviour.
+func (set *TemplateSet) ReplaceFilter(name string, fn FilterFunction) error {
+	set.initOnce.Do(set.initBuiltins)
+	_, existing := set.filters[name]
+	if !existing {
+		return fmt.Errorf("filter with name '%s' does not exist (therefore cannot be overridden)", name)
+	}
+	set.filters[name] = fn
+	return nil
+}
+
+// RegisterTag registers a new tag for this template set.
+func (set *TemplateSet) RegisterTag(name string, parserFn TagParser) error {
+	set.initOnce.Do(set.initBuiltins)
+	_, existing := set.tags[name]
+	if existing {
+		return fmt.Errorf("tag with name '%s' is already registered", name)
+	}
+	set.tags[name] = &tag{
+		name:   name,
+		parser: parserFn,
+	}
+	return nil
+}
+
+// ReplaceTag replaces an already registered tag in this template set.
+// Use this function with caution since it allows you to change existing tag behaviour.
+func (set *TemplateSet) ReplaceTag(name string, parserFn TagParser) error {
+	set.initOnce.Do(set.initBuiltins)
+	_, existing := set.tags[name]
+	if !existing {
+		return fmt.Errorf("tag with name '%s' does not exist (therefore cannot be overridden)", name)
+	}
+	set.tags[name] = &tag{
+		name:   name,
+		parser: parserFn,
+	}
+	return nil
+}
+
+// FilterExists returns true if the given filter is registered in this template set.
+// This checks the set's filter registry, which initially contains copies of all builtin filters
+// plus any filters registered via RegisterFilter.
+func (set *TemplateSet) FilterExists(name string) bool {
+	set.initOnce.Do(set.initBuiltins)
+	_, existing := set.filters[name]
+	return existing
+}
+
+// TagExists returns true if the given tag is registered in this template set.
+// This checks the set's tag registry, which initially contains copies of all builtin tags
+// plus any tags registered via RegisterTag.
+func (set *TemplateSet) TagExists(name string) bool {
+	set.initOnce.Do(set.initBuiltins)
+	_, existing := set.tags[name]
+	return existing
+}
+
+// ApplyFilter applies a filter registered in this template set to a given value
+// using the given parameters. Returns a *pongo2.Value or an error.
+// This is useful for applying set-specific filters, including any custom filters
+// registered with RegisterFilter or replaced with ReplaceFilter.
+func (set *TemplateSet) ApplyFilter(name string, value *Value, param *Value) (*Value, error) {
+	set.initOnce.Do(set.initBuiltins)
+	fn, existing := set.filters[name]
+	if !existing {
+		return nil, &Error{
+			Sender:    "applyfilter",
+			OrigError: fmt.Errorf("filter with name '%s' not found", name),
+		}
+	}
+
+	// Make sure param is a *Value
+	if param == nil {
+		param = AsValue(nil)
+	}
+
+	return fn(value, param)
+}
+
+// MustApplyFilter behaves like ApplyFilter, but panics on an error.
+// This uses the template set's filter registry.
+func (set *TemplateSet) MustApplyFilter(name string, value *Value, param *Value) *Value {
+	val, err := set.ApplyFilter(name, value, param)
+	if err != nil {
+		panic(err)
+	}
+	return val
 }
 
 func (set *TemplateSet) resolveTemplate(tpl *Template, path string) (name string, loader TemplateLoader, fd io.Reader, err error) {
@@ -287,17 +415,55 @@ var (
 	// system and is being used by the DefaultSet.
 	DefaultLoader = MustNewLocalFileSystemLoader("")
 
-	// DefaultSet is a set created for you for convinience reasons.
+	// DefaultSet is a set created for you for convenience reasons.
 	DefaultSet = NewSet("default", DefaultLoader)
 
-	// Methods on the default set
-	FromString           = DefaultSet.FromString
-	FromBytes            = DefaultSet.FromBytes
-	FromFile             = DefaultSet.FromFile
-	FromCache            = DefaultSet.FromCache
-	RenderTemplateString = DefaultSet.RenderTemplateString
-	RenderTemplateFile   = DefaultSet.RenderTemplateFile
+	// FromString loads a template from string and returns a Template instance.
+	// This is a convenience function that delegates to DefaultSet.FromString.
+	FromString = DefaultSet.FromString
 
-	// Globals for the default set
+	// FromBytes loads a template from bytes and returns a Template instance.
+	// This is a convenience function that delegates to DefaultSet.FromBytes.
+	FromBytes = DefaultSet.FromBytes
+
+	// FromFile loads a template from a filename and returns a Template instance.
+	// This is a convenience function that delegates to DefaultSet.FromFile.
+	FromFile = DefaultSet.FromFile
+
+	// FromCache is a convenient method to cache templates. It is thread-safe
+	// and will only compile the template associated with a filename once.
+	// This is a convenience function that delegates to DefaultSet.FromCache.
+	FromCache = DefaultSet.FromCache
+
+	// RenderTemplateString is a shortcut and renders a template string directly.
+	// This is a convenience function that delegates to DefaultSet.RenderTemplateString.
+	RenderTemplateString = DefaultSet.RenderTemplateString
+
+	// RenderTemplateFile is a shortcut and renders a template file directly.
+	// This is a convenience function that delegates to DefaultSet.RenderTemplateFile.
+	RenderTemplateFile = DefaultSet.RenderTemplateFile
+
+	// RegisterFilter registers a new filter for the DefaultSet.
+	// Returns an error if a filter with the same name already exists.
+	RegisterFilter = DefaultSet.RegisterFilter
+
+	// ReplaceFilter replaces an existing filter in the DefaultSet.
+	// Use with caution since it changes existing filter behaviour.
+	ReplaceFilter = DefaultSet.ReplaceFilter
+
+	// RegisterTag registers a new tag for the DefaultSet.
+	// Returns an error if a tag with the same name already exists.
+	RegisterTag = DefaultSet.RegisterTag
+
+	// ReplaceTag replaces an existing tag in the DefaultSet.
+	// Use with caution since it changes existing tag behaviour.
+	ReplaceTag = DefaultSet.ReplaceTag
+
+	// Globals is the global context for the DefaultSet.
+	// Variables added here will be available to all templates in the DefaultSet.
 	Globals = DefaultSet.Globals
+
+	// SetAutoescape configures the default autoescaping behavior for the DefaultSet.
+	// When enabled (true), template output will be automatically HTML-escaped for safety.
+	SetAutoescape = DefaultSet.SetAutoescape
 )

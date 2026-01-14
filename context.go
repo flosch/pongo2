@@ -5,15 +5,6 @@ import (
 	"fmt"
 )
 
-var autoescape = true
-
-// SetAutoescape configures the global default autoescaping behavior for templates.
-// When enabled (true), template output will be automatically HTML-escaped for safety.
-// This setting affects all newly created ExecutionContexts.
-func SetAutoescape(newValue bool) {
-	autoescape = newValue
-}
-
 // A Context type provides constants, variables, instances or functions to a template.
 //
 // pongo2 automatically provides meta-information or functions through the "pongo2"-key.
@@ -107,7 +98,7 @@ func newExecutionContext(tpl *Template, ctx Context) *ExecutionContext {
 
 		Public:     ctx,
 		Private:    privateCtx,
-		Autoescape: autoescape,
+		Autoescape: tpl.set.autoescape,
 	}
 }
 

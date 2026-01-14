@@ -21,6 +21,7 @@ package pongo2
 
 import (
 	"fmt"
+	"maps"
 )
 
 type INodeTag interface {
@@ -47,41 +48,29 @@ type tag struct {
 	parser TagParser
 }
 
-var tags map[string]*tag
+var builtinTags = make(map[string]*tag)
 
-func init() {
-	tags = make(map[string]*tag)
+// copyTags creates a shallow copy of a tag map.
+func copyTags(src map[string]*tag) map[string]*tag {
+	dst := make(map[string]*tag, len(src))
+	maps.Copy(dst, src)
+	return dst
 }
 
 func mustRegisterTag(name string, parserFn TagParser) {
-	if err := RegisterTag(name, parserFn); err != nil {
+	if err := registerTagGlobal(name, parserFn); err != nil {
 		panic(err)
 	}
 }
 
-// Registers a new tag. You usually want to call this
-// function in the tag's init() function:
-// http://golang.org/doc/effective_go.html#init
-func RegisterTag(name string, parserFn TagParser) error {
-	_, existing := tags[name]
+// registerTagGlobal registers a new tag to the global tag map.
+// This is used during package initialization to register builtin tags.
+func registerTagGlobal(name string, parserFn TagParser) error {
+	_, existing := builtinTags[name]
 	if existing {
 		return fmt.Errorf("tag with name '%s' is already registered", name)
 	}
-	tags[name] = &tag{
-		name:   name,
-		parser: parserFn,
-	}
-	return nil
-}
-
-// Replaces an already registered tag with a new implementation. Use this
-// function with caution since it allows you to change existing tag behaviour.
-func ReplaceTag(name string, parserFn TagParser) error {
-	_, existing := tags[name]
-	if !existing {
-		return fmt.Errorf("tag with name '%s' does not exist (therefore cannot be overridden)", name)
-	}
-	tags[name] = &tag{
+	builtinTags[name] = &tag{
 		name:   name,
 		parser: parserFn,
 	}
@@ -98,16 +87,16 @@ func (p *Parser) parseTagElement() (INodeTag, error) {
 		return nil, p.Error("Tag name must be an identifier.", nil)
 	}
 
-	// Check for the existing tag
-	tag, exists := tags[tokenName.Val]
-	if !exists {
-		// Does not exists
-		return nil, p.Error(fmt.Sprintf("Tag '%s' not found (or beginning tag not provided)", tokenName.Val), tokenName)
-	}
-
 	// Check sandbox tag restriction
 	if _, isBanned := p.template.set.bannedTags[tokenName.Val]; isBanned {
 		return nil, p.Error(fmt.Sprintf("Usage of tag '%s' is not allowed (sandbox restriction active).", tokenName.Val), tokenName)
+	}
+
+	// Check for the existing tag
+	tag, exists := p.template.set.tags[tokenName.Val]
+	if !exists {
+		// Does not exists
+		return nil, p.Error(fmt.Sprintf("Tag '%s' not found (or beginning tag not provided)", tokenName.Val), tokenName)
 	}
 
 	var argsToken []*Token

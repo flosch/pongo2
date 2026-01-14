@@ -13,8 +13,8 @@ func TestReplaceFilter(t *testing.T) {
 	})
 
 	t.Run("existing filter", func(t *testing.T) {
-		originalFn := filters["upper"]
-		defer func() { filters["upper"] = originalFn }()
+		originalFn := DefaultSet.filters["upper"]
+		defer func() { DefaultSet.filters["upper"] = originalFn }()
 
 		newFn := func(in *Value, param *Value) (*Value, error) {
 			return AsValue("REPLACED"), nil
@@ -25,7 +25,9 @@ func TestReplaceFilter(t *testing.T) {
 			t.Errorf("ReplaceFilter failed for existing filter: %v", err)
 		}
 
-		result, err := ApplyFilter("upper", AsValue("test"), nil)
+		// Use DefaultSet.ApplyFilter since ReplaceFilter modifies DefaultSet's filters,
+		// not builtinFilters. The package-level ApplyFilter uses builtinFilters.
+		result, err := DefaultSet.ApplyFilter("upper", AsValue("test"), nil)
 		if err != nil {
 			t.Fatalf("ApplyFilter failed: %v", err)
 		}

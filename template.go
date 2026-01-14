@@ -59,6 +59,9 @@ func newTemplateString(set *TemplateSet, tpl []byte) (*Template, error) {
 func newTemplate(set *TemplateSet, name string, isTplString bool, tpl []byte) (*Template, error) {
 	strTpl := string(tpl)
 
+	// Ensure builtin tags and filters are copied to this template set
+	set.initOnce.Do(set.initBuiltins)
+
 	// Create the template
 	t := &Template{
 		set:            set,
@@ -79,11 +82,6 @@ func newTemplate(set *TemplateSet, name string, isTplString bool, tpl []byte) (*
 		return nil, err
 	}
 	t.tokens = tokens
-
-	// For debugging purposes, show all tokens:
-	/*for i, t := range tokens {
-		fmt.Printf("%3d. %s\n", i, t)
-	}*/
 
 	// Parse it
 	err = t.parse()

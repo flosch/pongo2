@@ -3,15 +3,15 @@ package pongo2
 import "testing"
 
 func TestSetAutoescape(t *testing.T) {
-	original := autoescape
+	original := DefaultSet.autoescape
 
 	SetAutoescape(false)
-	if autoescape != false {
+	if DefaultSet.autoescape != false {
 		t.Error("SetAutoescape(false) did not set autoescape to false")
 	}
 
 	SetAutoescape(true)
-	if autoescape != true {
+	if DefaultSet.autoescape != true {
 		t.Error("SetAutoescape(true) did not set autoescape to true")
 	}
 
