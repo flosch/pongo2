@@ -50,25 +50,6 @@ func TestFSLoader(t *testing.T) {
 	})
 }
 
-func TestNewSandboxedFilesystemLoader(t *testing.T) {
-	t.Run("valid directory", func(t *testing.T) {
-		loader, err := NewSandboxedFilesystemLoader(".")
-		if err != nil {
-			t.Fatalf("NewSandboxedFilesystemLoader failed: %v", err)
-		}
-		if loader == nil {
-			t.Error("NewSandboxedFilesystemLoader returned nil")
-		}
-	})
-
-	t.Run("non-existent directory", func(t *testing.T) {
-		_, err := NewSandboxedFilesystemLoader("/nonexistent/directory")
-		if err == nil {
-			t.Error("NewSandboxedFilesystemLoader should fail for non-existent directory")
-		}
-	})
-}
-
 type mockHTTPFileSystem struct {
 	files map[string]string
 }

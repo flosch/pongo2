@@ -129,56 +129,6 @@ func (fs *LocalFilesystemLoader) Abs(base, name string) string {
 	return filepath.Join(fs.baseDir, name)
 }
 
-// SandboxedFilesystemLoader is still WIP.
-type SandboxedFilesystemLoader struct {
-	*LocalFilesystemLoader
-}
-
-// NewSandboxedFilesystemLoader creates a new sandboxed local file system instance.
-func NewSandboxedFilesystemLoader(baseDir string) (*SandboxedFilesystemLoader, error) {
-	fs, err := NewLocalFileSystemLoader(baseDir)
-	if err != nil {
-		return nil, err
-	}
-	return &SandboxedFilesystemLoader{
-		LocalFilesystemLoader: fs,
-	}, nil
-}
-
-// Move sandbox to a virtual fs
-
-/*
-if len(set.SandboxDirectories) > 0 {
-    defer func() {
-        // Remove any ".." or other crap
-        resolvedPath = filepath.Clean(resolvedPath)
-
-        // Make the path absolute
-        absPath, err := filepath.Abs(resolvedPath)
-        if err != nil {
-            panic(err)
-        }
-        resolvedPath = absPath
-
-        // Check against the sandbox directories (once one pattern matches, we're done and can allow it)
-        for _, pattern := range set.SandboxDirectories {
-            matched, err := filepath.Match(pattern, resolvedPath)
-            if err != nil {
-                panic("Wrong sandbox directory match pattern (see http://golang.org/pkg/path/filepath/#Match).")
-            }
-            if matched {
-                // OK!
-                return
-            }
-        }
-
-        // No pattern matched, we have to log+deny the request
-        set.logf("Access attempt outside of the sandbox directories (blocked): '%s'", resolvedPath)
-        resolvedPath = ""
-    }()
-}
-*/
-
 // HttpFilesystemLoader supports loading templates
 // from an http.FileSystem - useful for using one of several
 // file-to-code generators that packs static files into
