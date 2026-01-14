@@ -626,7 +626,7 @@ func TestBaseDirectory(t *testing.T) {
 
 func BenchmarkCache(b *testing.B) {
 	cacheSet := pongo2.NewSet("cache set", pongo2.MustNewLocalFileSystemLoader(""))
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		tpl, err := cacheSet.FromCache("template_tests/complex.tpl")
 		if err != nil {
 			b.Fatal(err)
@@ -641,7 +641,7 @@ func BenchmarkCache(b *testing.B) {
 func BenchmarkCacheDebugOn(b *testing.B) {
 	cacheDebugSet := pongo2.NewSet("cache set", pongo2.MustNewLocalFileSystemLoader(""))
 	cacheDebugSet.Debug = true
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		tpl, err := cacheDebugSet.FromFile("template_tests/complex.tpl")
 		if err != nil {
 			b.Fatal(err)
@@ -658,8 +658,7 @@ func BenchmarkExecuteComplex(b *testing.B) {
 	if err != nil {
 		b.Fatal(err)
 	}
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		err = tpl.ExecuteWriterUnbuffered(tplContext, io.Discard)
 		if err != nil {
 			b.Fatal(err)
@@ -673,8 +672,7 @@ func BenchmarkCompileAndExecuteComplex(b *testing.B) {
 		b.Fatal(err)
 	}
 	preloadedTpl := string(buf)
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		tpl, err := pongo2.FromString(preloadedTpl)
 		if err != nil {
 			b.Fatal(err)
@@ -709,8 +707,7 @@ func BenchmarkExecuteBlocks(b *testing.B) {
 	if err != nil {
 		b.Fatal(err)
 	}
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		_, err = tpl.ExecuteBlocks(tplContext, blockNames)
 		if err != nil {
 			b.Fatal(err)
@@ -739,8 +736,7 @@ func BenchmarkExecuteBlocksEmpty(b *testing.B) {
 	if err != nil {
 		b.Fatal(err)
 	}
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		_, err = tpl.ExecuteBlocks(tplContext, blockNames)
 		if err != nil {
 			b.Fatal(err)
