@@ -654,7 +654,8 @@ func BenchmarkCacheDebugOn(b *testing.B) {
 }
 
 func BenchmarkExecuteComplex(b *testing.B) {
-	tpl, err := pongo2.FromFile("template_tests/complex.tpl")
+	set := pongo2.NewSet("bench", pongo2.MustNewLocalFileSystemLoader(""))
+	tpl, err := set.FromFile("template_tests/complex.tpl")
 	if err != nil {
 		b.Fatal(err)
 	}
@@ -667,13 +668,14 @@ func BenchmarkExecuteComplex(b *testing.B) {
 }
 
 func BenchmarkCompileAndExecuteComplex(b *testing.B) {
+	set := pongo2.NewSet("bench", pongo2.MustNewLocalFileSystemLoader(""))
 	buf, err := os.ReadFile("template_tests/complex.tpl")
 	if err != nil {
 		b.Fatal(err)
 	}
-	preloadedTpl := string(buf)
+	preloadedTpl := buf
 	for b.Loop() {
-		tpl, err := pongo2.FromString(preloadedTpl)
+		tpl, err := set.FromBytes(preloadedTpl)
 		if err != nil {
 			b.Fatal(err)
 		}
@@ -686,11 +688,11 @@ func BenchmarkCompileAndExecuteComplex(b *testing.B) {
 }
 
 func BenchmarkParallelExecuteComplex(b *testing.B) {
-	tpl, err := pongo2.FromFile("template_tests/complex.tpl")
+	set := pongo2.NewSet("bench", pongo2.MustNewLocalFileSystemLoader(""))
+	tpl, err := set.FromFile("template_tests/complex.tpl")
 	if err != nil {
 		b.Fatal(err)
 	}
-	b.ResetTimer()
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
 			err := tpl.ExecuteWriterUnbuffered(tplContext, io.Discard)
@@ -702,8 +704,9 @@ func BenchmarkParallelExecuteComplex(b *testing.B) {
 }
 
 func BenchmarkExecuteBlocks(b *testing.B) {
+	set := pongo2.NewSet("bench", pongo2.MustNewLocalFileSystemLoader(""))
 	blockNames := []string{"content", "more_content"}
-	tpl, err := pongo2.FromFile("template_tests/block_render/block.tpl")
+	tpl, err := set.FromFile("template_tests/block_render/block.tpl")
 	if err != nil {
 		b.Fatal(err)
 	}
@@ -716,13 +719,13 @@ func BenchmarkExecuteBlocks(b *testing.B) {
 }
 
 func BenchmarkExecuteBlocksDeep(b *testing.B) {
+	set := pongo2.NewSet("bench", pongo2.MustNewLocalFileSystemLoader(""))
 	blockNames := []string{"body", "more_content"}
-	tpl, err := pongo2.FromFile("template_tests/block_render/deep.tpl")
+	tpl, err := set.FromFile("template_tests/block_render/deep.tpl")
 	if err != nil {
 		b.Fatal(err)
 	}
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		_, err = tpl.ExecuteBlocks(tplContext, blockNames)
 		if err != nil {
 			b.Fatal(err)
@@ -731,8 +734,9 @@ func BenchmarkExecuteBlocksDeep(b *testing.B) {
 }
 
 func BenchmarkExecuteBlocksEmpty(b *testing.B) {
+	set := pongo2.NewSet("bench", pongo2.MustNewLocalFileSystemLoader(""))
 	blockNames := []string{}
-	tpl, err := pongo2.FromFile("template_tests/block_render/block.tpl")
+	tpl, err := set.FromFile("template_tests/block_render/block.tpl")
 	if err != nil {
 		b.Fatal(err)
 	}
