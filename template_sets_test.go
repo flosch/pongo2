@@ -103,8 +103,7 @@ func TestTemplateSetFromCache(t *testing.T) {
 }
 
 func TestTemplateSetRenderTemplateString(t *testing.T) {
-	loader := MustNewLocalFileSystemLoader("")
-	set := NewSet("test-render", loader)
+	set := NewSet("test-render", &DummyLoader{})
 
 	result, err := set.RenderTemplateString("Hello {{ name }}!", Context{"name": "World"})
 	if err != nil {
@@ -117,8 +116,7 @@ func TestTemplateSetRenderTemplateString(t *testing.T) {
 }
 
 func TestTemplateSetRenderTemplateBytes(t *testing.T) {
-	loader := MustNewLocalFileSystemLoader("")
-	set := NewSet("test-render-bytes", loader)
+	set := NewSet("test-render-bytes", &DummyLoader{})
 
 	result, err := set.RenderTemplateBytes([]byte("Hello {{ name }}!"), Context{"name": "World"})
 	if err != nil {
@@ -160,9 +158,17 @@ func TestNewSetPanicWithNoLoaders(t *testing.T) {
 	NewSet("test")
 }
 
+func TestNewSetPanicWithNilLoader(t *testing.T) {
+	defer func() {
+		if r := recover(); r == nil {
+			t.Error("NewSet should panic with nil loader")
+		}
+	}()
+	NewSet("test", nil)
+}
+
 func TestBanTagAndFilter(t *testing.T) {
-	loader := MustNewLocalFileSystemLoader("")
-	set := NewSet("test-ban", loader)
+	set := NewSet("test-ban", &DummyLoader{})
 
 	t.Run("ban existing tag", func(t *testing.T) {
 		err := set.BanTag("for")
@@ -208,8 +214,7 @@ func TestBanTagAndFilter(t *testing.T) {
 }
 
 func TestOptions(t *testing.T) {
-	loader := MustNewLocalFileSystemLoader("")
-	set := NewSet("test-options", loader)
+	set := NewSet("test-options", &DummyLoader{})
 
 	if set.Options == nil {
 		t.Error("Options should not be nil")

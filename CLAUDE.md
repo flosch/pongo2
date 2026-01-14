@@ -49,6 +49,7 @@ golangci-lint run
 - Issues/bugs should be reproduced upfront by writing a test (usually in `pongo2_issues_test.go`) using `fstest`.
 - Template tests (such as filters and tags) usually go into `template_tests/` and one of its test templates.
 - Use Go's built-in test utilities: `testing/fstest`, `testing/iotest`, `testing/quick`.
+- Tests using NewSet should use the DummyLoader instead of using a local file system.
 
 ### Benchmarking
 

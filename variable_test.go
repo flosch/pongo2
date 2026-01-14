@@ -54,7 +54,7 @@ func TestResolveArrayDefinition(t *testing.T) {
 		},
 	}
 
-	set := NewSet("test", MustNewLocalFileSystemLoader(""))
+	set := NewSet("test", &DummyLoader{})
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -102,7 +102,7 @@ func TestLookupInitialValue(t *testing.T) {
 		},
 	}
 
-	set := NewSet("test", MustNewLocalFileSystemLoader(""))
+	set := NewSet("test", &DummyLoader{})
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -170,7 +170,7 @@ func TestResolveNextPart(t *testing.T) {
 		},
 	}
 
-	set := NewSet("test", MustNewLocalFileSystemLoader(""))
+	set := NewSet("test", &DummyLoader{})
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -225,7 +225,7 @@ func TestResolveIntIndex(t *testing.T) {
 		},
 	}
 
-	set := NewSet("test", MustNewLocalFileSystemLoader(""))
+	set := NewSet("test", &DummyLoader{})
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -291,7 +291,7 @@ func TestResolveIdentifier(t *testing.T) {
 		},
 	}
 
-	set := NewSet("test", MustNewLocalFileSystemLoader(""))
+	set := NewSet("test", &DummyLoader{})
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -363,6 +363,24 @@ func TestResolveSubscript(t *testing.T) {
 			expected: "test",
 		},
 		{
+			name:     "string subscript",
+			template: "{{ s[0] }}",
+			context:  Context{"s": "hello"},
+			expected: "h", // character at index (Django-compatible)
+		},
+		{
+			name:     "string subscript with variable",
+			template: "{{ s[idx] }}",
+			context:  Context{"s": "world", "idx": 4},
+			expected: "d",
+		},
+		{
+			name:     "string subscript out of bounds",
+			template: "{{ s[100] }}",
+			context:  Context{"s": "hi"},
+			expected: "",
+		},
+		{
 			name:     "out of bounds returns empty",
 			template: "{{ items[100] }}",
 			context:  Context{"items": []string{"only"}},
@@ -376,7 +394,7 @@ func TestResolveSubscript(t *testing.T) {
 		},
 	}
 
-	set := NewSet("test", MustNewLocalFileSystemLoader(""))
+	set := NewSet("test", &DummyLoader{})
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -476,7 +494,7 @@ func TestHandleFunctionCall(t *testing.T) {
 		},
 	}
 
-	set := NewSet("test", MustNewLocalFileSystemLoader(""))
+	set := NewSet("test", &DummyLoader{})
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -585,7 +603,7 @@ func TestResolvePartByTypeErrors(t *testing.T) {
 		},
 	}
 
-	set := NewSet("test", MustNewLocalFileSystemLoader(""))
+	set := NewSet("test", &DummyLoader{})
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -658,7 +676,7 @@ func TestComplexVariableResolution(t *testing.T) {
 		},
 	}
 
-	set := NewSet("test", MustNewLocalFileSystemLoader(""))
+	set := NewSet("test", &DummyLoader{})
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

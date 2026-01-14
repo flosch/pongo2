@@ -19,8 +19,7 @@ func TestSetAutoescape(t *testing.T) {
 }
 
 func TestExecutionContextLogf(t *testing.T) {
-	loader := MustNewLocalFileSystemLoader("")
-	set := NewSet("test-logf", loader)
+	set := NewSet("test-logf", &DummyLoader{})
 	set.Debug = true
 
 	tpl, err := set.FromString("test")

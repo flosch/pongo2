@@ -72,6 +72,11 @@ func NewSet(name string, loaders ...TemplateLoader) *TemplateSet {
 	if len(loaders) == 0 {
 		panic(fmt.Errorf("at least one template loader must be specified"))
 	}
+	for i, loader := range loaders {
+		if loader == nil {
+			panic(fmt.Errorf("loader at index %d is nil", i))
+		}
+	}
 
 	return &TemplateSet{
 		name:       name,
