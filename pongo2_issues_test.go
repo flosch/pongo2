@@ -318,3 +318,91 @@ func TestIssue322(t *testing.T) {
 
 	wg.Wait()
 }
+
+func TestIssue209(t *testing.T) {
+	// Test that "not X in Y" is correctly parsed as "not (X in Y)"
+	// Bug: "not X in Y" was being parsed as "(not X) in Y" due to
+	// incorrect operator precedence. The "not" operator should have
+	// lower precedence than "in".
+	// See: https://github.com/flosch/pongo2/issues/209
+
+	tests := []struct {
+		name     string
+		template string
+		context  pongo2.Context
+		expected string
+	}{
+		{
+			name:     "not in - element exists",
+			template: `{% if not "Hello" in text %}is not{% else %}is{% endif %}`,
+			context:  pongo2.Context{"text": "<h2>Hello!</h2><p>Welcome"},
+			expected: "is",
+		},
+		{
+			name:     "not in - element does not exist",
+			template: `{% if not "World" in text %}is not{% else %}is{% endif %}`,
+			context:  pongo2.Context{"text": "<h2>Hello!</h2><p>Welcome"},
+			expected: "is not",
+		},
+		{
+			name:     "not in with list - element exists",
+			template: `{% if not 2 in numbers %}not found{% else %}found{% endif %}`,
+			context:  pongo2.Context{"numbers": []int{1, 2, 3}},
+			expected: "found",
+		},
+		{
+			name:     "not in with list - element does not exist",
+			template: `{% if not 5 in numbers %}not found{% else %}found{% endif %}`,
+			context:  pongo2.Context{"numbers": []int{1, 2, 3}},
+			expected: "not found",
+		},
+		{
+			name:     "not in with map - key exists",
+			template: `{% if not "foo" in mymap %}not found{% else %}found{% endif %}`,
+			context:  pongo2.Context{"mymap": map[string]int{"foo": 1, "bar": 2}},
+			expected: "found",
+		},
+		{
+			name:     "not in with map - key does not exist",
+			template: `{% if not "baz" in mymap %}not found{% else %}found{% endif %}`,
+			context:  pongo2.Context{"mymap": map[string]int{"foo": 1, "bar": 2}},
+			expected: "not found",
+		},
+		{
+			name:     "double negation - not not in",                               //nolint:dupword
+			template: `{% if not not "Hello" in text %}yes{% else %}no{% endif %}`, //nolint:dupword
+			context:  pongo2.Context{"text": "Hello World"},
+			expected: "yes",
+		},
+		{
+			name:     "not in combined with and",
+			template: `{% if flag and not "x" in text %}yes{% else %}no{% endif %}`,
+			context:  pongo2.Context{"flag": true, "text": "abc"},
+			expected: "yes",
+		},
+		{
+			name:     "not in combined with or",
+			template: `{% if not "x" in text or flag %}yes{% else %}no{% endif %}`,
+			context:  pongo2.Context{"flag": false, "text": "abc"},
+			expected: "yes",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tpl, err := pongo2.FromString(tt.template)
+			if err != nil {
+				t.Fatalf("failed to parse template: %v", err)
+			}
+
+			result, err := tpl.Execute(tt.context)
+			if err != nil {
+				t.Fatalf("failed to execute template: %v", err)
+			}
+
+			if result != tt.expected {
+				t.Errorf("expected %q, got %q", tt.expected, result)
+			}
+		})
+	}
+}
