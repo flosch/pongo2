@@ -43,6 +43,28 @@ var htmlEscapeReplacer = strings.NewReplacer(
 	"'", "&#39;",
 )
 
+// stripTagsIteratively applies tag-stripping regex patterns iteratively until convergence.
+// This handles obfuscated tags like "<sc<script>ript>" which become "<script>" after first pass.
+// Returns an error if stripping doesn't converge within maxIterations.
+func stripTagsIteratively(s string, patterns []*regexp.Regexp, maxIterations int, filterName string) (string, error) {
+	for i := range maxIterations {
+		prev := s
+		for _, re := range patterns {
+			s = re.ReplaceAllString(s, "")
+		}
+		if s == prev {
+			return strings.TrimSpace(s), nil
+		}
+		if i == maxIterations-1 {
+			return "", &Error{
+				Sender:    filterName,
+				OrigError: fmt.Errorf("tag stripping did not converge after max iterations (%d); input may be maliciously crafted", maxIterations),
+			}
+		}
+	}
+	return strings.TrimSpace(s), nil
+}
+
 // addslashesReplacer is a pre-compiled replacer for adding slashes.
 var addslashesReplacer = strings.NewReplacer(
 	`\`, `\\`,
@@ -1331,27 +1353,12 @@ func filterStriptags(in *Value, param *Value) (*Value, error) {
 	// Remove null bytes which could be used to bypass filters
 	s = strings.ReplaceAll(s, "\x00", "")
 
-	// Strip all tags repeatedly until no more changes occur
-	// This handles obfuscated tags like "<<script>script>" which become "<script>" after first pass
-	const maxIterations = 50
-	for i := range maxIterations {
-		prev := s
-		s = reStriptags.ReplaceAllString(s, "")
-		if s == prev {
-			break
-		}
-		if i == maxIterations-1 {
-			// Input appears to be crafted to cause excessive iterations.
-			// This could indicate a denial-of-service attempt or malformed input
-			// designed to bypass tag stripping. Abort for security.
-			return nil, &Error{
-				Sender:    "filter:striptags",
-				OrigError: errors.New("tag stripping did not converge after 50 iterations; input may be maliciously crafted"),
-			}
-		}
+	result, err := stripTagsIteratively(s, []*regexp.Regexp{reStriptags}, 50, "filter:striptags")
+	if err != nil {
+		return nil, err
 	}
 
-	return AsValue(strings.TrimSpace(s)), nil
+	return AsValue(result), nil
 }
 
 // https://en.wikipedia.org/wiki/Phoneword
@@ -1515,28 +1522,12 @@ func filterRemovetags(in *Value, param *Value) (*Value, error) {
 		patterns = append(patterns, re)
 	}
 
-	// Apply stripping recursively until no more changes occur
-	// This handles obfuscated tags like "<sc<script>ript>"
-	const maxIterations = 100 // Prevent infinite loops
-	for i := range maxIterations {
-		prev := s
-		for _, re := range patterns {
-			s = re.ReplaceAllString(s, "")
-		}
-		if s == prev {
-			// No more changes, we're done
-			return AsValue(strings.TrimSpace(s)), nil
-		}
-		if i == maxIterations-1 {
-			// Reached max iterations without converging - return error for security
-			return nil, &Error{
-				Sender:    "filter:removetags",
-				OrigError: errors.New("max iterations reached; aborted for security reasons"),
-			}
-		}
+	result, err := stripTagsIteratively(s, patterns, 100, "filter:removetags")
+	if err != nil {
+		return nil, err
 	}
 
-	return AsValue(strings.TrimSpace(s)), nil
+	return AsValue(result), nil
 }
 
 // filterRjust right-aligns the value in a field of a given width by padding
