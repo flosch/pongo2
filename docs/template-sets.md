@@ -411,7 +411,7 @@ import (
     "net/http"
     "time"
 
-    "github.com/flosch/pongo2/v6"
+    "github.com/flosch/pongo2/v7"
 )
 
 var templates *pongo2.TemplateSet

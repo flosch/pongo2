@@ -22,7 +22,7 @@ Use `RegisterFilter` to register your filter, typically in an `init()` function:
 ```go
 package main
 
-import "github.com/flosch/pongo2/v6"
+import "github.com/flosch/pongo2/v7"
 
 func init() {
     pongo2.RegisterFilter("double", filterDouble)
@@ -498,7 +498,7 @@ import (
     "strings"
     "unicode"
 
-    "github.com/flosch/pongo2/v6"
+    "github.com/flosch/pongo2/v7"
 )
 
 func init() {
@@ -558,7 +558,7 @@ package main
 import (
     _ "myapp/filters" // Import for side effects (registers filters)
 
-    "github.com/flosch/pongo2/v6"
+    "github.com/flosch/pongo2/v7"
 )
 
 func main() {

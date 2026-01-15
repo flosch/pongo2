@@ -1,4 +1,4 @@
-module github.com/flosch/pongo2/v6
+module github.com/flosch/pongo2/v7
 
 go 1.25
 

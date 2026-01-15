@@ -5,7 +5,7 @@ pongo2 is a Django-syntax compatible template engine for Go. This guide will hel
 ## Installation
 
 ```bash
-go get -u github.com/flosch/pongo2/v6
+go get -u github.com/flosch/pongo2/v7
 ```
 
 ## Basic Usage
@@ -17,7 +17,7 @@ package main
 
 import (
     "fmt"
-    "github.com/flosch/pongo2/v6"
+    "github.com/flosch/pongo2/v7"
 )
 
 func main() {
@@ -43,7 +43,7 @@ func main() {
 package main
 
 import (
-    "github.com/flosch/pongo2/v6"
+    "github.com/flosch/pongo2/v7"
     "net/http"
 )
 

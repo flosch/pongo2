@@ -13,7 +13,7 @@
 ## Quick Start
 
 ```go
-import "github.com/flosch/pongo2/v6"
+import "github.com/flosch/pongo2/v7"
 
 // Compile and execute a template
 tpl, _ := pongo2.FromString("Hello {{ name|capfirst }}!")

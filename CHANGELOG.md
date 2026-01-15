@@ -1,6 +1,6 @@
 # Changelog
 
-## v7.0.0 (WIP)
+## v7.0.0-alpha.1
 
 ### Features
 

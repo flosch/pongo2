@@ -486,7 +486,7 @@ package main
 import (
     "time"
 
-    "github.com/flosch/pongo2/v6"
+    "github.com/flosch/pongo2/v7"
 )
 
 type tagNowNode struct {
@@ -540,7 +540,7 @@ import (
     "bytes"
     "strings"
 
-    "github.com/flosch/pongo2/v6"
+    "github.com/flosch/pongo2/v7"
 )
 
 type tagUppercaseNode struct {
@@ -601,7 +601,7 @@ A tag that repeats content a variable number of times:
 package main
 
 import (
-    "github.com/flosch/pongo2/v6"
+    "github.com/flosch/pongo2/v7"
 )
 
 type tagRepeatNode struct {
@@ -683,7 +683,7 @@ A tag that iterates with access to loop metadata:
 package main
 
 import (
-    "github.com/flosch/pongo2/v6"
+    "github.com/flosch/pongo2/v7"
 )
 
 type eachLoop struct {
@@ -801,7 +801,7 @@ package main
 import (
     "fmt"
 
-    "github.com/flosch/pongo2/v6"
+    "github.com/flosch/pongo2/v7"
 )
 
 type tagWidgetNode struct {
@@ -904,7 +904,7 @@ A tag with multiple conditional branches:
 package main
 
 import (
-    "github.com/flosch/pongo2/v6"
+    "github.com/flosch/pongo2/v7"
 )
 
 type switchCase struct {
@@ -1039,7 +1039,7 @@ import (
     "sync"
     "time"
 
-    "github.com/flosch/pongo2/v6"
+    "github.com/flosch/pongo2/v7"
 )
 
 var (
