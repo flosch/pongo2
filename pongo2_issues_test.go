@@ -1,6 +1,7 @@
 package pongo2_test
 
 import (
+	"sync"
 	"testing"
 	"testing/fstest"
 
@@ -280,4 +281,40 @@ func TestIssue341(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestIssue322(t *testing.T) {
+	// Test for data race in FromFile when called concurrently.
+	// The race was on firstTemplateCreated field being written without synchronization.
+	// See: https://github.com/flosch/pongo2/issues/322
+
+	memFS := fstest.MapFS{
+		"index.html": &fstest.MapFile{
+			Data: []byte(`<h1>{{ status }}</h1>`),
+		},
+	}
+
+	loader := pongo2.NewFSLoader(memFS)
+	set := pongo2.NewSet("test", loader)
+
+	const numGoroutines = 100
+	var wg sync.WaitGroup
+	wg.Add(numGoroutines)
+
+	for range numGoroutines {
+		go func() {
+			defer wg.Done()
+			tpl, err := set.FromFile("index.html")
+			if err != nil {
+				t.Errorf("FromFile failed: %v", err)
+				return
+			}
+			_, err = tpl.Execute(pongo2.Context{"status": "Hello World"})
+			if err != nil {
+				t.Errorf("Execute failed: %v", err)
+			}
+		}()
+	}
+
+	wg.Wait()
 }

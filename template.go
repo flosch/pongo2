@@ -137,6 +137,9 @@ func newTemplateString(set *TemplateSet, tpl []byte) (*Template, error) {
 func newTemplate(set *TemplateSet, name string, isTplString bool, tpl []byte) (*Template, error) {
 	strTpl := string(tpl)
 
+	// Mark that a template has been created (prevents further tag/filter banning)
+	set.firstTemplateCreated.Store(true)
+
 	// Ensure builtin tags and filters are copied to this template set
 	set.initOnce.Do(set.initBuiltins)
 

@@ -7,6 +7,7 @@ import (
 	"log"
 	"os"
 	"sync"
+	"sync/atomic"
 )
 
 // TemplateLoader allows to implement a virtual file system.
@@ -56,7 +57,7 @@ type TemplateSet struct {
 	// For efficiency reasons you can ban tags/filters only *before* you have
 	// added your first template to the set (restrictions are statically checked).
 	// After you added one, it's not possible anymore (for your personal security).
-	firstTemplateCreated bool
+	firstTemplateCreated atomic.Bool
 	bannedTags           map[string]bool
 	bannedFilters        map[string]bool
 
@@ -126,7 +127,7 @@ func (set *TemplateSet) BanTag(name string) error {
 	if !has {
 		return fmt.Errorf("tag '%s' not found", name)
 	}
-	if set.firstTemplateCreated {
+	if set.firstTemplateCreated.Load() {
 		return errors.New("you cannot ban any tags after you've added your first template to your template set")
 	}
 	_, has = set.bannedTags[name]
@@ -145,7 +146,7 @@ func (set *TemplateSet) BanFilter(name string) error {
 	if !has {
 		return fmt.Errorf("filter '%s' not found", name)
 	}
-	if set.firstTemplateCreated {
+	if set.firstTemplateCreated.Load() {
 		return errors.New("you cannot ban any filters after you've added your first template to your template set")
 	}
 	_, has = set.bannedFilters[name]
@@ -327,22 +328,16 @@ func (set *TemplateSet) FromCache(filename string) (*Template, error) {
 
 // FromString loads a template from string and returns a Template instance.
 func (set *TemplateSet) FromString(tpl string) (*Template, error) {
-	set.firstTemplateCreated = true
-
 	return newTemplateString(set, []byte(tpl))
 }
 
 // FromBytes loads a template from bytes and returns a Template instance.
 func (set *TemplateSet) FromBytes(tpl []byte) (*Template, error) {
-	set.firstTemplateCreated = true
-
 	return newTemplateString(set, tpl)
 }
 
 // FromFile loads a template from a filename and returns a Template instance.
 func (set *TemplateSet) FromFile(filename string) (*Template, error) {
-	set.firstTemplateCreated = true
-
 	_, _, fd, err := set.resolveTemplate(nil, filename)
 	if err != nil {
 		return nil, &Error{
@@ -365,8 +360,6 @@ func (set *TemplateSet) FromFile(filename string) (*Template, error) {
 
 // RenderTemplateString is a shortcut and renders a template string directly.
 func (set *TemplateSet) RenderTemplateString(s string, ctx Context) (string, error) {
-	set.firstTemplateCreated = true
-
 	tpl := Must(set.FromString(s))
 	result, err := tpl.Execute(ctx)
 	if err != nil {
@@ -377,8 +370,6 @@ func (set *TemplateSet) RenderTemplateString(s string, ctx Context) (string, err
 
 // RenderTemplateBytes is a shortcut and renders template bytes directly.
 func (set *TemplateSet) RenderTemplateBytes(b []byte, ctx Context) (string, error) {
-	set.firstTemplateCreated = true
-
 	tpl := Must(set.FromBytes(b))
 	result, err := tpl.Execute(ctx)
 	if err != nil {
@@ -389,8 +380,6 @@ func (set *TemplateSet) RenderTemplateBytes(b []byte, ctx Context) (string, erro
 
 // RenderTemplateFile is a shortcut and renders a template file directly.
 func (set *TemplateSet) RenderTemplateFile(fn string, ctx Context) (string, error) {
-	set.firstTemplateCreated = true
-
 	tpl := Must(set.FromFile(fn))
 	result, err := tpl.Execute(ctx)
 	if err != nil {
