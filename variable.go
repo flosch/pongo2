@@ -92,58 +92,38 @@ type nodeVariable struct {
 
 type executionCtxEval struct{}
 
-func (v *nodeFilteredVariable) Execute(ctx *ExecutionContext, writer TemplateWriter) error {
-	value, err := v.Evaluate(ctx)
+// executeEvaluator is a helper that evaluates and writes a value to the writer.
+func executeEvaluator(e IEvaluator, ctx *ExecutionContext, writer TemplateWriter) error {
+	value, err := e.Evaluate(ctx)
 	if err != nil {
 		return err
 	}
 	_, err = writer.WriteString(value.String())
 	return err
+}
+
+func (v *nodeFilteredVariable) Execute(ctx *ExecutionContext, writer TemplateWriter) error {
+	return executeEvaluator(v, ctx, writer)
 }
 
 func (vr *variableResolver) Execute(ctx *ExecutionContext, writer TemplateWriter) error {
-	value, err := vr.Evaluate(ctx)
-	if err != nil {
-		return err
-	}
-	_, err = writer.WriteString(value.String())
-	return err
+	return executeEvaluator(vr, ctx, writer)
 }
 
 func (s *stringResolver) Execute(ctx *ExecutionContext, writer TemplateWriter) error {
-	value, err := s.Evaluate(ctx)
-	if err != nil {
-		return err
-	}
-	_, err = writer.WriteString(value.String())
-	return err
+	return executeEvaluator(s, ctx, writer)
 }
 
 func (i *intResolver) Execute(ctx *ExecutionContext, writer TemplateWriter) error {
-	value, err := i.Evaluate(ctx)
-	if err != nil {
-		return err
-	}
-	_, err = writer.WriteString(value.String())
-	return err
+	return executeEvaluator(i, ctx, writer)
 }
 
 func (f *floatResolver) Execute(ctx *ExecutionContext, writer TemplateWriter) error {
-	value, err := f.Evaluate(ctx)
-	if err != nil {
-		return err
-	}
-	_, err = writer.WriteString(value.String())
-	return err
+	return executeEvaluator(f, ctx, writer)
 }
 
 func (b *boolResolver) Execute(ctx *ExecutionContext, writer TemplateWriter) error {
-	value, err := b.Evaluate(ctx)
-	if err != nil {
-		return err
-	}
-	_, err = writer.WriteString(value.String())
-	return err
+	return executeEvaluator(b, ctx, writer)
 }
 
 func (v *nodeFilteredVariable) GetPositionToken() *Token {
