@@ -571,8 +571,14 @@ func (v *Value) Interface() any {
 
 // EqualValueTo checks whether two values are containing the same value or object (if comparable).
 func (v *Value) EqualValueTo(other *Value) bool {
-	// comparison of uint with int fails using .Interface()-comparison (see issue #64)
-	if v.IsInteger() && other.IsInteger() {
+	// Handle numeric comparison: float vs int should compare by value (e.g., 8.0 == 8)
+	// Also handles uint vs int comparison (see issue #64)
+	if v.IsNumber() && other.IsNumber() {
+		// If either is a float, compare as floats
+		if v.IsFloat() || other.IsFloat() {
+			return v.Float() == other.Float()
+		}
+		// Both are integers (includes uint vs int)
 		return v.Integer() == other.Integer()
 	}
 	if v.IsTime() && other.IsTime() {

@@ -8,7 +8,7 @@ integers and complex expressions
 floats
 5.500000
 5.172841
-False
+True
 True
 
 mul/div
@@ -72,3 +72,142 @@ string concatenation
 ab
 1a
 a1
+
+operator precedence (PEMDAS/BODMAS)
+14
+10
+4
+8
+13
+9
+32.000000
+32.000000
+28.000000
+5
+256.000000
+
+deeply nested parentheses
+3
+50
+45
+30
+11
+
+complex mixed operations
+7
+0
+21
+67
+6
+
+power operator edge cases
+1.000000
+0.000000
+1.000000
+100.000000
+1024.000000
+3.000000
+1.000000
+512.000000
+
+negative numbers and signs
+5
+5
+15
+5
+-4.000000
+4.000000
+-8.000000
+5
+-5
+
+modulo operations
+2
+2
+0
+7
+-1
+1
+
+mixed integer and float
+7.500000
+6.500000
+10.000000
+2.500000
+8.500000
+15.000000
+6.500000
+
+comparison with expressions
+True
+False
+True
+True
+True
+True
+True
+True
+
+logical with arithmetic
+True
+True
+True
+True
+True
+True
+
+chained comparisons
+False
+True
+True
+False
+
+expression with variables
+50
+84
+7
+2
+1764.000000
+50
+80
+6.283000
+4.641500
+
+large number calculations
+1000001
+1999998
+1000
+789
+
+zero edge cases
+0
+0
+0
+0
+1.000000
+0
+
+one as identity
+100
+100
+100
+1.000000
+1000.000000
+
+subtraction associativity (left-to-right)
+25
+75
+1
+
+division associativity (left-to-right)
+2
+50
+1
+
+combined associativity tests
+3
+1
+8
+18
+4
+24
