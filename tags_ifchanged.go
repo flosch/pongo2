@@ -57,7 +57,9 @@ func (node *tagIfchangedNode) Execute(ctx *ExecutionContext, writer TemplateWrit
 	if len(node.watchedExpr) == 0 {
 		// Check against own rendered body
 
+		// TODO: Check opportunity for buffer recycling
 		buf := bytes.NewBuffer(make([]byte, 0, 1024)) // 1 KiB
+
 		err := node.thenWrapper.Execute(ctx, buf)
 		if err != nil {
 			return err
@@ -70,6 +72,11 @@ func (node *tagIfchangedNode) Execute(ctx *ExecutionContext, writer TemplateWrit
 				return err
 			}
 			node.lastContent = bufBytes
+		} else if node.elseWrapper != nil {
+			// Content hasn't changed, render else block if present
+			if err := node.elseWrapper.Execute(ctx, writer); err != nil {
+				return err
+			}
 		}
 	} else {
 		nowValues := make([]*Value, 0, len(node.watchedExpr))

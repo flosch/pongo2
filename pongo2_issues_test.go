@@ -406,3 +406,93 @@ func TestIssue209(t *testing.T) {
 		})
 	}
 }
+
+func TestIssue237(t *testing.T) {
+	// Test that ifchanged with else clause works correctly when content doesn't change.
+	// Bug: ifchanged without watched expressions would panic or not render else block
+	// when the content doesn't change.
+	// See: https://github.com/flosch/pongo2/issues/237
+
+	tests := []struct {
+		name     string
+		template string
+		context  pongo2.Context
+		expected string
+	}{
+		{
+			name:     "content-based ifchanged with else - content changes",
+			template: `{% for item in items %}{% ifchanged %}{{ item }}{% else %}*{% endifchanged %}{% endfor %}`,
+			context:  pongo2.Context{"items": []string{"a", "b", "b", "c"}},
+			expected: "ab*c",
+		},
+		{
+			name:     "content-based ifchanged with else - all same",
+			template: `{% for item in items %}{% ifchanged %}{{ item }}{% else %}*{% endifchanged %}{% endfor %}`,
+			context:  pongo2.Context{"items": []string{"a", "a", "a"}},
+			expected: "a**",
+		},
+		{
+			name:     "content-based ifchanged without else",
+			template: `{% for item in items %}{% ifchanged %}[{{ item }}]{% endifchanged %}{% endfor %}`,
+			context:  pongo2.Context{"items": []string{"a", "a", "b", "b", "c"}},
+			expected: "[a][b][c]",
+		},
+		{
+			name:     "expression-based ifchanged with else",
+			template: `{% for item in items %}{% ifchanged item %}{{ item }}{% else %}*{% endifchanged %}{% endfor %}`,
+			context:  pongo2.Context{"items": []string{"a", "a", "b", "c", "c"}},
+			expected: "a*bc*",
+		},
+		{
+			name:     "expression-based ifchanged without else",
+			template: `{% for item in items %}{% ifchanged item %}[{{ item }}]{% endifchanged %}{% endfor %}`,
+			context:  pongo2.Context{"items": []string{"a", "a", "b", "b"}},
+			expected: "[a][b]",
+		},
+		{
+			name:     "nested loop with content-based ifchanged and else",
+			template: `{% for outer in outers %}{% for inner in inners %}{% ifchanged %}{{ outer }}-{{ inner }}{% else %}*{% endifchanged %}{% endfor %}{% endfor %}`,
+			context: pongo2.Context{
+				"outers": []string{"A", "B"},
+				"inners": []string{"1", "1", "2"},
+			},
+			expected: "A-1*A-2B-1*B-2",
+		},
+		{
+			name:     "nested loop with expression-based ifchanged without else",
+			template: `{% for outer in outers %}{% for inner in inners %}{% ifchanged inner %}[{{ outer }}-{{ inner }}]{% endifchanged %}{% endfor %}{% endfor %}`,
+			context: pongo2.Context{
+				"outers": []string{"A", "B"},
+				"inners": []string{"1", "1", "2"},
+			},
+			expected: "[A-1][A-2][B-1][B-2]",
+		},
+		{
+			name:     "nested loop with content-based ifchanged without else - original issue scenario",
+			template: `{% for outer in outers %}{% for inner in inners %}{% ifchanged %}{{ inner }}{% endifchanged %}{% endfor %}{% endfor %}`,
+			context: pongo2.Context{
+				"outers": []string{"A", "B"},
+				"inners": []string{"x", "x", "y"},
+			},
+			expected: "xyxy",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tpl, err := pongo2.FromString(tt.template)
+			if err != nil {
+				t.Fatalf("failed to parse template: %v", err)
+			}
+
+			result, err := tpl.Execute(tt.context)
+			if err != nil {
+				t.Fatalf("failed to execute template: %v", err)
+			}
+
+			if result != tt.expected {
+				t.Errorf("expected %q, got %q", tt.expected, result)
+			}
+		})
+	}
+}
