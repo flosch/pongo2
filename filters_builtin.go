@@ -1771,6 +1771,28 @@ func filterYesno(in *Value, param *Value) (*Value, error) {
 	return AsValue(choices[1]), nil
 }
 
+// timeFilterHelper extracts the common logic for timesince/timeuntil filters.
+// When reverse is false, computes timeDiff(inputTime, comparisonTime) (time since).
+// When reverse is true, computes timeDiff(comparisonTime, inputTime) (time until).
+func timeFilterHelper(in *Value, param *Value, reverse bool) (*Value, error) {
+	t, isTime := in.Interface().(time.Time)
+	if !isTime {
+		return AsValue(""), nil
+	}
+
+	comparisonTime := time.Now()
+	if !param.IsNil() {
+		if paramTime, ok := param.Interface().(time.Time); ok {
+			comparisonTime = paramTime
+		}
+	}
+
+	if reverse {
+		return AsValue(timeDiff(comparisonTime, t)), nil
+	}
+	return AsValue(timeDiff(t, comparisonTime)), nil
+}
+
 // filterTimesince returns the time elapsed since the given datetime.
 // The result is a human-readable string like "2 days, 3 hours".
 //
@@ -1779,23 +1801,7 @@ func filterYesno(in *Value, param *Value) (*Value, error) {
 //	{{ some_date|timesince }}
 //	{{ some_date|timesince:comparison_date }}
 func filterTimesince(in *Value, param *Value) (*Value, error) {
-	t, isTime := in.Interface().(time.Time)
-	if !isTime {
-		return AsValue(""), nil
-	}
-
-	var now time.Time
-	if !param.IsNil() {
-		if paramTime, ok := param.Interface().(time.Time); ok {
-			now = paramTime
-		} else {
-			now = time.Now()
-		}
-	} else {
-		now = time.Now()
-	}
-
-	return AsValue(timeDiff(t, now)), nil
+	return timeFilterHelper(in, param, false)
 }
 
 // filterTimeuntil returns the time remaining until the given datetime.
@@ -1806,23 +1812,7 @@ func filterTimesince(in *Value, param *Value) (*Value, error) {
 //	{{ some_date|timeuntil }}
 //	{{ some_date|timeuntil:comparison_date }}
 func filterTimeuntil(in *Value, param *Value) (*Value, error) {
-	t, isTime := in.Interface().(time.Time)
-	if !isTime {
-		return AsValue(""), nil
-	}
-
-	var now time.Time
-	if !param.IsNil() {
-		if paramTime, ok := param.Interface().(time.Time); ok {
-			now = paramTime
-		} else {
-			now = time.Now()
-		}
-	} else {
-		now = time.Now()
-	}
-
-	return AsValue(timeDiff(now, t)), nil
+	return timeFilterHelper(in, param, true)
 }
 
 // timeDiff calculates the difference between two times and returns a human-readable string.
