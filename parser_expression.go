@@ -3,6 +3,7 @@ package pongo2
 import (
 	"fmt"
 	"math"
+	"strings"
 )
 
 type Expression struct {
@@ -251,6 +252,16 @@ func (expr *simpleExpression) Evaluate(ctx *ExecutionContext) (*Value, error) {
 		}
 		switch expr.opToken.Val {
 		case "+":
+			// If one operand is a number and the other is a numeric string,
+			// treat both as numbers and do arithmetic (fixes issue #342).
+			if (result.IsNumber() && t2.CanBeNumber()) || (t2.IsNumber() && result.CanBeNumber()) {
+				if result.IsFloat() || t2.IsFloat() || (result.IsString() && strings.Contains(result.String(), ".")) || (t2.IsString() && strings.Contains(t2.String(), ".")) {
+					// Result will be a float
+					return AsValue(result.Float() + t2.Float()), nil
+				}
+				// Result will be an integer
+				return AsValue(result.Integer() + t2.Integer()), nil
+			}
 			if result.IsString() || t2.IsString() {
 				// Result will be a string
 				return AsValue(result.String() + t2.String()), nil
