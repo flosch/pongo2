@@ -1,12 +1,34 @@
 package pongo2
 
+// tagIfEqualNode represents the {% ifequal %} tag.
+//
+// DEPRECATED: This tag is considered legacy in Django. Use {% if %} with
+// comparison operators instead: {% if var1 == var2 %}
+//
+// The ifequal tag compares two values and renders the block if they are equal.
+//
+// Basic usage:
+//
+//	{% ifequal user.name "John" %}
+//	    Hello, John!
+//	{% endifequal %}
+//
+// Preferred alternative using {% if %}:
+//
+//	{% if user.name == "John" %}
+//	    Hello, John!
+//	{% endif %}
+//
+// Deprecated: Use {% if var1 == var2 %} instead.
 type tagIfEqualNode struct {
 	var1, var2  IEvaluator
 	thenWrapper *NodeWrapper
 	elseWrapper *NodeWrapper
 }
 
-func (node *tagIfEqualNode) Execute(ctx *ExecutionContext, writer TemplateWriter) *Error {
+// Execute compares two values and renders the then block if equal,
+// otherwise renders the else block (if present).
+func (node *tagIfEqualNode) Execute(ctx *ExecutionContext, writer TemplateWriter) error {
 	r1, err := node.var1.Evaluate(ctx)
 	if err != nil {
 		return err
@@ -27,7 +49,9 @@ func (node *tagIfEqualNode) Execute(ctx *ExecutionContext, writer TemplateWriter
 	return nil
 }
 
-func tagIfEqualParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, *Error) {
+// tagIfEqualParser parses the {% ifequal %} tag. It requires exactly
+// two expression arguments to compare for equality.
+func tagIfEqualParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, error) {
 	ifequalNode := &tagIfEqualNode{}
 
 	// Parse two expressions
@@ -74,5 +98,5 @@ func tagIfEqualParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, *
 }
 
 func init() {
-	RegisterTag("ifequal", tagIfEqualParser)
+	mustRegisterTag("ifequal", tagIfEqualParser)
 }

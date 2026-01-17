@@ -2,12 +2,10 @@ package pongo2
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 	"io"
 	"io/fs"
 	"log"
-	"net/http"
 	"os"
 	"path/filepath"
 )
@@ -17,6 +15,9 @@ type FSLoader struct {
 	fs fs.FS
 }
 
+// NewFSLoader creates a new template loader that reads templates from an fs.FS
+// filesystem. This is useful for loading templates from embedded filesystems
+// (using Go's embed package) or any other fs.FS implementation.
 func NewFSLoader(fs fs.FS) *FSLoader {
 	return &FSLoader{
 		fs: fs,
@@ -124,109 +125,4 @@ func (fs *LocalFilesystemLoader) Abs(base, name string) string {
 	}
 
 	return filepath.Join(fs.baseDir, name)
-}
-
-// SandboxedFilesystemLoader is still WIP.
-type SandboxedFilesystemLoader struct {
-	*LocalFilesystemLoader
-}
-
-// NewSandboxedFilesystemLoader creates a new sandboxed local file system instance.
-func NewSandboxedFilesystemLoader(baseDir string) (*SandboxedFilesystemLoader, error) {
-	fs, err := NewLocalFileSystemLoader(baseDir)
-	if err != nil {
-		return nil, err
-	}
-	return &SandboxedFilesystemLoader{
-		LocalFilesystemLoader: fs,
-	}, nil
-}
-
-// Move sandbox to a virtual fs
-
-/*
-if len(set.SandboxDirectories) > 0 {
-    defer func() {
-        // Remove any ".." or other crap
-        resolvedPath = filepath.Clean(resolvedPath)
-
-        // Make the path absolute
-        absPath, err := filepath.Abs(resolvedPath)
-        if err != nil {
-            panic(err)
-        }
-        resolvedPath = absPath
-
-        // Check against the sandbox directories (once one pattern matches, we're done and can allow it)
-        for _, pattern := range set.SandboxDirectories {
-            matched, err := filepath.Match(pattern, resolvedPath)
-            if err != nil {
-                panic("Wrong sandbox directory match pattern (see http://golang.org/pkg/path/filepath/#Match).")
-            }
-            if matched {
-                // OK!
-                return
-            }
-        }
-
-        // No pattern matched, we have to log+deny the request
-        set.logf("Access attempt outside of the sandbox directories (blocked): '%s'", resolvedPath)
-        resolvedPath = ""
-    }()
-}
-*/
-
-// HttpFilesystemLoader supports loading templates
-// from an http.FileSystem - useful for using one of several
-// file-to-code generators that packs static files into
-// a go binary (ex: https://github.com/jteeuwen/go-bindata)
-type HttpFilesystemLoader struct {
-	fs      http.FileSystem
-	baseDir string
-}
-
-// MustNewHttpFileSystemLoader creates a new HttpFilesystemLoader instance
-// and panics if there's any error during instantiation. The parameters
-// are the same like NewHttpFilesystemLoader.
-func MustNewHttpFileSystemLoader(httpfs http.FileSystem, baseDir string) *HttpFilesystemLoader {
-	fs, err := NewHttpFileSystemLoader(httpfs, baseDir)
-	if err != nil {
-		log.Panic(err)
-	}
-	return fs
-}
-
-// NewHttpFileSystemLoader creates a new HttpFileSystemLoader and allows
-// templates to be loaded from the virtual filesystem. The path
-// is calculated based relatively from the root of the http.Filesystem.
-func NewHttpFileSystemLoader(httpfs http.FileSystem, baseDir string) (*HttpFilesystemLoader, error) {
-	hfs := &HttpFilesystemLoader{
-		fs:      httpfs,
-		baseDir: baseDir,
-	}
-	if httpfs == nil {
-		err := errors.New("httpfs cannot be nil")
-		return nil, err
-	}
-	return hfs, nil
-}
-
-// Abs in this instance simply returns the filename, since
-// there's no potential for an unexpanded path in an http.FileSystem
-func (h *HttpFilesystemLoader) Abs(base, name string) string {
-	return name
-}
-
-// Get returns an io.Reader where the template's content can be read from.
-func (h *HttpFilesystemLoader) Get(path string) (io.Reader, error) {
-	fullPath := path
-	if h.baseDir != "" {
-		fullPath = fmt.Sprintf(
-			"%s/%s",
-			h.baseDir,
-			fullPath,
-		)
-	}
-
-	return h.fs.Open(fullPath)
 }

@@ -1,5 +1,58 @@
 package pongo2
 
+// tagForNode represents the {% for %} tag.
+//
+// The for tag loops over each item in a sequence (slice, array, map, or string).
+// It provides loop variables through the special "forloop" object.
+//
+// Basic usage:
+//
+//	{% for item in items %}
+//	    {{ item }}
+//	{% endfor %}
+//
+// Iterating over maps with key and value:
+//
+//	{% for key, value in myMap %}
+//	    {{ key }}: {{ value }}
+//	{% endfor %}
+//
+// Using the empty clause (displayed when the sequence is empty):
+//
+//	{% for item in items %}
+//	    {{ item }}
+//	{% empty %}
+//	    No items found.
+//	{% endfor %}
+//
+// Using "reversed" to iterate in reverse order:
+//
+//	{% for item in items reversed %}
+//	    {{ item }}
+//	{% endfor %}
+//
+// Using "sorted" to iterate over maps in sorted key order:
+//
+//	{% for key, value in myMap sorted %}
+//	    {{ key }}: {{ value }}
+//	{% endfor %}
+//
+// Loop variables available via forloop:
+//   - forloop.Counter: Current iteration (1-indexed)
+//   - forloop.Counter0: Current iteration (0-indexed)
+//   - forloop.Revcounter: Iterations remaining (1-indexed)
+//   - forloop.Revcounter0: Iterations remaining (0-indexed)
+//   - forloop.First: True if this is the first iteration
+//   - forloop.Last: True if this is the last iteration
+//   - forloop.Parentloop: Access parent loop in nested loops
+//
+// Example with loop variables:
+//
+//	{% for item in items %}
+//	    {% if forloop.First %}<ul>{% endif %}
+//	    <li>{{ forloop.Counter }}. {{ item }}</li>
+//	    {% if forloop.Last %}</ul>{% endif %}
+//	{% endfor %}
 type tagForNode struct {
 	key             string
 	value           string // only for maps: for key, value in map
@@ -11,6 +64,7 @@ type tagForNode struct {
 	emptyWrapper *NodeWrapper
 }
 
+// tagForLoopInformation provides loop metadata accessible via "forloop" variable.
 type tagForLoopInformation struct {
 	Counter     int
 	Counter0    int
@@ -21,7 +75,9 @@ type tagForLoopInformation struct {
 	Parentloop  *tagForLoopInformation
 }
 
-func (node *tagForNode) Execute(ctx *ExecutionContext, writer TemplateWriter) (forError *Error) {
+// Execute iterates over the object and renders the body for each item.
+// If the object is empty, it renders the empty wrapper (if present).
+func (node *tagForNode) Execute(ctx *ExecutionContext, writer TemplateWriter) (forError error) {
 	// Backup forloop (as parentloop in public context), key-name and value-name
 	forCtx := NewChildExecutionContext(ctx)
 	parentloop := forCtx.Private["forloop"]
@@ -49,7 +105,7 @@ func (node *tagForNode) Execute(ctx *ExecutionContext, writer TemplateWriter) (f
 
 		// Update loop infos and public context
 		forCtx.Private[node.key] = key
-		if value != nil {
+		if value != nil && node.value != "" {
 			forCtx.Private[node.value] = value
 		}
 		loopInfo.Counter = idx + 1
@@ -60,8 +116,8 @@ func (node *tagForNode) Execute(ctx *ExecutionContext, writer TemplateWriter) (f
 		if idx+1 == count {
 			loopInfo.Last = true
 		}
-		loopInfo.Revcounter = count - idx        // TODO: Not sure about this, have to look it up
-		loopInfo.Revcounter0 = count - (idx + 1) // TODO: Not sure about this, have to look it up
+		loopInfo.Revcounter = count - idx
+		loopInfo.Revcounter0 = count - (idx + 1)
 
 		// Render elements with updated context
 		err := node.bodyWrapper.Execute(forCtx, writer)
@@ -83,7 +139,9 @@ func (node *tagForNode) Execute(ctx *ExecutionContext, writer TemplateWriter) (f
 	return forError
 }
 
-func tagForParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, *Error) {
+// tagForParser parses the {% for %} tag. It supports key/value iteration,
+// "in" keyword, and optional "reversed" and "sorted" modifiers.
+func tagForParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, error) {
 	forNode := &tagForNode{}
 
 	// Arguments parsing
@@ -155,5 +213,5 @@ func tagForParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, *Erro
 }
 
 func init() {
-	RegisterTag("for", tagForParser)
+	mustRegisterTag("for", tagForParser)
 }

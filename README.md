@@ -9,7 +9,7 @@ pongo2 is a Django-syntax like templating-language ([official website](https://w
 Install/update using `go get` (no dependencies required by pongo2):
 
 ```sh
-go get -u github.com/flosch/pongo2/v6
+go get -u github.com/flosch/pongo2/v7
 ```
 
 Please use the [issue tracker](https://github.com/flosch/pongo2/issues) if you're encountering any problems with pongo2 or if you need help with implementing tags or filters ([create a ticket!](https://github.com/flosch/pongo2/issues/new)).
@@ -63,9 +63,21 @@ Please use the [issue tracker](https://github.com/flosch/pongo2/issues) if you'r
 </html>
 ```
 
+## Documentation
+
+- [Getting Started](docs/getting-started.md) - Installation, basic usage, and first steps
+- [Template Syntax](docs/template-syntax.md) - Variables, expressions, operators, and comments
+- [Filters Reference](docs/filters.md) - Complete list of all built-in filters
+- [Tags Reference](docs/tags.md) - Complete list of all built-in tags
+- [Macros](docs/macros.md) - Reusable template fragments with arguments
+- [Template Sets](docs/template-sets.md) - Loaders, caching, globals, and sandbox features
+- [Security and Sandboxing](docs/security-sandboxing.md) - Autoescape, sandboxing, and security best practices
+- [Custom Extensions](docs/custom-extensions.md) - Creating your own filters and tags
+- [Changelog](CHANGELOG.md) - Version history and release notes
+
 ## Features
 
-- Syntax- and feature-set-compatible with [Django 1.7](https://django.readthedocs.io/en/1.7.x/topics/templates.html)
+- Syntax- and feature-set-compatible with [Django templates](https://docs.djangoproject.com/en/stable/topics/templates/)
 - [Advanced C-like expressions](https://github.com/flosch/pongo2/blob/master/template_tests/expressions.tpl).
 - [Complex function calls within expressions](https://github.com/flosch/pongo2/blob/master/template_tests/function_calls_wrapper.tpl).
 - [Easy API to create new filters and tags](http://godoc.org/github.com/flosch/pongo2#RegisterFilter) ([including parsing arguments](http://godoc.org/github.com/flosch/pongo2#Parser))
@@ -144,7 +156,7 @@ fmt.Println(out) // Output: Hello Florian!
 package main
 
 import (
-    "github.com/flosch/pongo2/v6"
+    "github.com/flosch/pongo2/v7"
     "net/http"
 )
 

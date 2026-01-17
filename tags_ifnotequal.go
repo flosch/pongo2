@@ -1,12 +1,34 @@
 package pongo2
 
+// tagIfNotEqualNode represents the {% ifnotequal %} tag.
+//
+// DEPRECATED: This tag is considered legacy in Django. Use {% if %} with
+// comparison operators instead: {% if var1 != var2 %}
+//
+// The ifnotequal tag compares two values and renders the block if they are NOT equal.
+//
+// Basic usage:
+//
+//	{% ifnotequal user.name "Admin" %}
+//	    Welcome, regular user!
+//	{% endifnotequal %}
+//
+// Preferred alternative using {% if %}:
+//
+//	{% if user.name != "Admin" %}
+//	    Welcome, regular user!
+//	{% endif %}
+//
+// Deprecated: Use {% if var1 != var2 %} instead.
 type tagIfNotEqualNode struct {
 	var1, var2  IEvaluator
 	thenWrapper *NodeWrapper
 	elseWrapper *NodeWrapper
 }
 
-func (node *tagIfNotEqualNode) Execute(ctx *ExecutionContext, writer TemplateWriter) *Error {
+// Execute compares two values and renders the then block if NOT equal,
+// otherwise renders the else block (if present).
+func (node *tagIfNotEqualNode) Execute(ctx *ExecutionContext, writer TemplateWriter) error {
 	r1, err := node.var1.Evaluate(ctx)
 	if err != nil {
 		return err
@@ -27,7 +49,9 @@ func (node *tagIfNotEqualNode) Execute(ctx *ExecutionContext, writer TemplateWri
 	return nil
 }
 
-func tagIfNotEqualParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, *Error) {
+// tagIfNotEqualParser parses the {% ifnotequal %} tag. It requires exactly
+// two expression arguments to compare for inequality.
+func tagIfNotEqualParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, error) {
 	ifnotequalNode := &tagIfNotEqualNode{}
 
 	// Parse two expressions
@@ -74,5 +98,5 @@ func tagIfNotEqualParser(doc *Parser, start *Token, arguments *Parser) (INodeTag
 }
 
 func init() {
-	RegisterTag("ifnotequal", tagIfNotEqualParser)
+	mustRegisterTag("ifnotequal", tagIfNotEqualParser)
 }

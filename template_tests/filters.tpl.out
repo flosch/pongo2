@@ -58,11 +58,11 @@ Hello There!
 你好世界
 
 truncatechars
-Joel i...
-Joel is a ...
+Joel is …
+Joel is a sl…
 Joel is a slug
-你
-你好
+…
+你…
 
 divisibleby
 True
@@ -281,17 +281,17 @@ Please mail me at <a href="mailto:demo@example.com">demo@example.com</a> or visi
 
 urlizetrunc
 
-Please mail me at <a href="mailto:demo@example.com">demo@example...</a> or visit mit on:
-- lorem ipsum <a href="http://github.com/flosch/pongo2" rel="nofollow">github.com/f...</a> lorem ipsum
-- lorem ipsum <a href="http://www.florian-schlachter.de" rel="nofollow">http://www.f...</a> lorem ipsum
-- lorem ipsum <a href="https://www.florian-schlachter.de" rel="nofollow">https://www....</a> lorem ipsum
-- lorem ipsum <a href="https://www.florian-schlachter.de" rel="nofollow">https://www....</a> lorem ipsum
-- lorem ipsum <a href="http://www.florian-schlachter.de" rel="nofollow">www.florian-...</a> lorem ipsum
-- lorem ipsum <a href="http://www.florian-schlachter.de/test=%22test%22" rel="nofollow">www.florian-...</a> lorem ipsum
+Please mail me at <a href="mailto:demo@example.com">demo@example.c…</a> or visit mit on:
+- lorem ipsum <a href="http://github.com/flosch/pongo2" rel="nofollow">github.com/flo…</a> lorem ipsum
+- lorem ipsum <a href="http://www.florian-schlachter.de" rel="nofollow">http://www.flo…</a> lorem ipsum
+- lorem ipsum <a href="https://www.florian-schlachter.de" rel="nofollow">https://www.fl…</a> lorem ipsum
+- lorem ipsum <a href="https://www.florian-schlachter.de" rel="nofollow">https://www.fl…</a> lorem ipsum
+- lorem ipsum <a href="http://www.florian-schlachter.de" rel="nofollow">www.florian-sc…</a> lorem ipsum
+- lorem ipsum <a href="http://www.florian-schlachter.de/test=%22test%22" rel="nofollow">www.florian-sc…</a> lorem ipsum
 
 
 escapejs
-escape sequences \u000D\u000A\u005C\u0027\u005C\u0022 special chars \u0022\u003F\u0021\u003D\u0024\u003C\u003E
+escape sequences \u000D\u000A\u005C\u0027\u005C\u0022 special chars \u0022?!\u003D$\u003C\u003E
 
 slice
 1,1,2,3,5,8,13,21,34,55
@@ -319,12 +319,12 @@ es
 好世
 
 truncatechars_html
-This is a long test wh...
-<div class="foo"><ul class="foo"><li class="foo"><p class="foo">This is a long test wh...</p></li></ul></div>
-<p class='test' id='foo'>This is a long test wh...</p>
-<a name='link'><p>This </a>is a long test wh...</p>
-<p>This </a>is a long test wh...</p>
-<p>This...</p>
+This is a long test whic…
+<div class="foo"><ul class="foo"><li class="foo"><p class="foo">This is a long test whic…</p></li></ul></div>
+<p class='test' id='foo'>This is a long test whic…</p>
+<a name='link'><p>This </a>is a long test whic…</p>
+<p>This </a>is a long test whic…</p>
+<p>This i…</p>
 
 truncatewords_html
 This is a long test which will be cutted after some words.
@@ -334,3 +334,52 @@ This is a long test which will be cutted after some words.
 <p>This </a>is a long test,...</p>
 <p>This is ...</p>
 ...
+
+timesince
+3 years, 2 months
+
+
+
+timeuntil
+3 years, 2 months
+
+
+
+slugify
+hello-world
+hello-world
+10-tips-for-better-go-code
+spaces-around
+multiple-hyphens
+
+
+filesizeformat
+0 bytes
+1 bytes
+1023 bytes
+1.0 KB
+1.5 KB
+1.0 MB
+117.7 MB
+1.0 GB
+
+unordered_list
+<li>Item 1</li><li>Item 2</li><li>Item 3</li>
+
+dictsort
+Alice, Bob, Charlie
+Charlie, Bob, Alice
+20, 25, 30
+
+json_script
+<script id="greeting" type="application/json">"hello"</script>
+<script id="number" type="application/json">42</script>
+<script id="bool-data" type="application/json">true</script>
+<script id="xss-test" type="application/json">"\u003c/script\u003e"</script>
+<script id="person-data" type="application/json">{"age":25,"name":"Charlie"}</script>
+
+safeseq
+<b>bold</b><i>italic</i><script>alert('xss')</script>
+
+escapeseq
+&lt;b&gt;bold&lt;/b&gt;&lt;i&gt;italic&lt;/i&gt;&lt;script&gt;alert(&#39;xss&#39;)&lt;/script&gt;

@@ -1,7 +1,7 @@
 package pongo2
 
 // Doc = { ( Filter | Tag | HTML ) }
-func (p *Parser) parseDocElement() (INode, *Error) {
+func (p *Parser) parseDocElement() (INode, error) {
 	t := p.Current()
 
 	switch t.Typ {
@@ -34,9 +34,9 @@ func (p *Parser) parseDocElement() (INode, *Error) {
 	return nil, p.Error("Unexpected token (only HTML/tags/filters in templates allowed)", t)
 }
 
-func (tpl *Template) parse() *Error {
-	tpl.parser = newParser(tpl.name, tpl.tokens, tpl)
-	doc, err := tpl.parser.parseDocument()
+func (tpl *Template) parse() error {
+	parser := newParser(tpl.name, tpl.tokens, tpl)
+	doc, err := parser.parseDocument()
 	if err != nil {
 		return err
 	}
@@ -44,7 +44,7 @@ func (tpl *Template) parse() *Error {
 	return nil
 }
 
-func (p *Parser) parseDocument() (*nodeDocument, *Error) {
+func (p *Parser) parseDocument() (*nodeDocument, error) {
 	doc := &nodeDocument{}
 
 	for p.Remaining() > 0 {

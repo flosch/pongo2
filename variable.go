@@ -17,8 +17,8 @@ const (
 )
 
 var (
-	typeOfValuePtr   = reflect.TypeOf(new(Value))
-	typeOfExecCtxPtr = reflect.TypeOf(new(ExecutionContext))
+	typeOfValuePtr   = reflect.TypeFor[*Value]()
+	typeOfExecCtxPtr = reflect.TypeFor[*ExecutionContext]()
 )
 
 type variablePart struct {
@@ -48,7 +48,7 @@ func (p *variablePart) String() string {
 }
 
 type functionCallArgument interface {
-	Evaluate(*ExecutionContext) (*Value, *Error)
+	Evaluate(*ExecutionContext) (*Value, error)
 }
 
 // TODO: Add location tokens
@@ -92,58 +92,38 @@ type nodeVariable struct {
 
 type executionCtxEval struct{}
 
-func (v *nodeFilteredVariable) Execute(ctx *ExecutionContext, writer TemplateWriter) *Error {
-	value, err := v.Evaluate(ctx)
+// executeEvaluator is a helper that evaluates and writes a value to the writer.
+func executeEvaluator(e IEvaluator, ctx *ExecutionContext, writer TemplateWriter) error {
+	value, err := e.Evaluate(ctx)
 	if err != nil {
 		return err
 	}
-	writer.WriteString(value.String())
-	return nil
+	_, err = writer.WriteString(value.String())
+	return err
 }
 
-func (vr *variableResolver) Execute(ctx *ExecutionContext, writer TemplateWriter) *Error {
-	value, err := vr.Evaluate(ctx)
-	if err != nil {
-		return err
-	}
-	writer.WriteString(value.String())
-	return nil
+func (v *nodeFilteredVariable) Execute(ctx *ExecutionContext, writer TemplateWriter) error {
+	return executeEvaluator(v, ctx, writer)
 }
 
-func (s *stringResolver) Execute(ctx *ExecutionContext, writer TemplateWriter) *Error {
-	value, err := s.Evaluate(ctx)
-	if err != nil {
-		return err
-	}
-	writer.WriteString(value.String())
-	return nil
+func (vr *variableResolver) Execute(ctx *ExecutionContext, writer TemplateWriter) error {
+	return executeEvaluator(vr, ctx, writer)
 }
 
-func (i *intResolver) Execute(ctx *ExecutionContext, writer TemplateWriter) *Error {
-	value, err := i.Evaluate(ctx)
-	if err != nil {
-		return err
-	}
-	writer.WriteString(value.String())
-	return nil
+func (s *stringResolver) Execute(ctx *ExecutionContext, writer TemplateWriter) error {
+	return executeEvaluator(s, ctx, writer)
 }
 
-func (f *floatResolver) Execute(ctx *ExecutionContext, writer TemplateWriter) *Error {
-	value, err := f.Evaluate(ctx)
-	if err != nil {
-		return err
-	}
-	writer.WriteString(value.String())
-	return nil
+func (i *intResolver) Execute(ctx *ExecutionContext, writer TemplateWriter) error {
+	return executeEvaluator(i, ctx, writer)
 }
 
-func (b *boolResolver) Execute(ctx *ExecutionContext, writer TemplateWriter) *Error {
-	value, err := b.Evaluate(ctx)
-	if err != nil {
-		return err
-	}
-	writer.WriteString(value.String())
-	return nil
+func (f *floatResolver) Execute(ctx *ExecutionContext, writer TemplateWriter) error {
+	return executeEvaluator(f, ctx, writer)
+}
+
+func (b *boolResolver) Execute(ctx *ExecutionContext, writer TemplateWriter) error {
+	return executeEvaluator(b, ctx, writer)
 }
 
 func (v *nodeFilteredVariable) GetPositionToken() *Token {
@@ -170,19 +150,19 @@ func (b *boolResolver) GetPositionToken() *Token {
 	return b.locationToken
 }
 
-func (s *stringResolver) Evaluate(ctx *ExecutionContext) (*Value, *Error) {
+func (s *stringResolver) Evaluate(ctx *ExecutionContext) (*Value, error) {
 	return AsValue(s.val), nil
 }
 
-func (i *intResolver) Evaluate(ctx *ExecutionContext) (*Value, *Error) {
+func (i *intResolver) Evaluate(ctx *ExecutionContext) (*Value, error) {
 	return AsValue(i.val), nil
 }
 
-func (f *floatResolver) Evaluate(ctx *ExecutionContext) (*Value, *Error) {
+func (f *floatResolver) Evaluate(ctx *ExecutionContext) (*Value, error) {
 	return AsValue(f.val), nil
 }
 
-func (b *boolResolver) Evaluate(ctx *ExecutionContext) (*Value, *Error) {
+func (b *boolResolver) Evaluate(ctx *ExecutionContext) (*Value, error) {
 	return AsValue(b.val), nil
 }
 
@@ -206,7 +186,7 @@ func (nv *nodeVariable) FilterApplied(name string) bool {
 	return nv.expr.FilterApplied(name)
 }
 
-func (nv *nodeVariable) Execute(ctx *ExecutionContext, writer TemplateWriter) *Error {
+func (nv *nodeVariable) Execute(ctx *ExecutionContext, writer TemplateWriter) error {
 	value, err := nv.expr.Evaluate(ctx)
 	if err != nil {
 		return err
@@ -214,17 +194,20 @@ func (nv *nodeVariable) Execute(ctx *ExecutionContext, writer TemplateWriter) *E
 
 	if !nv.expr.FilterApplied("safe") && !value.safe && value.IsString() && ctx.Autoescape {
 		// apply escape filter
-		value, err = filters["escape"](value, nil)
-		if err != nil {
-			return err
+		escapeFn := ctx.template.set.filters["escape"]
+		if escapeFn != nil {
+			value, err = escapeFn(value, nil)
+			if err != nil {
+				return err
+			}
 		}
 	}
 
-	writer.WriteString(value.String())
-	return nil
+	_, err = writer.WriteString(value.String())
+	return err
 }
 
-func (executionCtxEval) Evaluate(ctx *ExecutionContext) (*Value, *Error) {
+func (executionCtxEval) Evaluate(ctx *ExecutionContext) (*Value, error) {
 	return AsValue(ctx), nil
 }
 
@@ -242,273 +225,51 @@ func (vr *variableResolver) String() string {
 }
 
 func (vr *variableResolver) resolve(ctx *ExecutionContext) (*Value, error) {
+	// Handle in-template array definition
+	if len(vr.parts) > 0 && vr.parts[0].typ == varTypeArray {
+		return vr.resolveArrayDefinition(ctx)
+	}
+
 	var current reflect.Value
 	var isSafe bool
 
-	// we are resolving an in-template array definition
-	if len(vr.parts) > 0 && vr.parts[0].typ == varTypeArray {
-		items := make([]*Value, 0)
-		for _, part := range vr.parts {
-			switch v := part.subscript.(type) {
-			case *nodeFilteredVariable:
-				item, err := v.resolver.Evaluate(ctx)
-				if err != nil {
-					return nil, err
-				}
-
-				items = append(items, item)
-			default:
-				return nil, errors.New("unknown variable type is given")
-			}
-		}
-
-		return &Value{
-			val:  reflect.ValueOf(items),
-			safe: true,
-		}, nil
-	}
-
 	for idx, part := range vr.parts {
 		if idx == 0 {
-			// We're looking up the first part of the variable.
-			// First we're having a look in our private
-			// context (e. g. information provided by tags, like the forloop)
-			val, inPrivate := ctx.Private[vr.parts[0].s]
-			if !inPrivate {
-				// Nothing found? Then have a final lookup in the public context
-				val = ctx.Public[vr.parts[0].s]
-			}
-			current = reflect.ValueOf(val) // Get the initial value
+			current = vr.lookupInitialValue(ctx)
 		} else {
-			// Next parts, resolve it from current
-
-			// Before resolving the pointer, let's see if we have a method to call
-			// Problem with resolving the pointer is we're changing the receiver
-			isFunc := false
-			if part.typ == varTypeIdent {
-				funcValue := current.MethodByName(part.s)
-				if funcValue.IsValid() {
-					current = funcValue
-					isFunc = true
-				}
+			resolved, isNil, err := vr.resolveNextPart(ctx, current, part)
+			if err != nil {
+				return nil, err
 			}
-
-			if !isFunc {
-				// If current a pointer, resolve it
-				if current.Kind() == reflect.Ptr {
-					current = current.Elem()
-					if !current.IsValid() {
-						// Value is not valid (anymore)
-						return AsValue(nil), nil
-					}
-				}
-
-				// Look up which part must be called now
-				switch part.typ {
-				case varTypeInt:
-					// Calling an index is only possible for:
-					// * slices/arrays/strings
-					switch current.Kind() {
-					case reflect.String, reflect.Array, reflect.Slice:
-						if part.i >= 0 && current.Len() > part.i {
-							current = current.Index(part.i)
-						} else {
-							// In Django, exceeding the length of a list is just empty.
-							return AsValue(nil), nil
-						}
-					default:
-						return nil, fmt.Errorf("can't access an index on type %s (variable %s)",
-							current.Kind().String(), vr.String())
-					}
-				case varTypeIdent:
-					// Calling a field or key
-					switch current.Kind() {
-					case reflect.Struct:
-						current = current.FieldByName(part.s)
-					case reflect.Map:
-						current = current.MapIndex(reflect.ValueOf(part.s))
-					default:
-						return nil, fmt.Errorf("can't access a field by name on type %s (variable %s)",
-							current.Kind().String(), vr.String())
-					}
-				case varTypeSubscript:
-					// Calling an index is only possible for:
-					// * slices/arrays/strings
-					switch current.Kind() {
-					case reflect.String, reflect.Array, reflect.Slice:
-						sv, err := part.subscript.Evaluate(ctx)
-						if err != nil {
-							return nil, err
-						}
-						si := sv.Integer()
-						if si >= 0 && current.Len() > si {
-							current = current.Index(si)
-						} else {
-							// In Django, exceeding the length of a list is just empty.
-							return AsValue(nil), nil
-						}
-					// Calling a field or key
-					case reflect.Struct:
-						sv, err := part.subscript.Evaluate(ctx)
-						if err != nil {
-							return nil, err
-						}
-						current = current.FieldByName(sv.String())
-					case reflect.Map:
-						sv, err := part.subscript.Evaluate(ctx)
-						if err != nil {
-							return nil, err
-						}
-						if sv.IsNil() {
-							return AsValue(nil), nil
-						}
-						if sv.val.Type().AssignableTo(current.Type().Key()) {
-							current = current.MapIndex(sv.val)
-						} else {
-							return AsValue(nil), nil
-						}
-					default:
-						return nil, fmt.Errorf("can't access an index on type %s (variable %s)",
-							current.Kind().String(), vr.String())
-					}
-				default:
-					panic("unimplemented")
-				}
+			if isNil {
+				return AsValue(nil), nil
 			}
+			current = resolved
 		}
 
 		if !current.IsValid() {
-			// Value is not valid (anymore)
 			return AsValue(nil), nil
 		}
 
-		// If current is a reflect.ValueOf(pongo2.Value), then unpack it
-		// Happens in function calls (as a return value) or by injecting
-		// into the execution context (e.g. in a for-loop)
-		if current.Type() == typeOfValuePtr {
-			tmpValue := current.Interface().(*Value)
-			current = tmpValue.val
-			isSafe = tmpValue.safe
-		}
+		// Unpack *Value if needed
+		current, isSafe = vr.unpackValue(current, isSafe)
 
-		// Check whether this is an interface and resolve it where required
+		// Resolve interface to concrete value
 		if current.Kind() == reflect.Interface {
 			current = reflect.ValueOf(current.Interface())
 		}
 
-		// Check if the part is a function call
+		// Handle function call
 		if part.isFunctionCall || current.Kind() == reflect.Func {
-			// Check for callable
-			if current.Kind() != reflect.Func {
-				return nil, fmt.Errorf("'%s' is not a function (it is %s)", vr.String(), current.Kind().String())
+			result, err := vr.handleFunctionCall(ctx, current, part)
+			if err != nil {
+				return nil, err
 			}
-
-			// Check for correct function syntax and types
-			// func(*Value, ...) *Value
-			t := current.Type()
-			currArgs := part.callingArgs
-
-			// If an implicit ExecCtx is needed
-			if t.NumIn() > 0 && t.In(0) == typeOfExecCtxPtr {
-				currArgs = append([]functionCallArgument{executionCtxEval{}}, currArgs...)
-			}
-
-			// Input arguments
-			if len(currArgs) != t.NumIn() && !(len(currArgs) >= t.NumIn()-1 && t.IsVariadic()) {
-				return nil,
-					fmt.Errorf("function input argument count (%d) of '%s' must be equal to the calling argument count (%d)",
-						t.NumIn(), vr.String(), len(currArgs))
-			}
-
-			// Output arguments
-			if t.NumOut() != 1 && t.NumOut() != 2 {
-				return nil, fmt.Errorf("'%s' must have exactly 1 or 2 output arguments, the second argument must be of type error", vr.String())
-			}
-
-			// Evaluate all parameters
-			var parameters []reflect.Value
-
-			numArgs := t.NumIn()
-			isVariadic := t.IsVariadic()
-			var fnArg reflect.Type
-
-			for idx, arg := range currArgs {
-				pv, err := arg.Evaluate(ctx)
-				if err != nil {
-					return nil, err
-				}
-
-				if isVariadic {
-					if idx >= t.NumIn()-1 {
-						fnArg = t.In(numArgs - 1).Elem()
-					} else {
-						fnArg = t.In(idx)
-					}
-				} else {
-					fnArg = t.In(idx)
-				}
-
-				if fnArg != typeOfValuePtr {
-					// Function's argument is not a *pongo2.Value, then we have to check whether input argument is of the same type as the function's argument
-					if !isVariadic {
-						if fnArg != reflect.TypeOf(pv.Interface()) && fnArg.Kind() != reflect.Interface {
-							return nil, fmt.Errorf("function input argument %d of '%s' must be of type %s or *pongo2.Value (not %T)",
-								idx, vr.String(), fnArg.String(), pv.Interface())
-						}
-					} else {
-						if fnArg != reflect.TypeOf(pv.Interface()) && fnArg.Kind() != reflect.Interface {
-							return nil, fmt.Errorf("function variadic input argument of '%s' must be of type %s or *pongo2.Value (not %T)",
-								vr.String(), fnArg.String(), pv.Interface())
-						}
-					}
-
-					if pv.IsNil() {
-						// Workaround to present an interface nil as reflect.Value
-						var empty any = nil
-						parameters = append(parameters, reflect.ValueOf(&empty).Elem())
-					} else {
-						parameters = append(parameters, reflect.ValueOf(pv.Interface()))
-					}
-				} else {
-					// Function's argument is a *pongo2.Value
-					parameters = append(parameters, reflect.ValueOf(pv))
-				}
-			}
-
-			// Check if any of the values are invalid
-			for _, p := range parameters {
-				if p.Kind() == reflect.Invalid {
-					return nil, fmt.Errorf("calling a function using an invalid parameter")
-				}
-			}
-
-			// Call it and get first return parameter back
-			values := current.Call(parameters)
-			rv := values[0]
-			if t.NumOut() == 2 {
-				e := values[1].Interface()
-				if e != nil {
-					err, ok := e.(error)
-					if !ok {
-						return nil, fmt.Errorf("the second return value is not an error")
-					}
-					if err != nil {
-						return nil, err
-					}
-				}
-			}
-
-			if rv.Type() != typeOfValuePtr {
-				current = reflect.ValueOf(rv.Interface())
-			} else {
-				// Return the function call value
-				current = rv.Interface().(*Value).val
-				isSafe = rv.Interface().(*Value).safe
-			}
+			current = result.value
+			isSafe = result.isSafe
 		}
 
 		if !current.IsValid() {
-			// Value is not valid (e. g. NIL value)
 			return AsValue(nil), nil
 		}
 	}
@@ -516,7 +277,307 @@ func (vr *variableResolver) resolve(ctx *ExecutionContext) (*Value, error) {
 	return &Value{val: current, safe: isSafe}, nil
 }
 
-func (vr *variableResolver) Evaluate(ctx *ExecutionContext) (*Value, *Error) {
+// resolveArrayDefinition handles in-template array definitions like [a, b, c].
+func (vr *variableResolver) resolveArrayDefinition(ctx *ExecutionContext) (*Value, error) {
+	items := make([]*Value, 0, len(vr.parts))
+	for _, part := range vr.parts {
+		v, ok := part.subscript.(*nodeFilteredVariable)
+		if !ok {
+			return nil, errors.New("unknown variable type is given")
+		}
+		item, err := v.resolver.Evaluate(ctx)
+		if err != nil {
+			return nil, err
+		}
+		items = append(items, item)
+	}
+	return &Value{val: reflect.ValueOf(items), safe: true}, nil
+}
+
+// lookupInitialValue looks up the first part of the variable in the context.
+func (vr *variableResolver) lookupInitialValue(ctx *ExecutionContext) reflect.Value {
+	val, inPrivate := ctx.Private[vr.parts[0].s]
+	if !inPrivate {
+		val = ctx.Public[vr.parts[0].s]
+	}
+	return reflect.ValueOf(val)
+}
+
+// unpackValue unpacks a *Value if the current value is of that type.
+func (vr *variableResolver) unpackValue(current reflect.Value, isSafe bool) (reflect.Value, bool) {
+	if current.Type() == typeOfValuePtr {
+		tmpValue := current.Interface().(*Value)
+		return tmpValue.val, tmpValue.safe
+	}
+	return current, isSafe
+}
+
+// resolveNextPart resolves the next part of a variable path from the current value.
+// Returns (resolved value, isNil, error).
+func (vr *variableResolver) resolveNextPart(
+	ctx *ExecutionContext,
+	current reflect.Value,
+	part *variablePart,
+) (reflect.Value, bool, error) {
+	// Check for method call first
+	if part.typ == varTypeIdent {
+		funcValue := current.MethodByName(part.s)
+		if funcValue.IsValid() {
+			return funcValue, false, nil
+		}
+	}
+
+	// Resolve pointer
+	if current.Kind() == reflect.Ptr {
+		current = current.Elem()
+		if !current.IsValid() {
+			return reflect.Value{}, true, nil
+		}
+	}
+
+	return vr.resolvePartByType(ctx, current, part)
+}
+
+// resolvePartByType resolves a variable part based on its type.
+func (vr *variableResolver) resolvePartByType(
+	ctx *ExecutionContext,
+	current reflect.Value,
+	part *variablePart,
+) (reflect.Value, bool, error) {
+	switch part.typ {
+	case varTypeInt:
+		return vr.resolveIntIndex(current, part)
+	case varTypeIdent:
+		return vr.resolveIdentifier(current, part)
+	case varTypeSubscript:
+		return vr.resolveSubscript(ctx, current, part)
+	default:
+		panic("unimplemented")
+	}
+}
+
+// resolveIntIndex resolves an integer index access on a slice/array/string.
+func (vr *variableResolver) resolveIntIndex(current reflect.Value, part *variablePart) (reflect.Value, bool, error) {
+	switch current.Kind() {
+	case reflect.String:
+		// For strings, return the character at the index (Django-compatible behavior)
+		s := current.String()
+		if part.i >= 0 && len(s) > part.i {
+			return reflect.ValueOf(string(s[part.i])), false, nil
+		}
+		return reflect.Value{}, true, nil
+	case reflect.Array, reflect.Slice:
+		if part.i >= 0 && current.Len() > part.i {
+			return current.Index(part.i), false, nil
+		}
+		return reflect.Value{}, true, nil
+	default:
+		return reflect.Value{}, false, fmt.Errorf("can't access an index on type %s (variable %s)",
+			current.Kind().String(), vr.String())
+	}
+}
+
+// resolveIdentifier resolves a field or map key access by name.
+func (vr *variableResolver) resolveIdentifier(current reflect.Value, part *variablePart) (reflect.Value, bool, error) {
+	switch current.Kind() {
+	case reflect.Struct:
+		return current.FieldByName(part.s), false, nil
+	case reflect.Map:
+		return current.MapIndex(reflect.ValueOf(part.s)), false, nil
+	default:
+		return reflect.Value{}, false, fmt.Errorf("can't access a field by name on type %s (variable %s)",
+			current.Kind().String(), vr.String())
+	}
+}
+
+// resolveSubscript resolves a subscript access (e.g., foo[bar]).
+func (vr *variableResolver) resolveSubscript(
+	ctx *ExecutionContext,
+	current reflect.Value,
+	part *variablePart,
+) (reflect.Value, bool, error) {
+	sv, err := part.subscript.Evaluate(ctx)
+	if err != nil {
+		return reflect.Value{}, false, err
+	}
+
+	switch current.Kind() {
+	case reflect.String:
+		// For strings, return the character at the index (Django-compatible behavior)
+		s := current.String()
+		si := sv.Integer()
+		if si >= 0 && len(s) > si {
+			return reflect.ValueOf(string(s[si])), false, nil
+		}
+		return reflect.Value{}, true, nil
+	case reflect.Array, reflect.Slice:
+		si := sv.Integer()
+		if si >= 0 && current.Len() > si {
+			return current.Index(si), false, nil
+		}
+		return reflect.Value{}, true, nil
+	case reflect.Struct:
+		return current.FieldByName(sv.String()), false, nil
+	case reflect.Map:
+		if sv.IsNil() {
+			return reflect.Value{}, true, nil
+		}
+		if sv.val.Type().AssignableTo(current.Type().Key()) {
+			return current.MapIndex(sv.val), false, nil
+		}
+		return reflect.Value{}, true, nil
+	default:
+		return reflect.Value{}, false, fmt.Errorf("can't access an index on type %s (variable %s)",
+			current.Kind().String(), vr.String())
+	}
+}
+
+// callResult holds the result of a function call resolution.
+type callResult struct {
+	value  reflect.Value
+	isSafe bool
+}
+
+// handleFunctionCall processes a function call on the current value and returns the result.
+func (vr *variableResolver) handleFunctionCall(
+	ctx *ExecutionContext,
+	current reflect.Value,
+	part *variablePart,
+) (*callResult, error) {
+	if current.Kind() != reflect.Func {
+		return nil, fmt.Errorf("'%s' is not a function (it is %s)", vr.String(), current.Kind().String())
+	}
+
+	t := current.Type()
+	currArgs := part.callingArgs
+
+	// If an implicit ExecCtx is needed
+	if t.NumIn() > 0 && t.In(0) == typeOfExecCtxPtr {
+		currArgs = append([]functionCallArgument{executionCtxEval{}}, currArgs...)
+	}
+
+	// Validate input argument count
+	if len(currArgs) != t.NumIn() && (len(currArgs) < t.NumIn()-1 || !t.IsVariadic()) {
+		return nil, fmt.Errorf("function input argument count (%d) of '%s' must be equal to the calling argument count (%d)",
+			t.NumIn(), vr.String(), len(currArgs))
+	}
+
+	// Validate output argument count
+	if t.NumOut() != 1 && t.NumOut() != 2 {
+		return nil, fmt.Errorf("'%s' must have exactly 1 or 2 output arguments, the second argument must be of type error", vr.String())
+	}
+
+	// Evaluate and prepare parameters
+	parameters, err := vr.prepareCallParameters(ctx, t, currArgs)
+	if err != nil {
+		return nil, err
+	}
+
+	// Execute the function call
+	return vr.executeCall(current, t, parameters)
+}
+
+// prepareCallParameters evaluates arguments and prepares them for function call.
+func (vr *variableResolver) prepareCallParameters(
+	ctx *ExecutionContext,
+	t reflect.Type,
+	currArgs []functionCallArgument,
+) ([]reflect.Value, error) {
+	var parameters []reflect.Value
+	numArgs := t.NumIn()
+	isVariadic := t.IsVariadic()
+
+	for idx, arg := range currArgs {
+		pv, err := arg.Evaluate(ctx)
+		if err != nil {
+			return nil, err
+		}
+
+		fnArg := vr.getFnArgType(t, idx, numArgs, isVariadic)
+
+		param, err := vr.convertArgToParam(pv, fnArg, idx, isVariadic)
+		if err != nil {
+			return nil, err
+		}
+		parameters = append(parameters, param)
+	}
+
+	// Validate all parameters
+	for _, p := range parameters {
+		if p.Kind() == reflect.Invalid {
+			return nil, fmt.Errorf("calling a function using an invalid parameter")
+		}
+	}
+
+	return parameters, nil
+}
+
+// getFnArgType returns the expected type for a function argument at the given index.
+func (vr *variableResolver) getFnArgType(t reflect.Type, idx, numArgs int, isVariadic bool) reflect.Type {
+	if isVariadic && idx >= t.NumIn()-1 {
+		return t.In(numArgs - 1).Elem()
+	}
+	return t.In(idx)
+}
+
+// convertArgToParam converts an evaluated Value to a reflect.Value suitable for function call.
+func (vr *variableResolver) convertArgToParam(pv *Value, fnArg reflect.Type, idx int, isVariadic bool) (reflect.Value, error) {
+	if fnArg == typeOfValuePtr {
+		return reflect.ValueOf(pv), nil
+	}
+
+	// Check type compatibility
+	if fnArg != reflect.TypeOf(pv.Interface()) && fnArg.Kind() != reflect.Interface {
+		if isVariadic {
+			return reflect.Value{}, fmt.Errorf("function variadic input argument of '%s' must be of type %s or *pongo2.Value (not %T)",
+				vr.String(), fnArg.String(), pv.Interface())
+		}
+		return reflect.Value{}, fmt.Errorf("function input argument %d of '%s' must be of type %s or *pongo2.Value (not %T)",
+			idx, vr.String(), fnArg.String(), pv.Interface())
+	}
+
+	if pv.IsNil() {
+		var empty any
+		return reflect.ValueOf(&empty).Elem(), nil
+	}
+	return reflect.ValueOf(pv.Interface()), nil
+}
+
+// executeCall performs the actual function call and processes the result.
+func (vr *variableResolver) executeCall(
+	current reflect.Value,
+	t reflect.Type,
+	parameters []reflect.Value,
+) (*callResult, error) {
+	values := current.Call(parameters)
+	rv := values[0]
+
+	// Check for error return value
+	if t.NumOut() == 2 {
+		if e := values[1].Interface(); e != nil {
+			err, ok := e.(error)
+			if !ok {
+				return nil, fmt.Errorf("the second return value is not an error")
+			}
+			if err != nil {
+				return nil, err
+			}
+		}
+	}
+
+	result := &callResult{}
+	if rv.Type() != typeOfValuePtr {
+		result.value = reflect.ValueOf(rv.Interface())
+	} else {
+		val := rv.Interface().(*Value)
+		result.value = val.val
+		result.isSafe = val.safe
+	}
+
+	return result, nil
+}
+
+func (vr *variableResolver) Evaluate(ctx *ExecutionContext) (*Value, error) {
 	value, err := vr.resolve(ctx)
 	if err != nil {
 		return AsValue(nil), ctx.Error(err.Error(), vr.locationToken)
@@ -533,7 +594,7 @@ func (v *nodeFilteredVariable) FilterApplied(name string) bool {
 	return false
 }
 
-func (v *nodeFilteredVariable) Evaluate(ctx *ExecutionContext) (*Value, *Error) {
+func (v *nodeFilteredVariable) Evaluate(ctx *ExecutionContext) (*Value, error) {
 	value, err := v.resolver.Evaluate(ctx)
 	if err != nil {
 		return nil, err
@@ -550,7 +611,7 @@ func (v *nodeFilteredVariable) Evaluate(ctx *ExecutionContext) (*Value, *Error) 
 }
 
 // "[" [expr {, expr}] "]"
-func (p *Parser) parseArray() (IEvaluator, *Error) {
+func (p *Parser) parseArray() (IEvaluator, error) {
 	resolver := &variableResolver{
 		locationToken: p.Current(),
 	}
@@ -592,8 +653,33 @@ func (p *Parser) parseArray() (IEvaluator, *Error) {
 	return resolver, nil
 }
 
+func (p *Parser) parseNumberLiteral(sign int, numToken *Token, locToken *Token) (IEvaluator, error) {
+	// One exception to the rule that we don't have float64 literals is at the beginning
+	// of an expression (or a variable name). Since we know we started with an integer
+	// which can't obviously be a variable name, we can check whether the first number
+	// is followed by dot (and then a number again). If so we're converting it to a float64.
+	if p.Match(TokenSymbol, ".") != nil {
+		t2 := p.MatchType(TokenNumber)
+		if t2 == nil {
+			return nil, p.Error("Expected a number after the '.'.", nil)
+		}
+		f, err := strconv.ParseFloat(fmt.Sprintf("%s.%s", numToken.Val, t2.Val), 64)
+		if err != nil {
+			return nil, p.Error(err.Error(), locToken)
+		}
+		return &floatResolver{locationToken: locToken, val: float64(sign) * f}, nil
+	}
+	i, err := strconv.Atoi(numToken.Val)
+	if err != nil {
+		return nil, p.Error(err.Error(), numToken)
+	}
+	return &intResolver{locationToken: locToken, val: sign * i}, nil
+}
+
 // IDENT | IDENT.(IDENT|NUMBER)... | IDENT[expr]... | "[" [ expr {, expr}] "]"
-func (p *Parser) parseVariableOrLiteral() (IEvaluator, *Error) {
+//
+//nolint:gocyclo,cyclop,funlen // parser for variable expressions handles many token types
+func (p *Parser) parseVariableOrLiteral() (IEvaluator, error) {
 	t := p.Current()
 
 	if t == nil {
@@ -604,37 +690,7 @@ func (p *Parser) parseVariableOrLiteral() (IEvaluator, *Error) {
 	switch t.Typ {
 	case TokenNumber:
 		p.Consume()
-
-		// One exception to the rule that we don't have float64 literals is at the beginning
-		// of an expression (or a variable name). Since we know we started with an integer
-		// which can't obviously be a variable name, we can check whether the first number
-		// is followed by dot (and then a number again). If so we're converting it to a float64.
-
-		if p.Match(TokenSymbol, ".") != nil {
-			// float64
-			t2 := p.MatchType(TokenNumber)
-			if t2 == nil {
-				return nil, p.Error("Expected a number after the '.'.", nil)
-			}
-			f, err := strconv.ParseFloat(fmt.Sprintf("%s.%s", t.Val, t2.Val), 64)
-			if err != nil {
-				return nil, p.Error(err.Error(), t)
-			}
-			fr := &floatResolver{
-				locationToken: t,
-				val:           f,
-			}
-			return fr, nil
-		}
-		i, err := strconv.Atoi(t.Val)
-		if err != nil {
-			return nil, p.Error(err.Error(), t)
-		}
-		nr := &intResolver{
-			locationToken: t,
-			val:           i,
-		}
-		return nr, nil
+		return p.parseNumberLiteral(1, t, t)
 	case TokenString:
 		p.Consume()
 		sr := &stringResolver{
@@ -664,6 +720,16 @@ func (p *Parser) parseVariableOrLiteral() (IEvaluator, *Error) {
 		if t.Val == "[" {
 			// Parsing an array literal [expr {, expr}]
 			return p.parseArray()
+		}
+		if t.Val == "-" {
+			// Negative number literal
+			p.Consume() // consume '-'
+			t2 := p.Current()
+			if t2 == nil || t2.Typ != TokenNumber {
+				return nil, p.Error("Expected a number after '-'.", t)
+			}
+			p.Consume() // consume the number
+			return p.parseNumberLiteral(-1, t2, t)
 		}
 	}
 
@@ -786,7 +852,7 @@ variableLoop:
 	return resolver, nil
 }
 
-func (p *Parser) parseVariableOrLiteralWithFilter() (*nodeFilteredVariable, *Error) {
+func (p *Parser) parseVariableOrLiteralWithFilter() (*nodeFilteredVariable, error) {
 	v := &nodeFilteredVariable{
 		locationToken: p.Current(),
 	}
@@ -820,7 +886,7 @@ filterLoop:
 	return v, nil
 }
 
-func (p *Parser) parseVariableElement() (INode, *Error) {
+func (p *Parser) parseVariableElement() (INode, error) {
 	node := &nodeVariable{
 		locationToken: p.Current(),
 	}

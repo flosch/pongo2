@@ -3,17 +3,22 @@ package pongo2
 import (
 	"errors"
 	"fmt"
+	"slices"
 	"strings"
 )
 
+// INode is the base interface for all executable template nodes.
+// See INodeTag for template tags returned by tag parsers.
+//
+//nolint:iface // base interface used for polymorphism across node types
 type INode interface {
-	Execute(*ExecutionContext, TemplateWriter) *Error
+	Execute(*ExecutionContext, TemplateWriter) error
 }
 
 type IEvaluator interface {
 	INode
 	GetPositionToken() *Token
-	Evaluate(*ExecutionContext) (*Value, *Error)
+	Evaluate(*ExecutionContext) (*Value, error)
 	FilterApplied(name string) bool
 }
 
@@ -209,7 +214,7 @@ func (p *Parser) Error(msg string, token *Token) *Error {
 // Wraps all nodes between starting tag and "{% endtag %}" and provides
 // one simple interface to execute the wrapped nodes.
 // It returns a parser to process provided arguments to the tag.
-func (p *Parser) WrapUntilTag(names ...string) (*NodeWrapper, *Parser, *Error) {
+func (p *Parser) WrapUntilTag(names ...string) (*NodeWrapper, *Parser, error) {
 	wrapper := &NodeWrapper{}
 
 	var tagArgs []*Token
@@ -222,13 +227,7 @@ func (p *Parser) WrapUntilTag(names ...string) (*NodeWrapper, *Parser, *Error) {
 			if tagIdent != nil {
 				// We've found a (!) end-tag
 
-				found := false
-				for _, n := range names {
-					if tagIdent.Val == n {
-						found = true
-						break
-					}
-				}
+				found := slices.Contains(names, tagIdent.Val)
 
 				// We only process the tag if we've found an end tag
 				if found {
@@ -266,7 +265,7 @@ func (p *Parser) WrapUntilTag(names ...string) (*NodeWrapper, *Parser, *Error) {
 }
 
 // Skips all nodes between starting tag and "{% endtag %}"
-func (p *Parser) SkipUntilTag(names ...string) *Error {
+func (p *Parser) SkipUntilTag(names ...string) error {
 	for p.Remaining() > 0 {
 		// New tag, check whether we have to stop wrapping here
 		if p.Peek(TokenSymbol, "{%") != nil {
@@ -275,13 +274,7 @@ func (p *Parser) SkipUntilTag(names ...string) *Error {
 			if tagIdent != nil {
 				// We've found an (!) end-tag
 
-				found := false
-				for _, n := range names {
-					if tagIdent.Val == n {
-						found = true
-						break
-					}
-				}
+				found := slices.Contains(names, tagIdent.Val)
 
 				// We only process the tag if we've found an end tag
 				if found {

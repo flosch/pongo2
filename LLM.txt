@@ -1,0 +1,192 @@
+# pongo2 - Django-syntax Template Engine for Go
+
+> pongo2 is a Django-syntax like templating language for Go. It aims to be
+> compatible with Django's template syntax while leveraging Go's strengths.
+
+## Project Overview
+
+- **Repository**: github.com/flosch/pongo2
+- **Language**: Go (minimum Go 1.25 for v7)
+- **License**: MIT
+- **Documentation**: https://pkg.go.dev/github.com/flosch/pongo2
+
+## Quick Start
+
+```go
+import "github.com/flosch/pongo2/v7"
+
+// Compile and execute a template
+tpl, _ := pongo2.FromString("Hello {{ name|capfirst }}!")
+out, _ := tpl.Execute(pongo2.Context{"name": "world"})
+// Output: Hello World!
+```
+
+## Architecture
+
+The template processing pipeline:
+
+```
+Template String → Lexer → Tokens → Parser → AST → Execute → Output
+```
+
+### Core Components
+
+| Component | Files | Purpose |
+|-----------|-------|---------|
+| Lexer | `lexer.go` | Tokenizes template strings (`{{ }}`, `{% %}`, `{# #}`) |
+| Parser | `parser.go`, `parser_expression.go` | Builds AST from tokens |
+| Value | `value.go` | Reflection-based value wrapper for dynamic types |
+| Variable | `variable.go` | Resolves `user.name`, `items[0]`, function calls |
+| Context | `context.go` | Holds template execution state |
+| Template | `template.go` | Main template struct with Execute methods |
+
+### Extension System
+
+**Filters** transform values: `{{ name|upper|truncatechars:10 }}`
+- Registered via `RegisterFilter("name", filterFunc)`
+- Built-in filters in `filters_builtin.go`
+
+**Tags** provide control flow: `{% if %}`, `{% for %}`, `{% block %}`
+- Registered via `RegisterTag("name", tagParser)`
+- Built-in tags in `tags_*.go` files
+
+**Template Loaders** provide custom template sources:
+- Implement `TemplateLoader` interface (`Abs`, `Get` methods)
+- Built-in: filesystem, embed.FS support
+
+## Template Syntax
+
+### Variables
+```django
+{{ variable }}
+{{ user.name }}
+{{ items[0] }}
+{{ func(arg1, arg2) }}
+```
+
+### Filters
+```django
+{{ name|lower|truncatechars:20 }}
+{{ date|date:"2006-01-02" }}
+{{ html_content|safe }}
+```
+
+### Tags
+```django
+{% if condition %}...{% elif other %}...{% else %}...{% endif %}
+{% for item in items %}...{% empty %}...{% endfor %}
+{% block name %}...{% endblock %}
+{% extends "base.html" %}
+{% include "partial.html" %}
+{% macro name(args) %}...{% endmacro %}
+```
+
+### Comments
+```django
+{# This is a comment #}
+{% comment %}Multi-line comment{% endcomment %}
+```
+
+## Key Differences from Django
+
+1. **forloop fields** use capital letters: `forloop.Counter`, `forloop.Parentloop`
+2. **date/time filters** use Go's time format, not Python's
+3. **stringformat** uses Go's fmt syntax: `{{ 3.14|stringformat:"%.2f" }}`
+4. **escape filter** applies immediately (no force_escape needed)
+5. **in operator** negation: `{% if !(key in map) %}` instead of `not in`
+
+## File Structure
+
+```
+pongo2/
+├── lexer.go              # Tokenizer
+├── parser*.go            # AST construction
+├── value.go              # Dynamic value handling
+├── variable.go           # Variable resolution
+├── template.go           # Template struct and execution
+├── context.go            # Execution context
+├── filters.go            # Filter registration
+├── filters_builtin.go    # Built-in filters (~50 filters)
+├── tags.go               # Tag registration
+├── tags_*.go             # Built-in tags (if, for, block, etc.)
+├── template_loader.go    # Template loading interface
+├── template_sets.go      # Template set management
+└── template_tests/       # Test templates (.tpl) and expected output (.tpl.out)
+```
+
+## Testing
+
+```bash
+# Run all tests
+go test ./...
+
+# Run specific test
+go test -run TestFilterEscape ./...
+
+# Run benchmarks
+go test -bench=. -benchmem ./...
+```
+
+Template tests use `.tpl` files paired with `.tpl.out` expected output files
+in `template_tests/`. The test harness automatically validates all pairs.
+
+## Common Tasks
+
+### Adding a Filter
+```go
+func init() {
+    pongo2.RegisterFilter("myfilter", func(in, param *pongo2.Value) (*pongo2.Value, error) {
+        // Transform in.String() and return new Value
+        return pongo2.AsValue(result), nil
+    })
+}
+```
+
+### Adding a Tag
+```go
+func init() {
+    pongo2.RegisterTag("mytag", func(doc *pongo2.Parser, start *pongo2.Token, args *pongo2.Parser) (pongo2.INodeTag, error) {
+        // Parse arguments, return node that implements Execute()
+        return &myTagNode{}, nil
+    })
+}
+```
+
+### Custom Template Loader
+```go
+type MyLoader struct{}
+
+func (l *MyLoader) Abs(base, name string) string {
+    return filepath.Join(filepath.Dir(base), name)
+}
+
+func (l *MyLoader) Get(path string) (io.Reader, error) {
+    return os.Open(path)
+}
+
+set := pongo2.NewSet("my-set", &MyLoader{})
+tpl, _ := set.FromFile("template.html")
+```
+
+## Built-in Filters (Selection)
+
+Text: `upper`, `lower`, `title`, `capfirst`, `truncatechars`, `truncatewords`
+HTML: `escape`, `safe`, `striptags`, `linebreaks`, `urlize`
+Lists: `first`, `last`, `join`, `length`, `slice`, `random`
+Numbers: `add`, `floatformat`, `divisibleby`
+Dates: `date`, `time`, `timesince`, `timeuntil`
+JSON: `json_script`
+
+## Built-in Tags
+
+Control: `if`/`elif`/`else`, `for`/`empty`, `with`
+Template: `extends`, `block`, `include`, `import`, `macro`
+Output: `autoescape`, `filter`, `spaceless`, `verbatim`
+Misc: `set`, `comment`, `cycle`, `firstof`, `now`, `lorem`
+
+## Security Considerations
+
+- HTML auto-escaping enabled by default
+- Template sandboxing via `TemplateSet` (banned tags/filters, directory patterns)
+- XSS protection in urlize and similar filters
+- DoS prevention: depth limits on recursion, size limits on generation

@@ -1,0 +1,15 @@
+repos:
+  - repo: local
+    hooks:
+      - id: go-fmt
+        name: Go fmt
+        entry: go fmt ./...
+        language: system
+        pass_filenames: false
+        always_run: true
+      - id: go-tests
+        name: Go tests
+        entry: go test -v ./...
+        language: system
+        pass_filenames: false
+        always_run: true

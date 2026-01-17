@@ -3,16 +3,8 @@ package pongo2
 import (
 	"errors"
 	"fmt"
-	"regexp"
+	"maps"
 )
-
-var reIdentifiers = regexp.MustCompile("^[a-zA-Z0-9_]+$")
-
-var autoescape = true
-
-func SetAutoescape(newValue bool) {
-	autoescape = newValue
-}
 
 // A Context type provides constants, variables, instances or functions to a template.
 //
@@ -28,9 +20,9 @@ func SetAutoescape(newValue bool) {
 //	{{ pongo2.version }}
 type Context map[string]any
 
-func (c Context) checkForValidIdentifiers() *Error {
+func (c Context) checkForValidIdentifiers() error {
 	for k, v := range c {
-		if !reIdentifiers.MatchString(k) {
+		if !isValidIdentifier(k) {
 			return &Error{
 				Sender:    "checkForValidIdentifiers",
 				OrigError: fmt.Errorf("context-key '%s' (value: '%+v') is not a valid identifier", k, v),
@@ -40,37 +32,62 @@ func (c Context) checkForValidIdentifiers() *Error {
 	return nil
 }
 
+func isValidIdentifier(s string) bool {
+	if len(s) == 0 {
+		return false
+	}
+	for i := range s {
+		if !isValidIdentifierChar(s[i]) {
+			return false
+		}
+	}
+	return true
+}
+
+func isValidIdentifierChar(c byte) bool {
+	return (c >= 'a' && c <= 'z') ||
+		(c >= 'A' && c <= 'Z') ||
+		(c >= '0' && c <= '9') ||
+		c == '_'
+}
+
 // Update updates this context with the key/value-pairs from another context.
 func (c Context) Update(other Context) Context {
-	for k, v := range other {
-		c[k] = v
-	}
+	maps.Copy(c, other)
 	return c
 }
 
-// ExecutionContext contains all data important for the current rendering state.
+// ExecutionContext holds the runtime state during template rendering.
 //
-// If you're writing a custom tag, your tag's Execute()-function will
-// have access to the ExecutionContext. This struct stores anything
-// about the current rendering process's Context including
-// the Context provided by the user (field Public).
-// You can safely use the Private context to provide data to the user's
-// template (like a 'forloop'-information). The Shared-context is used
-// to share data between tags. All ExecutionContexts share this context.
+// Custom tags receive this in their Execute() method. Use NewChildExecutionContext
+// to create scoped child contexts within tags.
 //
-// Please be careful when accessing the Public data.
-// PLEASE DO NOT MODIFY THE PUBLIC CONTEXT (read-only).
-//
-// To create your own execution context within tags, use the
-// NewChildExecutionContext(parent) function.
+// Context hierarchy:
+//   - Public: User data (READ-ONLY)
+//   - Private: Scoped engine data (copied per child context)
+//   - Shared: Global state (same instance across all contexts)
 type ExecutionContext struct {
-	template   *Template
+	// The template being executed (provides config, inheritance, and TemplateSet access).
+	template *Template
+
+	// Tracks recursive macro call depth; errors if exceeding maxMacroDepth.
 	macroDepth int
 
+	// When true, {{ variable }} output is HTML-escaped. Toggle with {% autoescape %}.
+	// The |safe filter bypasses escaping.
 	Autoescape bool
-	Public     Context
-	Private    Context
-	Shared     Context
+
+	// User-provided data from Execute(). Treat as READ-ONLY to avoid side effects.
+	Public Context
+
+	// Engine-managed scoped data (e.g., "forloop" from {% for %}, variables
+	// from {% set %}, or macros). Child contexts receive a copy, enabling
+	// isolated modifications.
+	Private Context
+
+	// Data shared across all contexts during a single render. Use for cross-scope
+	// tag communication.
+	Shared Context
 }
 
 var pongo2MetaContext = Context{
@@ -88,10 +105,15 @@ func newExecutionContext(tpl *Template, ctx Context) *ExecutionContext {
 
 		Public:     ctx,
 		Private:    privateCtx,
-		Autoescape: autoescape,
+		Autoescape: tpl.set.autoescape,
 	}
 }
 
+// NewChildExecutionContext creates a new execution context that inherits from
+// a parent context. The child context shares the same Public context and Shared
+// context as the parent, but gets its own Private context (pre-populated with
+// copies of the parent's private data). This is useful for custom tags that need
+// to create isolated scopes while maintaining access to the template's data.
 func NewChildExecutionContext(parent *ExecutionContext) *ExecutionContext {
 	newctx := &ExecutionContext{
 		template: parent.template,
@@ -108,11 +130,11 @@ func NewChildExecutionContext(parent *ExecutionContext) *ExecutionContext {
 	return newctx
 }
 
-func (ctx *ExecutionContext) Error(msg string, token *Token) *Error {
+func (ctx *ExecutionContext) Error(msg string, token *Token) error {
 	return ctx.OrigError(errors.New(msg), token)
 }
 
-func (ctx *ExecutionContext) OrigError(err error, token *Token) *Error {
+func (ctx *ExecutionContext) OrigError(err error, token *Token) error {
 	filename := ctx.template.name
 	var line, col int
 	if token != nil {

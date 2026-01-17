@@ -21,8 +21,13 @@ package pongo2
 
 import (
 	"fmt"
+	"maps"
 )
 
+// INodeTag is a semantic interface for template tags returned by TagParser functions.
+// While structurally identical to INode, it provides API clarity and future extensibility.
+//
+//nolint:iface // intentional semantic type for public API clarity and future extension
 type INodeTag interface {
 	INode
 }
@@ -40,42 +45,36 @@ type INodeTag interface {
 // Please see the Parser documentation on how to use the parser.
 // See RegisterTag()'s documentation for more information about
 // writing a tag as well.
-type TagParser func(doc *Parser, start *Token, arguments *Parser) (INodeTag, *Error)
+type TagParser func(doc *Parser, start *Token, arguments *Parser) (INodeTag, error)
 
 type tag struct {
 	name   string
 	parser TagParser
 }
 
-var tags map[string]*tag
+var builtinTags = make(map[string]*tag)
 
-func init() {
-	tags = make(map[string]*tag)
+// copyTags creates a shallow copy of a tag map.
+func copyTags(src map[string]*tag) map[string]*tag {
+	dst := make(map[string]*tag, len(src))
+	maps.Copy(dst, src)
+	return dst
 }
 
-// Registers a new tag. You usually want to call this
-// function in the tag's init() function:
-// http://golang.org/doc/effective_go.html#init
-func RegisterTag(name string, parserFn TagParser) error {
-	_, existing := tags[name]
+func mustRegisterTag(name string, parserFn TagParser) {
+	if err := registerTagGlobal(name, parserFn); err != nil {
+		panic(err)
+	}
+}
+
+// registerTagGlobal registers a new tag to the global tag map.
+// This is used during package initialization to register builtin tags.
+func registerTagGlobal(name string, parserFn TagParser) error {
+	_, existing := builtinTags[name]
 	if existing {
 		return fmt.Errorf("tag with name '%s' is already registered", name)
 	}
-	tags[name] = &tag{
-		name:   name,
-		parser: parserFn,
-	}
-	return nil
-}
-
-// Replaces an already registered tag with a new implementation. Use this
-// function with caution since it allows you to change existing tag behaviour.
-func ReplaceTag(name string, parserFn TagParser) error {
-	_, existing := tags[name]
-	if !existing {
-		return fmt.Errorf("tag with name '%s' does not exist (therefore cannot be overridden)", name)
-	}
-	tags[name] = &tag{
+	builtinTags[name] = &tag{
 		name:   name,
 		parser: parserFn,
 	}
@@ -83,7 +82,7 @@ func ReplaceTag(name string, parserFn TagParser) error {
 }
 
 // Tag = "{%" IDENT ARGS "%}"
-func (p *Parser) parseTagElement() (INodeTag, *Error) {
+func (p *Parser) parseTagElement() (INodeTag, error) {
 	p.Consume() // consume "{%"
 	tokenName := p.MatchType(TokenIdentifier)
 
@@ -92,16 +91,16 @@ func (p *Parser) parseTagElement() (INodeTag, *Error) {
 		return nil, p.Error("Tag name must be an identifier.", nil)
 	}
 
-	// Check for the existing tag
-	tag, exists := tags[tokenName.Val]
-	if !exists {
-		// Does not exists
-		return nil, p.Error(fmt.Sprintf("Tag '%s' not found (or beginning tag not provided)", tokenName.Val), tokenName)
-	}
-
 	// Check sandbox tag restriction
 	if _, isBanned := p.template.set.bannedTags[tokenName.Val]; isBanned {
 		return nil, p.Error(fmt.Sprintf("Usage of tag '%s' is not allowed (sandbox restriction active).", tokenName.Val), tokenName)
+	}
+
+	// Check for the existing tag
+	tag, exists := p.template.set.tags[tokenName.Val]
+	if !exists {
+		// Does not exists
+		return nil, p.Error(fmt.Sprintf("Tag '%s' not found (or beginning tag not provided)", tokenName.Val), tokenName)
 	}
 
 	var argsToken []*Token

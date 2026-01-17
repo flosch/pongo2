@@ -1,113 +1,154 @@
 package pongo2
 
-/* Filters that are provided through github.com/flosch/pongo2-addons:
-   ------------------------------------------------------------------
-
-   filesizeformat
-   slugify
-   timesince
-   timeuntil
-
-   Filters that won't be added:
+/* Filters that won't be added:
    ----------------------------
 
    get_static_prefix (reason: web-framework specific)
    pprint (reason: python-specific)
    static (reason: web-framework specific)
-
-   Reconsideration (not implemented yet):
-   --------------------------------------
-
-   force_escape (reason: not yet needed since this is the behaviour of pongo2's escape filter)
-   safeseq (reason: same reason as `force_escape`)
-   unordered_list (python-specific; not sure whether needed or not)
-   dictsort (python-specific; maybe one could add a filter to sort a list of structs by a specific field name)
-   dictsortreversed (see dictsort)
 */
 
 import (
 	"bytes"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"math/rand"
 	"net/url"
-	"reflect"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
 	"unicode/utf8"
+
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
+)
+
+func mustRegisterFilter(name string, fn FilterFunction) {
+	if err := registerFilterBuiltin(name, fn); err != nil {
+		panic(err)
+	}
+}
+
+// htmlEscapeReplacer is a pre-compiled replacer for HTML escaping.
+// Using a single Replacer is more efficient than multiple strings.Replace calls
+// because it processes the string in a single pass.
+var htmlEscapeReplacer = strings.NewReplacer(
+	"&", "&amp;",
+	">", "&gt;",
+	"<", "&lt;",
+	`"`, "&quot;",
+	"'", "&#39;",
+)
+
+// stripTagsIteratively applies tag-stripping regex patterns iteratively until convergence.
+// This handles obfuscated tags like "<sc<script>ript>" which become "<script>" after first pass.
+// Returns an error if stripping doesn't converge within maxIterations.
+func stripTagsIteratively(s string, patterns []*regexp.Regexp, maxIterations int, filterName string) (string, error) {
+	for i := range maxIterations {
+		prev := s
+		for _, re := range patterns {
+			s = re.ReplaceAllString(s, "")
+		}
+		if s == prev {
+			return strings.TrimSpace(s), nil
+		}
+		if i == maxIterations-1 {
+			return "", &Error{
+				Sender:    filterName,
+				OrigError: fmt.Errorf("tag stripping did not converge after max iterations (%d); input may be maliciously crafted", maxIterations),
+			}
+		}
+	}
+	return strings.TrimSpace(s), nil
+}
+
+// addslashesReplacer is a pre-compiled replacer for adding slashes.
+var addslashesReplacer = strings.NewReplacer(
+	`\`, `\\`,
+	`"`, `\"`,
+	"'", `\'`,
 )
 
 func init() {
-	rand.Seed(time.Now().Unix())
+	mustRegisterFilter("escape", filterEscape)
+	mustRegisterFilter("e", filterEscape) // alias of `escape`
+	mustRegisterFilter("safe", filterSafe)
+	mustRegisterFilter("escapejs", filterEscapejs)
 
-	RegisterFilter("escape", filterEscape)
-	RegisterFilter("e", filterEscape) // alias of `escape`
-	RegisterFilter("safe", filterSafe)
-	RegisterFilter("escapejs", filterEscapejs)
+	mustRegisterFilter("add", filterAdd)
+	mustRegisterFilter("addslashes", filterAddslashes)
+	mustRegisterFilter("capfirst", filterCapfirst)
+	mustRegisterFilter("center", filterCenter)
+	mustRegisterFilter("cut", filterCut)
+	mustRegisterFilter("date", filterDate)
+	mustRegisterFilter("default", filterDefault)
+	mustRegisterFilter("default_if_none", filterDefaultIfNone)
+	mustRegisterFilter("divisibleby", filterDivisibleby)
+	mustRegisterFilter("first", filterFirst)
+	mustRegisterFilter("floatformat", filterFloatformat)
+	mustRegisterFilter("get_digit", filterGetdigit)
+	mustRegisterFilter("iriencode", filterIriencode)
+	mustRegisterFilter("join", filterJoin)
+	mustRegisterFilter("last", filterLast)
+	mustRegisterFilter("length", filterLength)
+	mustRegisterFilter("length_is", filterLengthis)
+	mustRegisterFilter("linebreaks", filterLinebreaks)
+	mustRegisterFilter("linebreaksbr", filterLinebreaksbr)
+	mustRegisterFilter("linenumbers", filterLinenumbers)
+	mustRegisterFilter("ljust", filterLjust)
+	mustRegisterFilter("lower", filterLower)
+	mustRegisterFilter("make_list", filterMakelist)
+	mustRegisterFilter("phone2numeric", filterPhone2numeric)
+	mustRegisterFilter("pluralize", filterPluralize)
+	mustRegisterFilter("random", filterRandom)
+	mustRegisterFilter("removetags", filterRemovetags)
+	mustRegisterFilter("rjust", filterRjust)
+	mustRegisterFilter("slice", filterSlice)
+	mustRegisterFilter("split", filterSplit)
+	mustRegisterFilter("stringformat", filterStringformat)
+	mustRegisterFilter("striptags", filterStriptags)
+	mustRegisterFilter("time", filterDate) // time uses filterDate (same golang-format)
+	mustRegisterFilter("title", filterTitle)
+	mustRegisterFilter("truncatechars", filterTruncatechars)
+	mustRegisterFilter("truncatechars_html", filterTruncatecharsHTML)
+	mustRegisterFilter("truncatewords", filterTruncatewords)
+	mustRegisterFilter("truncatewords_html", filterTruncatewordsHTML)
+	mustRegisterFilter("upper", filterUpper)
+	mustRegisterFilter("urlencode", filterUrlencode)
+	mustRegisterFilter("urlize", filterUrlize)
+	mustRegisterFilter("urlizetrunc", filterUrlizetrunc)
+	mustRegisterFilter("wordcount", filterWordcount)
+	mustRegisterFilter("wordwrap", filterWordwrap)
+	mustRegisterFilter("yesno", filterYesno)
+	mustRegisterFilter("timesince", filterTimesince)
+	mustRegisterFilter("timeuntil", filterTimeuntil)
+	mustRegisterFilter("dictsort", filterDictsort)
+	mustRegisterFilter("dictsortreversed", filterDictsortReversed)
+	mustRegisterFilter("unordered_list", filterUnorderedList)
+	mustRegisterFilter("slugify", filterSlugify)
+	mustRegisterFilter("filesizeformat", filterFilesizeformat)
+	mustRegisterFilter("safeseq", filterSafeseq)
+	mustRegisterFilter("escapeseq", filterEscapeseq)
+	mustRegisterFilter("json_script", filterJSONScript)
 
-	RegisterFilter("add", filterAdd)
-	RegisterFilter("addslashes", filterAddslashes)
-	RegisterFilter("capfirst", filterCapfirst)
-	RegisterFilter("center", filterCenter)
-	RegisterFilter("cut", filterCut)
-	RegisterFilter("date", filterDate)
-	RegisterFilter("default", filterDefault)
-	RegisterFilter("default_if_none", filterDefaultIfNone)
-	RegisterFilter("divisibleby", filterDivisibleby)
-	RegisterFilter("first", filterFirst)
-	RegisterFilter("floatformat", filterFloatformat)
-	RegisterFilter("get_digit", filterGetdigit)
-	RegisterFilter("iriencode", filterIriencode)
-	RegisterFilter("join", filterJoin)
-	RegisterFilter("last", filterLast)
-	RegisterFilter("length", filterLength)
-	RegisterFilter("length_is", filterLengthis)
-	RegisterFilter("linebreaks", filterLinebreaks)
-	RegisterFilter("linebreaksbr", filterLinebreaksbr)
-	RegisterFilter("linenumbers", filterLinenumbers)
-	RegisterFilter("ljust", filterLjust)
-	RegisterFilter("lower", filterLower)
-	RegisterFilter("make_list", filterMakelist)
-	RegisterFilter("phone2numeric", filterPhone2numeric)
-	RegisterFilter("pluralize", filterPluralize)
-	RegisterFilter("random", filterRandom)
-	RegisterFilter("removetags", filterRemovetags)
-	RegisterFilter("rjust", filterRjust)
-	RegisterFilter("slice", filterSlice)
-	RegisterFilter("split", filterSplit)
-	RegisterFilter("stringformat", filterStringformat)
-	RegisterFilter("striptags", filterStriptags)
-	RegisterFilter("time", filterDate) // time uses filterDate (same golang-format)
-	RegisterFilter("title", filterTitle)
-	RegisterFilter("truncatechars", filterTruncatechars)
-	RegisterFilter("truncatechars_html", filterTruncatecharsHTML)
-	RegisterFilter("truncatewords", filterTruncatewords)
-	RegisterFilter("truncatewords_html", filterTruncatewordsHTML)
-	RegisterFilter("upper", filterUpper)
-	RegisterFilter("urlencode", filterUrlencode)
-	RegisterFilter("urlize", filterUrlize)
-	RegisterFilter("urlizetrunc", filterUrlizetrunc)
-	RegisterFilter("wordcount", filterWordcount)
-	RegisterFilter("wordwrap", filterWordwrap)
-	RegisterFilter("yesno", filterYesno)
-
-	RegisterFilter("float", filterFloat)     // pongo-specific
-	RegisterFilter("integer", filterInteger) // pongo-specific
+	mustRegisterFilter("float", filterFloat)     // pongo-specific
+	mustRegisterFilter("integer", filterInteger) // pongo-specific
 }
 
+const ellipsis = "…"
+
 func filterTruncatecharsHelper(s string, newLen int) string {
-	if newLen <= 0 {
-		return s
-	}
 	runes := []rune(s)
 	if newLen < len(runes) {
-		if newLen >= 3 {
-			return fmt.Sprintf("%s...", string(runes[:newLen-3]))
+		if newLen >= 1 {
+			// Use proper ellipsis character (…) like Django does
+			return string(runes[:newLen-1]) + ellipsis
 		}
-		// Not enough space for the ellipsis
-		return string(runes[:newLen])
+		// Django returns just the ellipsis for length <= 0
+		return ellipsis
 	}
 	return string(runes)
 }
@@ -171,7 +212,7 @@ func filterTruncateHTMLHelper(value string, newOutput *bytes.Buffer, cond func()
 				} else {
 					// Open tag
 
-					tag := ""
+					var tag strings.Builder
 
 					params := false
 					for idx < vLen {
@@ -193,7 +234,7 @@ func filterTruncateHTMLHelper(value string, newOutput *bytes.Buffer, cond func()
 							if c2 == ' ' {
 								params = true
 							} else {
-								tag += string(c2)
+								tag.WriteString(string(c2))
 							}
 						}
 
@@ -201,7 +242,7 @@ func filterTruncateHTMLHelper(value string, newOutput *bytes.Buffer, cond func()
 					}
 
 					// Add tag to stack
-					tagStack = append(tagStack, tag)
+					tagStack = append(tagStack, tag.String())
 				}
 			}
 		} else {
@@ -214,25 +255,50 @@ func filterTruncateHTMLHelper(value string, newOutput *bytes.Buffer, cond func()
 	for i := len(tagStack) - 1; i >= 0; i-- {
 		tag := tagStack[i]
 		// Close everything from the regular tag stack
-		newOutput.WriteString(fmt.Sprintf("</%s>", tag))
+		fmt.Fprintf(newOutput, "</%s>", tag)
 	}
 }
 
-func filterTruncatechars(in *Value, param *Value) (*Value, *Error) {
+// filterTruncatechars truncates a string if it is longer than the specified number
+// of characters. Truncated strings will end with a translatable ellipsis character ("…").
+// The ellipsis counts towards the character limit.
+//
+// Usage:
+//
+//	{{ "Joel is a slug"|truncatechars:7 }}
+//
+// Output: "Joel i…"
+//
+//	{{ "Hi"|truncatechars:5 }}
+//
+// Output: "Hi" (no truncation needed)
+func filterTruncatechars(in *Value, param *Value) (*Value, error) {
 	s := in.String()
 	newLen := param.Integer()
 	return AsValue(filterTruncatecharsHelper(s, newLen)), nil
 }
 
-func filterTruncatecharsHTML(in *Value, param *Value) (*Value, *Error) {
+// filterTruncatecharsHTML truncates a string if it is longer than the specified number
+// of characters, similar to truncatechars but aware of HTML tags. Any tags that are
+// opened in the string and not closed before the truncation point are closed immediately
+// after the truncation. HTML tags are not counted towards the character limit.
+// Truncated strings will end with an ellipsis character ("…") which counts towards the limit.
+// Newlines in the HTML content will be preserved.
+//
+// Usage:
+//
+//	{{ "<p>Joel is a slug</p>"|truncatechars_html:7 }}
+//
+// Output: "<p>Joel i…</p>"
+func filterTruncatecharsHTML(in *Value, param *Value) (*Value, error) {
 	value := in.String()
-	newLen := max(param.Integer()-3, 0)
+	newLen := max(param.Integer()-1, 0)
 
-	newOutput := bytes.NewBuffer(nil)
+	var newOutput bytes.Buffer
 
 	textcounter := 0
 
-	filterTruncateHTMLHelper(value, newOutput, func() bool {
+	filterTruncateHTMLHelper(value, &newOutput, func() bool {
 		return textcounter >= newLen
 	}, func(c rune, s int, idx int) int {
 		textcounter++
@@ -241,14 +307,26 @@ func filterTruncatecharsHTML(in *Value, param *Value) (*Value, *Error) {
 		return idx + s
 	}, func() {
 		if textcounter >= newLen && textcounter < len(value) {
-			newOutput.WriteString("...")
+			newOutput.WriteString(ellipsis)
 		}
 	})
 
 	return AsSafeValue(newOutput.String()), nil
 }
 
-func filterTruncatewords(in *Value, param *Value) (*Value, *Error) {
+// filterTruncatewords truncates a string after a certain number of words.
+// If truncated, an ellipsis ("...") is appended.
+//
+// Usage:
+//
+//	{{ "Hello beautiful world"|truncatewords:2 }}
+//
+// Output: "Hello beautiful ..."
+//
+// {{ "Hi"|truncatewords:5 }}
+//
+// Output: "Hi"
+func filterTruncatewords(in *Value, param *Value) (*Value, error) {
 	words := strings.Fields(in.String())
 	n := param.Integer()
 	if n <= 0 {
@@ -256,7 +334,7 @@ func filterTruncatewords(in *Value, param *Value) (*Value, *Error) {
 	}
 	nlen := min(len(words), n)
 	out := make([]string, 0, nlen)
-	for i := 0; i < nlen; i++ {
+	for i := range nlen {
 		out = append(out, words[i])
 	}
 
@@ -267,7 +345,16 @@ func filterTruncatewords(in *Value, param *Value) (*Value, *Error) {
 	return AsValue(strings.Join(out, " ")), nil
 }
 
-func filterTruncatewordsHTML(in *Value, param *Value) (*Value, *Error) {
+// filterTruncatewordsHTML truncates a string after a certain number of words,
+// preserving HTML tags. HTML tags are not counted towards the word limit.
+// If truncated, an ellipsis ("...") is appended. Open HTML tags are properly closed.
+//
+// Usage:
+//
+//	{{ "<p>Hello beautiful world</p>"|truncatewords_html:2 }}
+//
+// Output: "<p>Hello beautiful ...</p>"
+func filterTruncatewordsHTML(in *Value, param *Value) (*Value, error) {
 	value := in.String()
 	newLen := max(param.Integer(), 0)
 
@@ -318,60 +405,127 @@ func filterTruncatewordsHTML(in *Value, param *Value) (*Value, *Error) {
 	return AsSafeValue(newOutput.String()), nil
 }
 
-func filterEscape(in *Value, param *Value) (*Value, *Error) {
-	output := strings.Replace(in.String(), "&", "&amp;", -1)
-	output = strings.Replace(output, ">", "&gt;", -1)
-	output = strings.Replace(output, "<", "&lt;", -1)
-	output = strings.Replace(output, "\"", "&quot;", -1)
-	output = strings.Replace(output, "'", "&#39;", -1)
-	return AsValue(output), nil
+// filterEscape escapes a string's HTML characters. Specifically, it makes these replacements:
+//   - < is converted to &lt;
+//   - > is converted to &gt;
+//   - ' (single quote) is converted to &#39;
+//   - " (double quote) is converted to &quot;
+//   - & is converted to &amp;
+//
+// The filter is also available under the alias "e".
+//
+// Usage:
+//
+//	{{ "<script>alert('XSS')</script>"|escape }}
+//
+// Output: "&lt;script&gt;alert(&#39;XSS&#39;)&lt;/script&gt;"
+func filterEscape(in *Value, param *Value) (*Value, error) {
+	return AsValue(htmlEscapeReplacer.Replace(in.String())), nil
 }
 
-func filterSafe(in *Value, param *Value) (*Value, *Error) {
+// filterSafe marks a string as safe, meaning it will not be HTML-escaped when
+// rendered. Use this filter when you know the content is safe and should be
+// rendered as-is (e.g., pre-sanitized HTML content).
+//
+// Usage:
+//
+//	{{ "<b>Bold text</b>"|safe }}
+//
+// Output: "<b>Bold text</b>"
+//
+// Without safe filter (when autoescape is on):
+//
+//	{{ "<b>Bold text</b>" }}
+//
+// Output: "&lt;b&gt;Bold text&lt;/b&gt;"
+func filterSafe(in *Value, param *Value) (*Value, error) {
 	return in, nil // nothing to do here, just to keep track of the safe application
 }
 
-func filterEscapejs(in *Value, param *Value) (*Value, *Error) {
+// filterEscapejs escapes characters for safe use in JavaScript string literals.
+// It converts special characters to their Unicode escape sequences (\uXXXX format).
+//
+// Characters that are escaped (matching Django's behavior):
+//   - Backslash, quotes: \ ' " `
+//   - HTML special chars: < > & = -
+//   - Semicolon: ;
+//   - Control characters: 0x00-0x1F, 0x7F, 0x80-0x9F
+//   - Line separators: U+2028, U+2029
+//
+// Additionally, pongo2 interprets \r and \n escape sequences in the input
+// and converts them to their Unicode escapes (\u000D and \u000A).
+//
+// Note: This filter escapes backticks, making it safe for JavaScript template
+// literals as well as single/double quoted strings.
+//
+// Usage:
+//
+//	<script>var name = "{{ name|escapejs }}";</script>
+//
+// With name = "John's \"Quote\"":
+//
+// Output: <script>var name = "John\u0027s \u0022Quote\u0022";</script>
+func filterEscapejs(in *Value, param *Value) (*Value, error) {
 	sin := in.String()
 
 	var b bytes.Buffer
 
+	// Use index-based iteration to handle pongo2-specific \r and \n escape sequences
 	idx := 0
 	for idx < len(sin) {
 		c, size := utf8.DecodeRuneInString(sin[idx:])
-		if c == utf8.RuneError {
+		if c == utf8.RuneError && size == 1 {
+			// Invalid UTF-8, skip
 			idx += size
 			continue
 		}
 
-		if c == '\\' {
-			// Escape seq?
-			if idx+1 < len(sin) {
-				switch sin[idx+1] {
-				case 'r':
-					b.WriteString(fmt.Sprintf(`\u%04X`, '\r'))
-					idx += 2
-					continue
-				case 'n':
-					b.WriteString(fmt.Sprintf(`\u%04X`, '\n'))
-					idx += 2
-					continue
-					/*case '\'':
-						b.WriteString(fmt.Sprintf(`\u%04X`, '\''))
-						idx += 2
-						continue
-					case '"':
-						b.WriteString(fmt.Sprintf(`\u%04X`, '"'))
-						idx += 2
-						continue*/
-				}
+		// Handle pongo2-specific escape sequences: \r -> \u000D, \n -> \u000A
+		if c == '\\' && idx+size < len(sin) {
+			nextByte := sin[idx+size]
+			switch nextByte {
+			case 'r':
+				b.WriteString(`\u000D`)
+				idx += size + 1
+				continue
+			case 'n':
+				b.WriteString(`\u000A`)
+				idx += size + 1
+				continue
 			}
 		}
 
-		if (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == ' ' || c == '/' {
+		switch {
+		// Characters that must be escaped for JavaScript string safety
+		case c == '\\':
+			b.WriteString(`\u005C`)
+		case c == '\'':
+			b.WriteString(`\u0027`)
+		case c == '"':
+			b.WriteString(`\u0022`)
+		case c == '`':
+			b.WriteString(`\u0060`)
+		case c == '<':
+			b.WriteString(`\u003C`)
+		case c == '>':
+			b.WriteString(`\u003E`)
+		case c == '&':
+			b.WriteString(`\u0026`)
+		case c == '=':
+			b.WriteString(`\u003D`)
+		case c == '-':
+			b.WriteString(`\u002D`)
+		case c == ';':
+			b.WriteString(`\u003B`)
+		case c == '\u2028': // Line separator
+			b.WriteString(`\u2028`)
+		case c == '\u2029': // Paragraph separator
+			b.WriteString(`\u2029`)
+		// Control characters (0x00-0x1F, 0x7F, 0x80-0x9F)
+		case c <= 0x1F, c == 0x7F, (c >= 0x80 && c <= 0x9F):
+			fmt.Fprintf(&b, `\u%04X`, c)
+		default:
 			b.WriteRune(c)
-		} else {
-			b.WriteString(fmt.Sprintf(`\u%04X`, c))
 		}
 
 		idx += size
@@ -380,7 +534,25 @@ func filterEscapejs(in *Value, param *Value) (*Value, *Error) {
 	return AsValue(b.String()), nil
 }
 
-func filterAdd(in *Value, param *Value) (*Value, *Error) {
+// filterAdd adds the argument to the value. Works with numbers (integers and floats)
+// and strings (concatenation).
+//
+// Usage with numbers:
+//
+//	{{ 5|add:3 }}
+//
+// Output: 8
+//
+//	{{ 3.5|add:2.1 }}
+//
+// Output: 5.6
+//
+// Usage with strings:
+//
+//	{{ "Hello "|add:"World" }}
+//
+// Output: "Hello World"
+func filterAdd(in *Value, param *Value) (*Value, error) {
 	if in.IsNumber() && param.IsNumber() {
 		if in.IsFloat() || param.IsFloat() {
 			return AsValue(in.Float() + param.Float()), nil
@@ -392,47 +564,135 @@ func filterAdd(in *Value, param *Value) (*Value, *Error) {
 	return AsValue(in.String() + param.String()), nil
 }
 
-func filterAddslashes(in *Value, param *Value) (*Value, *Error) {
-	output := strings.Replace(in.String(), "\\", "\\\\", -1)
-	output = strings.Replace(output, "\"", "\\\"", -1)
-	output = strings.Replace(output, "'", "\\'", -1)
-	return AsValue(output), nil
+// filterAddslashes adds backslashes before quotes and backslashes.
+// Useful for escaping strings in CSV or JavaScript contexts.
+//
+// Usage:
+//
+//	{{ "I'm using \"pongo2\""|addslashes }}
+//
+// Output: "I\'m using \"pongo2\""
+func filterAddslashes(in *Value, param *Value) (*Value, error) {
+	return AsValue(addslashesReplacer.Replace(in.String())), nil
 }
 
-func filterCut(in *Value, param *Value) (*Value, *Error) {
-	return AsValue(strings.Replace(in.String(), param.String(), "", -1)), nil
+// filterCut removes all occurrences of the argument from the string.
+//
+// Usage:
+//
+//	{{ "Hello World"|cut:" " }}
+//
+// Output: "HelloWorld"
+//
+//	{{ "String with spaces"|cut:" " }}
+//
+// Output: "Stringwithspaces"
+func filterCut(in *Value, param *Value) (*Value, error) {
+	return AsValue(strings.ReplaceAll(in.String(), param.String(), "")), nil
 }
 
-func filterLength(in *Value, param *Value) (*Value, *Error) {
+// filterLength returns the length of the value. Works with strings (character count),
+// slices, arrays, and maps.
+//
+// Usage with strings:
+//
+//	{{ "Hello"|length }}
+//
+// Output: 5
+//
+// Usage with lists:
+//
+//	{% set items = ["a", "b", "c"] %}{{ items|length }}
+//
+// Output: 3
+func filterLength(in *Value, param *Value) (*Value, error) {
 	return AsValue(in.Len()), nil
 }
 
-func filterLengthis(in *Value, param *Value) (*Value, *Error) {
+// filterLengthis returns true if the value's length equals the argument.
+// Useful in conditional expressions.
+//
+// Usage:
+//
+//	{% if items|length_is:3 %}Exactly 3 items{% endif %}
+//
+//	{{ "Hello"|length_is:5 }}
+//
+// Output: true
+func filterLengthis(in *Value, param *Value) (*Value, error) {
 	return AsValue(in.Len() == param.Integer()), nil
 }
 
-func filterDefault(in *Value, param *Value) (*Value, *Error) {
+// filterDefault returns the argument if the value is falsy (empty string, 0,
+// nil, false, empty slice/map). Otherwise returns the original value.
+//
+// Usage:
+//
+//	{{ name|default:"Guest" }}
+//
+// If name is empty or not set, output: "Guest"
+// If name is "John", output: "John"
+//
+//	{{ 0|default:42 }}
+//
+// Output: 42
+func filterDefault(in *Value, param *Value) (*Value, error) {
 	if !in.IsTrue() {
 		return param, nil
 	}
 	return in, nil
 }
 
-func filterDefaultIfNone(in *Value, param *Value) (*Value, *Error) {
+// filterDefaultIfNone returns the argument only if the value is nil.
+// Unlike "default", this only triggers on nil values, not on other falsy values
+// like 0, false, or empty strings.
+//
+// Usage:
+//
+//	{{ value|default_if_none:"N/A" }}
+//
+// If value is nil, output: "N/A"
+// If value is 0, output: 0 (unlike default filter)
+// If value is "", output: "" (unlike default filter)
+func filterDefaultIfNone(in *Value, param *Value) (*Value, error) {
 	if in.IsNil() {
 		return param, nil
 	}
 	return in, nil
 }
 
-func filterDivisibleby(in *Value, param *Value) (*Value, *Error) {
+// filterDivisibleby returns true if the value is divisible by the argument.
+// Returns false if the argument is 0 (to avoid division by zero).
+//
+// Usage:
+//
+//	{{ 21|divisibleby:7 }}
+//
+// Output: true
+//
+//	{% if forloop.Counter|divisibleby:2 %}even{% else %}odd{% endif %}
+func filterDivisibleby(in *Value, param *Value) (*Value, error) {
 	if param.Integer() == 0 {
 		return AsValue(false), nil
 	}
 	return AsValue(in.Integer()%param.Integer() == 0), nil
 }
 
-func filterFirst(in *Value, param *Value) (*Value, *Error) {
+// filterFirst returns the first element of a slice/array or the first character
+// of a string. Returns an empty string if the input is empty.
+//
+// Usage with list:
+//
+//	{{ ["a", "b", "c"]|first }}
+//
+// Output: "a"
+//
+// Usage with string:
+//
+//	{{ "Hello"|first }}
+//
+// Output: "H"
+func filterFirst(in *Value, param *Value) (*Value, error) {
 	if in.CanSlice() && in.Len() > 0 {
 		return in.Index(0), nil
 	}
@@ -441,7 +701,27 @@ func filterFirst(in *Value, param *Value) (*Value, *Error) {
 
 const maxFloatFormatDecimals = 1000
 
-func filterFloatformat(in *Value, param *Value) (*Value, *Error) {
+// filterFloatformat formats a floating-point number with a specified number of
+// decimal places. If the argument is negative or omitted, trailing zeros are removed.
+//
+// Usage:
+//
+//	{{ 3.14159|floatformat:2 }}
+//
+// Output: "3.14"
+//
+//	{{ 3.0|floatformat:2 }}
+//
+// Output: "3.00"
+//
+//	{{ 3.0|floatformat:-2 }}
+//
+// Output: "3" (trailing zeros removed)
+//
+//	{{ 3.14159|floatformat }}
+//
+// Output: "3.14159" (default behavior, trimmed)
+func filterFloatformat(in *Value, param *Value) (*Value, error) {
 	val := in.Float()
 
 	decimals := -1
@@ -478,7 +758,23 @@ func filterFloatformat(in *Value, param *Value) (*Value, *Error) {
 	return AsValue(strconv.FormatFloat(val, 'f', decimals, 64)), nil
 }
 
-func filterGetdigit(in *Value, param *Value) (*Value, *Error) {
+// filterGetdigit returns the digit at position N from the right (1-indexed).
+// Position 1 is the rightmost digit. Returns the original value if N is out of range.
+//
+// Usage:
+//
+//	{{ 123456789|get_digit:1 }}
+//
+// Output: 9 (rightmost digit)
+//
+//	{{ 123456789|get_digit:2 }}
+//
+// Output: 8
+//
+//	{{ 123456789|get_digit:9 }}
+//
+// Output: 1 (leftmost digit)
+func filterGetdigit(in *Value, param *Value) (*Value, error) {
 	i := param.Integer()
 	l := len(in.String()) // do NOT use in.Len() here!
 	if i <= 0 || i > l {
@@ -489,7 +785,20 @@ func filterGetdigit(in *Value, param *Value) (*Value, *Error) {
 
 const filterIRIChars = "/#%[]=:;$&()+,!?*@'~"
 
-func filterIriencode(in *Value, param *Value) (*Value, *Error) {
+// filterIriencode encodes an IRI (Internationalized Resource Identifier) for safe
+// use in URLs. Unlike urlencode, it preserves characters that are valid in IRIs
+// (such as /, #, %, etc.) while encoding other special characters.
+//
+// Usage:
+//
+//	{{ "https://example.com/path with spaces"|iriencode }}
+//
+// Output: "https://example.com/path%20with%20spaces"
+//
+//	{{ "/search?q=hello world"|iriencode }}
+//
+// Output: "/search?q=hello%20world"
+func filterIriencode(in *Value, param *Value) (*Value, error) {
 	var b bytes.Buffer
 
 	sin := in.String()
@@ -504,7 +813,21 @@ func filterIriencode(in *Value, param *Value) (*Value, *Error) {
 	return AsValue(b.String()), nil
 }
 
-func filterJoin(in *Value, param *Value) (*Value, *Error) {
+// filterJoin joins a list with the given separator string. For strings, each
+// character is joined with the separator.
+//
+// Usage with list:
+//
+//	{{ ["apple", "banana", "cherry"]|join:", " }}
+//
+// Output: "apple, banana, cherry"
+//
+// Usage with string:
+//
+//	{{ "abc"|join:"-" }}
+//
+// Output: "a-b-c"
+func filterJoin(in *Value, param *Value) (*Value, error) {
 	if !in.CanSlice() {
 		return in, nil
 	}
@@ -519,7 +842,7 @@ func filterJoin(in *Value, param *Value) (*Value, *Error) {
 	// This is an optimization for very long strings. Index() splits `in` into runes with each
 	// function invocation which hurts performance. Hence we're doing it just once (with ranging
 	// over the string) and speeding things up.
-	if in.getResolvedValue().Kind() == reflect.String {
+	if in.IsString() {
 		for _, i := range in.String() {
 			sl = append(sl, string(i))
 		}
@@ -532,22 +855,62 @@ func filterJoin(in *Value, param *Value) (*Value, *Error) {
 	return AsValue(strings.Join(sl, sep)), nil
 }
 
-func filterLast(in *Value, param *Value) (*Value, *Error) {
+// filterLast returns the last element of a slice/array or the last character
+// of a string. Returns an empty string if the input is empty.
+//
+// Usage with list:
+//
+//	{{ ["a", "b", "c"]|last }}
+//
+// Output: "c"
+//
+// Usage with string:
+//
+//	{{ "Hello"|last }}
+//
+// Output: "o"
+func filterLast(in *Value, param *Value) (*Value, error) {
 	if in.CanSlice() && in.Len() > 0 {
 		return in.Index(in.Len() - 1), nil
 	}
 	return AsValue(""), nil
 }
 
-func filterUpper(in *Value, param *Value) (*Value, *Error) {
+// filterUpper converts a string to uppercase.
+//
+// Usage:
+//
+//	{{ "Hello World"|upper }}
+//
+// Output: "HELLO WORLD"
+func filterUpper(in *Value, param *Value) (*Value, error) {
 	return AsValue(strings.ToUpper(in.String())), nil
 }
 
-func filterLower(in *Value, param *Value) (*Value, *Error) {
+// filterLower converts a string to lowercase.
+//
+// Usage:
+//
+//	{{ "Hello World"|lower }}
+//
+// Output: "hello world"
+func filterLower(in *Value, param *Value) (*Value, error) {
 	return AsValue(strings.ToLower(in.String())), nil
 }
 
-func filterMakelist(in *Value, param *Value) (*Value, *Error) {
+// filterMakelist converts a string into a list of individual characters.
+// Each character becomes a separate element in the resulting list.
+//
+// Usage:
+//
+//	{{ "abc"|make_list }}
+//
+// Output: ["a", "b", "c"]
+//
+//	{% for char in "Hello"|make_list %}{{ char }}-{% endfor %}
+//
+// Output: "H-e-l-l-o-"
+func filterMakelist(in *Value, param *Value) (*Value, error) {
 	s := in.String()
 	result := make([]string, 0, len(s))
 	for _, c := range s {
@@ -556,7 +919,19 @@ func filterMakelist(in *Value, param *Value) (*Value, *Error) {
 	return AsValue(result), nil
 }
 
-func filterCapfirst(in *Value, param *Value) (*Value, *Error) {
+// filterCapfirst capitalizes the first character of a string.
+// Only the first character is affected; the rest remains unchanged.
+//
+// Usage:
+//
+//	{{ "hello world"|capfirst }}
+//
+// Output: "Hello world"
+//
+//	{{ "hELLO"|capfirst }}
+//
+// Output: "HELLO"
+func filterCapfirst(in *Value, param *Value) (*Value, error) {
 	if in.Len() <= 0 {
 		return AsValue(""), nil
 	}
@@ -567,7 +942,19 @@ func filterCapfirst(in *Value, param *Value) (*Value, *Error) {
 
 const maxCharPadding = 10000
 
-func filterCenter(in *Value, param *Value) (*Value, *Error) {
+// filterCenter centers the value in a field of a given width by padding with spaces.
+// If the original string is longer than the specified width, no padding is added.
+//
+// Usage:
+//
+//	"[{{ "hello"|center:11 }}]"
+//
+// Output: "[   hello   ]"
+//
+//	{{ "test"|center:10 }}
+//
+// Output: "   test   "
+func filterCenter(in *Value, param *Value) (*Value, error) {
 	width := param.Integer()
 	slen := in.Len()
 	if width <= slen {
@@ -590,7 +977,24 @@ func filterCenter(in *Value, param *Value) (*Value, *Error) {
 		in.String(), strings.Repeat(" ", right))), nil
 }
 
-func filterDate(in *Value, param *Value) (*Value, *Error) {
+// filterDate formats a time.Time value according to the given Go time format string.
+// This filter is also used for the "time" filter (same implementation).
+// The format string uses Go's time formatting reference: Mon Jan 2 15:04:05 MST 2006.
+//
+// Usage:
+//
+//	{{ myDate|date:"2006-01-02" }}
+//
+// Output: "2024-03-15" (example)
+//
+//	{{ myDate|date:"Monday, January 2, 2006" }}
+//
+// Output: "Friday, March 15, 2024" (example)
+//
+//	{{ myTime|time:"15:04:05" }}
+//
+// Output: "14:30:00" (example)
+func filterDate(in *Value, param *Value) (*Value, error) {
 	t, isTime := in.Interface().(time.Time)
 	if !isTime {
 		return nil, &Error{
@@ -601,15 +1005,53 @@ func filterDate(in *Value, param *Value) (*Value, *Error) {
 	return AsValue(t.Format(param.String())), nil
 }
 
-func filterFloat(in *Value, param *Value) (*Value, *Error) {
+// filterFloat converts a value to a floating-point number.
+// This is a pongo2-specific filter (not in Django).
+//
+// Usage:
+//
+//	{{ "3.14"|float }}
+//
+// Output: 3.14
+//
+//	{{ 42|float }}
+//
+// Output: 42.0
+func filterFloat(in *Value, param *Value) (*Value, error) {
 	return AsValue(in.Float()), nil
 }
 
-func filterInteger(in *Value, param *Value) (*Value, *Error) {
+// filterInteger converts a value to an integer.
+// This is a pongo2-specific filter (not in Django).
+// Floating-point values are truncated.
+//
+// Usage:
+//
+//	{{ "42"|integer }}
+//
+// Output: 42
+//
+//	{{ 3.7|integer }}
+//
+// Output: 3
+func filterInteger(in *Value, param *Value) (*Value, error) {
 	return AsValue(in.Integer()), nil
 }
 
-func filterLinebreaks(in *Value, param *Value) (*Value, *Error) {
+// filterLinebreaks converts newlines in plain text to appropriate HTML.
+// Single newlines become <br /> tags, and double newlines (blank lines)
+// start a new paragraph with <p>...</p> tags.
+//
+// Usage:
+//
+//	{{ "First line\nSecond line"|linebreaks }}
+//
+// Output: "<p>First line<br />Second line</p>"
+//
+//	{{ "Para 1\n\nPara 2"|linebreaks }}
+//
+// Output: "<p>Para 1</p><p>Para 2</p>"
+func filterLinebreaks(in *Value, param *Value) (*Value, error) {
 	if in.Len() == 0 {
 		return in, nil
 	}
@@ -653,17 +1095,48 @@ func filterLinebreaks(in *Value, param *Value) (*Value, *Error) {
 	return AsValue(b.String()), nil
 }
 
-func filterSplit(in *Value, param *Value) (*Value, *Error) {
+// filterSplit splits a string by the given separator and returns a list.
+//
+// Usage:
+//
+//	{{ "a,b,c"|split:"," }}
+//
+// Output: ["a", "b", "c"]
+//
+//	{% for item in "one-two-three"|split:"-" %}{{ item }} {% endfor %}
+//
+// Output: "one two three "
+func filterSplit(in *Value, param *Value) (*Value, error) {
 	chunks := strings.Split(in.String(), param.String())
 
 	return AsValue(chunks), nil
 }
 
-func filterLinebreaksbr(in *Value, param *Value) (*Value, *Error) {
-	return AsValue(strings.Replace(in.String(), "\n", "<br />", -1)), nil
+// filterLinebreaksbr converts all newlines in a string to HTML <br /> tags.
+// Unlike linebreaks, this filter does not wrap text in <p> tags.
+//
+// Usage:
+//
+//	{{ "First line\nSecond line\nThird line"|linebreaksbr }}
+//
+// Output: "First line<br />Second line<br />Third line"
+func filterLinebreaksbr(in *Value, param *Value) (*Value, error) {
+	return AsValue(strings.ReplaceAll(in.String(), "\n", "<br />")), nil
 }
 
-func filterLinenumbers(in *Value, param *Value) (*Value, *Error) {
+// filterLinenumbers prepends line numbers to each line in the text.
+// Line numbering starts at 1.
+//
+// Usage:
+//
+//	{{ "first\nsecond\nthird"|linenumbers }}
+//
+// Output:
+//
+//  1. first
+//  2. second
+//  3. third
+func filterLinenumbers(in *Value, param *Value) (*Value, error) {
 	lines := strings.Split(in.String(), "\n")
 	output := make([]string, 0, len(lines))
 	for idx, line := range lines {
@@ -672,11 +1145,17 @@ func filterLinenumbers(in *Value, param *Value) (*Value, *Error) {
 	return AsValue(strings.Join(output, "\n")), nil
 }
 
-func filterLjust(in *Value, param *Value) (*Value, *Error) {
-	times := param.Integer() - in.Len()
-	if times < 0 {
-		times = 0
-	}
+// filterLjust left-aligns the value in a field of a given width by padding
+// spaces on the right. If the original string is longer than the specified width,
+// no padding is added.
+//
+// Usage:
+//
+//	"[{{ "hello"|ljust:10 }}]"
+//
+// Output: "[hello     ]"
+func filterLjust(in *Value, param *Value) (*Value, error) {
+	times := max(param.Integer()-in.Len(), 0)
 	if times > maxCharPadding {
 		return nil, &Error{
 			Sender:    "filter:ljust",
@@ -686,14 +1165,30 @@ func filterLjust(in *Value, param *Value) (*Value, *Error) {
 	return AsValue(fmt.Sprintf("%s%s", in.String(), strings.Repeat(" ", times))), nil
 }
 
-func filterUrlencode(in *Value, param *Value) (*Value, *Error) {
+// filterUrlencode encodes a string for safe use in a URL query string.
+// Spaces become "+", special characters are percent-encoded.
+//
+// Usage:
+//
+//	{{ "hello world"|urlencode }}
+//
+// Output: "hello+world"
+//
+//	{{ "name=John&age=30"|urlencode }}
+//
+// Output: "name%3DJohn%26age%3D30"
+func filterUrlencode(in *Value, param *Value) (*Value, error) {
 	return AsValue(url.QueryEscape(in.String())), nil
 }
 
-// TODO: This regexp could do some work
 var (
-	filterUrlizeURLRegexp   = regexp.MustCompile(`((((http|https)://)|www\.|((^|[ ])[0-9A-Za-z_\-]+(\.com|\.net|\.org|\.info|\.biz|\.de))))(?U:.*)([ ]+|$)`)
-	filterUrlizeEmailRegexp = regexp.MustCompile(`(\w+@\w+\.\w{2,4})`)
+	// URL regex matches:
+	// 1. URLs starting with http:// or https://
+	// 2. URLs starting with www.
+	// 3. Bare domains with common TLDs (generic, country-code, and new TLDs)
+	filterUrlizeURLRegexp = regexp.MustCompile(`((((http|https)://)|www\.|((^|[ ])[0-9A-Za-z_\-]+\.(com|net|org|info|biz|edu|gov|mil|int|co|io|ai|app|dev|me|tv|cc|us|uk|de|fr|es|it|nl|be|at|ch|ru|cn|jp|kr|au|nz|in|br|mx|ca|eu))))\S*([ ]+|$)`)
+	// Email regex matches email addresses with TLDs 2-6 chars to support .info, .museum, etc.
+	filterUrlizeEmailRegexp = regexp.MustCompile(`(\w+@\w+\.\w{2,6})`)
 )
 
 func filterUrlizeHelper(input string, autoescape bool, trunc int) (string, error) {
@@ -723,8 +1218,8 @@ func filterUrlizeHelper(input string, autoescape bool, trunc int) (string, error
 
 		title := raw_url
 
-		if trunc > 3 && len(title) > trunc {
-			title = fmt.Sprintf("%s...", title[:trunc-3])
+		if trunc > 1 && len(title) > trunc {
+			title = title[:trunc-1] + ellipsis
 		}
 
 		if autoescape {
@@ -745,8 +1240,8 @@ func filterUrlizeHelper(input string, autoescape bool, trunc int) (string, error
 	sout = filterUrlizeEmailRegexp.ReplaceAllStringFunc(sout, func(mail string) string {
 		title := mail
 
-		if trunc > 3 && len(title) > trunc {
-			title = fmt.Sprintf("%s...", title[:trunc-3])
+		if trunc > 1 && len(title) > trunc {
+			title = title[:trunc-1] + ellipsis
 		}
 
 		return fmt.Sprintf(`<a href="mailto:%s">%s</a>`, mail, title)
@@ -755,7 +1250,20 @@ func filterUrlizeHelper(input string, autoescape bool, trunc int) (string, error
 	return sout, nil
 }
 
-func filterUrlize(in *Value, param *Value) (*Value, *Error) {
+// filterUrlize converts URLs and email addresses in plain text into clickable links.
+// URLs are wrapped in <a> tags with rel="nofollow". Email addresses become mailto: links.
+// By default, the links are HTML-escaped; pass false to disable escaping.
+//
+// Usage:
+//
+//	{{ "Visit www.example.com today!"|urlize }}
+//
+// Output: 'Visit <a href="http://www.example.com" rel="nofollow">www.example.com</a> today!'
+//
+//	{{ "Contact: user@example.com"|urlize }}
+//
+// Output: 'Contact: <a href="mailto:user@example.com">user@example.com</a>'
+func filterUrlize(in *Value, param *Value) (*Value, error) {
 	autoescape := true
 	if param.IsBool() {
 		autoescape = param.Bool()
@@ -772,7 +1280,15 @@ func filterUrlize(in *Value, param *Value) (*Value, *Error) {
 	return AsValue(s), nil
 }
 
-func filterUrlizetrunc(in *Value, param *Value) (*Value, *Error) {
+// filterUrlizetrunc works like urlize but truncates URLs longer than the given
+// character limit. An ellipsis is appended to truncated URLs.
+//
+// Usage:
+//
+//	{{ "Check out www.reallylongdomainname.com/path"|urlizetrunc:20 }}
+//
+// Output: '<a href="http://www.reallylongdomainname.com/path" rel="nofollow">www.reallylongdo...</a>'
+func filterUrlizetrunc(in *Value, param *Value) (*Value, error) {
 	s, err := filterUrlizeHelper(in.String(), true, param.Integer())
 	if err != nil {
 		return nil, &Error{
@@ -783,19 +1299,66 @@ func filterUrlizetrunc(in *Value, param *Value) (*Value, *Error) {
 	return AsValue(s), nil
 }
 
-func filterStringformat(in *Value, param *Value) (*Value, *Error) {
+// filterStringformat formats the value according to the argument, which is a
+// Go fmt-style format specifier. Note: unlike Python, Go uses different format verbs.
+//
+// Usage:
+//
+//	{{ 3.14159|stringformat:"%.2f" }}
+//
+// Output: "3.14"
+//
+//	{{ 42|stringformat:"%05d" }}
+//
+// Output: "00042"
+//
+//	{{ "hello"|stringformat:"%q" }}
+//
+// Output: '"hello"'
+func filterStringformat(in *Value, param *Value) (*Value, error) {
 	return AsValue(fmt.Sprintf(param.String(), in.Interface())), nil
 }
 
-var reStriptags = regexp.MustCompile("<[^>]*?>")
+// reStriptags matches HTML/XML tags including those with quoted attributes containing >.
+// Pattern breakdown:
+// - < : opening angle bracket
+// - [a-zA-Z!/?\[] : tag must start with letter, !, /, ?, or [ (for CDATA/comments)
+// - (?: ... )* : non-capturing group for tag content, zero or more times
+//   - "[^"]*" : double-quoted string (can contain >)
+//   - '[^']*' : single-quoted string (can contain >)
+//   - [^>] : any char except >
+//
+// - > : closing angle bracket
+var reStriptags = regexp.MustCompile(`<[a-zA-Z!/?\[](?:"[^"]*"|'[^']*'|[^>])*>`)
 
-func filterStriptags(in *Value, param *Value) (*Value, *Error) {
+// filterStriptags strips all HTML/XML tags from the value, returning plain text.
+// Null bytes are removed from the input, and the result is trimmed of leading/trailing whitespace.
+//
+// SECURITY WARNING: This filter does NOT guarantee HTML-safe output, particularly
+// with malformed or malicious HTML input. Never apply the |safe filter to striptags
+// output. For security-critical applications, use a proper HTML sanitization library.
+//
+// Usage:
+//
+//	{{ "<p>Hello <b>World</b>!</p>"|striptags }}
+//
+// Output: "Hello World!"
+//
+//	{{ "<a href='#'>Link</a>"|striptags }}
+//
+// Output: "Link"
+func filterStriptags(in *Value, param *Value) (*Value, error) {
 	s := in.String()
 
-	// Strip all tags
-	s = reStriptags.ReplaceAllString(s, "")
+	// Remove null bytes which could be used to bypass filters
+	s = strings.ReplaceAll(s, "\x00", "")
 
-	return AsValue(strings.TrimSpace(s)), nil
+	result, err := stripTagsIteratively(s, []*regexp.Regexp{reStriptags}, 50, "filter:striptags")
+	if err != nil {
+		return nil, err
+	}
+
+	return AsValue(result), nil
 }
 
 // https://en.wikipedia.org/wiki/Phoneword
@@ -805,16 +1368,49 @@ var filterPhone2numericMap = map[string]string{
 	"w": "9", "x": "9", "y": "9", "z": "9",
 }
 
-func filterPhone2numeric(in *Value, param *Value) (*Value, *Error) {
+// filterPhone2numeric converts a phone number with letters (phoneword) to its
+// numeric equivalent using the standard phone keypad mapping.
+// See: https://en.wikipedia.org/wiki/Phoneword
+//
+// Usage:
+//
+//	{{ "1-800-COLLECT"|phone2numeric }}
+//
+// Output: "1-800-2655328"
+//
+//	{{ "CALL-ME"|phone2numeric }}
+//
+// Output: "2255-63"
+func filterPhone2numeric(in *Value, param *Value) (*Value, error) {
 	sin := in.String()
 	for k, v := range filterPhone2numericMap {
-		sin = strings.Replace(sin, k, v, -1)
-		sin = strings.Replace(sin, strings.ToUpper(k), v, -1)
+		sin = strings.ReplaceAll(sin, k, v)
+		sin = strings.ReplaceAll(sin, strings.ToUpper(k), v)
 	}
 	return AsValue(sin), nil
 }
 
-func filterPluralize(in *Value, param *Value) (*Value, *Error) {
+// filterPluralize returns a plural suffix based on the numeric value.
+// By default, returns "s" if the value is not 1, otherwise returns "".
+// You can specify custom singular/plural suffixes as comma-separated arguments.
+//
+// Usage:
+//
+//	You have {{ count }} item{{ count|pluralize }}.
+//
+// With count=1: "You have 1 item."
+// With count=5: "You have 5 items."
+//
+//	{{ count }} cherr{{ count|pluralize:"y,ies" }}.
+//
+// With count=1: "1 cherry."
+// With count=5: "5 cherries."
+//
+//	{{ count }} walrus{{ count|pluralize:"es" }}.
+//
+// With count=1: "1 walrus."
+// With count=5: "5 walruses."
+func filterPluralize(in *Value, param *Value) (*Value, error) {
 	if in.IsNumber() {
 		// Works only on numbers
 		if param.Len() > 0 {
@@ -852,7 +1448,19 @@ func filterPluralize(in *Value, param *Value) (*Value, *Error) {
 	}
 }
 
-func filterRandom(in *Value, param *Value) (*Value, *Error) {
+// filterRandom returns a random element from the given list or string.
+// If the input is empty, returns the input unchanged.
+//
+// Usage:
+//
+//	{{ ["apple", "banana", "cherry"]|random }}
+//
+// Output: "banana" (random element)
+//
+//	{{ "abc"|random }}
+//
+// Output: "b" (random character)
+func filterRandom(in *Value, param *Value) (*Value, error) {
 	if !in.CanSlice() || in.Len() <= 0 {
 		return in, nil
 	}
@@ -860,35 +1468,81 @@ func filterRandom(in *Value, param *Value) (*Value, *Error) {
 	return in.Index(i), nil
 }
 
-var reTag = regexp.MustCompile(`^[a-zA-Z]$`)
+var reTagName = regexp.MustCompile(`^[a-zA-Z][a-zA-Z0-9]*$`)
 
-func filterRemovetags(in *Value, param *Value) (*Value, *Error) {
+// filterRemovetags removes specified HTML tags from the string while keeping the content.
+// Tag names are provided as a comma-separated list.
+//
+// SECURITY WARNING: While this implementation applies stripping recursively to handle
+// obfuscated tags like "<sc<script>ript>", it is NOT guaranteed to be XSS-safe.
+// For security-critical applications, use a proper HTML sanitization library instead.
+//
+// This filter was removed from Django 1.10. See:
+// https://www.djangoproject.com/weblog/2014/aug/11/remove-tags-advisory/
+//
+// Usage:
+//
+//	{{ "<b>bold</b> and <i>italic</i>"|removetags:"b" }}
+//
+// Output: "bold and <i>italic</i>"
+//
+//	{{ "<script>alert('xss')</script>"|removetags:"script" }}
+//
+// Output: "alert('xss')"
+//
+// Note: For XSS prevention, use a proper HTML sanitization library.
+func filterRemovetags(in *Value, param *Value) (*Value, error) {
 	s := in.String()
 	tags := strings.Split(param.String(), ",")
 
-	// Strip only specific tags
+	// Build regex patterns for all specified tags
+	var patterns []*regexp.Regexp
 	for _, tag := range tags {
-		if !reTag.MatchString(tag) {
+		tag = strings.TrimSpace(tag)
+		if tag == "" {
+			continue
+		}
+		if !reTagName.MatchString(tag) {
 			return nil, &Error{
 				Sender:    "filter:removetags",
-				OrigError: fmt.Errorf("invalid tag '%s'", tag),
+				OrigError: fmt.Errorf("invalid tag name '%s'", tag),
 			}
 		}
 
-		re, err := regexp.Compile(fmt.Sprintf("</?%s/?>", tag))
+		// Match opening tags (with optional attributes), closing tags, and self-closing tags
+		// Case-insensitive matching
+		// Pattern matches: <tag>, <tag attr>, </tag>, <tag/>, <tag />
+		re, err := regexp.Compile(fmt.Sprintf(`(?i)</?%s(?:\s[^>]*)?/?>`, regexp.QuoteMeta(tag)))
 		if err != nil {
 			return nil, &Error{
 				Sender:    "filter:removetags",
 				OrigError: fmt.Errorf("removetags-filter regexp error with tag '%s': %v", tag, err),
 			}
 		}
-		s = re.ReplaceAllString(s, "")
+		patterns = append(patterns, re)
 	}
 
-	return AsValue(strings.TrimSpace(s)), nil
+	result, err := stripTagsIteratively(s, patterns, 100, "filter:removetags")
+	if err != nil {
+		return nil, err
+	}
+
+	return AsValue(result), nil
 }
 
-func filterRjust(in *Value, param *Value) (*Value, *Error) {
+// filterRjust right-aligns the value in a field of a given width by padding
+// spaces on the left. Useful for creating aligned columns of text.
+//
+// Usage:
+//
+//	"[{{ "hello"|rjust:10 }}]"
+//
+// Output: "[     hello]"
+//
+//	{{ 42|rjust:5 }}
+//
+// Output: "   42"
+func filterRjust(in *Value, param *Value) (*Value, error) {
 	padding := param.Integer()
 	if padding > maxCharPadding {
 		return nil, &Error{
@@ -899,7 +1553,31 @@ func filterRjust(in *Value, param *Value) (*Value, *Error) {
 	return AsValue(fmt.Sprintf(fmt.Sprintf("%%%ds", padding), in.String())), nil
 }
 
-func filterSlice(in *Value, param *Value) (*Value, *Error) {
+// filterSlice returns a slice of a list using the "from:to" syntax (Python-style).
+// Both from and to are optional. Negative indices count from the end.
+//
+// Usage:
+//
+//	{{ [1, 2, 3, 4, 5]|slice:"1:3" }}
+//
+// Output: [2, 3]
+//
+//	{{ [1, 2, 3, 4, 5]|slice:":3" }}
+//
+// Output: [1, 2, 3]
+//
+//	{{ [1, 2, 3, 4, 5]|slice:"2:" }}
+//
+// Output: [3, 4, 5]
+//
+//	{{ [1, 2, 3, 4, 5]|slice:"-2:" }}
+//
+// Output: [4, 5]
+//
+//	{{ "Hello"|slice:"1:4" }}
+//
+// Output: "ell"
+func filterSlice(in *Value, param *Value) (*Value, error) {
 	comp := strings.Split(param.String(), ":")
 	if len(comp) != 2 {
 		return nil, &Error{
@@ -950,18 +1628,62 @@ func filterSlice(in *Value, param *Value) (*Value, *Error) {
 	return in.Slice(from, to), nil
 }
 
-func filterTitle(in *Value, param *Value) (*Value, *Error) {
+// filterTitle converts a string to title case, where the first character of
+// each word is capitalized and the rest are lowercase.
+//
+// Usage:
+//
+//	{{ "hello world"|title }}
+//
+// Output: "Hello World"
+//
+//	{{ "HELLO WORLD"|title }}
+//
+// Output: "Hello World"
+func filterTitle(in *Value, param *Value) (*Value, error) {
 	if !in.IsString() {
 		return AsValue(""), nil
 	}
-	return AsValue(strings.Title(strings.ToLower(in.String()))), nil
+	caser := cases.Title(language.English)
+	return AsValue(caser.String(strings.ToLower(in.String()))), nil
 }
 
-func filterWordcount(in *Value, param *Value) (*Value, *Error) {
+// filterWordcount returns the number of words in the string.
+// Words are separated by whitespace.
+//
+// Usage:
+//
+//	{{ "Hello beautiful world"|wordcount }}
+//
+// Output: 3
+//
+//	{{ "  Multiple   spaces  "|wordcount }}
+//
+// Output: 2
+func filterWordcount(in *Value, param *Value) (*Value, error) {
 	return AsValue(len(strings.Fields(in.String()))), nil
 }
 
-func filterWordwrap(in *Value, param *Value) (*Value, *Error) {
+// filterWordwrap wraps text at the specified number of words per line.
+// Lines are separated by newline characters.
+//
+// Usage:
+//
+//	{{ "one two three four five six"|wordwrap:3 }}
+//
+// Output:
+//
+//	one two three
+//	four five six
+//
+//	{{ "a b c d e"|wordwrap:2 }}
+//
+// Output:
+//
+//	a b
+//	c d
+//	e
+func filterWordwrap(in *Value, param *Value) (*Value, error) {
 	words := strings.Fields(in.String())
 	wordsLen := len(words)
 	wrapAt := param.Integer()
@@ -980,7 +1702,32 @@ func filterWordwrap(in *Value, param *Value) (*Value, *Error) {
 	return AsValue(strings.Join(lines, "\n")), nil
 }
 
-func filterYesno(in *Value, param *Value) (*Value, *Error) {
+// filterYesno maps true, false, and nil values to customizable strings.
+// By default: true -> "yes", false -> "no", nil -> "maybe".
+// You can provide custom values as comma-separated arguments: "yes_val,no_val,maybe_val".
+//
+// Usage:
+//
+//	{{ true|yesno }}
+//
+// Output: "yes"
+//
+//	{{ false|yesno }}
+//
+// Output: "no"
+//
+//	{{ nil|yesno }}
+//
+// Output: "maybe"
+//
+//	{{ true|yesno:"yeah,nope,dunno" }}
+//
+// Output: "yeah"
+//
+//	{{ false|yesno:"on,off" }}
+//
+// Output: "off"
+func filterYesno(in *Value, param *Value) (*Value, error) {
 	choices := map[int]string{
 		0: "yes",
 		1: "no",
@@ -1022,4 +1769,426 @@ func filterYesno(in *Value, param *Value) (*Value, *Error) {
 
 	// no
 	return AsValue(choices[1]), nil
+}
+
+// timeFilterHelper extracts the common logic for timesince/timeuntil filters.
+// When reverse is false, computes timeDiff(inputTime, comparisonTime) (time since).
+// When reverse is true, computes timeDiff(comparisonTime, inputTime) (time until).
+func timeFilterHelper(in *Value, param *Value, reverse bool) (*Value, error) {
+	t, isTime := in.Interface().(time.Time)
+	if !isTime {
+		return AsValue(""), nil
+	}
+
+	comparisonTime := time.Now()
+	if !param.IsNil() {
+		if paramTime, ok := param.Interface().(time.Time); ok {
+			comparisonTime = paramTime
+		}
+	}
+
+	if reverse {
+		return AsValue(timeDiff(comparisonTime, t)), nil
+	}
+	return AsValue(timeDiff(t, comparisonTime)), nil
+}
+
+// filterTimesince returns the time elapsed since the given datetime.
+// The result is a human-readable string like "2 days, 3 hours".
+//
+// Usage:
+//
+//	{{ some_date|timesince }}
+//	{{ some_date|timesince:comparison_date }}
+func filterTimesince(in *Value, param *Value) (*Value, error) {
+	return timeFilterHelper(in, param, false)
+}
+
+// filterTimeuntil returns the time remaining until the given datetime.
+// The result is a human-readable string like "2 days, 3 hours".
+//
+// Usage:
+//
+//	{{ some_date|timeuntil }}
+//	{{ some_date|timeuntil:comparison_date }}
+func filterTimeuntil(in *Value, param *Value) (*Value, error) {
+	return timeFilterHelper(in, param, true)
+}
+
+// timeDiff calculates the difference between two times and returns a human-readable string.
+func timeDiff(from, to time.Time) string {
+	diff := to.Sub(from)
+	if diff < 0 {
+		diff = -diff
+	}
+
+	if diff < time.Minute {
+		return "0 minutes"
+	}
+
+	years := int(diff / (365 * 24 * time.Hour))
+	diff -= time.Duration(years) * 365 * 24 * time.Hour
+
+	months := int(diff / (30 * 24 * time.Hour))
+	diff -= time.Duration(months) * 30 * 24 * time.Hour
+
+	weeks := int(diff / (7 * 24 * time.Hour))
+	diff -= time.Duration(weeks) * 7 * 24 * time.Hour
+
+	days := int(diff / (24 * time.Hour))
+	diff -= time.Duration(days) * 24 * time.Hour
+
+	hours := int(diff / time.Hour)
+	diff -= time.Duration(hours) * time.Hour
+
+	minutes := int(diff / time.Minute)
+
+	// Build the result with up to two units (like Django)
+	var parts []string
+
+	if years > 0 {
+		if years == 1 {
+			parts = append(parts, "1 year")
+		} else {
+			parts = append(parts, fmt.Sprintf("%d years", years))
+		}
+	}
+	if months > 0 && len(parts) < 2 {
+		if months == 1 {
+			parts = append(parts, "1 month")
+		} else {
+			parts = append(parts, fmt.Sprintf("%d months", months))
+		}
+	}
+	if weeks > 0 && len(parts) < 2 {
+		if weeks == 1 {
+			parts = append(parts, "1 week")
+		} else {
+			parts = append(parts, fmt.Sprintf("%d weeks", weeks))
+		}
+	}
+	if days > 0 && len(parts) < 2 {
+		if days == 1 {
+			parts = append(parts, "1 day")
+		} else {
+			parts = append(parts, fmt.Sprintf("%d days", days))
+		}
+	}
+	if hours > 0 && len(parts) < 2 {
+		if hours == 1 {
+			parts = append(parts, "1 hour")
+		} else {
+			parts = append(parts, fmt.Sprintf("%d hours", hours))
+		}
+	}
+	if minutes > 0 && len(parts) < 2 {
+		if minutes == 1 {
+			parts = append(parts, "1 minute")
+		} else {
+			parts = append(parts, fmt.Sprintf("%d minutes", minutes))
+		}
+	}
+
+	if len(parts) == 0 {
+		return "0 minutes"
+	}
+
+	return strings.Join(parts, ", ")
+}
+
+// filterDictsort sorts a list of maps or structs by the specified key.
+//
+// Usage:
+//
+//	{{ items|dictsort:"name" }}
+//
+// For a list of maps, this sorts by the value of the specified key.
+// For a list of structs, this sorts by the specified field name.
+func filterDictsort(in *Value, param *Value) (*Value, error) {
+	return dictsortHelper(in, param, false)
+}
+
+// filterDictsortReversed sorts a list of maps or structs by the specified key in reverse order.
+//
+// Usage:
+//
+//	{{ items|dictsortreversed:"name" }}
+func filterDictsortReversed(in *Value, param *Value) (*Value, error) {
+	return dictsortHelper(in, param, true)
+}
+
+// dictsortItems implements sort.Interface for sorting by key
+type dictsortItems []struct {
+	item    *Value
+	sortKey string
+}
+
+func (d dictsortItems) Len() int           { return len(d) }
+func (d dictsortItems) Swap(i, j int)      { d[i], d[j] = d[j], d[i] }
+func (d dictsortItems) Less(i, j int) bool { return d[i].sortKey < d[j].sortKey }
+
+func dictsortHelper(in *Value, param *Value, reverse bool) (*Value, error) {
+	if !in.CanSlice() {
+		return in, nil
+	}
+
+	if param.IsNil() {
+		return nil, errors.New("dictsort requires a key argument")
+	}
+
+	// Collect items with their sort keys
+	var items dictsortItems
+
+	in.Iterate(func(idx, count int, k, value *Value) bool {
+		// Get the item (value for maps, key for slices/arrays)
+		item := value
+		if item == nil {
+			item = k
+		}
+
+		// Get the sort key value using Value methods
+		sortKeyVal := ""
+		if item.IsMap() || item.IsStruct() {
+			sortVal := item.GetItem(param)
+			if !sortVal.IsNil() {
+				sortKeyVal = sortVal.String()
+			}
+		}
+
+		items = append(items, struct {
+			item    *Value
+			sortKey string
+		}{item: item, sortKey: sortKeyVal})
+		return true
+	}, func() {})
+
+	// Sort by the key
+	if reverse {
+		sort.Sort(sort.Reverse(items))
+	} else {
+		sort.Sort(items)
+	}
+
+	// Build result
+	var result []any
+	for _, item := range items {
+		result = append(result, item.item.Interface())
+	}
+
+	return AsValue(result), nil
+}
+
+// filterUnorderedList recursively generates an unordered HTML list from nested lists.
+//
+// Usage:
+//
+//	{{ items|unordered_list }}
+//
+// For input: ["States", ["Kansas", ["Lawrence", "Topeka"], "Illinois"]]
+// Output: <li>States<ul><li>Kansas<ul><li>Lawrence</li><li>Topeka</li></ul></li><li>Illinois</li></ul></li>
+//
+// Note: This outputs the inner list items only; you need to wrap it in <ul></ul> tags.
+func filterUnorderedList(in *Value, param *Value) (*Value, error) {
+	var result strings.Builder
+	unorderedListHelper(&result, in, 0)
+	return AsSafeValue(result.String()), nil
+}
+
+const maxUnorderedListDepth = 100
+
+func unorderedListHelper(result *strings.Builder, in *Value, depth int) {
+	// Guard against excessive recursion
+	if depth > maxUnorderedListDepth {
+		return
+	}
+
+	// Only process actual arrays/slices, not strings
+	if !in.IsSliceOrArray() {
+		return
+	}
+
+	items := make([]*Value, 0)
+	in.Iterate(func(idx, count int, key, value *Value) bool {
+		if value != nil {
+			items = append(items, value)
+		} else {
+			items = append(items, key)
+		}
+		return true
+	}, func() {})
+
+	for i := 0; i < len(items); i++ {
+		item := items[i]
+		if item.IsSliceOrArray() {
+			// This is a nested list
+			result.WriteString("<ul>")
+			unorderedListHelper(result, item, depth+1)
+			result.WriteString("</ul>")
+		} else {
+			result.WriteString("<li>")
+			// Escape the content
+			escaped, _ := filterEscape(item, nil)
+			result.WriteString(escaped.String())
+			// Check if next item is a list (sublist for this item)
+			if i+1 < len(items) && items[i+1].IsSliceOrArray() {
+				result.WriteString("<ul>")
+				unorderedListHelper(result, items[i+1], depth+1)
+				result.WriteString("</ul>")
+				i++ // Skip the next item since we processed it
+			}
+			result.WriteString("</li>")
+		}
+	}
+}
+
+// filterSlugify converts a string to a URL-friendly slug.
+// It lowercases the string, removes non-alphanumeric characters (except hyphens and spaces),
+// converts spaces to hyphens, and removes consecutive hyphens.
+//
+// Usage:
+//
+//	{{ "Hello World!"|slugify }}
+//
+// Output: "hello-world"
+func filterSlugify(in *Value, param *Value) (*Value, error) {
+	s := in.String()
+	s = strings.ToLower(s)
+
+	// Replace spaces with hyphens
+	s = strings.ReplaceAll(s, " ", "-")
+
+	// Remove non-alphanumeric characters (except hyphens)
+	var result strings.Builder
+	for _, r := range s {
+		if (r >= 'a' && r <= 'z') || (r >= '0' && r <= '9') || r == '-' {
+			result.WriteRune(r)
+		}
+	}
+	s = result.String()
+
+	// Remove consecutive hyphens
+	for strings.Contains(s, "--") {
+		s = strings.ReplaceAll(s, "--", "-")
+	}
+
+	// Trim leading and trailing hyphens
+	s = strings.Trim(s, "-")
+
+	return AsValue(s), nil
+}
+
+// filterFilesizeformat formats a file size in bytes to a human-readable string.
+//
+// Usage:
+//
+//	{{ 123456789|filesizeformat }}
+//
+// Output: "117.7 MB"
+func filterFilesizeformat(in *Value, param *Value) (*Value, error) {
+	size := float64(in.Integer())
+	if size < 0 {
+		size = 0
+	}
+
+	units := []string{"bytes", "KB", "MB", "GB", "TB", "PB"}
+	unitIdx := 0
+
+	for size >= 1024 && unitIdx < len(units)-1 {
+		size /= 1024
+		unitIdx++
+	}
+
+	if unitIdx == 0 {
+		return AsValue(fmt.Sprintf("%.0f %s", size, units[unitIdx])), nil
+	}
+
+	return AsValue(fmt.Sprintf("%.1f %s", size, units[unitIdx])), nil
+}
+
+// filterSafeseq applies the safe filter to each element in a sequence.
+// This is useful when you have a list of strings that are known to be safe
+// and want to mark each one individually.
+//
+// Usage:
+//
+//	{% for item in items|safeseq %}{{ item }}{% endfor %}
+func filterSafeseq(in *Value, param *Value) (*Value, error) {
+	if !in.CanSlice() {
+		return in, nil
+	}
+
+	var result []*Value
+	in.Iterate(func(idx, count int, key, value *Value) bool {
+		var item *Value
+		if value != nil {
+			item = value
+		} else {
+			item = key
+		}
+		// Create a new Value marked as safe
+		result = append(result, AsSafeValue(item.Interface()))
+		return true
+	}, func() {})
+
+	return AsValue(result), nil
+}
+
+// filterEscapeseq applies HTML escaping to each element in a sequence.
+//
+// Usage:
+//
+//	{% for item in items|escapeseq %}{{ item }}{% endfor %}
+func filterEscapeseq(in *Value, param *Value) (*Value, error) {
+	if !in.CanSlice() {
+		return in, nil
+	}
+
+	var result []string
+	in.Iterate(func(idx, count int, key, value *Value) bool {
+		var item *Value
+		if value != nil {
+			item = value
+		} else {
+			item = key
+		}
+		escaped, _ := filterEscape(item, nil)
+		result = append(result, escaped.String())
+		return true
+	}, func() {})
+
+	return AsValue(result), nil
+}
+
+// filterJSONScript safely outputs a value as JSON inside a script tag.
+// The element_id argument is optional and will be used as the script tag's id.
+//
+// Usage:
+//
+//	{{ value|json_script:"my-data" }}
+//	{{ value|json_script }}
+//
+// Output:
+//
+//	<script id="my-data" type="application/json">{"key": "value"}</script>
+//	<script type="application/json">{"key": "value"}</script>
+func filterJSONScript(in *Value, param *Value) (*Value, error) {
+	var result strings.Builder
+
+	// element_id is optional (Django 4.1+)
+	if param == nil || param.IsNil() || param.String() == "" {
+		result.WriteString(`<script type="application/json">`)
+	} else {
+		elementID := strings.ReplaceAll(param.String(), `"`, `&quot;`)
+		fmt.Fprintf(&result, `<script id="%s" type="application/json">`, elementID)
+	}
+
+	// Convert the value to JSON (json.Marshal doesn't add trailing newline)
+	jsonBytes, err := json.Marshal(in.Interface())
+	if err != nil {
+		return nil, fmt.Errorf("json marshalling error: %w", err)
+	}
+	result.Write(jsonBytes)
+
+	result.WriteString("</script>")
+	return AsSafeValue(result.String()), nil
 }

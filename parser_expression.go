@@ -19,8 +19,11 @@ type relationalExpression struct {
 	opToken *Token
 }
 
+type notExpression struct {
+	expr IEvaluator
+}
+
 type simpleExpression struct {
-	negate       bool
 	negativeSign bool
 	term1        IEvaluator
 	term2        IEvaluator
@@ -50,6 +53,10 @@ func (expr *relationalExpression) FilterApplied(name string) bool {
 		(expr.expr2 != nil && expr.expr2.FilterApplied(name)))
 }
 
+func (expr *notExpression) FilterApplied(name string) bool {
+	return expr.expr.FilterApplied(name)
+}
+
 func (expr *simpleExpression) FilterApplied(name string) bool {
 	return expr.term1.FilterApplied(name) && (expr.term2 == nil ||
 		(expr.term2 != nil && expr.term2.FilterApplied(name)))
@@ -73,6 +80,10 @@ func (expr *relationalExpression) GetPositionToken() *Token {
 	return expr.expr1.GetPositionToken()
 }
 
+func (expr *notExpression) GetPositionToken() *Token {
+	return expr.expr.GetPositionToken()
+}
+
 func (expr *simpleExpression) GetPositionToken() *Token {
 	return expr.term1.GetPositionToken()
 }
@@ -85,52 +96,31 @@ func (expr *power) GetPositionToken() *Token {
 	return expr.power1.GetPositionToken()
 }
 
-func (expr *Expression) Execute(ctx *ExecutionContext, writer TemplateWriter) *Error {
-	value, err := expr.Evaluate(ctx)
-	if err != nil {
-		return err
-	}
-	writer.WriteString(value.String())
-	return nil
+func (expr *Expression) Execute(ctx *ExecutionContext, writer TemplateWriter) error {
+	return executeEvaluator(expr, ctx, writer)
 }
 
-func (expr *relationalExpression) Execute(ctx *ExecutionContext, writer TemplateWriter) *Error {
-	value, err := expr.Evaluate(ctx)
-	if err != nil {
-		return err
-	}
-	writer.WriteString(value.String())
-	return nil
+func (expr *relationalExpression) Execute(ctx *ExecutionContext, writer TemplateWriter) error {
+	return executeEvaluator(expr, ctx, writer)
 }
 
-func (expr *simpleExpression) Execute(ctx *ExecutionContext, writer TemplateWriter) *Error {
-	value, err := expr.Evaluate(ctx)
-	if err != nil {
-		return err
-	}
-	writer.WriteString(value.String())
-	return nil
+func (expr *notExpression) Execute(ctx *ExecutionContext, writer TemplateWriter) error {
+	return executeEvaluator(expr, ctx, writer)
 }
 
-func (expr *term) Execute(ctx *ExecutionContext, writer TemplateWriter) *Error {
-	value, err := expr.Evaluate(ctx)
-	if err != nil {
-		return err
-	}
-	writer.WriteString(value.String())
-	return nil
+func (expr *simpleExpression) Execute(ctx *ExecutionContext, writer TemplateWriter) error {
+	return executeEvaluator(expr, ctx, writer)
 }
 
-func (expr *power) Execute(ctx *ExecutionContext, writer TemplateWriter) *Error {
-	value, err := expr.Evaluate(ctx)
-	if err != nil {
-		return err
-	}
-	writer.WriteString(value.String())
-	return nil
+func (expr *term) Execute(ctx *ExecutionContext, writer TemplateWriter) error {
+	return executeEvaluator(expr, ctx, writer)
 }
 
-func (expr *Expression) Evaluate(ctx *ExecutionContext) (*Value, *Error) {
+func (expr *power) Execute(ctx *ExecutionContext, writer TemplateWriter) error {
+	return executeEvaluator(expr, ctx, writer)
+}
+
+func (expr *Expression) Evaluate(ctx *ExecutionContext) (*Value, error) {
 	v1, err := expr.expr1.Evaluate(ctx)
 	if err != nil {
 		return nil, err
@@ -139,23 +129,23 @@ func (expr *Expression) Evaluate(ctx *ExecutionContext) (*Value, *Error) {
 		switch expr.opToken.Val {
 		case "and", "&&":
 			if !v1.IsTrue() {
-				return AsValue(false), nil
+				return v1, nil
 			} else {
 				v2, err := expr.expr2.Evaluate(ctx)
 				if err != nil {
 					return nil, err
 				}
-				return AsValue(v2.IsTrue()), nil
+				return v2, nil
 			}
 		case "or", "||":
 			if v1.IsTrue() {
-				return AsValue(true), nil
+				return v1, nil
 			} else {
 				v2, err := expr.expr2.Evaluate(ctx)
 				if err != nil {
 					return nil, err
 				}
-				return AsValue(v2.IsTrue()), nil
+				return v2, nil
 			}
 		default:
 			return nil, ctx.Error(fmt.Sprintf("unimplemented: %s", expr.opToken.Val), expr.opToken)
@@ -165,7 +155,7 @@ func (expr *Expression) Evaluate(ctx *ExecutionContext) (*Value, *Error) {
 	}
 }
 
-func (expr *relationalExpression) Evaluate(ctx *ExecutionContext) (*Value, *Error) {
+func (expr *relationalExpression) Evaluate(ctx *ExecutionContext) (*Value, error) {
 	v1, err := expr.expr1.Evaluate(ctx)
 	if err != nil {
 		return nil, err
@@ -224,16 +214,20 @@ func (expr *relationalExpression) Evaluate(ctx *ExecutionContext) (*Value, *Erro
 	}
 }
 
-func (expr *simpleExpression) Evaluate(ctx *ExecutionContext) (*Value, *Error) {
+func (expr *notExpression) Evaluate(ctx *ExecutionContext) (*Value, error) {
+	v, err := expr.expr.Evaluate(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return v.Negate(), nil
+}
+
+func (expr *simpleExpression) Evaluate(ctx *ExecutionContext) (*Value, error) {
 	t1, err := expr.term1.Evaluate(ctx)
 	if err != nil {
 		return nil, err
 	}
 	result := t1
-
-	if expr.negate {
-		result = result.Negate()
-	}
 
 	if expr.negativeSign {
 		if result.IsNumber() {
@@ -282,7 +276,7 @@ func (expr *simpleExpression) Evaluate(ctx *ExecutionContext) (*Value, *Error) {
 	return result, nil
 }
 
-func (expr *term) Evaluate(ctx *ExecutionContext) (*Value, *Error) {
+func (expr *term) Evaluate(ctx *ExecutionContext) (*Value, error) {
 	f1, err := expr.factor1.Evaluate(ctx)
 	if err != nil {
 		return nil, err
@@ -330,7 +324,7 @@ func (expr *term) Evaluate(ctx *ExecutionContext) (*Value, *Error) {
 	}
 }
 
-func (expr *power) Evaluate(ctx *ExecutionContext) (*Value, *Error) {
+func (expr *power) Evaluate(ctx *ExecutionContext) (*Value, error) {
 	p1, err := expr.power1.Evaluate(ctx)
 	if err != nil {
 		return nil, err
@@ -345,7 +339,7 @@ func (expr *power) Evaluate(ctx *ExecutionContext) (*Value, *Error) {
 	return p1, nil
 }
 
-func (p *Parser) parseFactor() (IEvaluator, *Error) {
+func (p *Parser) parseFactor() (IEvaluator, error) {
 	if p.Match(TokenSymbol, "(") != nil {
 		expr, err := p.ParseExpression()
 		if err != nil {
@@ -360,7 +354,7 @@ func (p *Parser) parseFactor() (IEvaluator, *Error) {
 	return p.parseVariableOrLiteralWithFilter()
 }
 
-func (p *Parser) parsePower() (IEvaluator, *Error) {
+func (p *Parser) parsePower() (IEvaluator, error) {
 	pw := new(power)
 
 	power1, err := p.parseFactor()
@@ -385,7 +379,7 @@ func (p *Parser) parsePower() (IEvaluator, *Error) {
 	return pw, nil
 }
 
-func (p *Parser) parseTerm() (IEvaluator, *Error) {
+func (p *Parser) parseTerm() (IEvaluator, error) {
 	returnTerm := new(term)
 
 	factor1, err := p.parsePower()
@@ -422,17 +416,13 @@ func (p *Parser) parseTerm() (IEvaluator, *Error) {
 	return returnTerm, nil
 }
 
-func (p *Parser) parseSimpleExpression() (IEvaluator, *Error) {
+func (p *Parser) parseSimpleExpression() (IEvaluator, error) {
 	expr := new(simpleExpression)
 
 	if sign := p.MatchOne(TokenSymbol, "+", "-"); sign != nil {
 		if sign.Val == "-" {
 			expr.negativeSign = true
 		}
-	}
-
-	if p.Match(TokenSymbol, "!") != nil || p.Match(TokenKeyword, "not") != nil {
-		expr.negate = true
 	}
 
 	term1, err := p.parseTerm()
@@ -461,7 +451,7 @@ func (p *Parser) parseSimpleExpression() (IEvaluator, *Error) {
 		expr.opToken = op
 	}
 
-	if !expr.negate && !expr.negativeSign && expr.term2 == nil {
+	if !expr.negativeSign && expr.term2 == nil {
 		// Shortcut for faster evaluation
 		return expr.term1, nil
 	}
@@ -469,7 +459,7 @@ func (p *Parser) parseSimpleExpression() (IEvaluator, *Error) {
 	return expr, nil
 }
 
-func (p *Parser) parseRelationalExpression() (IEvaluator, *Error) {
+func (p *Parser) parseRelationalExpression() (IEvaluator, error) {
 	expr1, err := p.parseSimpleExpression()
 	if err != nil {
 		return nil, err
@@ -503,8 +493,24 @@ func (p *Parser) parseRelationalExpression() (IEvaluator, *Error) {
 	return expr, nil
 }
 
-func (p *Parser) ParseExpression() (IEvaluator, *Error) {
-	rexpr1, err := p.parseRelationalExpression()
+func (p *Parser) parseNotExpression() (IEvaluator, error) {
+	if p.Match(TokenSymbol, "!") == nil && p.Match(TokenKeyword, "not") == nil {
+		return p.parseRelationalExpression()
+	}
+
+	var expr notExpression
+	// Support chained not: "not not x"
+	innerExpr, err := p.parseNotExpression()
+	if err != nil {
+		return nil, err
+	}
+	expr.expr = innerExpr
+
+	return &expr, nil
+}
+
+func (p *Parser) ParseExpression() (IEvaluator, error) {
+	rexpr1, err := p.parseNotExpression()
 	if err != nil {
 		return nil, err
 	}

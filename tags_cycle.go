@@ -1,10 +1,43 @@
 package pongo2
 
+// tagCycleValue holds the current value and state of a cycle.
 type tagCycleValue struct {
 	node  *tagCycleNode
 	value *Value
 }
 
+// tagCycleNode represents the {% cycle %} tag.
+//
+// The cycle tag cycles through a list of values each time it is encountered.
+// It's commonly used within loops to alternate between values (e.g., alternating
+// row colors in a table).
+//
+// Basic usage (cycles through values on each iteration):
+//
+//	{% for item in items %}
+//	    <tr class="{% cycle 'odd' 'even' %}">
+//	        <td>{{ item }}</td>
+//	    </tr>
+//	{% endfor %}
+//
+// Output (for 4 items):
+//
+//	<tr class="odd"><td>...</td></tr>
+//	<tr class="even"><td>...</td></tr>
+//	<tr class="odd"><td>...</td></tr>
+//	<tr class="even"><td>...</td></tr>
+//
+// Using "as" to store the cycle value in a variable:
+//
+//	{% cycle 'red' 'green' 'blue' as color %}
+//	<p style="color: {{ color }}">Text</p>
+//	{% cycle color %}  {# Advances to next value #}
+//	<p style="color: {{ color }}">More text</p>
+//
+// Using "silent" to not output the value (only store it):
+//
+//	{% cycle 'a' 'b' 'c' as letter silent %}
+//	Current letter: {{ letter }}
 type tagCycleNode struct {
 	position *Token
 	args     []IEvaluator
@@ -13,11 +46,15 @@ type tagCycleNode struct {
 	silent   bool
 }
 
+// String returns the string representation of the current cycle value.
 func (cv *tagCycleValue) String() string {
 	return cv.value.String()
 }
 
-func (node *tagCycleNode) Execute(ctx *ExecutionContext, writer TemplateWriter) *Error {
+// Execute outputs the next value in the cycle sequence. If the cycle was
+// stored with "as", it updates the stored value and optionally outputs it
+// (unless "silent" was specified).
+func (node *tagCycleNode) Execute(ctx *ExecutionContext, writer TemplateWriter) error {
 	item := node.args[node.idx%len(node.args)]
 	node.idx++
 
@@ -42,7 +79,9 @@ func (node *tagCycleNode) Execute(ctx *ExecutionContext, writer TemplateWriter) 
 		t.value = val
 
 		if !t.node.silent {
-			writer.WriteString(val.String())
+			if _, err := writer.WriteString(val.String()); err != nil {
+				return err
+			}
 		}
 	} else {
 		// Regular call
@@ -56,15 +95,20 @@ func (node *tagCycleNode) Execute(ctx *ExecutionContext, writer TemplateWriter) 
 			ctx.Private[node.asName] = cycleValue
 		}
 		if !node.silent {
-			writer.WriteString(val.String())
+			if _, err := writer.WriteString(val.String()); err != nil {
+				return err
+			}
 		}
 	}
 
 	return nil
 }
 
+// tagCycleParser parses the {% cycle %} tag. It accepts multiple values
+// to cycle through, with optional "as name" to store the cycle and "silent"
+// to suppress output.
 // HINT: We're not supporting the old comma-separated list of expressions argument-style
-func tagCycleParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, *Error) {
+func tagCycleParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, error) {
 	cycleNode := &tagCycleNode{
 		position: start,
 	}
@@ -98,9 +142,13 @@ func tagCycleParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, *Er
 		return nil, arguments.Error("Malformed cycle-tag.", nil)
 	}
 
+	if len(cycleNode.args) == 0 {
+		return nil, arguments.Error("'cycle' tag requires at least one argument.", nil)
+	}
+
 	return cycleNode, nil
 }
 
 func init() {
-	RegisterTag("cycle", tagCycleParser)
+	mustRegisterTag("cycle", tagCycleParser)
 }

@@ -320,3 +320,52 @@ truncatewords_html
 {{ "<p>This </a>is a long test, which will be cutted after some words.</p>"|truncatewords_html:5 }}
 {{ "<p>This is a long test which will be cutted after some words.</p>"|truncatewords_html:2 }}
 {{ "<p>This is a long test which will be cutted after some words.</p>"|truncatewords_html:0 }}
+
+timesince
+{{ simple.time2|timesince:simple.time1 }}
+{{ "not a time"|timesince:simple.time1 }}
+{{ 12345|timesince:simple.time1 }}
+
+timeuntil
+{{ simple.time1|timeuntil:simple.time2 }}
+{{ "not a time"|timeuntil:simple.time2 }}
+{{ 12345|timeuntil:simple.time2 }}
+
+slugify
+{{ "Hello World"|slugify }}
+{{ "Hello, World!"|slugify }}
+{{ "10 Tips for Better Go Code!"|slugify }}
+{{ "  spaces  around  "|slugify }}
+{{ "multiple---hyphens"|slugify }}
+{{ ""|slugify }}
+
+filesizeformat
+{{ 0|filesizeformat }}
+{{ 1|filesizeformat }}
+{{ 1023|filesizeformat }}
+{{ 1024|filesizeformat }}
+{{ 1536|filesizeformat }}
+{{ 1048576|filesizeformat }}
+{{ 123456789|filesizeformat }}
+{{ 1073741824|filesizeformat }}
+
+unordered_list
+{{ simple.string_list|unordered_list }}
+
+dictsort
+{% for item in simple.people|dictsort:"name" %}{{ item.name }}{% if not forloop.Last %}, {% endif %}{% endfor %}
+{% for item in simple.people|dictsortreversed:"name" %}{{ item.name }}{% if not forloop.Last %}, {% endif %}{% endfor %}
+{% for item in simple.people|dictsort:"age" %}{{ item.age }}{% if not forloop.Last %}, {% endif %}{% endfor %}
+
+json_script
+{{ "hello"|json_script:"greeting" }}
+{{ 42|json_script:"number" }}
+{{ simple.bool_true|json_script:"bool-data" }}
+{{ "</script>"|json_script:"xss-test" }}
+{{ simple.people.0|json_script:"person-data" }}
+
+safeseq
+{% for item in simple.html_list|safeseq %}{{ item }}{% endfor %}
+
+escapeseq
+{% for item in simple.html_list|escapeseq %}{{ item|safe }}{% endfor %}

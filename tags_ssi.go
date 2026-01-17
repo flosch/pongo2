@@ -1,14 +1,40 @@
 package pongo2
 
-import "os"
+import "io"
 
+// tagSSINode represents the {% ssi %} tag.
+//
+// DEPRECATED: This tag was removed from Django in version 1.10.
+// Use {% include %} instead, which provides better functionality and security.
+//
+// See: https://code.djangoproject.com/ticket/24022
+//
+// The ssi (Server Side Include) tag includes the contents of another file
+// into the template. It can include files as plain text or as parsed templates.
+//
+// Including a file as plain text (content is not parsed):
+//
+//	{% ssi "static/robots.txt" %}
+//
+// Output: Contents of robots.txt displayed as-is
+//
+// Including a file as a parsed template:
+//
+//	{% ssi "includes/header.html" parsed %}
+//
+// With "parsed", the file is treated as a template and has access to
+// the current context variables.
+//
+// Deprecated: Use {% include %} instead.
 type tagSSINode struct {
 	filename string
 	content  string
 	template *Template
 }
 
-func (node *tagSSINode) Execute(ctx *ExecutionContext, writer TemplateWriter) *Error {
+// Execute outputs the file content. If "parsed" was specified, the content
+// is executed as a template with the current context; otherwise it's output as-is.
+func (node *tagSSINode) Execute(ctx *ExecutionContext, writer TemplateWriter) error {
 	if node.template != nil {
 		// Execute the template within the current context
 		includeCtx := make(Context)
@@ -17,16 +43,19 @@ func (node *tagSSINode) Execute(ctx *ExecutionContext, writer TemplateWriter) *E
 
 		err := node.template.execute(includeCtx, writer)
 		if err != nil {
-			return err.(*Error)
+			return err
 		}
 	} else {
 		// Just print out the content
-		writer.WriteString(node.content)
+		_, err := writer.WriteString(node.content)
+		return err
 	}
 	return nil
 }
 
-func tagSSIParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, *Error) {
+// tagSSIParser parses the {% ssi %} tag. It requires a filename string and
+// optionally accepts "parsed" to treat the file as a template.
+func tagSSIParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, error) {
 	SSINode := &tagSSINode{}
 
 	if fileToken := arguments.MatchType(TokenString); fileToken != nil {
@@ -36,17 +65,29 @@ func tagSSIParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, *Erro
 			// parsed
 			temporaryTpl, err := doc.template.set.FromFile(doc.template.set.resolveFilename(doc.template, fileToken.Val))
 			if err != nil {
-				return nil, err.(*Error).updateFromTokenIfNeeded(doc.template, fileToken)
+				return nil, updateErrorToken(err, doc.template, fileToken)
 			}
 			SSINode.template = temporaryTpl
 		} else {
-			// plaintext
-			buf, err := os.ReadFile(doc.template.set.resolveFilename(doc.template, fileToken.Val))
+			// plaintext - use the template loader to support virtual filesystems
+			_, _, fd, err := doc.template.set.resolveTemplate(doc.template, fileToken.Val)
 			if err != nil {
-				return nil, (&Error{
+				return nil, updateErrorToken(&Error{
 					Sender:    "tag:ssi",
 					OrigError: err,
-				}).updateFromTokenIfNeeded(doc.template, fileToken)
+				}, doc.template, fileToken)
+			}
+			buf, err := io.ReadAll(fd)
+			if closer, ok := fd.(io.Closer); ok {
+				if closeErr := closer.Close(); closeErr != nil && err == nil {
+					err = closeErr
+				}
+			}
+			if err != nil {
+				return nil, updateErrorToken(&Error{
+					Sender:    "tag:ssi",
+					OrigError: err,
+				}, doc.template, fileToken)
 			}
 			SSINode.content = string(buf)
 		}
@@ -62,5 +103,5 @@ func tagSSIParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, *Erro
 }
 
 func init() {
-	RegisterTag("ssi", tagSSIParser)
+	mustRegisterTag("ssi", tagSSIParser)
 }

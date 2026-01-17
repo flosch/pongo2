@@ -4,6 +4,45 @@ import (
 	"bytes"
 )
 
+// tagIfchangedNode represents the {% ifchanged %} tag.
+//
+// The ifchanged tag checks if a value has changed from the previous iteration
+// in a loop. It's useful for displaying grouped data or section headers.
+//
+// Basic usage (checks if block content changed):
+//
+//	{% for date in days %}
+//	    {% ifchanged %}{{ date.month }}{% endifchanged %}
+//	    {{ date.day }}
+//	{% endfor %}
+//
+// Watching specific variables:
+//
+//	{% for item in items %}
+//	    {% ifchanged item.category %}
+//	        <h2>{{ item.category }}</h2>
+//	    {% endifchanged %}
+//	    <p>{{ item.name }}</p>
+//	{% endfor %}
+//
+// Using else clause (rendered when value hasn't changed):
+//
+//	{% for item in items %}
+//	    {% ifchanged item.section %}
+//	        <h3>{{ item.section }}</h3>
+//	    {% else %}
+//	        <hr>
+//	    {% endifchanged %}
+//	    {{ item.name }}
+//	{% endfor %}
+//
+// Watching multiple variables:
+//
+//	{% for item in items %}
+//	    {% ifchanged item.year item.month %}
+//	        <h2>{{ item.year }}-{{ item.month }}</h2>
+//	    {% endifchanged %}
+//	{% endfor %}
 type tagIfchangedNode struct {
 	watchedExpr []IEvaluator
 	lastValues  []*Value
@@ -12,11 +51,15 @@ type tagIfchangedNode struct {
 	elseWrapper *NodeWrapper
 }
 
-func (node *tagIfchangedNode) Execute(ctx *ExecutionContext, writer TemplateWriter) *Error {
+// Execute checks if watched expressions (or rendered content) have changed
+// since the last call. Renders the then block if changed, else block otherwise.
+func (node *tagIfchangedNode) Execute(ctx *ExecutionContext, writer TemplateWriter) error {
 	if len(node.watchedExpr) == 0 {
 		// Check against own rendered body
 
+		// TODO: Check opportunity for buffer recycling
 		buf := bytes.NewBuffer(make([]byte, 0, 1024)) // 1 KiB
+
 		err := node.thenWrapper.Execute(ctx, buf)
 		if err != nil {
 			return err
@@ -25,8 +68,15 @@ func (node *tagIfchangedNode) Execute(ctx *ExecutionContext, writer TemplateWrit
 		bufBytes := buf.Bytes()
 		if !bytes.Equal(node.lastContent, bufBytes) {
 			// Rendered content changed, output it
-			writer.Write(bufBytes)
+			if _, err := writer.Write(bufBytes); err != nil {
+				return err
+			}
 			node.lastContent = bufBytes
+		} else if node.elseWrapper != nil {
+			// Content hasn't changed, render else block if present
+			if err := node.elseWrapper.Execute(ctx, writer); err != nil {
+				return err
+			}
 		}
 	} else {
 		nowValues := make([]*Value, 0, len(node.watchedExpr))
@@ -70,7 +120,9 @@ func (node *tagIfchangedNode) Execute(ctx *ExecutionContext, writer TemplateWrit
 	return nil
 }
 
-func tagIfchangedParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, *Error) {
+// tagIfchangedParser parses the {% ifchanged %} tag. It accepts zero or more
+// expressions to watch; if none are given, it watches the rendered content.
+func tagIfchangedParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, error) {
 	ifchangedNode := &tagIfchangedNode{}
 
 	for arguments.Remaining() > 0 {
@@ -114,5 +166,5 @@ func tagIfchangedParser(doc *Parser, start *Token, arguments *Parser) (INodeTag,
 }
 
 func init() {
-	RegisterTag("ifchanged", tagIfchangedParser)
+	mustRegisterTag("ifchanged", tagIfchangedParser)
 }
