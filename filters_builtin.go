@@ -1260,8 +1260,12 @@ func filterLjust(in *Value, param *Value) (*Value, error) {
 	return AsValue(fmt.Sprintf("%s%s", in.String(), strings.Repeat(" ", times))), nil
 }
 
-// filterUrlencode encodes a string for safe use in a URL query string.
-// Spaces become "+", special characters are percent-encoded.
+// filterUrlencode encodes a string for safe use in a URL query string
+// using Go's url.QueryEscape.
+//
+// Django difference: Django's urlencode uses urllib.parse.quote(safe='/') which
+// encodes spaces as %20 and preserves forward slashes. Go's url.QueryEscape
+// encodes spaces as + and encodes forward slashes as %2F.
 //
 // Usage:
 //
@@ -1269,9 +1273,9 @@ func filterLjust(in *Value, param *Value) (*Value, error) {
 //
 // Output: "hello+world"
 //
-//	{{ "name=John&age=30"|urlencode }}
+//	{{ "http://example.org/path?a=b"|urlencode }}
 //
-// Output: "name%3DJohn%26age%3D30"
+// Output: "http%3A%2F%2Fexample.org%2Fpath%3Fa%3Db"
 func filterUrlencode(in *Value, param *Value) (*Value, error) {
 	return AsValue(url.QueryEscape(in.String())), nil
 }
