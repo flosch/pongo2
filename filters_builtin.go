@@ -56,6 +56,45 @@ package pongo2
    - forloop: Django's forloop has counter, counter0, revcounter, revcounter0,
      first, last, parentloop — but NOT a .length attribute.
      Django ref: django/template/defaulttags.py ForNode.
+
+   - urlencode: Uses Go's url.QueryEscape. Django difference: Django uses
+     urllib.parse.quote(safe='/') which encodes spaces as %20 and preserves /.
+     Go's url.QueryEscape encodes spaces as + and encodes / as %2F.
+
+   - iriencode: Uses Go's url.QueryEscape for non-IRI characters. Django
+     difference: Django's iri_to_uri() uses urllib.parse.quote() which encodes
+     spaces as %20. Go's url.QueryEscape encodes spaces as +.
+
+   - truncatewords: Verified against Django 4.2 with script. Matches Django's
+     Truncator(value).words(length, truncate=" …") — space before ellipsis is
+     intentional.
+
+   - truncatechars: Verified against Django 4.2 with script.
+
+   - truncatechars_html / truncatewords_html: Returns AsSafeValue() to prevent
+     double-escaping of preserved HTML tags. Django difference: Django uses
+     is_safe=True which preserves input safety status; pongo2 unconditionally
+     marks output as safe. This is more user-friendly for HTML-producing filters.
+
+   - escapejs: Verified against Django 4.2 with script. Uses lowercase hex
+     (\u000d) instead of Django's uppercase (\u000D) — functionally equivalent.
+
+   - phone2numeric: Verified against Django 4.2 with script.
+
+   - divisibleby: Verified against Django 4.2 with script.
+
+   - yesno: Verified against Django 4.2 with script.
+
+   - templatetag: Verified against Django 4.2 with script.
+
+   Intentional differences from Django:
+   - stringformat: Uses Go fmt format verbs instead of Python % formatting.
+   - date: Uses Go time formatting (reference time: Mon Jan 2 15:04:05 MST 2006)
+     instead of Django's PHP-style format characters.
+   - now tag: Uses Go time formatting instead of Django format characters.
+   - lorem tag: Uses static pre-defined paragraphs; Django generates random text
+     from a word list.
+   - firstof tag: Does not support "as variable_name" syntax (feature gap).
 */
 
 import (
@@ -356,6 +395,10 @@ func filterTruncatechars(in *Value, param *Value) (*Value, error) {
 // Truncated strings will end with an ellipsis character ("…") which counts towards the limit.
 // Newlines in the HTML content will be preserved.
 //
+// Verified against Django 4.2 with script.
+// Django difference: Returns AsSafeValue() to prevent double-escaping of preserved
+// HTML tags. Django uses is_safe=True (preserves input safety status) instead.
+//
 // Usage:
 //
 //	{{ "<p>Joel is a slug</p>"|truncatechars_html:7 }}
@@ -401,6 +444,9 @@ func filterTruncatecharsHTML(in *Value, param *Value) (*Value, error) {
 // filterTruncatewords truncates a string after a certain number of words.
 // If truncated, an ellipsis ("...") is appended.
 //
+// Django reference: django/utils/text.py Truncator.words(truncate=" …")
+// Verified against Django 4.2 with script — space before ellipsis is intentional.
+//
 // Usage:
 //
 //	{{ "Hello beautiful world"|truncatewords:2 }}
@@ -432,6 +478,10 @@ func filterTruncatewords(in *Value, param *Value) (*Value, error) {
 // filterTruncatewordsHTML truncates a string after a certain number of words,
 // preserving HTML tags. HTML tags are not counted towards the word limit.
 // If truncated, an ellipsis ("...") is appended. Open HTML tags are properly closed.
+//
+// Verified against Django 4.2 with script.
+// Django difference: Returns AsSafeValue() to prevent double-escaping of preserved
+// HTML tags. Django uses is_safe=True (preserves input safety status) instead.
 //
 // Usage:
 //
@@ -541,6 +591,11 @@ func filterSafe(in *Value, param *Value) (*Value, error) {
 //
 // Note: This filter escapes backticks, making it safe for JavaScript template
 // literals as well as single/double quoted strings.
+//
+// Django reference: django/utils/html.py _js_escapes table.
+// Verified against Django 4.2 with script.
+// Django difference: uses lowercase hex (\u000d) vs Django's uppercase (\u000D) —
+// functionally equivalent per JavaScript spec.
 //
 // Usage:
 //
@@ -1096,6 +1151,9 @@ func filterCenter(in *Value, param *Value) (*Value, error) {
 // This filter is also used for the "time" filter (same implementation).
 // The format string uses Go's time formatting reference: Mon Jan 2 15:04:05 MST 2006.
 //
+// Django difference: Django uses PHP-style format characters (e.g., "Y-m-d" for
+// "2024-03-15"); pongo2 uses Go's reference time format instead.
+//
 // Usage:
 //
 //	{{ myDate|date:"2006-01-02" }}
@@ -1406,7 +1464,10 @@ func filterUrlizetrunc(in *Value, param *Value) (*Value, error) {
 }
 
 // filterStringformat formats the value according to the argument, which is a
-// Go fmt-style format specifier. Note: unlike Python, Go uses different format verbs.
+// Go fmt-style format specifier.
+//
+// Django difference: Django uses Python % formatting (e.g., "%.2f"); pongo2 uses
+// Go fmt verbs (e.g., "%.2f" works the same, but "%s" vs "%s" differ in edge cases).
 //
 // Usage:
 //

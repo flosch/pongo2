@@ -6,6 +6,9 @@ import (
 
 // tagNowNode represents the {% now %} tag.
 //
+// Django difference: Django uses PHP-style format characters (e.g., "Y-m-d");
+// pongo2 uses Go's reference time: Mon Jan 2 15:04:05 MST 2006.
+//
 // The now tag outputs the current date and/or time using Go's time formatting.
 // The format string uses Go's reference time: Mon Jan 2 15:04:05 MST 2006.
 //
