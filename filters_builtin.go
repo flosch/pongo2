@@ -1761,22 +1761,52 @@ func filterWordcount(in *Value, param *Value) (*Value, error) {
 //	c d
 //	e
 func filterWordwrap(in *Value, param *Value) (*Value, error) {
-	words := strings.Fields(in.String())
-	wordsLen := len(words)
+	s := in.String()
 	wrapAt := param.Integer()
 	if wrapAt <= 0 {
 		return in, nil
 	}
 
-	linecount := wordsLen / wrapAt
-	if wordsLen%wrapAt > 0 {
-		linecount++
+	// Preserve existing line breaks, wrap each line independently.
+	// This matches Django's wordwrap which uses textwrap.TextWrapper with
+	// break_long_words=False (long words are not broken).
+	inputLines := strings.Split(s, "\n")
+	var resultLines []string
+
+	for _, line := range inputLines {
+		if line == "" {
+			resultLines = append(resultLines, line)
+			continue
+		}
+		words := strings.Fields(line)
+		if len(words) == 0 {
+			// Line contains only whitespace; preserve it
+			resultLines = append(resultLines, line)
+			continue
+		}
+
+		var currentLine strings.Builder
+		currentLine.WriteString(words[0])
+		currentLen := utf8.RuneCountInString(words[0])
+
+		for _, word := range words[1:] {
+			wordLen := utf8.RuneCountInString(word)
+			// +1 for the space between words
+			if currentLen+1+wordLen > wrapAt {
+				resultLines = append(resultLines, currentLine.String())
+				currentLine.Reset()
+				currentLine.WriteString(word)
+				currentLen = wordLen
+			} else {
+				currentLine.WriteString(" ")
+				currentLine.WriteString(word)
+				currentLen += 1 + wordLen
+			}
+		}
+		resultLines = append(resultLines, currentLine.String())
 	}
-	lines := make([]string, 0, linecount)
-	for i := 0; i < linecount; i++ {
-		lines = append(lines, strings.Join(words[wrapAt*i:min(wrapAt*(i+1), wordsLen)], " "))
-	}
-	return AsValue(strings.Join(lines, "\n")), nil
+
+	return AsValue(strings.Join(resultLines, "\n")), nil
 }
 
 // filterYesno maps true, false, and nil values to customizable strings.

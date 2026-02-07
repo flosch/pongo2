@@ -2195,6 +2195,66 @@ func TestFilterWordwrapZeroWidth(t *testing.T) {
 	})
 }
 
+// TestFilterWordwrapCharacterBased verifies that wordwrap wraps at the given
+// character width, not word count, matching Django's behavior.
+func TestFilterWordwrapCharacterBased(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		width    int
+		expected string
+	}{
+		{
+			name:     "basic wrap",
+			input:    "Joel is a slug",
+			width:    5,
+			expected: "Joel\nis a\nslug",
+		},
+		{
+			name:     "fits on one line",
+			input:    "Joel is a slug",
+			width:    14,
+			expected: "Joel is a slug",
+		},
+		{
+			name:     "long word not broken",
+			input:    "superlongword short",
+			width:    5,
+			expected: "superlongword\nshort",
+		},
+		{
+			name:     "preserve newlines",
+			input:    "hello\nworld",
+			width:    5,
+			expected: "hello\nworld",
+		},
+		{
+			name:     "wrap at 10",
+			input:    "one two three four",
+			width:    10,
+			expected: "one two\nthree four",
+		},
+		{
+			name:     "empty string",
+			input:    "",
+			width:    5,
+			expected: "",
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			result, err := filterWordwrap(AsValue(tc.input), AsValue(tc.width))
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if result.String() != tc.expected {
+				t.Errorf("wordwrap(%q, %d) = %q, want %q",
+					tc.input, tc.width, result.String(), tc.expected)
+			}
+		})
+	}
+}
+
 // TestFilterJoinNonSliceable tests join with non-sliceable input
 func TestFilterJoinNonSliceable(t *testing.T) {
 	result, err := filterJoin(AsValue(42), AsValue(","))

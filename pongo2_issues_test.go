@@ -36,7 +36,9 @@ func TestIssue151(t *testing.T) {
 }
 
 func TestIssue297(t *testing.T) {
-	tpl, err := pongo2.FromString("Testing: {{ input|wordwrap:4 }}!")
+	// wordwrap wraps at character width (matching Django's behavior),
+	// not at word count.
+	tpl, err := pongo2.FromString("Testing: {{ input|wordwrap:20 }}!")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -46,8 +48,9 @@ func TestIssue297(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if str != "Testing: one two three four\nfive six!" {
-		t.Fatalf("Expected `Testing: one two three four\nfive six!`, but got `%v`.", str)
+	expected := "Testing: one two three four\nfive six!"
+	if str != expected {
+		t.Fatalf("Expected `%s`, but got `%s`.", expected, str)
 	}
 }
 
