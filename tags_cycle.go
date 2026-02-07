@@ -41,7 +41,6 @@ type tagCycleValue struct {
 type tagCycleNode struct {
 	position *Token
 	args     []IEvaluator
-	idx      int
 	asName   string
 	silent   bool
 }
@@ -51,12 +50,21 @@ func (cv *tagCycleValue) String() string {
 	return cv.value.String()
 }
 
+// cycleIdx returns the current cycle index for this node from the execution
+// context and advances it. Each template execution gets its own independent
+// cycle state via ctx.tagState.
+func (node *tagCycleNode) cycleIdx(ctx *ExecutionContext) int {
+	idx, _ := ctx.tagState[node].(int)
+	ctx.tagState[node] = idx + 1
+	return idx
+}
+
 // Execute outputs the next value in the cycle sequence. If the cycle was
 // stored with "as", it updates the stored value and optionally outputs it
 // (unless "silent" was specified).
 func (node *tagCycleNode) Execute(ctx *ExecutionContext, writer TemplateWriter) error {
-	item := node.args[node.idx%len(node.args)]
-	node.idx++
+	idx := node.cycleIdx(ctx)
+	item := node.args[idx%len(node.args)]
 
 	val, err := item.Evaluate(ctx)
 	if err != nil {
@@ -64,12 +72,9 @@ func (node *tagCycleNode) Execute(ctx *ExecutionContext, writer TemplateWriter) 
 	}
 
 	if t, ok := val.Interface().(*tagCycleValue); ok {
-		// {% cycle "test1" "test2"
-		// {% cycle cycleitem %}
-
-		// Update the cycle value with next value
-		item := t.node.args[t.node.idx%len(t.node.args)]
-		t.node.idx++
+		// {% cycle cycleitem %} — advance the referenced cycle node
+		refIdx := t.node.cycleIdx(ctx)
+		item := t.node.args[refIdx%len(t.node.args)]
 
 		val, err := item.Evaluate(ctx)
 		if err != nil {

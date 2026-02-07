@@ -88,6 +88,13 @@ type ExecutionContext struct {
 	// Data shared across all contexts during a single render. Use for cross-scope
 	// tag communication.
 	Shared Context
+
+	// tagState stores per-execution mutable state for tags that need it
+	// (e.g., cycle index, ifchanged last values). Keyed by the tag node
+	// pointer to ensure each tag instance has its own state. This map is
+	// shared across all child contexts within a single execution, so tags
+	// maintain consistent state regardless of nesting depth.
+	tagState map[any]any
 }
 
 var pongo2MetaContext = Context{
@@ -106,6 +113,7 @@ func newExecutionContext(tpl *Template, ctx Context) *ExecutionContext {
 		Public:     ctx,
 		Private:    privateCtx,
 		Autoescape: tpl.set.autoescape,
+		tagState:   make(map[any]any),
 	}
 }
 
@@ -121,6 +129,7 @@ func NewChildExecutionContext(parent *ExecutionContext) *ExecutionContext {
 		Public:     parent.Public,
 		Private:    make(Context),
 		Autoescape: parent.Autoescape,
+		tagState:   parent.tagState,
 	}
 	newctx.Shared = parent.Shared
 
