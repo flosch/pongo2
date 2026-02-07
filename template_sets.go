@@ -347,6 +347,11 @@ func (set *TemplateSet) FromFile(filename string) (*Template, error) {
 		}
 	}
 	buf, err := io.ReadAll(fd)
+	if closer, ok := fd.(io.Closer); ok {
+		if closeErr := closer.Close(); closeErr != nil && err == nil {
+			err = closeErr
+		}
+	}
 	if err != nil {
 		return nil, &Error{
 			Filename:  filename,

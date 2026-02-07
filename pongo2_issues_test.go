@@ -1,8 +1,10 @@
 package pongo2_test
 
 import (
+	"io"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"testing/fstest"
 
@@ -1317,5 +1319,56 @@ func TestBugDictsortNumericFieldStringSorted(t *testing.T) {
 				t.Errorf("got %q, want %q", result, tt.expected)
 			}
 		})
+	}
+}
+
+type trackingReadCloser struct {
+	io.Reader
+	closed atomic.Bool
+}
+
+func (t *trackingReadCloser) Close() error {
+	t.closed.Store(true)
+	return nil
+}
+
+// closerTrackingLoader is a TemplateLoader that returns trackingReadCloser
+// so we can verify Close is called after reading.
+type closerTrackingLoader struct {
+	readers []*trackingReadCloser
+}
+
+func (l *closerTrackingLoader) Abs(base, name string) string {
+	return name
+}
+
+func (l *closerTrackingLoader) Get(path string) (io.Reader, error) {
+	rc := &trackingReadCloser{
+		Reader: strings.NewReader("Hello {{ name }}"),
+	}
+	l.readers = append(l.readers, rc)
+	return rc, nil
+}
+
+func TestBugFromFileReaderNotClosed(t *testing.T) {
+	// TemplateSet.FromFile should close the io.Reader returned by the loader
+	// if it implements io.Closer. This prevents resource leaks with loaders
+	// that return file handles (e.g. FSLoader).
+	loader := &closerTrackingLoader{}
+	set := pongo2.NewSet("test-close", loader)
+
+	_, err := set.FromFile("test.html")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if len(loader.readers) == 0 {
+		t.Fatal("expected at least one reader to be created")
+	}
+
+	for i, rc := range loader.readers {
+		if !rc.closed.Load() {
+			t.Errorf("reader %d was not closed after FromFile", i)
+		}
 	}
 }
