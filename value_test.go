@@ -754,3 +754,23 @@ func TestValueContainsMapKeys(t *testing.T) {
 		}
 	})
 }
+
+func TestBugSortedKeysMixedIntFloat(t *testing.T) {
+	// When sorting a slice with mixed int and float values, the comparator
+	// should use numeric comparison, not fall back to string comparison
+	// where "5" > "10" lexicographically.
+	items := []any{10, 5.5, 3, 20.1, 1}
+
+	tpl, err := FromString("{% for item in items sorted %}{{ item }},{% endfor %}")
+	if err != nil {
+		t.Fatalf("parse error: %v", err)
+	}
+	result, err := tpl.Execute(Context{"items": items})
+	if err != nil {
+		t.Fatalf("execute error: %v", err)
+	}
+	expected := "1,3,5.500000,10,20.100000,"
+	if result != expected {
+		t.Errorf("got %q, want %q", result, expected)
+	}
+}

@@ -611,9 +611,7 @@ func (sk sortedKeys) Less(i, j int) bool {
 	vi := &Value{val: sk[i]}
 	vj := &Value{val: sk[j]}
 	switch {
-	case vi.IsInteger() && vj.IsInteger():
-		return vi.Integer() < vj.Integer()
-	case vi.IsFloat() && vj.IsFloat():
+	case vi.IsNumber() && vj.IsNumber():
 		return vi.Float() < vj.Float()
 	default:
 		return vi.String() < vj.String()
@@ -634,9 +632,7 @@ func (vl valuesList) Less(i, j int) bool {
 	vi := vl[i]
 	vj := vl[j]
 	switch {
-	case vi.IsInteger() && vj.IsInteger():
-		return vi.Integer() < vj.Integer()
-	case vi.IsFloat() && vj.IsFloat():
+	case vi.IsNumber() && vj.IsNumber():
 		return vi.Float() < vj.Float()
 	default:
 		return vi.String() < vj.String()
