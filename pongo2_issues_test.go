@@ -948,3 +948,119 @@ func TestBugIfchangedSharedState(t *testing.T) {
 	}
 	wg2.Wait()
 }
+
+func TestBugWidthratioDivisionByZero(t *testing.T) {
+	// Bug: widthratio does not check for division by zero when max=0.
+	// Django returns "0" in this case.
+
+	tests := []struct {
+		name     string
+		template string
+		expected string
+	}{
+		{
+			name:     "max is zero literal",
+			template: `{% widthratio 50 0 200 %}`,
+			expected: "0",
+		},
+		{
+			name:     "max is zero variable",
+			template: `{% widthratio value max_value width %}`,
+			expected: "0",
+		},
+		{
+			name:     "all zeros",
+			template: `{% widthratio 0 0 0 %}`,
+			expected: "0",
+		},
+		{
+			name:     "max zero with as variable",
+			template: `{% widthratio 50 0 200 as result %}{{ result }}`,
+			expected: "0",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tpl, err := pongo2.FromString(tt.template)
+			if err != nil {
+				t.Fatalf("failed to parse template: %v", err)
+			}
+
+			ctx := pongo2.Context{"value": 50, "max_value": 0, "width": 200}
+			result, err := tpl.Execute(ctx)
+			if err != nil {
+				t.Fatalf("failed to execute template: %v", err)
+			}
+
+			if result != tt.expected {
+				t.Errorf("expected %q, got %q", tt.expected, result)
+			}
+		})
+	}
+}
+
+func TestWidthratioBankersRounding(t *testing.T) {
+	tests := []struct {
+		name     string
+		template string
+		context  pongo2.Context
+		expected string
+	}{
+		{
+			name:     "half rounds to even (12.5 -> 12)",
+			template: "{% widthratio 1 4 50 %}",
+			expected: "12",
+		},
+		{
+			name:     "half rounds to even (87.5 -> 88)",
+			template: "{% widthratio 175 200 100 %}",
+			expected: "88",
+		},
+		{
+			name:     "half rounds to even (0.5 -> 0)",
+			template: "{% widthratio 1 200 100 %}",
+			expected: "0",
+		},
+		{
+			name:     "half rounds to even (2.5 -> 2)",
+			template: "{% widthratio 1 20 50 %}",
+			expected: "2",
+		},
+		{
+			name:     "non-half rounds normally (33.33 -> 33)",
+			template: "{% widthratio 1 3 100 %}",
+			expected: "33",
+		},
+		{
+			name:     "exact value (50.0 -> 50)",
+			template: "{% widthratio 50 100 100 %}",
+			expected: "50",
+		},
+		{
+			name:     "zero max_value returns 0",
+			template: "{% widthratio 50 0 100 %}",
+			expected: "0",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tpl, err := pongo2.FromString(tt.template)
+			if err != nil {
+				t.Fatalf("failed to parse template: %v", err)
+			}
+			ctx := tt.context
+			if ctx == nil {
+				ctx = pongo2.Context{}
+			}
+			result, err := tpl.Execute(ctx)
+			if err != nil {
+				t.Fatalf("failed to execute template: %v", err)
+			}
+			if result != tt.expected {
+				t.Errorf("%s\ngot:  %q\nwant: %q", tt.template, result, tt.expected)
+			}
+		})
+	}
+}

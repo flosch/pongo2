@@ -13,7 +13,8 @@ import (
 //
 // Syntax: {% widthratio current_value max_value max_width %}
 //
-// The formula is: ceil(current_value / max_value * max_width)
+// The formula is: round(current_value / max_value * max_width)
+// using banker's rounding (round half to even), matching Python's round().
 //
 // Basic usage (progress bar):
 //
@@ -39,7 +40,7 @@ import (
 //
 //	{% widthratio 50 100 200 %}   {# Output: 100 (50/100 * 200) #}
 //	{% widthratio 75 100 400 %}   {# Output: 300 (75/100 * 400) #}
-//	{% widthratio 1 3 100 %}      {# Output: 34 (1/3 * 100, rounded up) #}
+//	{% widthratio 1 3 100 %}      {# Output: 33 (1/3 * 100, rounded) #}
 type tagWidthratioNode struct {
 	position     *Token
 	current, max IEvaluator
@@ -47,8 +48,8 @@ type tagWidthratioNode struct {
 	ctxName      string
 }
 
-// Execute calculates the ratio (current/max*width), rounds up, and either
-// outputs the result or stores it in the context if "as" was specified.
+// Execute calculates the ratio (current/max*width), rounds using banker's
+// rounding, and either outputs the result or stores it in the context if "as" was specified.
 func (node *tagWidthratioNode) Execute(ctx *ExecutionContext, writer TemplateWriter) error {
 	current, err := node.current.Evaluate(ctx)
 	if err != nil {
@@ -65,7 +66,14 @@ func (node *tagWidthratioNode) Execute(ctx *ExecutionContext, writer TemplateWri
 		return err
 	}
 
-	value := int(math.Round(current.Float() / max.Float() * width.Float()))
+	var value int
+	maxFloat := max.Float()
+	if maxFloat == 0 {
+		value = 0
+	} else {
+		// Use banker's rounding (round half to even) to match Python's round()
+		value = int(math.RoundToEven(current.Float() / maxFloat * width.Float()))
+	}
 
 	if node.ctxName == "" {
 		if _, err := fmt.Fprintf(writer, "%d", value); err != nil {
