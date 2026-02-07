@@ -1,5 +1,74 @@
 # Changelog
 
+## v7.0.0-alpha.2
+
+This release brings pongo2 significantly closer to Django template behavior.
+
+### Backwards-Incompatible Fixes
+
+- **`timesince`/`timeuntil`**: Rewritten to use calendar-based month/year arithmetic and Django's adjacency rule (only adjacent time units shown). Future dates return "0&nbsp;minutes" for `timesince`, past dates for `timeuntil`.
+- **`linebreaks`**: Rewritten paragraph algorithm to match Django (normalize newlines, strip trailing whitespace, correct `<p>`/`<br />` wrapping).
+- **`title`**: Rewritten to match Django titlecase behavior (apostrophes don't break words, non-letter characters act as word boundaries).
+- **`filesizeformat`**: Uses singular "byte", non-breaking spaces, and supports negative values.
+- **`unordered_list`**: Tab indentation and newlines to match Django format.
+- **`linenumbers`**: Zero-padded line numbers and normalized newlines.
+- **`center`**: Corrected padding direction to match Django/Python `str.center()`.
+- **`wordwrap`**: Wraps at character width instead of word count; normalize `\r\n` and `\r` to `\n` before wrapping.
+- **`truncatewords`/`truncatewords_html`**: Use unicode ellipsis (\u2026) instead of three dots.
+
+### Bug Fixes
+
+- **`widthratio`**: Handle division by zero (return "0") and use banker's rounding (`math.RoundToEven`).
+- **`truncatechars_html`**: Use rune count instead of byte length for multi-byte character support.
+- **`slugify`**: Apply NFKD normalization for accented characters; preserve underscores.
+- **`dictsort`**: Use numeric comparison for numeric fields instead of string comparison.
+- **`get_digit`**: Handle non-digit characters correctly (return original value for non-integer strings).
+- **`pluralize`**: Use float comparison to avoid truncating decimals (e.g., 1.5 is now plural).
+- **`urlizetrunc`**: Use rune-based truncation for multi-byte URLs.
+- **`yesno`**: Map `nil` to "no" value when only 2 custom args provided.
+- **`linebreaksbr`**: Normalize `\r\n` and `\r` before processing.
+- **`linebreaks`**: Normalize `\r\n` and `\r` before processing.
+- **`json_script`**: Apply full HTML escaping to element ID (not just double quotes).
+- **`urlencode`**: Document Django difference (spaces as `+` via `url.QueryEscape` vs Django's `%20`; `/` encoded vs Django preserving it).
+- **`iriencode`**: Document Django difference (spaces as `+` via `url.QueryEscape` vs Django's `%20`). Switch from `bytes.Buffer` to `strings.Builder`.
+- **`spaceless`**: Strip leading/trailing whitespace to match Django.
+- **`lorem`**: Use double newline between paragraphs to match Django.
+- **`cycle`**: Apply autoescape to output values like Django.
+- **`filters`**: Mark HTML-producing filters (`escape`, `escapejs`, `linebreaks`, `linebreaksbr`, `urlize`, `urlizetrunc`) as safe to prevent double-escaping with autoescape.
+- **`include`**: Use start token for lazy parse errors (fixes panic); support `{% include "file" only %}` without `with` keyword.
+- **`macro`**: Store default values consistently with positional arguments.
+- **`template`**: Use `sync.Once` for TrimBlocks/LStripBlocks token trimming (fixes race condition).
+- **`template_sets`**: Close `io.ReadCloser` in `FromFile` (fixes resource leak with file-based loaders).
+- **`template_sets`**: Detect recursive includes at parse time (falls back to lazy evaluation instead of infinite recursion).
+- **`value`**: Add bounds checking to `Index()` and `Slice()` public API; return nil for unsupported types.
+- **`value`**: Dereference pointers in `Contains()` and `GetItem()` type checks.
+- **`value`**: Use numeric comparison for mixed int/float sorting.
+- Fix operator precedence for `not X in Y` expressions.
+- Fix float and int comparison by numeric value.
+- Fix `ifchanged` to render else block for content-based comparison.
+- Fix rune indexing for multi-byte UTF-8 strings in variable resolution.
+- Fix format verb in `ljust`/`rjust` error messages.
+- Fix autoescape state restoration on error.
+- Fix lexer column tracking by character count instead of byte width.
+- Fix `Negate()` return value and `Index()` log message.
+- Fix `widthratio` to use `math.Round` for correct ratio calculation.
+- Fix `ifnotequal` error message to say "ifnotequal" instead of "ifequal".
+- Fix `cycle` and `ifchanged` tags to use per-execution state instead of shared AST node state (fixes race conditions).
+
+### Refactoring
+
+- Extract `normalizeNewlines` helper to reduce duplication across newline-normalizing filters.
+
+### Testing
+
+- Add comprehensive wordwrap tests covering word boundaries, mid-word lengths, newline handling, and Unicode.
+
+### Documentation
+
+- Fix inaccurate filter examples in code comments and docs (ellipsis characters, float rendering format, boolean capitalization, `floatformat` default, `json_script` spacing, `urlizetrunc` output).
+- Fix API signatures in extension guides: `*Error` → `error` return types, `TagExists` → `BuiltinTagExists`, `INodeTag.Execute` return type, TokenType enum ordering.
+- Update version to 7.0.0-alpha.2, move built-in filters out of addons list, update godoc links to `/v7`.
+
 ## v7.0.0-alpha.1
 
 ### Features
