@@ -2847,12 +2847,12 @@ func TestFilterCenterPaddingDirection(t *testing.T) {
 		width    int
 		expected string
 	}{
-		{"test", 19, "       test        "}, // 7 left, 8 right (extra on right)
-		{"test", 20, "        test        "}, // 8 left, 8 right (even)
-		{"test2", 19, "       test2       "}, // 7 left, 7 right (even)
+		{"test", 19, "       test        "},   // 7 left, 8 right (extra on right)
+		{"test", 20, "        test        "},  // 8 left, 8 right (even)
+		{"test2", 19, "       test2       "},  // 7 left, 7 right (even)
 		{"test2", 20, "       test2        "}, // 7 left, 8 right (extra on right)
-		{"x", 4, " x  "},                     // 1 left, 2 right (extra on right)
-		{"ab", 5, " ab  "},                   // 1 left, 2 right (extra on right)
+		{"x", 4, " x  "},                      // 1 left, 2 right (extra on right)
+		{"ab", 5, " ab  "},                    // 1 left, 2 right (extra on right)
 	}
 	for _, tc := range tests {
 		result, err := filterCenter(AsValue(tc.input), AsValue(tc.width))

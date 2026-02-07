@@ -783,6 +783,104 @@ func TestBugContainsPointerKey(t *testing.T) {
 	}
 }
 
+func TestBugIndexNegative(t *testing.T) {
+	// Index() with negative index must not panic; it should return
+	// nil for arrays/slices and empty string for strings.
+
+	t.Run("slice negative index", func(t *testing.T) {
+		v := AsValue([]int{10, 20, 30})
+		result := v.Index(-1)
+		if !result.IsNil() {
+			t.Errorf("Index(-1) on slice should return nil, got %v", result.Interface())
+		}
+	})
+
+	t.Run("array negative index", func(t *testing.T) {
+		v := AsValue([3]int{10, 20, 30})
+		result := v.Index(-1)
+		if !result.IsNil() {
+			t.Errorf("Index(-1) on array should return nil, got %v", result.Interface())
+		}
+	})
+
+	t.Run("string negative index", func(t *testing.T) {
+		v := AsValue("hello")
+		result := v.Index(-1)
+		if result.String() != "" {
+			t.Errorf("Index(-1) on string should return empty, got %q", result.String())
+		}
+	})
+
+	t.Run("string negative index multi-byte", func(t *testing.T) {
+		v := AsValue("你好世界")
+		result := v.Index(-1)
+		if result.String() != "" {
+			t.Errorf("Index(-1) on multi-byte string should return empty, got %q", result.String())
+		}
+	})
+}
+
+func TestBugSliceBounds(t *testing.T) {
+	// Slice() with out-of-bounds indices must not panic;
+	// it should clamp to valid bounds.
+
+	t.Run("slice negative start", func(t *testing.T) {
+		v := AsValue([]int{10, 20, 30})
+		result := v.Slice(-1, 2)
+		if result.Len() != 2 {
+			t.Errorf("Slice(-1, 2) should clamp start to 0, got len %d", result.Len())
+		}
+	})
+
+	t.Run("slice end beyond length", func(t *testing.T) {
+		v := AsValue([]int{10, 20, 30})
+		result := v.Slice(1, 100)
+		if result.Len() != 2 {
+			t.Errorf("Slice(1, 100) should clamp end to len, got len %d", result.Len())
+		}
+	})
+
+	t.Run("slice both negative", func(t *testing.T) {
+		v := AsValue([]int{10, 20, 30})
+		result := v.Slice(-5, -2)
+		if result.Len() != 0 {
+			t.Errorf("Slice(-5, -2) should return empty, got len %d", result.Len())
+		}
+	})
+
+	t.Run("string negative start", func(t *testing.T) {
+		v := AsValue("hello")
+		result := v.Slice(-1, 3)
+		if result.String() != "hel" {
+			t.Errorf("Slice(-1, 3) on string should clamp start, got %q", result.String())
+		}
+	})
+
+	t.Run("string end beyond length", func(t *testing.T) {
+		v := AsValue("hello")
+		result := v.Slice(2, 100)
+		if result.String() != "llo" {
+			t.Errorf("Slice(2, 100) on string should clamp end, got %q", result.String())
+		}
+	})
+
+	t.Run("string both out of bounds", func(t *testing.T) {
+		v := AsValue("hello")
+		result := v.Slice(-3, -1)
+		if result.String() != "" {
+			t.Errorf("Slice(-3, -1) on string should return empty, got %q", result.String())
+		}
+	})
+
+	t.Run("multi-byte string clamp", func(t *testing.T) {
+		v := AsValue("你好世界")
+		result := v.Slice(1, 100)
+		if result.String() != "好世界" {
+			t.Errorf("Slice(1, 100) on multi-byte string should clamp, got %q", result.String())
+		}
+	})
+}
+
 func TestBugSortedKeysMixedIntFloat(t *testing.T) {
 	// When sorting a slice with mixed int and float values, the comparator
 	// should use numeric comparison, not fall back to string comparison

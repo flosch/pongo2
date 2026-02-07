@@ -303,9 +303,19 @@ func (v *Value) Slice(i, j int) *Value {
 	rv := v.getResolvedValue()
 	switch rv.Kind() {
 	case reflect.Array, reflect.Slice:
+		length := rv.Len()
+		i = max(i, 0)
+		j = max(j, i)
+		j = min(j, length)
+		i = min(i, j)
 		return AsValue(rv.Slice(i, j).Interface())
 	case reflect.String:
 		runes := []rune(rv.String())
+		length := len(runes)
+		i = max(i, 0)
+		j = max(j, i)
+		j = min(j, length)
+		i = min(i, j)
 		return AsValue(string(runes[i:j]))
 	default:
 		logf("Value.Slice() not available for type: %s\n", rv.Kind().String())
@@ -319,16 +329,16 @@ func (v *Value) Index(i int) *Value {
 	rv := v.getResolvedValue()
 	switch rv.Kind() {
 	case reflect.Array, reflect.Slice:
-		if i >= v.Len() {
+		if i < 0 || i >= rv.Len() {
 			return AsValue(nil)
 		}
 		return AsValue(rv.Index(i).Interface())
 	case reflect.String:
 		runes := []rune(rv.String())
-		if i < len(runes) {
-			return AsValue(string(runes[i]))
+		if i < 0 || i >= len(runes) {
+			return AsValue("")
 		}
-		return AsValue("")
+		return AsValue(string(runes[i]))
 	default:
 		logf("Value.Index() not available for type: %s\n", rv.Kind().String())
 		return AsValue(nil)
