@@ -853,9 +853,9 @@ func TestFilterSlugify(t *testing.T) {
 			expected: "hello-world-123",
 		},
 		{
-			name:     "unicode characters removed",
+			name:     "unicode characters normalized via NFKD",
 			input:    "Hello Wörld",
-			expected: "hello-wrld",
+			expected: "hello-world",
 		},
 		{
 			name:     "all special characters",

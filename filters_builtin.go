@@ -24,6 +24,7 @@ import (
 
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
+	"golang.org/x/text/unicode/norm"
 )
 
 func mustRegisterFilter(name string, fn FilterFunction) {
@@ -2086,12 +2087,21 @@ func unorderedListHelper(result *strings.Builder, in *Value, depth int) {
 // Output: "hello-world"
 func filterSlugify(in *Value, param *Value) (*Value, error) {
 	s := in.String()
+
+	// Apply NFKD normalization to decompose accented characters into their
+	// base form + combining marks (e.g., é → e + ́). This matches Django's
+	// slugify behavior which uses unicodedata.normalize('NFKD') before
+	// encoding to ASCII.
+	s = norm.NFKD.String(s)
+
 	s = strings.ToLower(s)
 
 	// Replace spaces with hyphens
 	s = strings.ReplaceAll(s, " ", "-")
 
-	// Remove non-alphanumeric characters (except hyphens)
+	// Remove non-alphanumeric characters (except hyphens).
+	// After NFKD normalization, combining marks (like accents) are separate
+	// Unicode code points in the Mark category and will be stripped here.
 	var result strings.Builder
 	for _, r := range s {
 		if (r >= 'a' && r <= 'z') || (r >= '0' && r <= '9') || r == '-' {

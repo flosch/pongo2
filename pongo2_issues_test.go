@@ -1200,3 +1200,58 @@ func TestBugTruncatecharsHTMLByteVsRuneComparison(t *testing.T) {
 		})
 	}
 }
+
+func TestBugSlugifyAccentedCharacters(t *testing.T) {
+	// Bug: slugify strips all non-ASCII characters without first normalizing
+	// via NFKD. Django's slugify normalizes accented characters to their base
+	// form (e.g., é → e) before stripping remaining non-ASCII. This means
+	// pongo2 produces "hllo" for "Héllo" instead of Django's "hello".
+
+	tests := []struct {
+		name     string
+		template string
+		expected string
+	}{
+		{
+			name:     "accented e is normalized to e",
+			template: `{{ "Héllo Wörld"|slugify }}`,
+			expected: "hello-world",
+		},
+		{
+			name:     "German umlauts",
+			template: `{{ "Über uns"|slugify }}`,
+			expected: "uber-uns",
+		},
+		{
+			name:     "French accents",
+			template: `{{ "Café résumé"|slugify }}`,
+			expected: "cafe-resume",
+		},
+		{
+			name:     "pure ASCII unchanged",
+			template: `{{ "Hello World"|slugify }}`,
+			expected: "hello-world",
+		},
+		{
+			name:     "CJK characters still stripped",
+			template: `{{ "hello 世界"|slugify }}`,
+			expected: "hello",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tpl, err := pongo2.FromString(tt.template)
+			if err != nil {
+				t.Fatalf("failed to parse template: %v", err)
+			}
+			result, err := tpl.Execute(nil)
+			if err != nil {
+				t.Fatalf("failed to execute template: %v", err)
+			}
+			if result != tt.expected {
+				t.Errorf("expected %q, got %q", tt.expected, result)
+			}
+		})
+	}
+}
