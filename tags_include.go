@@ -128,17 +128,28 @@ func tagIncludeParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, e
 		// Get include-filename
 		includedFilename := doc.template.set.resolveFilename(doc.template, filenameToken.Val)
 
-		// Parse the parent
-		includeNode.filename = includedFilename
-		includedTpl, err := doc.template.set.FromFile(includedFilename)
-		if err != nil {
-			// if this is ReadFile error, and "if_exists" token presents we should create and empty node
-			if e, ok := err.(*Error); ok && e.Sender == "fromfile" && ifExists {
-				return &tagIncludeEmptyNode{}, nil
+		// Check if this template is currently being parsed (recursive include)
+		// If so, we must use lazy evaluation to avoid infinite recursion at parse time
+		if doc.template.set.isTemplateParsing(includedFilename) {
+			// Recursive include detected - use lazy evaluation
+			includeNode.filename = includedFilename
+			includeNode.lazy = true
+			includeNode.ifExists = ifExists
+			// Create a simple evaluator that returns the static filename
+			includeNode.filenameEvaluator = &stringResolver{locationToken: filenameToken, val: filenameToken.Val}
+		} else {
+			// Parse the included template
+			includeNode.filename = includedFilename
+			includedTpl, err := doc.template.set.FromFile(includedFilename)
+			if err != nil {
+				// if this is ReadFile error, and "if_exists" token presents we should create and empty node
+				if e, ok := err.(*Error); ok && e.Sender == "fromfile" && ifExists {
+					return &tagIncludeEmptyNode{}, nil
+				}
+				return nil, updateErrorToken(err, doc.template, filenameToken)
 			}
-			return nil, updateErrorToken(err, doc.template, filenameToken)
+			includeNode.tpl = includedTpl
 		}
-		includeNode.tpl = includedTpl
 	} else {
 		// No String, then the user wants to use lazy-evaluation (slower, but possible)
 		filenameEvaluator, err := arguments.ParseExpression()

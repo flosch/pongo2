@@ -1,6 +1,7 @@
 package pongo2_test
 
 import (
+	"fmt"
 	"io"
 	"strings"
 	"sync"
@@ -1371,4 +1372,92 @@ func TestBugFromFileReaderNotClosed(t *testing.T) {
 			t.Errorf("reader %d was not closed after FromFile", i)
 		}
 	}
+}
+
+// recursiveIncludeLoader serves templates that include themselves or each other,
+// used to test that recursive includes fall back to lazy evaluation instead of
+// causing infinite recursion at parse time.
+type recursiveIncludeLoader struct {
+	templates map[string]string
+}
+
+func (l *recursiveIncludeLoader) Abs(base, name string) string {
+	return name
+}
+
+func (l *recursiveIncludeLoader) Get(path string) (io.Reader, error) {
+	content, ok := l.templates[path]
+	if !ok {
+		return nil, fmt.Errorf("template %q not found", path)
+	}
+	return strings.NewReader(content), nil
+}
+
+func TestBugRecursiveIncludeInfiniteLoop(t *testing.T) {
+	// Bug: When template A includes itself (or A includes B which includes A),
+	// the parser would recurse infinitely at parse time because FromFile
+	// called itself through the include tag parser. The fix detects templates
+	// currently being parsed and falls back to lazy evaluation for the
+	// recursive include.
+
+	t.Run("direct self-inclusion parses without hanging", func(t *testing.T) {
+		loader := &recursiveIncludeLoader{templates: map[string]string{
+			"self.html": `{% if stop %}done{% else %}{% include "self.html" with stop=1 %}{% endif %}`,
+		}}
+		set := pongo2.NewSet("test-self", loader)
+
+		tpl, err := set.FromFile("self.html")
+		if err != nil {
+			t.Fatalf("failed to parse self-including template: %v", err)
+		}
+
+		result, err := tpl.Execute(pongo2.Context{})
+		if err != nil {
+			t.Fatalf("failed to execute: %v", err)
+		}
+		if result != "done" {
+			t.Errorf("expected %q, got %q", "done", result)
+		}
+	})
+
+	t.Run("indirect recursion A includes B includes A", func(t *testing.T) {
+		loader := &recursiveIncludeLoader{templates: map[string]string{
+			"a.html": `A{% if not stop %}{% include "b.html" with stop=1 %}{% endif %}`,
+			"b.html": `B{% if not stop %}{% include "a.html" with stop=1 %}{% endif %}`,
+		}}
+		set := pongo2.NewSet("test-indirect", loader)
+
+		tpl, err := set.FromFile("a.html")
+		if err != nil {
+			t.Fatalf("failed to parse: %v", err)
+		}
+
+		result, err := tpl.Execute(pongo2.Context{})
+		if err != nil {
+			t.Fatalf("failed to execute: %v", err)
+		}
+		if result != "AB" {
+			t.Errorf("expected %q, got %q", "AB", result)
+		}
+	})
+
+	t.Run("recursive include with if_exists", func(t *testing.T) {
+		loader := &recursiveIncludeLoader{templates: map[string]string{
+			"page.html": `{% if not done %}content{% include "page.html" if_exists with done=1 %}{% else %}end{% endif %}`,
+		}}
+		set := pongo2.NewSet("test-if-exists", loader)
+
+		tpl, err := set.FromFile("page.html")
+		if err != nil {
+			t.Fatalf("failed to parse: %v", err)
+		}
+
+		result, err := tpl.Execute(pongo2.Context{})
+		if err != nil {
+			t.Fatalf("failed to execute: %v", err)
+		}
+		if result != "contentend" {
+			t.Errorf("expected %q, got %q", "contentend", result)
+		}
+	})
 }
