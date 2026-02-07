@@ -877,3 +877,74 @@ func TestBugCycleSharedState(t *testing.T) {
 	}
 	wg.Wait()
 }
+
+func TestBugIfchangedSharedState(t *testing.T) {
+	// Bug: tagIfchangedNode.lastValues and lastContent were stored on the
+	// AST node, which is shared across all concurrent executions.
+	// This caused two problems:
+	// 1. Data race: concurrent writes to lastValues/lastContent
+	// 2. Semantic bug: ifchanged compares against state from a DIFFERENT
+	//    execution, so the first item might be suppressed if a previous
+	//    execution ended with the same value.
+	//
+	// Each template execution must have independent ifchanged state.
+
+	tpl, err := pongo2.FromString(`{% for item in items %}{% ifchanged %}{{ item }}{% endifchanged %}{% endfor %}`)
+	if err != nil {
+		t.Fatalf("failed to parse template: %v", err)
+	}
+
+	ctx := pongo2.Context{"items": []string{"a", "a", "b", "b", "c"}}
+	const expected = "abc"
+
+	// First: verify sequential executions produce consistent results.
+	// With shared state, the second execution starts with lastContent="c"
+	// from the first execution, so "a" would be correctly shown (different
+	// from "c"), but the pattern breaks in more complex scenarios.
+	// Use a case where it definitely breaks: items starting with the same
+	// value the previous execution ended with.
+	tplSameEnd, err := pongo2.FromString(`{% for item in items %}{% ifchanged %}{{ item }}{% endifchanged %}{% endfor %}`)
+	if err != nil {
+		t.Fatalf("failed to parse template: %v", err)
+	}
+
+	// Items end with "x", so next execution starting with "x" would skip it
+	ctxEndsX := pongo2.Context{"items": []string{"a", "b", "x"}}
+	ctxStartsX := pongo2.Context{"items": []string{"x", "y", "z"}}
+
+	// First execution ends with lastContent="x"
+	result1, err := tplSameEnd.Execute(ctxEndsX)
+	if err != nil {
+		t.Fatalf("execution 1: unexpected error: %v", err)
+	}
+	if result1 != "abx" {
+		t.Errorf("execution 1: got %q, want %q", result1, "abx")
+	}
+
+	// Second execution should output "x" even though previous ended with "x"
+	result2, err := tplSameEnd.Execute(ctxStartsX)
+	if err != nil {
+		t.Fatalf("execution 2: unexpected error: %v", err)
+	}
+	if result2 != "xyz" {
+		t.Errorf("execution 2: got %q, want %q (ifchanged state leaked from previous execution)", result2, "xyz")
+	}
+
+	// Also verify concurrent executions produce correct results.
+	var wg2 sync.WaitGroup
+	for range 20 {
+		wg2.Add(1)
+		go func() {
+			defer wg2.Done()
+			result, err := tpl.Execute(ctx)
+			if err != nil {
+				t.Errorf("concurrent: unexpected error: %v", err)
+				return
+			}
+			if result != expected {
+				t.Errorf("concurrent: got %q, want %q", result, expected)
+			}
+		}()
+	}
+	wg2.Wait()
+}
