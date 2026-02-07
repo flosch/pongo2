@@ -221,6 +221,8 @@ wordwrap
 
 iriencode
 {{ "?foo=123&bar=yes"|iriencode }}
+{{ "/path with spaces/file"|iriencode }}
+{{ "https://example.com/ä ö ü"|iriencode }}
 
 linebreaks
 {{ ""|linebreaks|safe }}

@@ -895,19 +895,24 @@ const filterIRIChars = "/#%[]=:;$&()+,!?*@'~"
 
 // filterIriencode encodes an IRI (Internationalized Resource Identifier) for safe
 // use in URLs. Unlike urlencode, it preserves characters that are valid in IRIs
-// (such as /, #, %, etc.) while encoding other special characters.
+// (such as /, #, %, etc.) while encoding other special characters using
+// Go's url.QueryEscape.
+//
+// Django difference: Django's iri_to_uri() uses urllib.parse.quote() which encodes
+// spaces as %20. Go's url.QueryEscape encodes spaces as +. Both are valid
+// percent-encoding for query strings, but %20 is preferred in path segments.
 //
 // Usage:
 //
 //	{{ "https://example.com/path with spaces"|iriencode }}
 //
-// Output: "https://example.com/path%20with%20spaces"
+// Output: "https://example.com/path+with+spaces"
 //
 //	{{ "/search?q=hello world"|iriencode }}
 //
-// Output: "/search?q=hello%20world"
+// Output: "/search?q=hello+world"
 func filterIriencode(in *Value, param *Value) (*Value, error) {
-	var b bytes.Buffer
+	var b strings.Builder
 
 	sin := in.String()
 	for _, r := range sin {

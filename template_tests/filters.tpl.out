@@ -246,6 +246,8 @@ exercitation
 
 iriencode
 ?foo=123&amp;bar=yes
+/path+with+spaces/file
+https://example.com/%C3%A4+%C3%B6+%C3%BC
 
 linebreaks
 <p></p>
