@@ -8,6 +8,56 @@ package pongo2
    static (reason: web-framework specific)
 */
 
+/*
+   Notable Django behavior references for filter implementations:
+   ---------------------------------------------------------------
+
+   - title: Django uses a custom algorithm that capitalizes after any non-letter/digit
+     character, then fixes apostrophe and digit cases with regex.
+     Django ref: django/utils/text.py capfirst(), re.sub for apostrophe/digit.
+
+   - center: Padding bias for odd margins follows Python's str.center():
+     left = marg/2 + (marg & width & 1). Both odd → extra on left, else right.
+     Django ref: django/template/defaultfilters.py center() → str.center().
+
+   - slugify: Django preserves underscores in slugs. Underscores are NOT stripped.
+     Django ref: django/utils/text.py slugify().
+
+   - filesizeformat: Uses non-breaking space (U+00A0) between number and unit,
+     singular "byte" (not "bytes") for exactly 1 byte, and "-" prefix for negatives.
+     Django ref: django/template/defaultfilters.py filesizeformat().
+
+   - timesince/timeuntil: Uses calendar-based month/year arithmetic (not fixed
+     365/30 approximations). Shows only adjacent time units. Returns "0 minutes"
+     for reversed dates.
+     Django ref: django/utils/timesince.py.
+
+   - linebreaks: Groups text into paragraphs split by double newlines. Within
+     paragraphs, single newlines become <br />. The paragraph algorithm is:
+     split by 2+ newlines → each paragraph gets <p>...</p>.
+     Django ref: django/utils/html.py linebreaks().
+
+   - unordered_list: Uses tab indentation with depth starting at 1. Items are
+     separated by newlines. Nested sublists get <ul>/<li> on separate lines.
+     Django ref: django/template/defaultfilters.py unordered_list() → list_formatter().
+
+   - escapejs: Escapes characters 0x00-0x1F, \, ', ", `, <, >, &, =, -, ;,
+     U+2028, U+2029 to \uXXXX format (uppercase hex in Django, lowercase in Go).
+     Django ref: django/utils/html.py _js_escapes table.
+
+   - wordwrap: Wraps at character column width (not word count). Uses word-boundary
+     breaking (long words are not split). Preserves existing newlines.
+     Django ref: django/utils/text.py wrap() → textwrap.TextWrapper.
+
+   - floatformat: Negative arg means "display N decimal places unless the result
+     would be all zeros." Positive arg always shows exactly N places.
+     Django ref: django/template/defaultfilters.py floatformat().
+
+   - forloop: Django's forloop has counter, counter0, revcounter, revcounter0,
+     first, last, parentloop — but NOT a .length attribute.
+     Django ref: django/template/defaulttags.py ForNode.
+*/
+
 import (
 	"bytes"
 	"encoding/json"
@@ -1761,25 +1811,21 @@ func filterWordcount(in *Value, param *Value) (*Value, error) {
 	return AsValue(len(strings.Fields(in.String()))), nil
 }
 
-// filterWordwrap wraps text at the specified number of words per line.
-// Lines are separated by newline characters.
+// filterWordwrap wraps text at the specified character column width.
+// Lines are broken at word boundaries (words are not split). Existing
+// newlines are preserved. Long words that exceed the width are not broken.
+//
+// Django reference: django/utils/text.py wrap() using textwrap.TextWrapper
 //
 // Usage:
 //
-//	{{ "one two three four five six"|wordwrap:3 }}
+//	{{ "a b c d e f g h"|wordwrap:5 }}
 //
 // Output:
 //
-//	one two three
-//	four five six
-//
-//	{{ "a b c d e"|wordwrap:2 }}
-//
-// Output:
-//
-//	a b
-//	c d
-//	e
+//	a b c
+//	d e f
+//	g h
 func filterWordwrap(in *Value, param *Value) (*Value, error) {
 	s := in.String()
 	wrapAt := param.Integer()
