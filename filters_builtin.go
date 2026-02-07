@@ -455,7 +455,7 @@ func filterTruncatewordsHTML(in *Value, param *Value) (*Value, error) {
 //
 // Output: "&lt;script&gt;alert(&#39;XSS&#39;)&lt;/script&gt;"
 func filterEscape(in *Value, param *Value) (*Value, error) {
-	return AsValue(htmlEscapeReplacer.Replace(in.String())), nil
+	return AsSafeValue(htmlEscapeReplacer.Replace(in.String())), nil
 }
 
 // filterSafe marks a string as safe, meaning it will not be HTML-escaped when
@@ -566,7 +566,7 @@ func filterEscapejs(in *Value, param *Value) (*Value, error) {
 		idx += size
 	}
 
-	return AsValue(b.String()), nil
+	return AsSafeValue(b.String()), nil
 }
 
 // filterAdd adds the argument to the value. Works with numbers (integers and floats)
@@ -1155,7 +1155,7 @@ func filterLinebreaks(in *Value, param *Value) (*Value, error) {
 		b.WriteString("</p>")
 	}
 
-	return AsValue(b.String()), nil
+	return AsSafeValue(b.String()), nil
 }
 
 // filterSplit splits a string by the given separator and returns a list.
@@ -1187,7 +1187,7 @@ func filterLinebreaksbr(in *Value, param *Value) (*Value, error) {
 	// Normalize \r\n and \r to \n before replacing
 	s := strings.ReplaceAll(in.String(), "\r\n", "\n")
 	s = strings.ReplaceAll(s, "\r", "\n")
-	return AsValue(strings.ReplaceAll(s, "\n", "<br />")), nil
+	return AsSafeValue(strings.ReplaceAll(s, "\n", "<br />")), nil
 }
 
 // filterLinenumbers prepends line numbers to each line in the text.
@@ -1350,7 +1350,7 @@ func filterUrlize(in *Value, param *Value) (*Value, error) {
 		}
 	}
 
-	return AsValue(s), nil
+	return AsSafeValue(s), nil
 }
 
 // filterUrlizetrunc works like urlize but truncates URLs longer than the given
@@ -1369,7 +1369,7 @@ func filterUrlizetrunc(in *Value, param *Value) (*Value, error) {
 			OrigError: err,
 		}
 	}
-	return AsValue(s), nil
+	return AsSafeValue(s), nil
 }
 
 // filterStringformat formats the value according to the argument, which is a

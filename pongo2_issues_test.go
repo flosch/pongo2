@@ -1873,3 +1873,67 @@ func TestBugJSONScriptIDEscaping(t *testing.T) {
 		})
 	}
 }
+
+func TestBugFilterDoubleEscaping(t *testing.T) {
+	// Filters that produce HTML output must return AsSafeValue to prevent
+	// double-escaping when autoescape is enabled (the default).
+	tests := []struct {
+		name     string
+		template string
+		context  pongo2.Context
+		expected string
+	}{
+		{
+			name:     "escape filter not double-escaped",
+			template: `{{ val|escape }}`,
+			context:  pongo2.Context{"val": "<b>test</b>"},
+			expected: "&lt;b&gt;test&lt;/b&gt;",
+		},
+		{
+			name:     "escapejs filter not double-escaped",
+			template: `{{ val|escapejs }}`,
+			context:  pongo2.Context{"val": `he said "hello"`},
+			expected: `he said \u0022hello\u0022`,
+		},
+		{
+			name:     "linebreaks filter not double-escaped",
+			template: `{{ val|linebreaks }}`,
+			context:  pongo2.Context{"val": "hello\nworld"},
+			expected: "<p>hello<br />world</p>",
+		},
+		{
+			name:     "linebreaksbr filter not double-escaped",
+			template: `{{ val|linebreaksbr }}`,
+			context:  pongo2.Context{"val": "hello\nworld"},
+			expected: "hello<br />world",
+		},
+		{
+			name:     "urlize filter not double-escaped",
+			template: `{{ val|urlize }}`,
+			context:  pongo2.Context{"val": "Visit http://example.com"},
+			expected: `Visit <a href="http://example.com" rel="nofollow">http://example.com</a>`,
+		},
+		{
+			name:     "urlizetrunc filter not double-escaped",
+			template: `{{ val|urlizetrunc:15 }}`,
+			context:  pongo2.Context{"val": "Visit http://example.com"},
+			expected: `Visit <a href="http://example.com" rel="nofollow">http://example…</a>`,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tpl, err := pongo2.FromString(tt.template)
+			if err != nil {
+				t.Fatalf("parse error: %v", err)
+			}
+			result, err := tpl.Execute(tt.context)
+			if err != nil {
+				t.Fatalf("execute error: %v", err)
+			}
+			if result != tt.expected {
+				t.Errorf("got %q, want %q", result, tt.expected)
+			}
+		})
+	}
+}
