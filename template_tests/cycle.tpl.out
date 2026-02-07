@@ -128,3 +128,4 @@
 'item1'
 ''
 'john doe'
+safe&lt;script&gt;alert(&quot;uh oh&quot;);&lt;/script&gt;safe&lt;script&gt;alert(&quot;uh oh&quot;);&lt;/script&gt;safe&lt;script&gt;alert(&quot;uh oh&quot;);&lt;/script&gt;safe&lt;script&gt;alert(&quot;uh oh&quot;);&lt;/script&gt;safe&lt;script&gt;alert(&quot;uh oh&quot;);&lt;/script&gt;

@@ -8,6 +8,8 @@ type tagCycleValue struct {
 
 // tagCycleNode represents the {% cycle %} tag.
 //
+// Verified against Django 4.2 with script (autoescape behavior).
+//
 // The cycle tag cycles through a list of values each time it is encountered.
 // It's commonly used within loops to alternate between values (e.g., alternating
 // row colors in a table).
@@ -84,6 +86,13 @@ func (node *tagCycleNode) Execute(ctx *ExecutionContext, writer TemplateWriter) 
 		t.value = val
 
 		if !t.node.silent {
+			// Apply autoescape like Django's render_value_in_context
+			if ctx.Autoescape && !item.FilterApplied("safe") && val.IsString() {
+				val, err = ctx.template.set.ApplyFilter("escape", val, nil)
+				if err != nil {
+					return err
+				}
+			}
 			if _, err := writer.WriteString(val.String()); err != nil {
 				return err
 			}
@@ -100,6 +109,13 @@ func (node *tagCycleNode) Execute(ctx *ExecutionContext, writer TemplateWriter) 
 			ctx.Private[node.asName] = cycleValue
 		}
 		if !node.silent {
+			// Apply autoescape like Django's render_value_in_context
+			if ctx.Autoescape && !item.FilterApplied("safe") && val.IsString() {
+				val, err = ctx.template.set.ApplyFilter("escape", val, nil)
+				if err != nil {
+					return err
+				}
+			}
 			if _, err := writer.WriteString(val.String()); err != nil {
 				return err
 			}
