@@ -496,3 +496,91 @@ func TestIssue237(t *testing.T) {
 		})
 	}
 }
+
+func TestBugStringByteIndexing(t *testing.T) {
+	// Bug: String indexing used byte offset instead of rune offset.
+	// For multi-byte UTF-8 characters (e.g., Chinese, emoji), accessing
+	// string[1] would return a garbled byte instead of the second character.
+	// This affects both integer index access (e.g., "var.0") and subscript
+	// access (e.g., "var[idx]").
+
+	tests := []struct {
+		name     string
+		template string
+		context  pongo2.Context
+		expected string
+	}{
+		{
+			name:     "ASCII string index 0",
+			template: `{{ s.0 }}`,
+			context:  pongo2.Context{"s": "hello"},
+			expected: "h",
+		},
+		{
+			name:     "ASCII string index 1",
+			template: `{{ s.1 }}`,
+			context:  pongo2.Context{"s": "hello"},
+			expected: "e",
+		},
+		{
+			name:     "multi-byte string index 0",
+			template: `{{ s.0 }}`,
+			context:  pongo2.Context{"s": "日本語"},
+			expected: "日",
+		},
+		{
+			name:     "multi-byte string index 1",
+			template: `{{ s.1 }}`,
+			context:  pongo2.Context{"s": "日本語"},
+			expected: "本",
+		},
+		{
+			name:     "multi-byte string index 2",
+			template: `{{ s.2 }}`,
+			context:  pongo2.Context{"s": "日本語"},
+			expected: "語",
+		},
+		{
+			name:     "mixed ASCII and multi-byte index",
+			template: `{{ s.1 }}`,
+			context:  pongo2.Context{"s": "aüc"},
+			expected: "ü",
+		},
+		{
+			name:     "subscript access multi-byte string",
+			template: `{{ s[idx] }}`,
+			context:  pongo2.Context{"s": "日本語", "idx": 2},
+			expected: "語",
+		},
+		{
+			name:     "out of bounds returns empty for multi-byte",
+			template: `{{ s.3 }}`,
+			context:  pongo2.Context{"s": "日本語"},
+			expected: "",
+		},
+		{
+			name:     "emoji string indexing",
+			template: `{{ s.1 }}`,
+			context:  pongo2.Context{"s": "A😀B"},
+			expected: "😀",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tpl, err := pongo2.FromString(tt.template)
+			if err != nil {
+				t.Fatalf("failed to parse template: %v", err)
+			}
+
+			result, err := tpl.Execute(tt.context)
+			if err != nil {
+				t.Fatalf("failed to execute template: %v", err)
+			}
+
+			if result != tt.expected {
+				t.Errorf("expected %q, got %q", tt.expected, result)
+			}
+		})
+	}
+}

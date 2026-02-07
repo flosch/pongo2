@@ -360,10 +360,10 @@ func (vr *variableResolver) resolvePartByType(
 func (vr *variableResolver) resolveIntIndex(current reflect.Value, part *variablePart) (reflect.Value, bool, error) {
 	switch current.Kind() {
 	case reflect.String:
-		// For strings, return the character at the index (Django-compatible behavior)
-		s := current.String()
-		if part.i >= 0 && len(s) > part.i {
-			return reflect.ValueOf(string(s[part.i])), false, nil
+		// For strings, return the character (rune) at the index (Django-compatible behavior)
+		runes := []rune(current.String())
+		if part.i >= 0 && len(runes) > part.i {
+			return reflect.ValueOf(string(runes[part.i])), false, nil
 		}
 		return reflect.Value{}, true, nil
 	case reflect.Array, reflect.Slice:
@@ -403,11 +403,11 @@ func (vr *variableResolver) resolveSubscript(
 
 	switch current.Kind() {
 	case reflect.String:
-		// For strings, return the character at the index (Django-compatible behavior)
-		s := current.String()
+		// For strings, return the character (rune) at the index (Django-compatible behavior)
+		runes := []rune(current.String())
 		si := sv.Integer()
-		if si >= 0 && len(s) > si {
-			return reflect.ValueOf(string(s[si])), false, nil
+		if si >= 0 && len(runes) > si {
+			return reflect.ValueOf(string(runes[si])), false, nil
 		}
 		return reflect.Value{}, true, nil
 	case reflect.Array, reflect.Slice:
