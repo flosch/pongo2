@@ -755,6 +755,34 @@ func TestValueContainsMapKeys(t *testing.T) {
 	})
 }
 
+func TestBugContainsPointerKey(t *testing.T) {
+	// Contains() should dereference pointer values before type-checking
+	// against map key types.
+	m := map[string]int{"hello": 42, "world": 99}
+	s := "hello"
+	ptr := &s
+
+	mv := AsValue(m)
+	kv := AsValue(ptr) // pointer to string
+
+	if !mv.Contains(kv) {
+		t.Error("Contains() should find key through pointer dereference")
+	}
+
+	// Also test via template
+	tpl, err := FromString(`{% if key in mymap %}found{% else %}not found{% endif %}`)
+	if err != nil {
+		t.Fatalf("parse error: %v", err)
+	}
+	result, err := tpl.Execute(Context{"key": ptr, "mymap": m})
+	if err != nil {
+		t.Fatalf("execute error: %v", err)
+	}
+	if result != "found" {
+		t.Errorf("'in' operator should find pointer key, got %q", result)
+	}
+}
+
 func TestBugSortedKeysMixedIntFloat(t *testing.T) {
 	// When sorting a slice with mixed int and float values, the comparator
 	// should use numeric comparison, not fall back to string comparison

@@ -353,13 +353,13 @@ func (v *Value) Contains(other *Value) bool {
 		if !other.val.IsValid() {
 			return false
 		}
-		// Ensure that map key type is equal to other's type.
-		if baseValue.Type().Key() != other.val.Type() {
+		otherResolved := other.getResolvedValue()
+		// Ensure that map key type is equal to the resolved other type.
+		if baseValue.Type().Key() != otherResolved.Type() {
 			return false
 		}
 
-		// Use MapIndex directly - type check already verified key type matches
-		mapValue := baseValue.MapIndex(other.getResolvedValue())
+		mapValue := baseValue.MapIndex(otherResolved)
 		return mapValue.IsValid()
 	case reflect.String:
 		return strings.Contains(baseValue.String(), other.String())
@@ -432,8 +432,9 @@ func (v *Value) GetItem(key *Value) *Value {
 			mapKey = reflect.ValueOf(key.Integer()).Convert(mapKeyType)
 		default:
 			// Try direct conversion if the key type matches
-			if key.val.IsValid() && key.val.Type().ConvertibleTo(mapKeyType) {
-				mapKey = key.val.Convert(mapKeyType)
+			keyResolved := key.getResolvedValue()
+			if keyResolved.IsValid() && keyResolved.Type().ConvertibleTo(mapKeyType) {
+				mapKey = keyResolved.Convert(mapKeyType)
 			} else {
 				return AsValue(nil)
 			}
