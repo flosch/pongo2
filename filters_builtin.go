@@ -1277,8 +1277,9 @@ func filterUrlizeHelper(input string, autoescape bool, trunc int) (string, error
 
 		title := raw_url
 
-		if trunc > 1 && len(title) > trunc {
-			title = title[:trunc-1] + ellipsis
+		titleRunes := []rune(title)
+		if trunc > 1 && len(titleRunes) > trunc {
+			title = string(titleRunes[:trunc-1]) + ellipsis
 		}
 
 		if autoescape {
@@ -1299,8 +1300,9 @@ func filterUrlizeHelper(input string, autoescape bool, trunc int) (string, error
 	sout = filterUrlizeEmailRegexp.ReplaceAllStringFunc(sout, func(mail string) string {
 		title := mail
 
-		if trunc > 1 && len(title) > trunc {
-			title = title[:trunc-1] + ellipsis
+		titleRunes := []rune(title)
+		if trunc > 1 && len(titleRunes) > trunc {
+			title = string(titleRunes[:trunc-1]) + ellipsis
 		}
 
 		return fmt.Sprintf(`<a href="mailto:%s">%s</a>`, mail, title)

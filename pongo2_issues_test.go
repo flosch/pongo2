@@ -8,6 +8,7 @@ import (
 	"sync/atomic"
 	"testing"
 	"testing/fstest"
+	"unicode/utf8"
 
 	"github.com/flosch/pongo2/v7"
 )
@@ -1590,4 +1591,26 @@ func TestBugPluralizeFloatTruncation(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestBugUrlizetruncByteVsRuneLength(t *testing.T) {
+	// Bug: urlizetrunc uses len() (byte length) and byte slicing to truncate
+	// URLs, which can split multi-byte UTF-8 characters. Should use rune-based
+	// operations like other truncation filters.
+
+	t.Run("unicode url truncation uses rune length", func(t *testing.T) {
+		result, err := pongo2.ApplyFilter("urlizetrunc", pongo2.AsValue("http://www.例え.com/path"), pongo2.AsValue(15))
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		output := result.String()
+		// The title text should have valid UTF-8, not broken multi-byte chars
+		if !utf8.ValidString(output) {
+			t.Errorf("output contains invalid UTF-8: %q", output)
+		}
+		// The title should contain "例え" (both chars), not just "例" (truncated mid-rune)
+		if !strings.Contains(output, "例え") {
+			t.Errorf("expected output to contain '例え', got %q", output)
+		}
+	})
 }
