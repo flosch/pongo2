@@ -2110,3 +2110,34 @@ func TestSlugifyPreservesUnderscores(t *testing.T) {
 		}
 	}
 }
+
+func TestTitleFilterDjangoCompat(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected string
+	}{
+		{"hello world", "Hello World"},
+		{"HELLO WORLD", "Hello World"},
+		{"it's a test", "It's A Test"},
+		{"they're awesome", "They're Awesome"},
+		{"hello-world", "Hello-World"},
+		{"hello_world", "Hello_World"},
+		{"123abc", "123abc"},
+		{"1st place", "1st Place"},
+		{"  hello  world  ", "  Hello  World  "},
+	}
+
+	for _, tt := range tests {
+		tpl, err := pongo2.FromString(`{% autoescape off %}{{ val|title }}{% endautoescape %}`)
+		if err != nil {
+			t.Fatalf("failed to parse template: %v", err)
+		}
+		result, err := tpl.Execute(pongo2.Context{"val": tt.input})
+		if err != nil {
+			t.Fatalf("failed to execute template: %v", err)
+		}
+		if result != tt.expected {
+			t.Errorf("title(%q) = %q, want %q", tt.input, result, tt.expected)
+		}
+	}
+}

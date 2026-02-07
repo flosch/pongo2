@@ -20,10 +20,9 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"unicode"
 	"unicode/utf8"
 
-	"golang.org/x/text/cases"
-	"golang.org/x/text/language"
 	"golang.org/x/text/unicode/norm"
 )
 
@@ -1679,8 +1678,18 @@ func filterSlice(in *Value, param *Value) (*Value, error) {
 	return in.Slice(from, to), nil
 }
 
+// reTitleApostrophe matches a lowercase letter followed by an apostrophe and an uppercase letter.
+// Used to fix Python's str.title() behavior with apostrophes, e.g., "It'S" -> "It's".
+var reTitleApostrophe = regexp.MustCompile(`([a-z])'([A-Z])`)
+
+// reTitleDigit matches a digit followed by an uppercase letter.
+// Used to fix titlecase after digits, e.g., "1St" -> "1st".
+var reTitleDigit = regexp.MustCompile(`(\d)([A-Z])`)
+
 // filterTitle converts a string to title case, where the first character of
-// each word is capitalized and the rest are lowercase.
+// each word is capitalized and the rest are lowercase. Matches Django's behavior:
+// capitalizes after any non-alphanumeric character (including underscores and hyphens),
+// but not after apostrophes within words or after digits.
 //
 // Usage:
 //
@@ -1691,12 +1700,47 @@ func filterSlice(in *Value, param *Value) (*Value, error) {
 //	{{ "HELLO WORLD"|title }}
 //
 // Output: "Hello World"
+//
+//	{{ "hello_world"|title }}
+//
+// Output: "Hello_World"
+//
+//	{{ "it's a test"|title }}
+//
+// Output: "It's A Test"
 func filterTitle(in *Value, param *Value) (*Value, error) {
 	if !in.IsString() {
 		return AsValue(""), nil
 	}
-	caser := cases.Title(language.English)
-	return AsValue(caser.String(strings.ToLower(in.String()))), nil
+	s := in.String()
+
+	// Titlecase: capitalize the first letter after any non-alphanumeric character.
+	// This matches Python's str.title() behavior.
+	runes := []rune(s)
+	capitalizeNext := true
+	for i, r := range runes {
+		if !unicode.IsLetter(r) && !unicode.IsDigit(r) {
+			capitalizeNext = true
+		} else if capitalizeNext {
+			runes[i] = unicode.ToUpper(r)
+			capitalizeNext = false
+		} else {
+			runes[i] = unicode.ToLower(r)
+		}
+	}
+	result := string(runes)
+
+	// Fix apostrophe case: "It'S" -> "It's" (Django regex: ([a-z])'([A-Z]))
+	result = reTitleApostrophe.ReplaceAllStringFunc(result, func(m string) string {
+		return strings.ToLower(m)
+	})
+
+	// Fix digit case: "1St" -> "1st" (Django regex: \d([A-Z]))
+	result = reTitleDigit.ReplaceAllStringFunc(result, func(m string) string {
+		return strings.ToLower(m)
+	})
+
+	return AsValue(result), nil
 }
 
 // filterWordcount returns the number of words in the string.
