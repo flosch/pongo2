@@ -1064,3 +1064,139 @@ func TestWidthratioBankersRounding(t *testing.T) {
 		})
 	}
 }
+
+func TestBugTruncatecharsHTMLByteVsRuneComparison(t *testing.T) {
+	// Bug: truncatechars_html's finalize function checks `textcounter < len(value)`
+	// where textcounter counts runes but len(value) counts bytes. For multi-byte
+	// UTF-8 strings, the byte length is always greater than the rune count, causing
+	// the ellipsis to be added incorrectly when the full text fits within the limit.
+
+	tests := []struct {
+		name     string
+		template string
+		expected string
+	}{
+		{
+			name:     "multi-byte chars exactly at limit should not add ellipsis",
+			template: `{{ "你好世界"|truncatechars_html:4 }}`,
+			expected: "你好世界", // 4 chars, limit 4, no truncation needed
+		},
+		{
+			name:     "multi-byte chars over limit adds ellipsis",
+			template: `{{ "你好世界天"|truncatechars_html:4 }}`,
+			expected: "你好世…", // 5 chars, limit 4 -> 3 chars + ellipsis
+		},
+		{
+			name:     "ASCII exactly at limit no ellipsis",
+			template: `{{ "abcd"|truncatechars_html:4 }}`,
+			expected: "abcd",
+		},
+		{
+			name:     "multi-byte in HTML at limit",
+			template: `{{ "<p>你好世界</p>"|truncatechars_html:4 }}`,
+			expected: "<p>你好世界</p>", // 4 text chars, limit 4, HTML tags don't count
+		},
+		// Unusual / edge cases with bare angle brackets and malformed HTML
+		{
+			name:     "bare less-than treated as tag opener",
+			template: `{{ "a < b"|truncatechars_html:5 }}`,
+			expected: "a < b", // '<' starts a "tag", ' b' becomes tag content; only 2 text runes ("a" and " "), fits in limit
+		},
+		{
+			name:     "bare greater-than counted as text",
+			template: `{{ "a > b > c"|truncatechars_html:3 }}`,
+			expected: "a …", // countHTMLTextRunes counts 7 text runes (> doesn't start/end tags outside a tag), truncation at 2 chars + ellipsis
+		},
+		{
+			name:     "only less-than sign",
+			template: `{{ "<"|truncatechars_html:5 }}`,
+			expected: "<", // '<' starts tag, no text runes -> no truncation
+		},
+		{
+			name:     "only greater-than sign",
+			template: `{{ ">"|truncatechars_html:5 }}`,
+			expected: ">", // '>' is counted by countHTMLTextRunes as ending tag state (but we're not in tag) -> 0 text runes? Let's check
+		},
+		{
+			name:     "unclosed tag at end no truncation",
+			template: `{{ "hello<br"|truncatechars_html:5 }}`,
+			expected: "hello<br", // 5 text chars "hello" fits limit; early return preserves raw string including unclosed tag
+		},
+		{
+			name:     "self-closing tag not counted",
+			template: `{{ "<br/>hello"|truncatechars_html:5 }}`,
+			expected: "<br/>hello", // 5 text runes, limit 5 -> no truncation
+		},
+		{
+			name:     "nested tags with truncation",
+			template: `{{ "<div><p>hello world</p></div>"|truncatechars_html:7 }}`,
+			expected: "<div><p>hello …</p></div>", // 11 text chars, limit 7 -> 6 chars + ellipsis
+		},
+		{
+			name:     "empty string",
+			template: `{{ ""|truncatechars_html:5 }}`,
+			expected: "", // no text at all
+		},
+		{
+			name:     "only tags no text",
+			template: `{{ "<p><br/></p>"|truncatechars_html:5 }}`,
+			expected: "<p><br/></p>", // 0 text runes, fits in limit
+		},
+		{
+			name:     "limit zero",
+			template: `{{ "hello"|truncatechars_html:0 }}`,
+			expected: "…", // over limit, 0-1 = max(0) -> immediate ellipsis
+		},
+		{
+			name:     "limit one with text",
+			template: `{{ "hi"|truncatechars_html:1 }}`,
+			expected: "…", // 2 text runes > 1, reserve 1 for ellipsis -> 0 chars + ellipsis
+		},
+		{
+			name:     "consecutive angle brackets",
+			template: `{{ "<<>>abc"|truncatechars_html:10 }}`,
+			expected: "<<>>abc", // fits in limit
+		},
+		{
+			name:     "greater-than before less-than no truncation",
+			template: `{{ "a>b<c"|truncatechars_html:10 }}`,
+			expected: "a>b<c", // 2 text runes ("a", "b") fits limit; early return preserves raw string
+		},
+		{
+			name:     "unclosed tag with truncation",
+			template: `{{ "hello world<br"|truncatechars_html:5 }}`,
+			expected: "hell…", // 11 text runes > 5; truncate at 4 + ellipsis; trailing <br without > is consumed but not pushed to stack
+		},
+		{
+			name:     "bare less-than with truncation",
+			template: `{{ "abcde < fgh"|truncatechars_html:4 }}`,
+			expected: "abc…", // '<' starts tag so only "abcde " is 6 text runes by countHTMLTextRunes; truncate at 3 + ellipsis
+		},
+		{
+			name:     "bare greater-than with truncation",
+			template: `{{ "a>bcdefgh"|truncatechars_html:4 }}`,
+			expected: "a>b…", // helper treats '>' as text when not in tag; 9 text runes > 4; truncate at 3 + ellipsis
+		},
+		{
+			name:     "multiple unclosed tags with truncation",
+			template: `{{ "<b><i>hello world</i></b>"|truncatechars_html:8 }}`,
+			expected: "<b><i>hello w…</i></b>", // 11 text chars, limit 8 -> 7 + ellipsis
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tpl, err := pongo2.FromString(tt.template)
+			if err != nil {
+				t.Fatalf("failed to parse template: %v", err)
+			}
+			result, err := tpl.Execute(nil)
+			if err != nil {
+				t.Fatalf("failed to execute template: %v", err)
+			}
+			if result != tt.expected {
+				t.Errorf("expected %q, got %q", tt.expected, result)
+			}
+		})
+	}
+}

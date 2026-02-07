@@ -153,6 +153,27 @@ func filterTruncatecharsHelper(s string, newLen int) string {
 	return string(runes)
 }
 
+// countHTMLTextRunes counts the number of text runes (non-tag characters)
+// in an HTML string. This is used to determine whether truncation is needed.
+func countHTMLTextRunes(value string) int {
+	count := 0
+	inTag := false
+	for _, c := range value {
+		if c == '<' {
+			inTag = true
+			continue
+		}
+		if c == '>' {
+			inTag = false
+			continue
+		}
+		if !inTag {
+			count++
+		}
+	}
+	return count
+}
+
 func filterTruncateHTMLHelper(value string, newOutput *bytes.Buffer, cond func() bool, fn func(c rune, s int, idx int) int, finalize func()) {
 	vLen := len(value)
 	var tagStack []string
@@ -292,7 +313,20 @@ func filterTruncatechars(in *Value, param *Value) (*Value, error) {
 // Output: "<p>Joel i…</p>"
 func filterTruncatecharsHTML(in *Value, param *Value) (*Value, error) {
 	value := in.String()
-	newLen := max(param.Integer()-1, 0)
+	maxLen := param.Integer()
+
+	// Count the total number of text runes (excluding HTML tags) to determine
+	// whether truncation is actually needed. Without this, we would always
+	// reserve space for the ellipsis and truncate even when the full text
+	// fits within the limit.
+	totalTextRunes := countHTMLTextRunes(value)
+	if totalTextRunes <= maxLen {
+		// No truncation needed - return original value with tags intact
+		return AsSafeValue(value), nil
+	}
+
+	// Reserve one character position for the ellipsis
+	newLen := max(maxLen-1, 0)
 
 	var newOutput bytes.Buffer
 
@@ -306,7 +340,7 @@ func filterTruncatecharsHTML(in *Value, param *Value) (*Value, error) {
 
 		return idx + s
 	}, func() {
-		if textcounter >= newLen && textcounter < len(value) {
+		if textcounter >= newLen {
 			newOutput.WriteString(ellipsis)
 		}
 	})
