@@ -1,6 +1,7 @@
 package pongo2_test
 
 import (
+	"strings"
 	"sync"
 	"testing"
 	"testing/fstest"
@@ -580,6 +581,47 @@ func TestBugStringByteIndexing(t *testing.T) {
 
 			if result != tt.expected {
 				t.Errorf("expected %q, got %q", tt.expected, result)
+			}
+		})
+	}
+}
+
+func TestBugLjustRjustErrorMessage(t *testing.T) {
+	// Bug: ljust and rjust used %c format verb instead of %d in error messages.
+	// With maxCharPadding=10000, %c would render U+2710 (✐) instead of "10000".
+
+	tests := []struct {
+		name            string
+		template        string
+		expectedContain string
+	}{
+		{
+			name:            "ljust error contains number not unicode",
+			template:        `{{ "x"|ljust:20000 }}`,
+			expectedContain: "10000",
+		},
+		{
+			name:            "rjust error contains number not unicode",
+			template:        `{{ "x"|rjust:20000 }}`,
+			expectedContain: "10000",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tpl, err := pongo2.FromString(tt.template)
+			if err != nil {
+				t.Fatalf("failed to parse template: %v", err)
+			}
+
+			_, err = tpl.Execute(nil)
+			if err == nil {
+				t.Fatal("expected an error but got none")
+			}
+
+			errMsg := err.Error()
+			if !strings.Contains(errMsg, tt.expectedContain) {
+				t.Errorf("error message should contain %q, got %q", tt.expectedContain, errMsg)
 			}
 		})
 	}
