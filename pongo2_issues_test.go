@@ -669,3 +669,44 @@ func TestBugAutoescapeNotRestoredOnError(t *testing.T) {
 		t.Errorf("expected %q, got %q", expected2, result2)
 	}
 }
+
+func TestBugLexerColumnMultiByteUTF8(t *testing.T) {
+	// Bug: The lexer incremented col by byte width instead of 1 for each rune.
+	// For multi-byte UTF-8 characters, error column numbers would be wrong.
+
+	tests := []struct {
+		name        string
+		template    string
+		expectedCol string
+	}{
+		{
+			name:        "error column with only ASCII (baseline)",
+			template:    "abc{{ invalid_syntax( }}",
+			expectedCol: "Col 23",
+		},
+		{
+			name:        "error column after multi-byte chars",
+			template:    "日本語{{ invalid_syntax( }}",
+			expectedCol: "Col 23",
+		},
+		{
+			name:        "error column after mixed ASCII and multi-byte",
+			template:    "aüc{{ invalid_syntax( }}",
+			expectedCol: "Col 23",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := pongo2.FromString(tt.template)
+			if err == nil {
+				t.Fatal("expected a parse error but got none")
+			}
+
+			errMsg := err.Error()
+			if !strings.Contains(errMsg, tt.expectedCol) {
+				t.Errorf("error message should contain %q, got %q", tt.expectedCol, errMsg)
+			}
+		})
+	}
+}
