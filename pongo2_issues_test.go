@@ -1783,3 +1783,48 @@ func TestBugLinenumbersWindowsNewlines(t *testing.T) {
 		t.Errorf("expected %q, got %q", expected, result)
 	}
 }
+
+func TestBugTruncatewordsEllipsis(t *testing.T) {
+	// Django uses unicode ellipsis (…) not three dots (...)
+	tests := []struct {
+		name     string
+		template string
+		context  pongo2.Context
+		expected string
+	}{
+		{
+			name:     "truncatewords uses unicode ellipsis",
+			template: `{{ text|truncatewords:2 }}`,
+			context:  pongo2.Context{"text": "Hello beautiful world"},
+			expected: "Hello beautiful \u2026",
+		},
+		{
+			name:     "truncatewords no truncation no ellipsis",
+			template: `{{ text|truncatewords:5 }}`,
+			context:  pongo2.Context{"text": "Hello world"},
+			expected: "Hello world",
+		},
+		{
+			name:     "truncatewords_html uses unicode ellipsis",
+			template: `{{ text|truncatewords_html:2 }}`,
+			context:  pongo2.Context{"text": "<p>Hello beautiful world</p>"},
+			expected: "<p>Hello beautiful \u2026</p>",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tpl, err := pongo2.FromString(tt.template)
+			if err != nil {
+				t.Fatalf("parse error: %v", err)
+			}
+			result, err := tpl.Execute(tt.context)
+			if err != nil {
+				t.Fatalf("execute error: %v", err)
+			}
+			if result != tt.expected {
+				t.Errorf("got %q, want %q", result, tt.expected)
+			}
+		})
+	}
+}

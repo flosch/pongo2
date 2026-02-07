@@ -269,7 +269,7 @@ phone2numeric
 999-766462
 
 truncatewords
-Lorem ipsum dolor sit amet, consectetur adipisici elit, sed ...
+Lorem ipsum dolor sit amet, consectetur adipisici elit, sed …
 10
 
 你好世界
@@ -348,12 +348,12 @@ This is a long test whic…
 
 truncatewords_html
 This is a long test which will be cutted after some words.
-<div class="foo"><ul class="foo"><li class="foo"><p class="foo">This is a long test ...</p></li></ul></div>
-<p>This. is. a. long test. Test test, test....</p>
-<a name='link' href="https://...."><p class="foo">This </a>is a long test,...</p>
-<p>This </a>is a long test,...</p>
-<p>This is ...</p>
-...
+<div class="foo"><ul class="foo"><li class="foo"><p class="foo">This is a long test …</p></li></ul></div>
+<p>This. is. a. long test. Test test, test.…</p>
+<a name='link' href="https://...."><p class="foo">This </a>is a long test,…</p>
+<p>This </a>is a long test,…</p>
+<p>This is …</p>
+…
 
 timesince
 3 years, 2 months

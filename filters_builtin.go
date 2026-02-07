@@ -374,7 +374,7 @@ func filterTruncatewords(in *Value, param *Value) (*Value, error) {
 	}
 
 	if n < len(words) {
-		out = append(out, "...")
+		out = append(out, "\u2026")
 	}
 
 	return AsValue(strings.Join(out, " ")), nil
@@ -433,7 +433,7 @@ func filterTruncatewordsHTML(in *Value, param *Value) (*Value, error) {
 		return idx
 	}, func() {
 		if wordcounter >= newLen {
-			newOutput.WriteString("...")
+			newOutput.WriteString("\u2026")
 		}
 	})
 
