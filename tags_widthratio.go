@@ -65,7 +65,7 @@ func (node *tagWidthratioNode) Execute(ctx *ExecutionContext, writer TemplateWri
 		return err
 	}
 
-	value := int(math.Ceil(current.Float()/max.Float()*width.Float() + 0.5))
+	value := int(math.Round(current.Float() / max.Float() * width.Float()))
 
 	if node.ctxName == "" {
 		if _, err := fmt.Fprintf(writer, "%d", value); err != nil {

@@ -757,3 +757,59 @@ func TestBugNegateFloatReturns1Point1(t *testing.T) {
 		t.Errorf("Negate() of zero float should be 1.0, got %v", negated2.Float())
 	}
 }
+
+func TestBugWidthratioDoubleRounding(t *testing.T) {
+	// Bug: widthratio used Ceil(x + 0.5) which double-rounds.
+	// For exact integer results like 50/100*200 = 100.0,
+	// Ceil(100.0 + 0.5) = 101 instead of the correct 100.
+
+	tests := []struct {
+		name     string
+		template string
+		expected string
+	}{
+		{
+			name:     "exact integer result not inflated",
+			template: `{% widthratio 50 100 200 %}`,
+			expected: "100",
+		},
+		{
+			name:     "exact integer result 75/100*400",
+			template: `{% widthratio 75 100 400 %}`,
+			expected: "300",
+		},
+		{
+			name:     "fractional result rounds correctly",
+			template: `{% widthratio 175 200 100 %}`,
+			expected: "88",
+		},
+		{
+			name:     "small fraction rounds down",
+			template: `{% widthratio 1 3 100 %}`,
+			expected: "33",
+		},
+		{
+			name:     "zero value",
+			template: `{% widthratio 0 100 200 %}`,
+			expected: "0",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tpl, err := pongo2.FromString(tt.template)
+			if err != nil {
+				t.Fatalf("failed to parse template: %v", err)
+			}
+
+			result, err := tpl.Execute(nil)
+			if err != nil {
+				t.Fatalf("failed to execute template: %v", err)
+			}
+
+			if result != tt.expected {
+				t.Errorf("expected %q, got %q", tt.expected, result)
+			}
+		})
+	}
+}
