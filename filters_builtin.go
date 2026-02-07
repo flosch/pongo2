@@ -2215,7 +2215,7 @@ func filterSlugify(in *Value, param *Value) (*Value, error) {
 	// Unicode code points in the Mark category and will be stripped here.
 	var result strings.Builder
 	for _, r := range s {
-		if (r >= 'a' && r <= 'z') || (r >= '0' && r <= '9') || r == '-' {
+		if (r >= 'a' && r <= 'z') || (r >= '0' && r <= '9') || r == '-' || r == '_' {
 			result.WriteRune(r)
 		}
 	}
@@ -2226,8 +2226,8 @@ func filterSlugify(in *Value, param *Value) (*Value, error) {
 		s = strings.ReplaceAll(s, "--", "-")
 	}
 
-	// Trim leading and trailing hyphens
-	s = strings.Trim(s, "-")
+	// Trim leading and trailing hyphens and underscores
+	s = strings.Trim(s, "-_")
 
 	return AsValue(s), nil
 }

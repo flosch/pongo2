@@ -2081,3 +2081,32 @@ func TestBugTimesinceDjangoCompat(t *testing.T) {
 		})
 	}
 }
+
+func TestSlugifyPreservesUnderscores(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected string
+	}{
+		{"Hello_World", "hello_world"},
+		{"hello_world_test", "hello_world_test"},
+		{"a_b_c", "a_b_c"},
+		{"under_score", "under_score"},
+		{"_leading", "leading"},
+		{"trailing_", "trailing"},
+		{"__double__", "double"},
+	}
+
+	for _, tt := range tests {
+		tpl, err := pongo2.FromString(`{{ val|slugify }}`)
+		if err != nil {
+			t.Fatalf("failed to parse template: %v", err)
+		}
+		result, err := tpl.Execute(pongo2.Context{"val": tt.input})
+		if err != nil {
+			t.Fatalf("failed to execute template: %v", err)
+		}
+		if result != tt.expected {
+			t.Errorf("slugify(%q) = %q, want %q", tt.input, result, tt.expected)
+		}
+	}
+}

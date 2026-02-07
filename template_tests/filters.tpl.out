@@ -376,6 +376,8 @@ hello-world
 spaces-around
 multiple-hyphens
 
+hello_world
+under_score_test
 
 filesizeformat
 0 bytes
