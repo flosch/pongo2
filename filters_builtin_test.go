@@ -2869,20 +2869,21 @@ func TestFilterCenterSmallerThanInput(t *testing.T) {
 	}
 }
 
-// TestFilterCenterPaddingDirection verifies that center filter puts extra space
-// on the right when padding is odd, matching Django's str.center() behavior.
+// TestFilterCenterPaddingDirection verifies that center filter matches
+// Python's str.center() padding bias: extra space goes left when both
+// margin and width are odd, right otherwise.
 func TestFilterCenterPaddingDirection(t *testing.T) {
 	tests := []struct {
 		input    string
 		width    int
 		expected string
 	}{
-		{"test", 19, "       test        "},   // 7 left, 8 right (extra on right)
+		{"test", 19, "        test       "},   // 8 left, 7 right (marg=15, w=19, both odd)
 		{"test", 20, "        test        "},  // 8 left, 8 right (even)
 		{"test2", 19, "       test2       "},  // 7 left, 7 right (even)
-		{"test2", 20, "       test2        "}, // 7 left, 8 right (extra on right)
-		{"x", 4, " x  "},                      // 1 left, 2 right (extra on right)
-		{"ab", 5, " ab  "},                    // 1 left, 2 right (extra on right)
+		{"test2", 20, "       test2        "}, // 7 left, 8 right (marg=15, w=20, w even)
+		{"x", 4, " x  "},                      // 1 left, 2 right (marg=3, w=4, w even)
+		{"ab", 5, "  ab "},                    // 2 left, 1 right (marg=3, w=5, both odd)
 	}
 	for _, tc := range tests {
 		result, err := filterCenter(AsValue(tc.input), AsValue(tc.width))

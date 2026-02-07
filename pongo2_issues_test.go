@@ -2246,3 +2246,35 @@ func TestMacroDefaultValueConsistency(t *testing.T) {
 		})
 	}
 }
+
+func TestCenterPaddingMatchesPython(t *testing.T) {
+	tests := []struct {
+		input    string
+		width    int
+		expected string
+	}{
+		// Both margin and width odd → extra space on LEFT
+		{"test", 19, "        test       "},
+		{"ab", 5, "  ab "},
+		// Margin odd, width even → extra space on RIGHT
+		{"test2", 20, "       test2        "},
+		{"x", 4, " x  "},
+		// Even margin → symmetric
+		{"test", 20, "        test        "},
+		{"test2", 19, "       test2       "},
+	}
+
+	for _, tt := range tests {
+		tpl, err := pongo2.FromString(fmt.Sprintf(`{{ val|center:%d }}`, tt.width))
+		if err != nil {
+			t.Fatalf("failed to parse template: %v", err)
+		}
+		result, err := tpl.Execute(pongo2.Context{"val": tt.input})
+		if err != nil {
+			t.Fatalf("failed to execute template: %v", err)
+		}
+		if result != tt.expected {
+			t.Errorf("center(%q, %d) = %q, want %q", tt.input, tt.width, result, tt.expected)
+		}
+	}
+}

@@ -1028,8 +1028,10 @@ func filterCenter(in *Value, param *Value) (*Value, error) {
 		}
 	}
 
-	left := spaces / 2
-	right := spaces/2 + spaces%2
+	// Match Python's str.center() padding bias:
+	// When odd padding, extra space goes left if width is also odd, right otherwise.
+	left := spaces/2 + (spaces & width & 1)
+	right := spaces - left
 
 	return AsValue(fmt.Sprintf("%s%s%s", strings.Repeat(" ", left),
 		in.String(), strings.Repeat(" ", right))), nil
