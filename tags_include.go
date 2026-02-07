@@ -154,7 +154,7 @@ func tagIncludeParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, e
 		// No String, then the user wants to use lazy-evaluation (slower, but possible)
 		filenameEvaluator, err := arguments.ParseExpression()
 		if err != nil {
-			return nil, updateErrorToken(err, doc.template, filenameToken)
+			return nil, updateErrorToken(err, doc.template, start)
 		}
 		includeNode.filenameEvaluator = filenameEvaluator
 		includeNode.lazy = true
@@ -185,6 +185,11 @@ func tagIncludeParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, e
 				break // stop parsing arguments because it's the last option
 			}
 		}
+	}
+
+	// Support "only" without "with" (Django allows {% include "file" only %})
+	if arguments.Match(TokenIdentifier, "only") != nil {
+		includeNode.only = true
 	}
 
 	if arguments.Remaining() > 0 {

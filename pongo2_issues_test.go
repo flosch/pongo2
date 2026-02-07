@@ -1937,3 +1937,42 @@ func TestBugFilterDoubleEscaping(t *testing.T) {
 		})
 	}
 }
+
+func TestBugIncludeOnlyWithoutWith(t *testing.T) {
+	// Django supports {% include "file" only %} without "with" keyword.
+	// This should include the template with an empty context (no parent variables).
+	fs := fstest.MapFS{
+		"child.html": &fstest.MapFile{Data: []byte("val={{ val }}")},
+	}
+	set := pongo2.NewSet("test", pongo2.NewFSLoader(fs))
+
+	tpl, err := set.FromString(`{% include "child.html" only %}`)
+	if err != nil {
+		t.Fatalf("parse error: %v", err)
+	}
+
+	result, err := tpl.Execute(pongo2.Context{"val": "hello"})
+	if err != nil {
+		t.Fatalf("execute error: %v", err)
+	}
+
+	// With "only", the parent context variable "val" should NOT be passed
+	if result != "val=" {
+		t.Errorf("got %q, want %q (parent context should be excluded with 'only')", result, "val=")
+	}
+}
+
+func TestBugIncludeLazyParseErrorToken(t *testing.T) {
+	// When {% include expression %} has a parse error, the error should
+	// not panic due to nil token. Using an invalid expression to trigger this.
+	fs := fstest.MapFS{
+		"test.html": &fstest.MapFile{Data: []byte("test")},
+	}
+	set := pongo2.NewSet("test", pongo2.NewFSLoader(fs))
+
+	// This should produce a parse error, not a panic
+	_, err := set.FromString(`{% include |invalid %}`)
+	if err == nil {
+		t.Fatal("expected parse error for invalid include expression")
+	}
+}
