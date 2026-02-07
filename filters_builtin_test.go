@@ -705,7 +705,7 @@ func TestFilterUnorderedList(t *testing.T) {
 		{
 			name:     "simple flat list",
 			input:    []string{"Item 1", "Item 2", "Item 3"},
-			expected: "<li>Item 1</li><li>Item 2</li><li>Item 3</li>",
+			expected: "\t<li>Item 1</li>\n\t<li>Item 2</li>\n\t<li>Item 3</li>",
 		},
 		{
 			name:     "empty list",
@@ -715,17 +715,17 @@ func TestFilterUnorderedList(t *testing.T) {
 		{
 			name:     "single item",
 			input:    []string{"Only Item"},
-			expected: "<li>Only Item</li>",
+			expected: "\t<li>Only Item</li>",
 		},
 		{
 			name:     "list with HTML escaping",
 			input:    []string{"<script>alert('xss')</script>", "Normal Item"},
-			expected: "<li>&lt;script&gt;alert(&#39;xss&#39;)&lt;/script&gt;</li><li>Normal Item</li>",
+			expected: "\t<li>&lt;script&gt;alert(&#39;xss&#39;)&lt;/script&gt;</li>\n\t<li>Normal Item</li>",
 		},
 		{
 			name:     "list with numbers",
 			input:    []int{1, 2, 3},
-			expected: "<li>1</li><li>2</li><li>3</li>",
+			expected: "\t<li>1</li>\n\t<li>2</li>\n\t<li>3</li>",
 		},
 		{
 			name:     "non-slice input",
@@ -768,7 +768,7 @@ func TestFilterUnorderedListNested(t *testing.T) {
 			name:     "simple list via template",
 			template: "{{ items|unordered_list }}",
 			context:  Context{"items": []string{"A", "B", "C"}},
-			expected: "<li>A</li><li>B</li><li>C</li>",
+			expected: "\t<li>A</li>\n\t<li>B</li>\n\t<li>C</li>",
 		},
 	}
 
@@ -2144,19 +2144,29 @@ func TestUnorderedListWithNestedLists(t *testing.T) {
 		expected string
 	}{
 		{
-			name:     "two levels",
-			input:    []any{"Item 1", []any{"Sub 1", "Sub 2"}},
-			expected: "<li>Item 1<ul><li>Sub 1</li><li>Sub 2</li></ul></li>",
+			name:  "two levels",
+			input: []any{"Item 1", []any{"Sub 1", "Sub 2"}},
+			expected: "\t<li>Item 1\n" +
+				"\t<ul>\n" +
+				"\t\t<li>Sub 1</li>\n" +
+				"\t\t<li>Sub 2</li>\n" +
+				"\t</ul>\n" +
+				"\t</li>",
 		},
 		{
 			name:     "list only contains nested list",
 			input:    []any{[]any{"A", "B"}},
-			expected: "<ul><li>A</li><li>B</li></ul>",
+			expected: "",
 		},
 		{
-			name:     "mixed nested",
-			input:    []any{"Top", []any{"Middle"}, "Bottom"},
-			expected: "<li>Top<ul><li>Middle</li></ul></li><li>Bottom</li>",
+			name:  "mixed nested",
+			input: []any{"Top", []any{"Middle"}, "Bottom"},
+			expected: "\t<li>Top\n" +
+				"\t<ul>\n" +
+				"\t\t<li>Middle</li>\n" +
+				"\t</ul>\n" +
+				"\t</li>\n" +
+				"\t<li>Bottom</li>",
 		},
 	}
 

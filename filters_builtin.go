@@ -2177,26 +2177,32 @@ func dictsortHelper(in *Value, param *Value, reverse bool) (*Value, error) {
 // For input: ["States", ["Kansas", ["Lawrence", "Topeka"], "Illinois"]]
 // Output: <li>States<ul><li>Kansas<ul><li>Lawrence</li><li>Topeka</li></ul></li><li>Illinois</li></ul></li>
 //
-// Note: This outputs the inner list items only; you need to wrap it in <ul></ul> tags.
+// filterUnorderedList outputs the inner list items only (without wrapping <ul></ul> tags),
+// with tab indentation matching Django's format. Each nesting level adds one tab.
+//
+// Django reference: django/template/defaultfilters.py list_formatter()
 func filterUnorderedList(in *Value, param *Value) (*Value, error) {
-	var result strings.Builder
-	unorderedListHelper(&result, in, 0)
-	return AsSafeValue(result.String()), nil
+	if !in.IsSliceOrArray() {
+		return AsSafeValue(""), nil
+	}
+	result := unorderedListFormatter(in, 1)
+	return AsSafeValue(result), nil
 }
 
 const maxUnorderedListDepth = 100
 
-func unorderedListHelper(result *strings.Builder, in *Value, depth int) {
-	// Guard against excessive recursion
-	if depth > maxUnorderedListDepth {
-		return
+// unorderedListFormatter formats a nested list with tab indentation, matching Django's
+// list_formatter function. tabs starts at 1 and increments for each nesting level.
+func unorderedListFormatter(in *Value, tabs int) string {
+	if tabs > maxUnorderedListDepth {
+		return ""
 	}
 
-	// Only process actual arrays/slices, not strings
 	if !in.IsSliceOrArray() {
-		return
+		return ""
 	}
 
+	// Collect all items from the list
 	items := make([]*Value, 0)
 	in.Iterate(func(idx, count int, key, value *Value) bool {
 		if value != nil {
@@ -2207,28 +2213,32 @@ func unorderedListHelper(result *strings.Builder, in *Value, depth int) {
 		return true
 	}, func() {})
 
+	indent := strings.Repeat("\t", tabs)
+	var output []string
+
+	// Walk items, pairing each non-list item with its following sublist (if any)
 	for i := 0; i < len(items); i++ {
 		item := items[i]
+
+		// Skip bare sublists at this level (they should only appear after text items)
 		if item.IsSliceOrArray() {
-			// This is a nested list
-			result.WriteString("<ul>")
-			unorderedListHelper(result, item, depth+1)
-			result.WriteString("</ul>")
-		} else {
-			result.WriteString("<li>")
-			// Escape the content
-			escaped, _ := filterEscape(item, nil)
-			result.WriteString(escaped.String())
-			// Check if next item is a list (sublist for this item)
-			if i+1 < len(items) && items[i+1].IsSliceOrArray() {
-				result.WriteString("<ul>")
-				unorderedListHelper(result, items[i+1], depth+1)
-				result.WriteString("</ul>")
-				i++ // Skip the next item since we processed it
-			}
-			result.WriteString("</li>")
+			continue
 		}
+
+		escaped, _ := filterEscape(item, nil)
+		sublist := ""
+
+		// Check if the next item is a sublist for this item
+		if i+1 < len(items) && items[i+1].IsSliceOrArray() {
+			children := unorderedListFormatter(items[i+1], tabs+1)
+			sublist = fmt.Sprintf("\n%s<ul>\n%s\n%s</ul>\n%s", indent, children, indent, indent)
+			i++ // Skip the sublist item
+		}
+
+		output = append(output, fmt.Sprintf("%s<li>%s%s</li>", indent, escaped.String(), sublist))
 	}
+
+	return strings.Join(output, "\n")
 }
 
 // filterSlugify converts a string to a URL-friendly slug.

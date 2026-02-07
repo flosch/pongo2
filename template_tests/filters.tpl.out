@@ -390,7 +390,9 @@ filesizeformat
 1.0 GB
 
 unordered_list
-<li>Item 1</li><li>Item 2</li><li>Item 3</li>
+	<li>Item 1</li>
+	<li>Item 2</li>
+	<li>Item 3</li>
 
 dictsort
 Alice, Bob, Charlie

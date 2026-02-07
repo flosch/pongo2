@@ -2141,3 +2141,63 @@ func TestTitleFilterDjangoCompat(t *testing.T) {
 		}
 	}
 }
+
+func TestUnorderedListDjangoCompat(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    any
+		expected string
+	}{
+		{
+			name:     "flat list",
+			input:    []string{"Item 1", "Item 2", "Item 3"},
+			expected: "\t<li>Item 1</li>\n\t<li>Item 2</li>\n\t<li>Item 3</li>",
+		},
+		{
+			name:     "single item",
+			input:    []string{"Solo"},
+			expected: "\t<li>Solo</li>",
+		},
+		{
+			name:     "empty list",
+			input:    []string{},
+			expected: "",
+		},
+		{
+			name:  "nested list",
+			input: []any{"States", []any{"Kansas", []any{"Lawrence", "Topeka"}, "Illinois"}},
+			expected: "\t<li>States\n" +
+				"\t<ul>\n" +
+				"\t\t<li>Kansas\n" +
+				"\t\t<ul>\n" +
+				"\t\t\t<li>Lawrence</li>\n" +
+				"\t\t\t<li>Topeka</li>\n" +
+				"\t\t</ul>\n" +
+				"\t\t</li>\n" +
+				"\t\t<li>Illinois</li>\n" +
+				"\t</ul>\n" +
+				"\t</li>",
+		},
+		{
+			name:     "escaping",
+			input:    []string{"<script>", "normal", "a&b"},
+			expected: "\t<li>&lt;script&gt;</li>\n\t<li>normal</li>\n\t<li>a&amp;b</li>",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tpl, err := pongo2.FromString(`{{ items|unordered_list }}`)
+			if err != nil {
+				t.Fatalf("failed to parse template: %v", err)
+			}
+			result, err := tpl.Execute(pongo2.Context{"items": tt.input})
+			if err != nil {
+				t.Fatalf("failed to execute template: %v", err)
+			}
+			if result != tt.expected {
+				t.Errorf("unordered_list(%v)\ngot:  %q\nwant: %q", tt.input, result, tt.expected)
+			}
+		})
+	}
+}
