@@ -811,11 +811,35 @@ func filterFloatformat(in *Value, param *Value) (*Value, error) {
 // Output: 1 (leftmost digit)
 func filterGetdigit(in *Value, param *Value) (*Value, error) {
 	i := param.Integer()
-	l := len(in.String()) // do NOT use in.Len() here!
-	if i <= 0 || i > l {
+	if i <= 0 {
 		return in, nil
 	}
-	return AsValue(in.String()[l-i] - 48), nil
+
+	// Convert to string and validate it contains only digits (and optional leading minus).
+	// This matches Django's behavior: int(value) must succeed, then we work with
+	// the absolute value's digit string.
+	s := in.String()
+
+	// Determine the start of digits (skip optional leading minus sign)
+	start := 0
+	if len(s) > 0 && s[0] == '-' {
+		start = 1
+	}
+	digits := s[start:]
+
+	// Verify all remaining characters are digits; if not, return original value
+	for j := 0; j < len(digits); j++ {
+		if digits[j] < '0' || digits[j] > '9' {
+			return in, nil
+		}
+	}
+
+	l := len(digits)
+	if l == 0 || i > l {
+		return in, nil
+	}
+
+	return AsValue(int(digits[l-i] - '0')), nil
 }
 
 const filterIRIChars = "/#%[]=:;$&()+,!?*@'~"

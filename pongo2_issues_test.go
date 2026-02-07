@@ -1461,3 +1461,60 @@ func TestBugRecursiveIncludeInfiniteLoop(t *testing.T) {
 		}
 	})
 }
+
+func TestBugGetdigitNonDigitCharacters(t *testing.T) {
+	// Bug: get_digit subtracts 48 (ASCII '0') from a character without checking
+	// if it's a digit. For inputs like "-123", position 4 accesses the '-' char
+	// producing an incorrect result (-3 instead of returning the original value).
+	// Django converts to int first, avoiding this issue.
+
+	tests := []struct {
+		name     string
+		template string
+		context  pongo2.Context
+		expected string
+	}{
+		{
+			name:     "negative number digit beyond digits",
+			template: `{{ val|get_digit:4 }}`,
+			context:  pongo2.Context{"val": "-123"},
+			expected: "-123", // should return original - position exceeds digit count
+		},
+		{
+			name:     "negative number valid digit",
+			template: `{{ val|get_digit:1 }}`,
+			context:  pongo2.Context{"val": "-123"},
+			expected: "3",
+		},
+		{
+			name:     "float string",
+			template: `{{ val|get_digit:1 }}`,
+			context:  pongo2.Context{"val": "12.5"},
+			expected: "12.5", // Django returns original for non-integer strings
+		},
+		{
+			name:     "integer input",
+			template: `{{ val|get_digit:2 }}`,
+			context:  pongo2.Context{"val": 12345},
+			expected: "4",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tpl, err := pongo2.FromString(tt.template)
+			if err != nil {
+				t.Fatalf("failed to parse template: %v", err)
+			}
+
+			result, err := tpl.Execute(tt.context)
+			if err != nil {
+				t.Fatalf("failed to execute template: %v", err)
+			}
+
+			if result != tt.expected {
+				t.Errorf("expected %q, got %q", tt.expected, result)
+			}
+		})
+	}
+}
