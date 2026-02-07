@@ -60,13 +60,15 @@ func TestValueSlice(t *testing.T) {
 		}
 	})
 
-	t.Run("slice on unsupported type", func(t *testing.T) {
+	t.Run("slice on unsupported type returns nil", func(t *testing.T) {
+		// Bug: Slice() returned AsValue([]int{}) for unsupported types
+		// instead of nil, inconsistent with other error returns.
 		num := 42
 		v := AsValue(num)
 		sliced := v.Slice(0, 1)
 
-		if sliced.Len() != 0 {
-			t.Error("Slice on unsupported type should return empty slice")
+		if !sliced.IsNil() {
+			t.Errorf("Slice on unsupported type should return nil, got %v", sliced.Interface())
 		}
 	})
 }
@@ -110,10 +112,15 @@ func TestValueIndex(t *testing.T) {
 		}
 	})
 
-	t.Run("index on unsupported type", func(t *testing.T) {
+	t.Run("index on unsupported type returns nil", func(t *testing.T) {
+		// Bug: Index() returned AsValue([]int{}) for unsupported types
+		// instead of nil, inconsistent with out-of-bounds behavior on slices.
 		num := 42
 		v := AsValue(num)
-		_ = v.Index(0) // Should not panic
+		result := v.Index(0)
+		if !result.IsNil() {
+			t.Errorf("Index on unsupported type should return nil, got %v", result.Interface())
+		}
 	})
 }
 

@@ -298,7 +298,7 @@ func (v *Value) Len() int {
 }
 
 // Slice slices an array, slice or string. Otherwise it will
-// return an empty []int.
+// return nil.
 func (v *Value) Slice(i, j int) *Value {
 	rv := v.getResolvedValue()
 	switch rv.Kind() {
@@ -309,7 +309,7 @@ func (v *Value) Slice(i, j int) *Value {
 		return AsValue(string(runes[i:j]))
 	default:
 		logf("Value.Slice() not available for type: %s\n", rv.Kind().String())
-		return AsValue([]int{})
+		return AsValue(nil)
 	}
 }
 
@@ -331,7 +331,7 @@ func (v *Value) Index(i int) *Value {
 		return AsValue("")
 	default:
 		logf("Value.Index() not available for type: %s\n", rv.Kind().String())
-		return AsValue([]int{})
+		return AsValue(nil)
 	}
 }
 
