@@ -1255,3 +1255,67 @@ func TestBugSlugifyAccentedCharacters(t *testing.T) {
 		})
 	}
 }
+
+func TestBugDictsortNumericFieldStringSorted(t *testing.T) {
+	// dictsort on a numeric field should sort numerically, not lexicographically.
+	// With string sorting, "5" > "30" because '5' > '3', giving wrong order.
+	tests := []struct {
+		name     string
+		template string
+		context  pongo2.Context
+		expected string
+	}{
+		{
+			name:     "single-digit vs multi-digit numeric sorting",
+			template: `{% for item in items|dictsort:"age" %}{{ item.age }}{% if not forloop.Last %},{% endif %}{% endfor %}`,
+			context: pongo2.Context{
+				"items": []map[string]any{
+					{"name": "Charlie", "age": 30},
+					{"name": "Alice", "age": 5},
+					{"name": "Bob", "age": 25},
+				},
+			},
+			expected: "5,25,30",
+		},
+		{
+			name:     "dictsortreversed with numeric field",
+			template: `{% for item in items|dictsortreversed:"age" %}{{ item.age }}{% if not forloop.Last %},{% endif %}{% endfor %}`,
+			context: pongo2.Context{
+				"items": []map[string]any{
+					{"name": "Alice", "age": 5},
+					{"name": "Bob", "age": 25},
+					{"name": "Charlie", "age": 30},
+				},
+			},
+			expected: "30,25,5",
+		},
+		{
+			name:     "float values sorted numerically",
+			template: `{% for item in items|dictsort:"score" %}{{ item.score }}{% if not forloop.Last %},{% endif %}{% endfor %}`,
+			context: pongo2.Context{
+				"items": []map[string]any{
+					{"name": "A", "score": 9.5},
+					{"name": "B", "score": 10.1},
+					{"name": "C", "score": 2.3},
+				},
+			},
+			expected: "2.300000,9.500000,10.100000",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tpl, err := pongo2.FromString(tt.template)
+			if err != nil {
+				t.Fatalf("template parse error: %v", err)
+			}
+			result, err := tpl.Execute(tt.context)
+			if err != nil {
+				t.Fatalf("template execute error: %v", err)
+			}
+			if result != tt.expected {
+				t.Errorf("got %q, want %q", result, tt.expected)
+			}
+		})
+	}
+}

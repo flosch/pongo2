@@ -1952,15 +1952,25 @@ func filterDictsortReversed(in *Value, param *Value) (*Value, error) {
 	return dictsortHelper(in, param, true)
 }
 
-// dictsortItems implements sort.Interface for sorting by key
-type dictsortItems []struct {
-	item    *Value
-	sortKey string
+// dictsortItems implements sort.Interface for sorting by key.
+// It uses type-aware comparison: numeric keys are compared numerically,
+// all other keys are compared as strings.
+type dictsortItems struct {
+	entries []struct {
+		item   *Value
+		sortBy *Value
+	}
+	allNumeric bool
 }
 
-func (d dictsortItems) Len() int           { return len(d) }
-func (d dictsortItems) Swap(i, j int)      { d[i], d[j] = d[j], d[i] }
-func (d dictsortItems) Less(i, j int) bool { return d[i].sortKey < d[j].sortKey }
+func (d dictsortItems) Len() int      { return len(d.entries) }
+func (d dictsortItems) Swap(i, j int) { d.entries[i], d.entries[j] = d.entries[j], d.entries[i] }
+func (d dictsortItems) Less(i, j int) bool {
+	if d.allNumeric {
+		return d.entries[i].sortBy.Float() < d.entries[j].sortBy.Float()
+	}
+	return d.entries[i].sortBy.String() < d.entries[j].sortBy.String()
+}
 
 func dictsortHelper(in *Value, param *Value, reverse bool) (*Value, error) {
 	if !in.CanSlice() {
@@ -1972,7 +1982,7 @@ func dictsortHelper(in *Value, param *Value, reverse bool) (*Value, error) {
 	}
 
 	// Collect items with their sort keys
-	var items dictsortItems
+	items := dictsortItems{allNumeric: true}
 
 	in.Iterate(func(idx, count int, k, value *Value) bool {
 		// Get the item (value for maps, key for slices/arrays)
@@ -1982,18 +1992,22 @@ func dictsortHelper(in *Value, param *Value, reverse bool) (*Value, error) {
 		}
 
 		// Get the sort key value using Value methods
-		sortKeyVal := ""
+		sortBy := AsValue("")
 		if item.IsMap() || item.IsStruct() {
 			sortVal := item.GetItem(param)
 			if !sortVal.IsNil() {
-				sortKeyVal = sortVal.String()
+				sortBy = sortVal
 			}
 		}
 
-		items = append(items, struct {
-			item    *Value
-			sortKey string
-		}{item: item, sortKey: sortKeyVal})
+		if items.allNumeric && !sortBy.IsNumber() {
+			items.allNumeric = false
+		}
+
+		items.entries = append(items.entries, struct {
+			item   *Value
+			sortBy *Value
+		}{item: item, sortBy: sortBy})
 		return true
 	}, func() {})
 
@@ -2006,8 +2020,8 @@ func dictsortHelper(in *Value, param *Value, reverse bool) (*Value, error) {
 
 	// Build result
 	var result []any
-	for _, item := range items {
-		result = append(result, item.item.Interface())
+	for _, entry := range items.entries {
+		result = append(result, entry.item.Interface())
 	}
 
 	return AsValue(result), nil

@@ -1049,9 +1049,14 @@ func TestFilterFilesizeformatNonInteger(t *testing.T) {
 func TestDictsortItemsSortInterface(t *testing.T) {
 	t.Run("Len", func(t *testing.T) {
 		items := dictsortItems{
-			{item: AsValue("a"), sortKey: "1"},
-			{item: AsValue("b"), sortKey: "2"},
-			{item: AsValue("c"), sortKey: "3"},
+			entries: []struct {
+				item   *Value
+				sortBy *Value
+			}{
+				{item: AsValue("a"), sortBy: AsValue("1")},
+				{item: AsValue("b"), sortBy: AsValue("2")},
+				{item: AsValue("c"), sortBy: AsValue("3")},
+			},
 		}
 		if items.Len() != 3 {
 			t.Errorf("Len() = %d, want 3", items.Len())
@@ -1065,20 +1070,30 @@ func TestDictsortItemsSortInterface(t *testing.T) {
 
 	t.Run("Swap", func(t *testing.T) {
 		items := dictsortItems{
-			{item: AsValue("a"), sortKey: "1"},
-			{item: AsValue("b"), sortKey: "2"},
+			entries: []struct {
+				item   *Value
+				sortBy *Value
+			}{
+				{item: AsValue("a"), sortBy: AsValue("1")},
+				{item: AsValue("b"), sortBy: AsValue("2")},
+			},
 		}
 		items.Swap(0, 1)
-		if items[0].sortKey != "2" || items[1].sortKey != "1" {
-			t.Errorf("Swap failed: got [%s, %s], want [2, 1]", items[0].sortKey, items[1].sortKey)
+		if items.entries[0].sortBy.String() != "2" || items.entries[1].sortBy.String() != "1" {
+			t.Errorf("Swap failed: got [%s, %s], want [2, 1]", items.entries[0].sortBy.String(), items.entries[1].sortBy.String())
 		}
 	})
 
-	t.Run("Less", func(t *testing.T) {
+	t.Run("Less with string keys", func(t *testing.T) {
 		items := dictsortItems{
-			{item: AsValue("a"), sortKey: "apple"},
-			{item: AsValue("b"), sortKey: "banana"},
-			{item: AsValue("c"), sortKey: "apple"}, // Same as first
+			entries: []struct {
+				item   *Value
+				sortBy *Value
+			}{
+				{item: AsValue("a"), sortBy: AsValue("apple")},
+				{item: AsValue("b"), sortBy: AsValue("banana")},
+				{item: AsValue("c"), sortBy: AsValue("apple")},
+			},
 		}
 
 		if !items.Less(0, 1) {
@@ -1092,19 +1107,28 @@ func TestDictsortItemsSortInterface(t *testing.T) {
 		}
 	})
 
-	t.Run("numeric string comparison", func(t *testing.T) {
+	t.Run("numeric keys sort numerically", func(t *testing.T) {
 		items := dictsortItems{
-			{item: AsValue("a"), sortKey: "10"},
-			{item: AsValue("b"), sortKey: "2"},
-			{item: AsValue("c"), sortKey: "1"},
+			allNumeric: true,
+			entries: []struct {
+				item   *Value
+				sortBy *Value
+			}{
+				{item: AsValue("a"), sortBy: AsValue(10)},
+				{item: AsValue("b"), sortBy: AsValue(2)},
+				{item: AsValue("c"), sortBy: AsValue(1)},
+			},
 		}
 
-		// String comparison: "1" < "10" < "2"
-		if !items.Less(2, 0) { // "1" < "10"
-			t.Error("Less should compare as strings: \"1\" < \"10\"")
+		// Numeric comparison: 1 < 2 < 10
+		if !items.Less(2, 1) { // 1 < 2
+			t.Error("Less should compare numerically: 1 < 2")
 		}
-		if !items.Less(0, 1) { // "10" < "2"
-			t.Error("Less should compare as strings: \"10\" < \"2\"")
+		if !items.Less(1, 0) { // 2 < 10
+			t.Error("Less should compare numerically: 2 < 10")
+		}
+		if items.Less(0, 1) { // 10 > 2
+			t.Error("Less should compare numerically: 10 is not < 2")
 		}
 	})
 }
