@@ -1721,3 +1721,43 @@ func TestBugLinebreaksbrWindowsNewlines(t *testing.T) {
 		})
 	}
 }
+
+func TestBugLinebreaksWindowsNewlines(t *testing.T) {
+	// Bug: linebreaks filter only splits on \n, not \r\n or \r.
+
+	tests := []struct {
+		name     string
+		template string
+		context  pongo2.Context
+		expected string
+	}{
+		{
+			name:     "windows double newline creates paragraphs",
+			template: `{% autoescape off %}{{ text|linebreaks }}{% endautoescape %}`,
+			context:  pongo2.Context{"text": "para1\r\n\r\npara2"},
+			expected: "<p>para1</p>\n\n<p>para2</p>",
+		},
+		{
+			name:     "windows single newline creates br",
+			template: `{% autoescape off %}{{ text|linebreaks }}{% endautoescape %}`,
+			context:  pongo2.Context{"text": "line1\r\nline2"},
+			expected: "<p>line1<br />line2</p>",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tpl, err := pongo2.FromString(tt.template)
+			if err != nil {
+				t.Fatalf("failed to parse template: %v", err)
+			}
+			result, err := tpl.Execute(tt.context)
+			if err != nil {
+				t.Fatalf("failed to execute template: %v", err)
+			}
+			if result != tt.expected {
+				t.Errorf("expected %q, got %q", tt.expected, result)
+			}
+		})
+	}
+}

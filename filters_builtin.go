@@ -1117,9 +1117,13 @@ func filterLinebreaks(in *Value, param *Value) (*Value, error) {
 
 	var b bytes.Buffer
 
+	// Normalize \r\n and \r to \n before processing
+	s := strings.ReplaceAll(in.String(), "\r\n", "\n")
+	s = strings.ReplaceAll(s, "\r", "\n")
+
 	// Newline = <br />
 	// Double newline = <p>...</p>
-	lines := strings.Split(in.String(), "\n")
+	lines := strings.Split(s, "\n")
 	lenlines := len(lines)
 
 	opened := false
