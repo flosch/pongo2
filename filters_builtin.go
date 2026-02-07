@@ -2233,17 +2233,22 @@ func filterSlugify(in *Value, param *Value) (*Value, error) {
 }
 
 // filterFilesizeformat formats a file size in bytes to a human-readable string.
+// Matches Django's behavior: uses non-breaking space (\u00A0) between number and unit,
+// singular "byte" for ±1, and supports negative values.
 //
 // Usage:
 //
 //	{{ 123456789|filesizeformat }}
 //
-// Output: "117.7 MB"
+// Output: "117.7\u00A0MB"
 func filterFilesizeformat(in *Value, param *Value) (*Value, error) {
-	size := float64(in.Integer())
-	if size < 0 {
-		size = 0
+	bytes := in.Integer()
+	negative := bytes < 0
+	if negative {
+		bytes = -bytes
 	}
+
+	size := float64(bytes)
 
 	units := []string{"bytes", "KB", "MB", "GB", "TB", "PB"}
 	unitIdx := 0
@@ -2253,11 +2258,25 @@ func filterFilesizeformat(in *Value, param *Value) (*Value, error) {
 		unitIdx++
 	}
 
+	// Use non-breaking space (\u00A0) between number and unit (Django's avoid_wrapping)
+	const nbsp = "\u00a0"
+	var result string
 	if unitIdx == 0 {
-		return AsValue(fmt.Sprintf("%.0f %s", size, units[unitIdx])), nil
+		// Use singular "byte" for 1 (matching Django's ngettext behavior)
+		unit := "bytes"
+		if bytes == 1 {
+			unit = "byte"
+		}
+		result = fmt.Sprintf("%d%s%s", bytes, nbsp, unit)
+	} else {
+		result = fmt.Sprintf("%.1f%s%s", size, nbsp, units[unitIdx])
 	}
 
-	return AsValue(fmt.Sprintf("%.1f %s", size, units[unitIdx])), nil
+	if negative {
+		result = "-" + result
+	}
+
+	return AsValue(result), nil
 }
 
 // filterSafeseq applies the safe filter to each element in a sequence.

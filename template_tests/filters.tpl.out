@@ -380,14 +380,14 @@ hello_world
 under_score_test
 
 filesizeformat
-0 bytes
-1 bytes
-1023 bytes
-1.0 KB
-1.5 KB
-1.0 MB
-117.7 MB
-1.0 GB
+0 bytes
+1 byte
+1023 bytes
+1.0 KB
+1.5 KB
+1.0 MB
+117.7 MB
+1.0 GB
 
 unordered_list
 <li>Item 1</li><li>Item 2</li><li>Item 3</li>

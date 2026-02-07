@@ -924,6 +924,8 @@ func TestFilterSlugify(t *testing.T) {
 }
 
 func TestFilterFilesizeformat(t *testing.T) {
+	// Django uses non-breaking space (\u00a0) between number and unit
+	const nbsp = "\u00a0"
 	tests := []struct {
 		name     string
 		input    int64
@@ -932,77 +934,82 @@ func TestFilterFilesizeformat(t *testing.T) {
 		{
 			name:     "zero bytes",
 			input:    0,
-			expected: "0 bytes",
+			expected: "0" + nbsp + "bytes",
 		},
 		{
-			name:     "one byte",
+			name:     "one byte (singular)",
 			input:    1,
-			expected: "1 bytes",
+			expected: "1" + nbsp + "byte",
+		},
+		{
+			name:     "two bytes (plural)",
+			input:    2,
+			expected: "2" + nbsp + "bytes",
 		},
 		{
 			name:     "bytes range",
 			input:    100,
-			expected: "100 bytes",
+			expected: "100" + nbsp + "bytes",
 		},
 		{
 			name:     "exactly 1KB",
 			input:    1024,
-			expected: "1.0 KB",
+			expected: "1.0" + nbsp + "KB",
 		},
 		{
 			name:     "KB range",
 			input:    1536, // 1.5 KB
-			expected: "1.5 KB",
+			expected: "1.5" + nbsp + "KB",
 		},
 		{
 			name:     "exactly 1MB",
 			input:    1024 * 1024,
-			expected: "1.0 MB",
+			expected: "1.0" + nbsp + "MB",
 		},
 		{
 			name:     "MB range",
 			input:    1024 * 1024 * 5,
-			expected: "5.0 MB",
+			expected: "5.0" + nbsp + "MB",
 		},
 		{
 			name:     "Django example: 123456789",
 			input:    123456789,
-			expected: "117.7 MB",
+			expected: "117.7" + nbsp + "MB",
 		},
 		{
 			name:     "exactly 1GB",
 			input:    1024 * 1024 * 1024,
-			expected: "1.0 GB",
+			expected: "1.0" + nbsp + "GB",
 		},
 		{
 			name:     "GB range",
 			input:    1024 * 1024 * 1024 * 2,
-			expected: "2.0 GB",
+			expected: "2.0" + nbsp + "GB",
 		},
 		{
 			name:     "exactly 1TB",
 			input:    1024 * 1024 * 1024 * 1024,
-			expected: "1.0 TB",
+			expected: "1.0" + nbsp + "TB",
 		},
 		{
 			name:     "exactly 1PB",
 			input:    1024 * 1024 * 1024 * 1024 * 1024,
-			expected: "1.0 PB",
+			expected: "1.0" + nbsp + "PB",
 		},
 		{
 			name:     "large PB value",
 			input:    1024 * 1024 * 1024 * 1024 * 1024 * 5,
-			expected: "5.0 PB",
+			expected: "5.0" + nbsp + "PB",
 		},
 		{
 			name:     "1023 bytes (just under 1KB)",
 			input:    1023,
-			expected: "1023 bytes",
+			expected: "1023" + nbsp + "bytes",
 		},
 		{
 			name:     "fractional KB",
 			input:    2560, // 2.5 KB
-			expected: "2.5 KB",
+			expected: "2.5" + nbsp + "KB",
 		},
 	}
 
@@ -1021,27 +1028,39 @@ func TestFilterFilesizeformat(t *testing.T) {
 }
 
 func TestFilterFilesizeformatNegative(t *testing.T) {
-	// Negative values should be treated as 0
-	result, err := filterFilesizeformat(AsValue(-100), nil)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
+	const nbsp = "\u00a0"
+	// Django supports negative values: formats absolute value, then prepends "-"
+	tests := []struct {
+		input    int
+		expected string
+	}{
+		{-1, "-1" + nbsp + "byte"},
+		{-100, "-100" + nbsp + "bytes"},
+		{-1024, "-1.0" + nbsp + "KB"},
 	}
-
-	if result.String() != "0 bytes" {
-		t.Errorf("filterFilesizeformat(-100) = %q, want %q", result.String(), "0 bytes")
+	for _, tt := range tests {
+		result, err := filterFilesizeformat(AsValue(tt.input), nil)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if result.String() != tt.expected {
+			t.Errorf("filterFilesizeformat(%d) = %q, want %q", tt.input, result.String(), tt.expected)
+		}
 	}
 }
 
 func TestFilterFilesizeformatNonInteger(t *testing.T) {
+	const nbsp = "\u00a0"
 	// String inputs should be converted (or treated as 0)
 	result, err := filterFilesizeformat(AsValue("not a number"), nil)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
+	expected := "0" + nbsp + "bytes"
 	// AsValue("not a number").Integer() returns 0
-	if result.String() != "0 bytes" {
-		t.Errorf("filterFilesizeformat(\"not a number\") = %q, want %q", result.String(), "0 bytes")
+	if result.String() != expected {
+		t.Errorf("filterFilesizeformat(\"not a number\") = %q, want %q", result.String(), expected)
 	}
 }
 
