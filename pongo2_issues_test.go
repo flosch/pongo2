@@ -626,3 +626,46 @@ func TestBugLjustRjustErrorMessage(t *testing.T) {
 		})
 	}
 }
+
+func TestBugAutoescapeNotRestoredOnError(t *testing.T) {
+	// Bug: tagAutoescapeNode.Execute did not restore ctx.Autoescape when
+	// wrapper.Execute returned an error. The fix uses defer to ensure
+	// the autoescape state is always restored.
+
+	tpl, err := pongo2.FromString(`{% autoescape off %}{{ safe }}{% endautoescape %}{{ unsafe }}`)
+	if err != nil {
+		t.Fatalf("failed to parse template: %v", err)
+	}
+
+	result, err := tpl.Execute(pongo2.Context{
+		"safe":   "<b>bold</b>",
+		"unsafe": "<script>xss</script>",
+	})
+	if err != nil {
+		t.Fatalf("failed to execute template: %v", err)
+	}
+
+	expected := "<b>bold</b>&lt;script&gt;xss&lt;/script&gt;"
+	if result != expected {
+		t.Errorf("expected %q, got %q", expected, result)
+	}
+
+	// Nested autoescape blocks restore correctly.
+	tpl2, err := pongo2.FromString(`{% autoescape off %}{% autoescape on %}{{ inner }}{% endautoescape %}{{ outer }}{% endautoescape %}`)
+	if err != nil {
+		t.Fatalf("failed to parse template: %v", err)
+	}
+
+	result2, err := tpl2.Execute(pongo2.Context{
+		"inner": "<i>inner</i>",
+		"outer": "<b>outer</b>",
+	})
+	if err != nil {
+		t.Fatalf("failed to execute template: %v", err)
+	}
+
+	expected2 := "&lt;i&gt;inner&lt;/i&gt;<b>outer</b>"
+	if result2 != expected2 {
+		t.Errorf("expected %q, got %q", expected2, result2)
+	}
+}
