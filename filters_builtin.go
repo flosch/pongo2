@@ -1180,7 +1180,10 @@ func filterSplit(in *Value, param *Value) (*Value, error) {
 //
 // Output: "First line<br />Second line<br />Third line"
 func filterLinebreaksbr(in *Value, param *Value) (*Value, error) {
-	return AsValue(strings.ReplaceAll(in.String(), "\n", "<br />")), nil
+	// Normalize \r\n and \r to \n before replacing
+	s := strings.ReplaceAll(in.String(), "\r\n", "\n")
+	s = strings.ReplaceAll(s, "\r", "\n")
+	return AsValue(strings.ReplaceAll(s, "\n", "<br />")), nil
 }
 
 // filterLinenumbers prepends line numbers to each line in the text.

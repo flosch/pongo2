@@ -1674,3 +1674,50 @@ func TestBugYesnoNilWithTwoArgs(t *testing.T) {
 		})
 	}
 }
+
+func TestBugLinebreaksbrWindowsNewlines(t *testing.T) {
+	// Bug: linebreaksbr only replaces \n, not \r\n (Windows) or \r (old Mac).
+	// Django normalizes all newline types before processing.
+
+	tests := []struct {
+		name     string
+		template string
+		context  pongo2.Context
+		expected string
+	}{
+		{
+			name:     "windows line endings",
+			template: `{% autoescape off %}{{ text|linebreaksbr }}{% endautoescape %}`,
+			context:  pongo2.Context{"text": "line1\r\nline2\r\nline3"},
+			expected: "line1<br />line2<br />line3",
+		},
+		{
+			name:     "old mac line endings",
+			template: `{% autoescape off %}{{ text|linebreaksbr }}{% endautoescape %}`,
+			context:  pongo2.Context{"text": "line1\rline2\rline3"},
+			expected: "line1<br />line2<br />line3",
+		},
+		{
+			name:     "unix line endings still work",
+			template: `{% autoescape off %}{{ text|linebreaksbr }}{% endautoescape %}`,
+			context:  pongo2.Context{"text": "line1\nline2\nline3"},
+			expected: "line1<br />line2<br />line3",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tpl, err := pongo2.FromString(tt.template)
+			if err != nil {
+				t.Fatalf("failed to parse template: %v", err)
+			}
+			result, err := tpl.Execute(tt.context)
+			if err != nil {
+				t.Fatalf("failed to execute template: %v", err)
+			}
+			if result != tt.expected {
+				t.Errorf("expected %q, got %q", tt.expected, result)
+			}
+		})
+	}
+}
