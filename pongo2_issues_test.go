@@ -1976,3 +1976,32 @@ func TestBugIncludeLazyParseErrorToken(t *testing.T) {
 		t.Fatal("expected parse error for invalid include expression")
 	}
 }
+
+func TestBugTrimBlocksRaceCondition(t *testing.T) {
+	// TrimBlocks/LStripBlocks token modification must be safe under
+	// concurrent execution. Previously, tokens were mutated without
+	// synchronization, causing a data race.
+	tpl, err := pongo2.FromString("{% if true %}\nhello\n{% endif %}\n")
+	if err != nil {
+		t.Fatalf("parse error: %v", err)
+	}
+	tpl.Options.TrimBlocks = true
+	tpl.Options.LStripBlocks = true
+
+	var wg sync.WaitGroup
+	for range 50 {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			result, err := tpl.Execute(pongo2.Context{})
+			if err != nil {
+				t.Errorf("execute error: %v", err)
+				return
+			}
+			if !strings.Contains(result, "hello") {
+				t.Errorf("unexpected result: %q", result)
+			}
+		}()
+	}
+	wg.Wait()
+}
