@@ -2779,6 +2779,40 @@ func TestFilterCenterSmallerThanInput(t *testing.T) {
 	}
 }
 
+// TestFilterCenterPaddingDirection verifies that center filter puts extra space
+// on the right when padding is odd, matching Django's str.center() behavior.
+func TestFilterCenterPaddingDirection(t *testing.T) {
+	tests := []struct {
+		input    string
+		width    int
+		expected string
+	}{
+		{"test", 19, "       test        "}, // 7 left, 8 right (extra on right)
+		{"test", 20, "        test        "}, // 8 left, 8 right (even)
+		{"test2", 19, "       test2       "}, // 7 left, 7 right (even)
+		{"test2", 20, "       test2        "}, // 7 left, 8 right (extra on right)
+		{"x", 4, " x  "},                     // 1 left, 2 right (extra on right)
+		{"ab", 5, " ab  "},                   // 1 left, 2 right (extra on right)
+	}
+	for _, tc := range tests {
+		result, err := filterCenter(AsValue(tc.input), AsValue(tc.width))
+		if err != nil {
+			t.Fatalf("unexpected error for center(%q, %d): %v", tc.input, tc.width, err)
+		}
+		if result.String() != tc.expected {
+			t.Errorf("center(%q, %d) = %q (left=%d, right=%d), want %q (left=%d, right=%d)",
+				tc.input, tc.width,
+				result.String(),
+				len(result.String())-len(strings.TrimLeft(result.String(), " ")),
+				len(result.String())-len(strings.TrimRight(result.String(), " ")),
+				tc.expected,
+				len(tc.expected)-len(strings.TrimLeft(tc.expected, " ")),
+				len(tc.expected)-len(strings.TrimRight(tc.expected, " ")),
+			)
+		}
+	}
+}
+
 // TestFilterJSONScript tests the json_script filter comprehensively
 func TestFilterJSONScript(t *testing.T) {
 	tests := []struct {

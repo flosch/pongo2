@@ -1029,8 +1029,8 @@ func filterCenter(in *Value, param *Value) (*Value, error) {
 		}
 	}
 
-	left := spaces/2 + spaces%2
-	right := spaces / 2
+	left := spaces / 2
+	right := spaces/2 + spaces%2
 
 	return AsValue(fmt.Sprintf("%s%s%s", strings.Repeat(" ", left),
 		in.String(), strings.Repeat(" ", right))), nil
