@@ -813,3 +813,17 @@ func TestBugWidthratioDoubleRounding(t *testing.T) {
 		})
 	}
 }
+
+func TestBugIfnotequalErrorMessage(t *testing.T) {
+	// Bug: ifnotequal's error message incorrectly says "ifequal" instead of "ifnotequal".
+
+	_, err := pongo2.FromString(`{% ifnotequal a b c %}{% endifnotequal %}`)
+	if err == nil {
+		t.Fatal("expected an error but got none")
+	}
+
+	errMsg := err.Error()
+	if !strings.Contains(errMsg, "ifnotequal") {
+		t.Errorf("error message should mention 'ifnotequal', got %q", errMsg)
+	}
+}
