@@ -2311,7 +2311,7 @@ func filterJSONScript(in *Value, param *Value) (*Value, error) {
 	if param == nil || param.IsNil() || param.String() == "" {
 		result.WriteString(`<script type="application/json">`)
 	} else {
-		elementID := strings.ReplaceAll(param.String(), `"`, `&quot;`)
+		elementID := htmlEscapeReplacer.Replace(param.String())
 		fmt.Fprintf(&result, `<script id="%s" type="application/json">`, elementID)
 	}
 

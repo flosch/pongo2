@@ -1828,3 +1828,48 @@ func TestBugTruncatewordsEllipsis(t *testing.T) {
 		})
 	}
 }
+
+func TestBugJSONScriptIDEscaping(t *testing.T) {
+	// json_script element_id must be fully HTML-escaped, not just double quotes
+	tests := []struct {
+		name     string
+		template string
+		context  pongo2.Context
+		expected string
+	}{
+		{
+			name:     "angle brackets in id",
+			template: `{{ val|json_script:id }}`,
+			context:  pongo2.Context{"val": "safe", "id": "test<script>"},
+			expected: `<script id="test&lt;script&gt;" type="application/json">"safe"</script>`,
+		},
+		{
+			name:     "ampersand in id",
+			template: `{{ val|json_script:id }}`,
+			context:  pongo2.Context{"val": "safe", "id": "test&foo"},
+			expected: `<script id="test&amp;foo" type="application/json">"safe"</script>`,
+		},
+		{
+			name:     "single quote in id",
+			template: `{{ val|json_script:id }}`,
+			context:  pongo2.Context{"val": "safe", "id": "test'foo"},
+			expected: `<script id="test&#39;foo" type="application/json">"safe"</script>`,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tpl, err := pongo2.FromString(tt.template)
+			if err != nil {
+				t.Fatalf("parse error: %v", err)
+			}
+			result, err := tpl.Execute(tt.context)
+			if err != nil {
+				t.Fatalf("execute error: %v", err)
+			}
+			if result != tt.expected {
+				t.Errorf("got %q, want %q", result, tt.expected)
+			}
+		})
+	}
+}
