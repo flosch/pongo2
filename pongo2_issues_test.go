@@ -1614,3 +1614,63 @@ func TestBugUrlizetruncByteVsRuneLength(t *testing.T) {
 		}
 	})
 }
+
+func TestBugYesnoNilWithTwoArgs(t *testing.T) {
+	// Bug: yesno with 2 custom args ("yeah,nope") should map nil to "nope"
+	// (same as false), but pongo2 returns "maybe" (the default).
+	// Django: None with 2 args converts None to False.
+
+	tests := []struct {
+		name     string
+		template string
+		context  pongo2.Context
+		expected string
+	}{
+		{
+			name:     "nil with two args maps to no",
+			template: `{{ val|yesno:"yeah,nope" }}`,
+			context:  pongo2.Context{"val": nil},
+			expected: "nope",
+		},
+		{
+			name:     "nil with three args maps to maybe",
+			template: `{{ val|yesno:"yeah,nope,dunno" }}`,
+			context:  pongo2.Context{"val": nil},
+			expected: "dunno",
+		},
+		{
+			name:     "nil with no args maps to maybe",
+			template: `{{ val|yesno }}`,
+			context:  pongo2.Context{"val": nil},
+			expected: "maybe",
+		},
+		{
+			name:     "true with two args",
+			template: `{{ val|yesno:"yeah,nope" }}`,
+			context:  pongo2.Context{"val": true},
+			expected: "yeah",
+		},
+		{
+			name:     "false with two args",
+			template: `{{ val|yesno:"yeah,nope" }}`,
+			context:  pongo2.Context{"val": false},
+			expected: "nope",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tpl, err := pongo2.FromString(tt.template)
+			if err != nil {
+				t.Fatalf("failed to parse template: %v", err)
+			}
+			result, err := tpl.Execute(tt.context)
+			if err != nil {
+				t.Fatalf("failed to execute template: %v", err)
+			}
+			if result != tt.expected {
+				t.Errorf("expected %q, got %q", tt.expected, result)
+			}
+		})
+	}
+}

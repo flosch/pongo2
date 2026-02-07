@@ -1974,7 +1974,7 @@ func TestFilterYesnoCustomOptions(t *testing.T) {
 	}{
 		{"true with 2 args", true, "on,off", "on"},
 		{"false with 2 args", false, "on,off", "off"},
-		{"nil with 2 args uses maybe default", nil, "on,off", "maybe"},
+		{"nil with 2 args maps to no value", nil, "on,off", "off"},
 		{"true with 3 args", true, "yes,no,unknown", "yes"},
 		{"false with 3 args", false, "yes,no,unknown", "no"},
 		{"nil with 3 args", nil, "yes,no,unknown", "unknown"},

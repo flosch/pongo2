@@ -1819,6 +1819,9 @@ func filterYesno(in *Value, param *Value) (*Value, error) {
 		choices[1] = customChoices[1]
 		if len(customChoices) == 3 {
 			choices[2] = customChoices[2]
+		} else {
+			// Django: with only 2 args, nil maps to the "no" value (same as false)
+			choices[2] = customChoices[1]
 		}
 	}
 
