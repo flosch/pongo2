@@ -1101,6 +1101,10 @@ func filterInteger(in *Value, param *Value) (*Value, error) {
 // Single newlines become <br /> tags, and double newlines (blank lines)
 // start a new paragraph with <p>...</p> tags.
 //
+// Uses the same algorithm as Django: split text on two or more consecutive
+// newlines to form paragraphs, then replace remaining single newlines
+// with <br /> within each paragraph.
+//
 // Usage:
 //
 //	{{ "First line\nSecond line"|linebreaks }}
@@ -1109,53 +1113,22 @@ func filterInteger(in *Value, param *Value) (*Value, error) {
 //
 //	{{ "Para 1\n\nPara 2"|linebreaks }}
 //
-// Output: "<p>Para 1</p><p>Para 2</p>"
+// Output: "<p>Para 1</p>\n\n<p>Para 2</p>"
 func filterLinebreaks(in *Value, param *Value) (*Value, error) {
-	if in.Len() == 0 {
-		return in, nil
-	}
-
-	var b bytes.Buffer
-
 	// Normalize \r\n and \r to \n before processing
 	s := strings.ReplaceAll(in.String(), "\r\n", "\n")
 	s = strings.ReplaceAll(s, "\r", "\n")
 
-	// Newline = <br />
-	// Double newline = <p>...</p>
-	lines := strings.Split(s, "\n")
-	lenlines := len(lines)
+	// Split on two or more consecutive newlines (paragraph breaks)
+	paras := reDoubleNewline.Split(s, -1)
 
-	opened := false
-
-	for idx, line := range lines {
-
-		if !opened {
-			b.WriteString("<p>")
-			opened = true
-		}
-
-		b.WriteString(line)
-
-		if idx < lenlines-1 && strings.TrimSpace(lines[idx]) != "" {
-			// We've not reached the end
-			if strings.TrimSpace(lines[idx+1]) == "" {
-				// Next line is empty
-				if opened {
-					b.WriteString("</p>")
-					opened = false
-				}
-			} else {
-				b.WriteString("<br />")
-			}
-		}
+	var parts []string
+	for _, para := range paras {
+		para = strings.ReplaceAll(para, "\n", "<br />")
+		parts = append(parts, "<p>"+para+"</p>")
 	}
 
-	if opened {
-		b.WriteString("</p>")
-	}
-
-	return AsSafeValue(b.String()), nil
+	return AsSafeValue(strings.Join(parts, "\n\n")), nil
 }
 
 // filterSplit splits a string by the given separator and returns a list.
@@ -1402,6 +1375,7 @@ func filterStringformat(in *Value, param *Value) (*Value, error) {
 //   - [^>] : any char except >
 //
 // - > : closing angle bracket
+var reDoubleNewline = regexp.MustCompile(`\n{2,}`)
 var reStriptags = regexp.MustCompile(`<[a-zA-Z!/?\[](?:"[^"]*"|'[^']*'|[^>])*>`)
 
 // filterStriptags strips all HTML/XML tags from the value, returning plain text.

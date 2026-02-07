@@ -2325,14 +2325,15 @@ func TestFilterLastEmpty(t *testing.T) {
 	}
 }
 
-// TestFilterLinebreaksEmpty tests linebreaks with empty input
+// TestFilterLinebreaksEmpty tests linebreaks with empty input.
+// Django wraps even empty input in paragraph tags: <p></p>
 func TestFilterLinebreaksEmpty(t *testing.T) {
 	result, err := filterLinebreaks(AsValue(""), nil)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if result.String() != "" {
-		t.Errorf("got %q, want empty string", result.String())
+	if result.String() != "<p></p>" {
+		t.Errorf("got %q, want %q", result.String(), "<p></p>")
 	}
 }
 

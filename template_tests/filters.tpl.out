@@ -248,9 +248,13 @@ iriencode
 ?foo=123&amp;bar=yes
 
 linebreaks
-
+<p></p>
 <p>this is a text<br />with a new line in it</p>
-<p>This is a simple text.</p><p>This too, as a paragraph.<br />Right?</p><p>Yep!</p>
+<p>This is a simple text.</p>
+
+<p>This too, as a paragraph.<br />Right?</p>
+
+<p>Yep!</p>
 <p>john doe</p>
 
 linenumbers
