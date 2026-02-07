@@ -1518,3 +1518,76 @@ func TestBugGetdigitNonDigitCharacters(t *testing.T) {
 		})
 	}
 }
+
+func TestBugPluralizeFloatTruncation(t *testing.T) {
+	// Bug: pluralize filter uses Integer() which truncates floats like 1.5 to 1,
+	// incorrectly treating them as singular. Django uses float comparison against 1.
+
+	tests := []struct {
+		name     string
+		template string
+		context  pongo2.Context
+		expected string
+	}{
+		{
+			name:     "float 1.5 should pluralize",
+			template: `{{ val|pluralize }}`,
+			context:  pongo2.Context{"val": 1.5},
+			expected: "s",
+		},
+		{
+			name:     "float 1.0 should be singular",
+			template: `{{ val|pluralize }}`,
+			context:  pongo2.Context{"val": 1.0},
+			expected: "",
+		},
+		{
+			name:     "float 0.5 should pluralize",
+			template: `{{ val|pluralize }}`,
+			context:  pongo2.Context{"val": 0.5},
+			expected: "s",
+		},
+		{
+			name:     "int 1 should be singular",
+			template: `{{ val|pluralize }}`,
+			context:  pongo2.Context{"val": 1},
+			expected: "",
+		},
+		{
+			name:     "int 2 should pluralize",
+			template: `{{ val|pluralize }}`,
+			context:  pongo2.Context{"val": 2},
+			expected: "s",
+		},
+		{
+			name:     "float 1.5 with custom suffix",
+			template: `{{ val|pluralize:"y,ies" }}`,
+			context:  pongo2.Context{"val": 1.5},
+			expected: "ies",
+		},
+		{
+			name:     "float 1.0 with custom suffix",
+			template: `{{ val|pluralize:"y,ies" }}`,
+			context:  pongo2.Context{"val": 1.0},
+			expected: "y",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tpl, err := pongo2.FromString(tt.template)
+			if err != nil {
+				t.Fatalf("failed to parse template: %v", err)
+			}
+
+			result, err := tpl.Execute(tt.context)
+			if err != nil {
+				t.Fatalf("failed to execute template: %v", err)
+			}
+
+			if result != tt.expected {
+				t.Errorf("expected %q, got %q", tt.expected, result)
+			}
+		})
+	}
+}

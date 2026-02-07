@@ -1471,6 +1471,10 @@ func filterPhone2numeric(in *Value, param *Value) (*Value, error) {
 // With count=5: "5 walruses."
 func filterPluralize(in *Value, param *Value) (*Value, error) {
 	if in.IsNumber() {
+		// Use Float() comparison instead of Integer() to avoid truncating
+		// floats like 1.5 to 1, which would incorrectly treat them as singular.
+		isPlural := in.Float() != 1
+
 		// Works only on numbers
 		if param.Len() > 0 {
 			endings := strings.Split(param.String(), ",")
@@ -1482,18 +1486,18 @@ func filterPluralize(in *Value, param *Value) (*Value, error) {
 			}
 			if len(endings) == 1 {
 				// 1 argument
-				if in.Integer() != 1 {
+				if isPlural {
 					return AsValue(endings[0]), nil
 				}
 			} else {
-				if in.Integer() != 1 {
+				if isPlural {
 					// 2 arguments
 					return AsValue(endings[1]), nil
 				}
 				return AsValue(endings[0]), nil
 			}
 		} else {
-			if in.Integer() != 1 {
+			if isPlural {
 				// return default 's'
 				return AsValue("s"), nil
 			}
