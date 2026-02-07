@@ -268,7 +268,7 @@ func (v *Value) Negate() *Value {
 		if v.Float() != 0.0 {
 			return AsValue(float64(0.0))
 		}
-		return AsValue(float64(1.1))
+		return AsValue(float64(1.0))
 	case reflect.Array, reflect.Chan, reflect.Map, reflect.Slice, reflect.String:
 		return AsValue(rv.Len() == 0)
 	case reflect.Bool:
@@ -330,7 +330,7 @@ func (v *Value) Index(i int) *Value {
 		}
 		return AsValue("")
 	default:
-		logf("Value.Slice() not available for type: %s\n", rv.Kind().String())
+		logf("Value.Index() not available for type: %s\n", rv.Kind().String())
 		return AsValue([]int{})
 	}
 }

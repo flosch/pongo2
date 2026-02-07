@@ -710,3 +710,50 @@ func TestBugLexerColumnMultiByteUTF8(t *testing.T) {
 		})
 	}
 }
+
+func TestBugNegateFloatReturns1Point1(t *testing.T) {
+	// Bug: Negate() returned float64(1.1) instead of float64(1.0) when
+	// negating a zero float value. This was a typo in the source code.
+
+	tpl, err := pongo2.FromString(`{% if not zero_float %}yes{% else %}no{% endif %}`)
+	if err != nil {
+		t.Fatalf("failed to parse template: %v", err)
+	}
+
+	result, err := tpl.Execute(pongo2.Context{"zero_float": 0.0})
+	if err != nil {
+		t.Fatalf("failed to execute template: %v", err)
+	}
+
+	if result != "yes" {
+		t.Errorf("expected %q, got %q", "yes", result)
+	}
+
+	tpl2, err := pongo2.FromString(`{{ zero_float|default:"fallback" }}`)
+	if err != nil {
+		t.Fatalf("failed to parse template: %v", err)
+	}
+
+	result2, err := tpl2.Execute(pongo2.Context{"zero_float": 0.0})
+	if err != nil {
+		t.Fatalf("failed to execute template: %v", err)
+	}
+
+	if result2 != "fallback" {
+		t.Errorf("expected %q, got %q", "fallback", result2)
+	}
+
+	// Test that negated non-zero float gives 0.0
+	v := pongo2.AsValue(3.14)
+	negated := v.Negate()
+	if negated.Float() != 0.0 {
+		t.Errorf("Negate() of non-zero float should be 0.0, got %v", negated.Float())
+	}
+
+	// Test that negated zero float gives 1.0 (not 1.1)
+	v2 := pongo2.AsValue(0.0)
+	negated2 := v2.Negate()
+	if negated2.Float() != 1.0 {
+		t.Errorf("Negate() of zero float should be 1.0, got %v", negated2.Float())
+	}
+}
