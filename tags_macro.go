@@ -102,7 +102,7 @@ func (node *tagMacroNode) call(ctx *ExecutionContext, args ...*Value) (*Value, e
 				return AsSafeValue(""), err
 			}
 
-			argsCtx[k] = valueExpr
+			argsCtx[k] = valueExpr.Interface()
 		}
 	}
 

@@ -2201,3 +2201,48 @@ func TestUnorderedListDjangoCompat(t *testing.T) {
 		})
 	}
 }
+
+func TestMacroDefaultValueConsistency(t *testing.T) {
+	tests := []struct {
+		name     string
+		template string
+		expected string
+	}{
+		{
+			name:     "default value used",
+			template: `{% macro greet(name="World") %}Hello, {{ name }}!{% endmacro %}{{ greet() }}`,
+			expected: "Hello, World!",
+		},
+		{
+			name:     "positional overrides default",
+			template: `{% macro greet(name="World") %}Hello, {{ name }}!{% endmacro %}{{ greet("Go") }}`,
+			expected: "Hello, Go!",
+		},
+		{
+			name:     "multiple defaults mixed with positional",
+			template: `{% macro test(a, b="B", c="C") %}{{ a }}-{{ b }}-{{ c }}{% endmacro %}{{ test("A") }}`,
+			expected: "A-B-C",
+		},
+		{
+			name:     "all positional override defaults",
+			template: `{% macro test(a="X", b="Y") %}{{ a }}-{{ b }}{% endmacro %}{{ test("1", "2") }}`,
+			expected: "1-2",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tpl, err := pongo2.FromString(tt.template)
+			if err != nil {
+				t.Fatalf("failed to parse template: %v", err)
+			}
+			result, err := tpl.Execute(pongo2.Context{})
+			if err != nil {
+				t.Fatalf("failed to execute template: %v", err)
+			}
+			if result != tt.expected {
+				t.Errorf("got %q, want %q", result, tt.expected)
+			}
+		})
+	}
+}
