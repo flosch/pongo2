@@ -1761,3 +1761,22 @@ func TestBugLinebreaksWindowsNewlines(t *testing.T) {
 		})
 	}
 }
+
+func TestBugLinenumbersWindowsNewlines(t *testing.T) {
+	// Bug: linenumbers splits on \n only, not handling \r\n or \r.
+
+	tpl, err := pongo2.FromString(`{% autoescape off %}{{ text|linenumbers }}{% endautoescape %}`)
+	if err != nil {
+		t.Fatalf("failed to parse template: %v", err)
+	}
+
+	result, err := tpl.Execute(pongo2.Context{"text": "line1\r\nline2\r\nline3"})
+	if err != nil {
+		t.Fatalf("failed to execute template: %v", err)
+	}
+
+	expected := "1. line1\n2. line2\n3. line3"
+	if result != expected {
+		t.Errorf("expected %q, got %q", expected, result)
+	}
+}

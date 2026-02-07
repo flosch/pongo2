@@ -1203,10 +1203,15 @@ func filterLinebreaksbr(in *Value, param *Value) (*Value, error) {
 //  2. second
 //  3. third
 func filterLinenumbers(in *Value, param *Value) (*Value, error) {
-	lines := strings.Split(in.String(), "\n")
+	// Normalize \r\n and \r to \n before processing
+	s := strings.ReplaceAll(in.String(), "\r\n", "\n")
+	s = strings.ReplaceAll(s, "\r", "\n")
+	lines := strings.Split(s, "\n")
+	// Calculate padding width for zero-padded line numbers (matching Django)
+	width := len(strconv.Itoa(len(lines)))
 	output := make([]string, 0, len(lines))
 	for idx, line := range lines {
-		output = append(output, fmt.Sprintf("%d. %s", idx+1, line))
+		output = append(output, fmt.Sprintf("%0*d. %s", width, idx+1, line))
 	}
 	return AsValue(strings.Join(output, "\n")), nil
 }
