@@ -1856,8 +1856,8 @@ func filterYesno(in *Value, param *Value) (*Value, error) {
 }
 
 // timeFilterHelper extracts the common logic for timesince/timeuntil filters.
-// When reverse is false, computes timeDiff(inputTime, comparisonTime) (time since).
-// When reverse is true, computes timeDiff(comparisonTime, inputTime) (time until).
+// When reverse is false, computes timesince (elapsed time from d to now).
+// When reverse is true, computes timeuntil (remaining time from now to d).
 func timeFilterHelper(in *Value, param *Value, reverse bool) (*Value, error) {
 	t, isTime := in.Interface().(time.Time)
 	if !isTime {
@@ -1871,10 +1871,21 @@ func timeFilterHelper(in *Value, param *Value, reverse bool) (*Value, error) {
 		}
 	}
 
+	var from, to time.Time
 	if reverse {
-		return AsValue(timeDiff(comparisonTime, t)), nil
+		from, to = comparisonTime, t
+	} else {
+		from, to = t, comparisonTime
 	}
-	return AsValue(timeDiff(t, comparisonTime)), nil
+
+	// If 'from' is after 'to', the direction is wrong: return "0 minutes".
+	// Django: timesince returns "0 minutes" for future dates,
+	// timeuntil returns "0 minutes" for past dates.
+	if to.Before(from) {
+		return AsValue("0 minutes"), nil
+	}
+
+	return AsValue(timeDiff(from, to)), nil
 }
 
 // filterTimesince returns the time elapsed since the given datetime.
@@ -1899,78 +1910,103 @@ func filterTimeuntil(in *Value, param *Value) (*Value, error) {
 	return timeFilterHelper(in, param, true)
 }
 
-// timeDiff calculates the difference between two times and returns a human-readable string.
-func timeDiff(from, to time.Time) string {
-	diff := to.Sub(from)
-	if diff < 0 {
-		diff = -diff
-	}
+// monthsDays maps month index (0-based) to number of days in that month (non-leap year).
+var monthsDays = [12]int{31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31}
 
-	if diff < time.Minute {
+// timeDiff calculates the difference between two times and returns a human-readable string.
+// Uses the same algorithm as Django: calendar-based year/month calculation with a pivot
+// date, and only shows up to two adjacent time units.
+func timeDiff(from, to time.Time) string {
+	since := to.Sub(from)
+	if since < time.Minute {
 		return "0 minutes"
 	}
 
-	years := int(diff / (365 * 24 * time.Hour))
-	diff -= time.Duration(years) * 365 * 24 * time.Hour
+	// Calculate years and months using calendar arithmetic (like Django).
+	totalMonths := (to.Year()-from.Year())*12 + int(to.Month()) - int(from.Month())
+	if from.Day() > to.Day() || (from.Day() == to.Day() && timeOfDay(from) > timeOfDay(to)) {
+		totalMonths--
+	}
+	if totalMonths < 0 {
+		totalMonths = 0
+	}
+	years := totalMonths / 12
+	months := totalMonths % 12
 
-	months := int(diff / (30 * 24 * time.Hour))
-	diff -= time.Duration(months) * 30 * 24 * time.Hour
+	// Create a pivot date shifted by years+months from 'from', then calculate
+	// the remaining duration from pivot to 'to'.
+	var remaining time.Duration
+	if years > 0 || months > 0 {
+		pivotYear := from.Year() + years
+		pivotMonth := int(from.Month()) + months
+		if pivotMonth > 12 {
+			pivotMonth -= 12
+			pivotYear++
+		}
+		maxDay := monthsDays[pivotMonth-1]
+		if pivotMonth == 2 && isLeapYear(pivotYear) {
+			maxDay = 29
+		}
+		pivotDay := from.Day()
+		if pivotDay > maxDay {
+			pivotDay = maxDay
+		}
+		pivot := time.Date(pivotYear, time.Month(pivotMonth), pivotDay,
+			from.Hour(), from.Minute(), from.Second(), 0, from.Location())
+		remaining = to.Sub(pivot)
+		if remaining < 0 {
+			remaining = 0
+		}
+	} else {
+		remaining = since
+	}
 
-	weeks := int(diff / (7 * 24 * time.Hour))
-	diff -= time.Duration(weeks) * 7 * 24 * time.Hour
+	weeks := int(remaining / (7 * 24 * time.Hour))
+	remaining -= time.Duration(weeks) * 7 * 24 * time.Hour
 
-	days := int(diff / (24 * time.Hour))
-	diff -= time.Duration(days) * 24 * time.Hour
+	days := int(remaining / (24 * time.Hour))
+	remaining -= time.Duration(days) * 24 * time.Hour
 
-	hours := int(diff / time.Hour)
-	diff -= time.Duration(hours) * time.Hour
+	hours := int(remaining / time.Hour)
+	remaining -= time.Duration(hours) * time.Hour
 
-	minutes := int(diff / time.Minute)
+	minutes := int(remaining / time.Minute)
 
-	// Build the result with up to two units (like Django)
+	// Collect units in order: years, months, weeks, days, hours, minutes.
+	// Django only shows up to 2 adjacent units (e.g., "1 year, 2 months"
+	// but not "1 year, 3 days" since months would be skipped).
+	type unit struct {
+		value int
+		name  string
+	}
+	units := []unit{
+		{years, "year"},
+		{months, "month"},
+		{weeks, "week"},
+		{days, "day"},
+		{hours, "hour"},
+		{minutes, "minute"},
+	}
+
 	var parts []string
-
-	if years > 0 {
-		if years == 1 {
-			parts = append(parts, "1 year")
-		} else {
-			parts = append(parts, fmt.Sprintf("%d years", years))
+	lastIdx := -2 // track index of last added unit for adjacency check
+	for i, u := range units {
+		if u.value <= 0 {
+			continue
 		}
-	}
-	if months > 0 && len(parts) < 2 {
-		if months == 1 {
-			parts = append(parts, "1 month")
-		} else {
-			parts = append(parts, fmt.Sprintf("%d months", months))
+		// Enforce adjacency: only add if this unit is adjacent to the last one added
+		if len(parts) > 0 && i != lastIdx+1 {
+			break
 		}
-	}
-	if weeks > 0 && len(parts) < 2 {
-		if weeks == 1 {
-			parts = append(parts, "1 week")
-		} else {
-			parts = append(parts, fmt.Sprintf("%d weeks", weeks))
+		if len(parts) >= 2 {
+			break
 		}
-	}
-	if days > 0 && len(parts) < 2 {
-		if days == 1 {
-			parts = append(parts, "1 day")
-		} else {
-			parts = append(parts, fmt.Sprintf("%d days", days))
+		name := u.name
+		if u.value != 1 {
+			name += "s"
 		}
-	}
-	if hours > 0 && len(parts) < 2 {
-		if hours == 1 {
-			parts = append(parts, "1 hour")
-		} else {
-			parts = append(parts, fmt.Sprintf("%d hours", hours))
-		}
-	}
-	if minutes > 0 && len(parts) < 2 {
-		if minutes == 1 {
-			parts = append(parts, "1 minute")
-		} else {
-			parts = append(parts, fmt.Sprintf("%d minutes", minutes))
-		}
+		parts = append(parts, fmt.Sprintf("%d %s", u.value, name))
+		lastIdx = i
 	}
 
 	if len(parts) == 0 {
@@ -1978,6 +2014,18 @@ func timeDiff(from, to time.Time) string {
 	}
 
 	return strings.Join(parts, ", ")
+}
+
+// timeOfDay returns the time-of-day portion as a duration for comparison.
+func timeOfDay(t time.Time) time.Duration {
+	return time.Duration(t.Hour())*time.Hour +
+		time.Duration(t.Minute())*time.Minute +
+		time.Duration(t.Second())*time.Second
+}
+
+// isLeapYear returns true if the given year is a leap year.
+func isLeapYear(year int) bool {
+	return year%4 == 0 && (year%100 != 0 || year%400 == 0)
 }
 
 // filterDictsort sorts a list of maps or structs by the specified key.

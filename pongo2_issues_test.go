@@ -8,6 +8,7 @@ import (
 	"sync/atomic"
 	"testing"
 	"testing/fstest"
+	"time"
 	"unicode/utf8"
 
 	"github.com/flosch/pongo2/v7"
@@ -2004,4 +2005,79 @@ func TestBugTrimBlocksRaceCondition(t *testing.T) {
 		}()
 	}
 	wg.Wait()
+}
+
+func TestBugTimesinceDjangoCompat(t *testing.T) {
+	// Bug: timesince/timeuntil used fixed approximations (365 days/year, 30 days/month)
+	// instead of calendar-based arithmetic, didn't enforce adjacency rule, and
+	// didn't handle wrong-direction dates (future for timesince, past for timeuntil).
+
+	tests := []struct {
+		name     string
+		template string
+		context  pongo2.Context
+		expected string
+	}{
+		{
+			name:     "timesince with future date returns 0 minutes",
+			template: `{{ d|timesince:now }}`,
+			context: pongo2.Context{
+				"d":   time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC),
+				"now": time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC),
+			},
+			expected: "0 minutes",
+		},
+		{
+			name:     "timeuntil with past date returns 0 minutes",
+			template: `{{ d|timeuntil:now }}`,
+			context: pongo2.Context{
+				"d":   time.Date(2023, 1, 1, 0, 0, 0, 0, time.UTC),
+				"now": time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC),
+			},
+			expected: "0 minutes",
+		},
+		{
+			name:     "adjacency rule: 2 weeks without hours",
+			template: `{{ d|timesince:now }}`,
+			context: pongo2.Context{
+				"d":   time.Date(2024, 1, 1, 12, 0, 0, 0, time.UTC),
+				"now": time.Date(2024, 1, 15, 15, 0, 0, 0, time.UTC),
+			},
+			expected: "2 weeks",
+		},
+		{
+			name:     "adjacency rule: 1 year without days",
+			template: `{{ d|timesince:now }}`,
+			context: pongo2.Context{
+				"d":   time.Date(2023, 1, 1, 0, 0, 0, 0, time.UTC),
+				"now": time.Date(2024, 1, 6, 0, 0, 0, 0, time.UTC),
+			},
+			expected: "1 year",
+		},
+		{
+			name:     "calendar-based months: Feb 10 to Mar 10",
+			template: `{{ d|timesince:now }}`,
+			context: pongo2.Context{
+				"d":   time.Date(2013, 2, 10, 0, 0, 0, 0, time.UTC),
+				"now": time.Date(2014, 3, 10, 0, 0, 0, 0, time.UTC),
+			},
+			expected: "1 year, 1 month",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tpl, err := pongo2.FromString(tt.template)
+			if err != nil {
+				t.Fatalf("failed to parse template: %v", err)
+			}
+			result, err := tpl.Execute(tt.context)
+			if err != nil {
+				t.Fatalf("failed to execute template: %v", err)
+			}
+			if result != tt.expected {
+				t.Errorf("got %q, want %q", result, tt.expected)
+			}
+		})
+	}
 }

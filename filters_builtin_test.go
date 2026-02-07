@@ -106,10 +106,10 @@ func TestTimeDiff(t *testing.T) {
 			expected: "3 weeks",
 		},
 		{
-			name:     "exactly 1 month (30 days)",
+			name:     "30 days within same month (not 1 month)",
 			from:     time.Date(2024, 1, 1, 12, 0, 0, 0, time.UTC),
 			to:       time.Date(2024, 1, 31, 12, 0, 0, 0, time.UTC),
-			expected: "1 month",
+			expected: "4 weeks, 2 days",
 		},
 		{
 			name:     "1 month and weeks",
@@ -139,13 +139,13 @@ func TestTimeDiff(t *testing.T) {
 			name:     "multiple years",
 			from:     time.Date(2022, 1, 1, 12, 0, 0, 0, time.UTC),
 			to:       time.Date(2026, 1, 1, 12, 0, 0, 0, time.UTC),
-			expected: "4 years, 1 day",
+			expected: "4 years",
 		},
 		{
-			name:     "negative difference (from > to) should be absolute",
+			name:     "negative difference (from > to) returns 0 minutes",
 			from:     time.Date(2024, 1, 5, 12, 0, 0, 0, time.UTC),
 			to:       time.Date(2024, 1, 1, 12, 0, 0, 0, time.UTC),
-			expected: "4 days",
+			expected: "0 minutes",
 		},
 		{
 			name:     "only two units shown - years and months only",
@@ -181,7 +181,7 @@ func TestTimeDiff(t *testing.T) {
 			name:     "leap year - spanning leap year Feb 29",
 			from:     time.Date(2024, 2, 29, 0, 0, 0, 0, time.UTC),
 			to:       time.Date(2025, 2, 28, 0, 0, 0, 0, time.UTC),
-			expected: "1 year",
+			expected: "11 months, 4 weeks",
 		},
 		{
 			name:     "sub-second difference returns 0 minutes",
@@ -256,13 +256,13 @@ func TestFilterTimesince(t *testing.T) {
 			name:     "valid time value with valid time argument - years apart",
 			in:       AsValue(time.Date(2020, 3, 15, 10, 30, 0, 0, time.UTC)),
 			param:    AsValue(time.Date(2024, 3, 15, 10, 30, 0, 0, time.UTC)),
-			expected: "4 years, 1 day",
+			expected: "4 years",
 		},
 		{
 			name:     "valid time value with valid time argument - months apart",
 			in:       AsValue(time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC)),
 			param:    AsValue(time.Date(2024, 4, 1, 0, 0, 0, 0, time.UTC)),
-			expected: "3 months, 1 day",
+			expected: "3 months",
 		},
 		{
 			name:     "valid time value with valid time argument - complex duration",
@@ -352,13 +352,13 @@ func TestFilterTimeuntil(t *testing.T) {
 			name:     "valid time value with valid time argument - years apart",
 			in:       AsValue(time.Date(2028, 3, 15, 10, 30, 0, 0, time.UTC)),
 			param:    AsValue(time.Date(2024, 3, 15, 10, 30, 0, 0, time.UTC)),
-			expected: "4 years, 1 day",
+			expected: "4 years",
 		},
 		{
 			name:     "valid time value with valid time argument - months apart",
 			in:       AsValue(time.Date(2024, 7, 1, 0, 0, 0, 0, time.UTC)),
 			param:    AsValue(time.Date(2024, 4, 1, 0, 0, 0, 0, time.UTC)),
-			expected: "3 months, 1 day",
+			expected: "3 months",
 		},
 		{
 			name:     "valid time value with valid time argument - complex duration",
