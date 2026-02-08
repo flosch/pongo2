@@ -443,7 +443,7 @@ func filterTruncatecharsHTML(in *Value, param *Value) (*Value, error) {
 }
 
 // filterTruncatewords truncates a string after a certain number of words.
-// If truncated, an ellipsis ("...") is appended.
+// If truncated, a space and Unicode ellipsis (" …") is appended.
 //
 // Django reference: django/utils/text.py Truncator.words(truncate=" …")
 // Verified against Django 4.2 with script — space before ellipsis is intentional.
@@ -452,7 +452,7 @@ func filterTruncatecharsHTML(in *Value, param *Value) (*Value, error) {
 //
 //	{{ "Hello beautiful world"|truncatewords:2 }}
 //
-// Output: "Hello beautiful ..."
+// Output: "Hello beautiful …"
 //
 // {{ "Hi"|truncatewords:5 }}
 //
@@ -488,7 +488,7 @@ func filterTruncatewords(in *Value, param *Value) (*Value, error) {
 //
 //	{{ "<p>Hello beautiful world</p>"|truncatewords_html:2 }}
 //
-// Output: "<p>Hello beautiful ...</p>"
+// Output: "<p>Hello beautiful …</p>"
 func filterTruncatewordsHTML(in *Value, param *Value) (*Value, error) {
 	value := in.String()
 	newLen := max(param.Integer(), 0)
@@ -685,7 +685,7 @@ func filterEscapejs(in *Value, param *Value) (*Value, error) {
 //
 //	{{ 3.5|add:2.1 }}
 //
-// Output: 5.6
+// Output: 5.600000
 //
 // Usage with strings:
 //
@@ -758,7 +758,7 @@ func filterLength(in *Value, param *Value) (*Value, error) {
 //
 //	{{ "Hello"|length_is:5 }}
 //
-// Output: true
+// Output: True
 func filterLengthis(in *Value, param *Value) (*Value, error) {
 	return AsValue(in.Len() == param.Integer()), nil
 }
@@ -808,7 +808,7 @@ func filterDefaultIfNone(in *Value, param *Value) (*Value, error) {
 //
 //	{{ 21|divisibleby:7 }}
 //
-// Output: true
+// Output: True
 //
 //	{% if forloop.Counter|divisibleby:2 %}even{% else %}odd{% endif %}
 func filterDivisibleby(in *Value, param *Value) (*Value, error) {
@@ -860,7 +860,7 @@ const maxFloatFormatDecimals = 1000
 //
 //	{{ 3.14159|floatformat }}
 //
-// Output: "3.14159" (default behavior, trimmed)
+// Output: "3.1" (default: -1 decimal, trailing zeros removed)
 func filterFloatformat(in *Value, param *Value) (*Value, error) {
 	val := in.Float()
 
@@ -1186,11 +1186,11 @@ func filterDate(in *Value, param *Value) (*Value, error) {
 //
 //	{{ "3.14"|float }}
 //
-// Output: 3.14
+// Output: 3.140000
 //
 //	{{ 42|float }}
 //
-// Output: 42.0
+// Output: 42.000000
 func filterFloat(in *Value, param *Value) (*Value, error) {
 	return AsValue(in.Float()), nil
 }
@@ -1452,7 +1452,7 @@ func filterUrlize(in *Value, param *Value) (*Value, error) {
 //
 //	{{ "Check out www.reallylongdomainname.com/path"|urlizetrunc:20 }}
 //
-// Output: '<a href="http://www.reallylongdomainname.com/path" rel="nofollow">www.reallylongdo...</a>'
+// Output: 'Check out <a href="http://www.reallylongdomainname.com/path" rel="nofollow">www.reallylongdomai…</a>'
 func filterUrlizetrunc(in *Value, param *Value) (*Value, error) {
 	s, err := filterUrlizeHelper(in.String(), true, param.Integer())
 	if err != nil {
@@ -2517,8 +2517,8 @@ func filterEscapeseq(in *Value, param *Value) (*Value, error) {
 //
 // Output:
 //
-//	<script id="my-data" type="application/json">{"key": "value"}</script>
-//	<script type="application/json">{"key": "value"}</script>
+//	<script id="my-data" type="application/json">{"key":"value"}</script>
+//	<script type="application/json">{"key":"value"}</script>
 func filterJSONScript(in *Value, param *Value) (*Value, error) {
 	var result strings.Builder
 

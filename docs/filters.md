@@ -76,10 +76,11 @@ Removes all occurrences of a substring.
 
 ### truncatechars
 
-Truncates a string to the specified number of characters, appending "..." if truncated.
+Truncates a string to the specified number of characters, appending a Unicode
+ellipsis (`…`) if truncated.
 
 ```django
-{{ "Hello World"|truncatechars:8 }}  {# Hello... #}
+{{ "Hello World"|truncatechars:8 }}  {# Hello W… #}
 ```
 
 ### truncatechars_html
@@ -87,7 +88,7 @@ Truncates a string to the specified number of characters, appending "..." if tru
 Like `truncatechars`, but preserves HTML tags.
 
 ```django
-{{ "<p>Hello World</p>"|truncatechars_html:8 }}  {# <p>Hello...</p> #}
+{{ "<p>Hello World</p>"|truncatechars_html:8 }}  {# <p>Hello W…</p> #}
 ```
 
 ### truncatewords
@@ -95,7 +96,7 @@ Like `truncatechars`, but preserves HTML tags.
 Truncates a string after a specified number of words.
 
 ```django
-{{ "One two three four five"|truncatewords:3 }}  {# One two three... #}
+{{ "One two three four five"|truncatewords:3 }}  {# One two three … #}
 ```
 
 ### truncatewords_html
@@ -104,7 +105,7 @@ Like `truncatewords`, but preserves HTML tags.
 
 ```django
 {{ "<p>One two three four five</p>"|truncatewords_html:3 }}
-{# <p>One two three...</p> #}
+{# <p>One two three …</p> #}
 ```
 
 ### wordcount
@@ -196,7 +197,9 @@ Converts newlines into `<p>` and `<br />` tags.
 
 ```django
 {{ "Line 1\n\nLine 2"|linebreaks }}
-{# <p>Line 1</p><p>Line 2</p> #}
+{# <p>Line 1</p>
+
+<p>Line 2</p> #}
 ```
 
 ### linebreaksbr
@@ -221,7 +224,7 @@ Removes all HTML tags.
 Removes specified HTML tags.
 
 ```django
-{{ "<p><b>Hello</b></p>"|removetags:"b" }}  {# <p>Hello</p> #}
+{% autoescape off %}{{ "<p><b>Hello</b></p>"|removetags:"b" }}{% endautoescape %}  {# <p>Hello</p> #}
 ```
 
 ### linenumbers
@@ -253,15 +256,20 @@ Like `urlize`, but truncates URLs longer than the given limit.
 
 ### iriencode
 
-Encodes an IRI (Internationalized Resource Identifier).
+Encodes an IRI (Internationalized Resource Identifier) using Go's `url.QueryEscape`
+for non-IRI characters. IRI-safe characters (`/#%[]=:;$&()+,!?*@'~`) are preserved.
+
+> **Django difference:** Django's `iri_to_uri()` encodes spaces as `%20`. Go's `url.QueryEscape` encodes spaces as `+`.
 
 ```django
-{{ "path/to file"|iriencode }}  {# path/to%20file #}
+{{ "path/to file"|iriencode }}  {# path/to+file #}
 ```
 
 ### urlencode
 
-URL-encodes a string.
+URL-encodes a string using Go's `url.QueryEscape`.
+
+> **Django difference:** Django uses `%20` for spaces and preserves `/`. Go's `url.QueryEscape` uses `+` for spaces and encodes `/` as `%2F`.
 
 ```django
 {{ "hello world"|urlencode }}  {# hello+world #}
@@ -309,7 +317,7 @@ Returns the digit at the specified position (from right, 1-indexed).
 Converts value to float.
 
 ```django
-{{ "3.14"|float }}  {# 3.14 #}
+{{ "3.14"|float }}  {# 3.140000 #}
 ```
 
 ### integer

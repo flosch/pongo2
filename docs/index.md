@@ -94,7 +94,9 @@ err := tpl.ExecuteWriter(pongo2.Context{
 ### Not Implemented
 
 - `csrf_token` - Web framework specific
+- `debug` - Not yet implemented
 - `load` - Python specific
+- `regroup` - Not yet implemented
 - `url` - Web framework specific
 
 ## Add-ons
@@ -102,10 +104,12 @@ err := tpl.ExecuteWriter(pongo2.Context{
 ### Official
 
 - [pongo2-addons](https://github.com/flosch/pongo2-addons) - Additional filters:
-  - `filesizeformat`, `slugify`, `markdown`
-  - `timesince`, `timeuntil`, `naturaltime`, `naturalday`
+  - `markdown`
+  - `naturaltime`, `naturalday`
   - `intcomma`, `ordinal`
   - `truncatesentences`, `truncatesentences_html`
+
+> **Note:** `filesizeformat`, `slugify`, `timesince`, and `timeuntil` are now built-in filters as of v7.
 
 ### Third-Party Integrations
 
@@ -150,7 +154,7 @@ err := tpl.ExecuteWriter(pongo2.Context{
 
 ## Version
 
-Current version: **6.0.0**
+Current version: **7.0.0-alpha.2**
 
 ## Support
 
