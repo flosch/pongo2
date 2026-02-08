@@ -117,13 +117,17 @@ Returns the number of words.
 
 ### wordwrap
 
-Wraps words at the specified line length.
+Wraps text at the specified character column width. Lines are broken at word
+boundaries; long words that exceed the width are not split. Existing newlines
+are preserved. `\r\n` and `\r` are normalized to `\n` before processing.
+
+Verified against Django 4.2 `django.utils.text.wrap()`.
 
 ```django
-{{ "Hello World How Are You"|wordwrap:10 }}
-{# Hello World
-How Are
-You #}
+{{ "a b c d e f g h"|wordwrap:5 }}
+{# a b c
+d e f
+g h #}
 ```
 
 ### addslashes

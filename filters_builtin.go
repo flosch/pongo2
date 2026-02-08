@@ -47,7 +47,8 @@ package pongo2
 
    - wordwrap: Wraps at character column width (not word count). Uses word-boundary
      breaking (long words are not split). Preserves existing newlines.
-     Django ref: django/utils/text.py wrap() → textwrap.TextWrapper.
+     Normalizes \r\n and \r to \n before processing. Verified against Django 4.2.
+     Django ref: django/utils/text.py wrap().
 
    - floatformat: Negative arg means "display N decimal places unless the result
      would be all zeros." Positive arg always shows exactly N places.
@@ -1884,8 +1885,10 @@ func filterWordcount(in *Value, param *Value) (*Value, error) {
 // filterWordwrap wraps text at the specified character column width.
 // Lines are broken at word boundaries (words are not split). Existing
 // newlines are preserved. Long words that exceed the width are not broken.
+// \r\n and \r are normalized to \n before processing.
 //
-// Django reference: django/utils/text.py wrap() using textwrap.TextWrapper
+// Verified against Django 4.2 django.utils.text.wrap().
+// Django ref: django/utils/text.py wrap()
 //
 // Usage:
 //
@@ -1904,8 +1907,7 @@ func filterWordwrap(in *Value, param *Value) (*Value, error) {
 	}
 
 	// Preserve existing line breaks, wrap each line independently.
-	// This matches Django's wordwrap which uses textwrap.TextWrapper with
-	// break_long_words=False (long words are not broken).
+	// Long words are not broken (matching Django's break_long_words=False).
 	inputLines := strings.Split(s, "\n")
 	var resultLines []string
 
