@@ -1229,9 +1229,7 @@ func filterInteger(in *Value, param *Value) (*Value, error) {
 //
 // Output: "<p>Para 1</p>\n\n<p>Para 2</p>"
 func filterLinebreaks(in *Value, param *Value) (*Value, error) {
-	// Normalize \r\n and \r to \n before processing
-	s := strings.ReplaceAll(in.String(), "\r\n", "\n")
-	s = strings.ReplaceAll(s, "\r", "\n")
+	s := normalizeNewlines(in.String())
 
 	// Split on two or more consecutive newlines (paragraph breaks)
 	paras := reDoubleNewline.Split(s, -1)
@@ -1271,9 +1269,7 @@ func filterSplit(in *Value, param *Value) (*Value, error) {
 //
 // Output: "First line<br />Second line<br />Third line"
 func filterLinebreaksbr(in *Value, param *Value) (*Value, error) {
-	// Normalize \r\n and \r to \n before replacing
-	s := strings.ReplaceAll(in.String(), "\r\n", "\n")
-	s = strings.ReplaceAll(s, "\r", "\n")
+	s := normalizeNewlines(in.String())
 	return AsSafeValue(strings.ReplaceAll(s, "\n", "<br />")), nil
 }
 
@@ -1290,9 +1286,7 @@ func filterLinebreaksbr(in *Value, param *Value) (*Value, error) {
 //  2. second
 //  3. third
 func filterLinenumbers(in *Value, param *Value) (*Value, error) {
-	// Normalize \r\n and \r to \n before processing
-	s := strings.ReplaceAll(in.String(), "\r\n", "\n")
-	s = strings.ReplaceAll(s, "\r", "\n")
+	s := normalizeNewlines(in.String())
 	lines := strings.Split(s, "\n")
 	// Calculate padding width for zero-padded line numbers (matching Django)
 	width := len(strconv.Itoa(len(lines)))
@@ -1341,6 +1335,12 @@ func filterLjust(in *Value, param *Value) (*Value, error) {
 // Output: "http%3A%2F%2Fexample.org%2Fpath%3Fa%3Db"
 func filterUrlencode(in *Value, param *Value) (*Value, error) {
 	return AsValue(url.QueryEscape(in.String())), nil
+}
+
+// normalizeNewlines converts \r\n and lone \r to \n.
+func normalizeNewlines(s string) string {
+	s = strings.ReplaceAll(s, "\r\n", "\n")
+	return strings.ReplaceAll(s, "\r", "\n")
 }
 
 var (
