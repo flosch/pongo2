@@ -1897,7 +1897,7 @@ func filterWordcount(in *Value, param *Value) (*Value, error) {
 //	d e f
 //	g h
 func filterWordwrap(in *Value, param *Value) (*Value, error) {
-	s := in.String()
+	s := normalizeNewlines(in.String())
 	wrapAt := param.Integer()
 	if wrapAt <= 0 {
 		return in, nil
