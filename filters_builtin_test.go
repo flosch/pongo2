@@ -2226,6 +2226,7 @@ func TestFilterWordwrapZeroWidth(t *testing.T) {
 
 // TestFilterWordwrapCharacterBased verifies that wordwrap wraps at the given
 // character width, not word count, matching Django's behavior.
+// All expected values verified against Django 4.2 django.utils.text.wrap().
 func TestFilterWordwrapCharacterBased(t *testing.T) {
 	tests := []struct {
 		name     string
@@ -2233,6 +2234,7 @@ func TestFilterWordwrapCharacterBased(t *testing.T) {
 		width    int
 		expected string
 	}{
+		// Basic wrapping
 		{
 			name:     "basic wrap",
 			input:    "Joel is a slug",
@@ -2246,18 +2248,6 @@ func TestFilterWordwrapCharacterBased(t *testing.T) {
 			expected: "Joel is a slug",
 		},
 		{
-			name:     "long word not broken",
-			input:    "superlongword short",
-			width:    5,
-			expected: "superlongword\nshort",
-		},
-		{
-			name:     "preserve newlines",
-			input:    "hello\nworld",
-			width:    5,
-			expected: "hello\nworld",
-		},
-		{
 			name:     "wrap at 10",
 			input:    "one two three four",
 			width:    10,
@@ -2268,6 +2258,246 @@ func TestFilterWordwrapCharacterBased(t *testing.T) {
 			input:    "",
 			width:    5,
 			expected: "",
+		},
+
+		// Word boundary: width exactly fits words
+		{
+			name:     "exact fit three words",
+			input:    "ab cd ef",
+			width:    8,
+			expected: "ab cd ef",
+		},
+		{
+			name:     "one char short of fitting three words",
+			input:    "ab cd ef",
+			width:    7,
+			expected: "ab cd\nef",
+		},
+		{
+			name:     "exact fit two words",
+			input:    "ab cd",
+			width:    5,
+			expected: "ab cd",
+		},
+		{
+			name:     "one char over two words",
+			input:    "ab cde",
+			width:    5,
+			expected: "ab\ncde",
+		},
+		{
+			name:     "word exactly equals width",
+			input:    "abcde fghij",
+			width:    5,
+			expected: "abcde\nfghij",
+		},
+		{
+			name:     "word plus space equals width",
+			input:    "abcde fghij",
+			width:    6,
+			expected: "abcde\nfghij",
+		},
+		{
+			name:     "width equals total string length",
+			input:    "abc def",
+			width:    7,
+			expected: "abc def",
+		},
+		{
+			name:     "width one less than total string length",
+			input:    "abc def",
+			width:    6,
+			expected: "abc\ndef",
+		},
+		{
+			name:     "width one more than total string length",
+			input:    "abc def",
+			width:    8,
+			expected: "abc def",
+		},
+		{
+			name:     "each word exactly at width",
+			input:    "abc def ghi",
+			width:    3,
+			expected: "abc\ndef\nghi",
+		},
+		{
+			name:     "two char words at width 2",
+			input:    "ab cd",
+			width:    2,
+			expected: "ab\ncd",
+		},
+		{
+			name:     "two char words at width 3",
+			input:    "ab cd",
+			width:    3,
+			expected: "ab\ncd",
+		},
+		{
+			name:     "three words wrap boundary at width 5",
+			input:    "ab cd ef",
+			width:    5,
+			expected: "ab cd\nef",
+		},
+		{
+			name:     "three words wrap boundary at width 4",
+			input:    "ab cd ef",
+			width:    4,
+			expected: "ab\ncd\nef",
+		},
+		{
+			name:     "exact fit on boundary width 3",
+			input:    "abc de",
+			width:    3,
+			expected: "abc\nde",
+		},
+		{
+			name:     "exact fit on boundary width 6",
+			input:    "abc de",
+			width:    6,
+			expected: "abc de",
+		},
+
+		// Width = 1 (single char per line for single-char words)
+		{
+			name:     "width 1 with single char words",
+			input:    "a b c",
+			width:    1,
+			expected: "a\nb\nc",
+		},
+		{
+			name:     "width 1 with multi char words",
+			input:    "ab cd",
+			width:    1,
+			expected: "ab\ncd",
+		},
+		{
+			name:     "width 2 with single char words",
+			input:    "a b c d e f",
+			width:    2,
+			expected: "a\nb\nc\nd\ne\nf",
+		},
+		{
+			name:     "width 3 pairs single char words",
+			input:    "a b c d e f",
+			width:    3,
+			expected: "a b\nc d\ne f",
+		},
+
+		// Mid-word: long words that exceed width (not broken)
+		{
+			name:     "single long word exceeds width",
+			input:    "abcdefghij",
+			width:    5,
+			expected: "abcdefghij",
+		},
+		{
+			name:     "long word then short word",
+			input:    "abcdefghij xy",
+			width:    5,
+			expected: "abcdefghij\nxy",
+		},
+		{
+			name:     "short word then long word",
+			input:    "xy abcdefghij",
+			width:    5,
+			expected: "xy\nabcdefghij",
+		},
+		{
+			name:     "all words exceed width",
+			input:    "abcdef ghijkl mnopqr",
+			width:    5,
+			expected: "abcdef\nghijkl\nmnopqr",
+		},
+		{
+			name:     "long word not broken",
+			input:    "superlongword short",
+			width:    5,
+			expected: "superlongword\nshort",
+		},
+		{
+			name:     "word exactly at width then short",
+			input:    "abcde fg",
+			width:    5,
+			expected: "abcde\nfg",
+		},
+		{
+			name:     "word one over width then short",
+			input:    "abcdef gh",
+			width:    5,
+			expected: "abcdef\ngh",
+		},
+		{
+			name:     "single short word",
+			input:    "hi",
+			width:    5,
+			expected: "hi",
+		},
+		{
+			name:     "single word exact width",
+			input:    "hello",
+			width:    5,
+			expected: "hello",
+		},
+		{
+			name:     "single word exceeds width",
+			input:    "toolong",
+			width:    5,
+			expected: "toolong",
+		},
+
+		// Newline preservation
+		{
+			name:     "preserve existing newlines",
+			input:    "ab cd\nef gh",
+			width:    5,
+			expected: "ab cd\nef gh",
+		},
+		{
+			name:     "preserve empty lines",
+			input:    "ab\n\ncd",
+			width:    5,
+			expected: "ab\n\ncd",
+		},
+		{
+			name:     "preserve trailing newline",
+			input:    "ab cd\n",
+			width:    5,
+			expected: "ab cd\n",
+		},
+		{
+			name:     "preserve whitespace-only line",
+			input:    "hello\n   \nworld",
+			width:    5,
+			expected: "hello\n   \nworld",
+		},
+
+		// \r\n and \r normalization (verified against Django 4.2)
+		{
+			name:     "crlf normalized to lf",
+			input:    "ab cd\r\nef gh",
+			width:    5,
+			expected: "ab cd\nef gh",
+		},
+		{
+			name:     "lone cr normalized to lf",
+			input:    "ab\rcd",
+			width:    5,
+			expected: "ab\ncd",
+		},
+
+		// Unicode
+		{
+			name:     "unicode accented chars",
+			input:    "héllo wörld",
+			width:    5,
+			expected: "héllo\nwörld",
+		},
+		{
+			name:     "chinese characters",
+			input:    "你好世界 测试",
+			width:    3,
+			expected: "你好世界\n测试",
 		},
 	}
 	for _, tc := range tests {
