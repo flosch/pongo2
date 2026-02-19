@@ -64,6 +64,10 @@ type TemplateSet struct {
 	// Template cache (for FromCache())
 	templateCache      map[string]*Template
 	templateCacheMutex sync.Mutex
+
+	// Track templates currently being parsed to detect recursive includes
+	templatesParsing      map[string]bool
+	templatesParsingMutex sync.Mutex
 }
 
 // NewSet can be used to create sets with different kind of templates
@@ -85,15 +89,38 @@ func NewSet(name string, loaders ...TemplateLoader) *TemplateSet {
 		Globals:    make(Context),
 		autoescape: true,
 		// tags and filters are lazily initialized via initOnce
-		bannedTags:    make(map[string]bool),
-		bannedFilters: make(map[string]bool),
-		templateCache: make(map[string]*Template),
-		Options:       newOptions(),
+		bannedTags:       make(map[string]bool),
+		bannedFilters:    make(map[string]bool),
+		templateCache:    make(map[string]*Template),
+		templatesParsing: make(map[string]bool),
+		Options:          newOptions(),
 	}
 }
 
 func (set *TemplateSet) AddLoader(loaders ...TemplateLoader) {
 	set.loaders = append(set.loaders, loaders...)
+}
+
+// isTemplateParsing checks if a template is currently being parsed.
+// This is used to detect recursive includes at parse time.
+func (set *TemplateSet) isTemplateParsing(filename string) bool {
+	set.templatesParsingMutex.Lock()
+	defer set.templatesParsingMutex.Unlock()
+	return set.templatesParsing[filename]
+}
+
+// markTemplateParsing marks a template as currently being parsed.
+func (set *TemplateSet) markTemplateParsing(filename string) {
+	set.templatesParsingMutex.Lock()
+	defer set.templatesParsingMutex.Unlock()
+	set.templatesParsing[filename] = true
+}
+
+// unmarkTemplateParsing removes a template from the parsing set.
+func (set *TemplateSet) unmarkTemplateParsing(filename string) {
+	set.templatesParsingMutex.Lock()
+	defer set.templatesParsingMutex.Unlock()
+	delete(set.templatesParsing, filename)
 }
 
 // initBuiltins copies the builtin tags and filters into this template set.
@@ -338,7 +365,7 @@ func (set *TemplateSet) FromBytes(tpl []byte) (*Template, error) {
 
 // FromFile loads a template from a filename and returns a Template instance.
 func (set *TemplateSet) FromFile(filename string) (*Template, error) {
-	_, _, fd, err := set.resolveTemplate(nil, filename)
+	resolvedName, _, fd, err := set.resolveTemplate(nil, filename)
 	if err != nil {
 		return nil, &Error{
 			Filename:  filename,
@@ -347,6 +374,11 @@ func (set *TemplateSet) FromFile(filename string) (*Template, error) {
 		}
 	}
 	buf, err := io.ReadAll(fd)
+	if closer, ok := fd.(io.Closer); ok {
+		if closeErr := closer.Close(); closeErr != nil && err == nil {
+			err = closeErr
+		}
+	}
 	if err != nil {
 		return nil, &Error{
 			Filename:  filename,
@@ -355,7 +387,11 @@ func (set *TemplateSet) FromFile(filename string) (*Template, error) {
 		}
 	}
 
-	return newTemplate(set, filename, false, buf)
+	// Mark this template as being parsed to detect recursive includes
+	set.markTemplateParsing(resolvedName)
+	defer set.unmarkTemplateParsing(resolvedName)
+
+	return newTemplate(set, resolvedName, false, buf)
 }
 
 // RenderTemplateString is a shortcut and renders a template string directly.

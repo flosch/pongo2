@@ -2,6 +2,9 @@ package pongo2
 
 // tagFirstofNode represents the {% firstof %} tag.
 //
+// Django difference: Django supports {% firstof var1 var2 as name %} to store
+// the result in a variable. This is not yet supported in pongo2.
+//
 // The firstof tag outputs the first variable that is "true" (not empty, not zero,
 // not nil, not false). If all variables are false, nothing is output.
 // This is useful for displaying fallback values.

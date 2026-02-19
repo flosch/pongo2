@@ -268,7 +268,7 @@ func (v *Value) Negate() *Value {
 		if v.Float() != 0.0 {
 			return AsValue(float64(0.0))
 		}
-		return AsValue(float64(1.1))
+		return AsValue(float64(1.0))
 	case reflect.Array, reflect.Chan, reflect.Map, reflect.Slice, reflect.String:
 		return AsValue(rv.Len() == 0)
 	case reflect.Bool:
@@ -298,18 +298,28 @@ func (v *Value) Len() int {
 }
 
 // Slice slices an array, slice or string. Otherwise it will
-// return an empty []int.
+// return nil.
 func (v *Value) Slice(i, j int) *Value {
 	rv := v.getResolvedValue()
 	switch rv.Kind() {
 	case reflect.Array, reflect.Slice:
+		length := rv.Len()
+		i = max(i, 0)
+		j = max(j, i)
+		j = min(j, length)
+		i = min(i, j)
 		return AsValue(rv.Slice(i, j).Interface())
 	case reflect.String:
 		runes := []rune(rv.String())
+		length := len(runes)
+		i = max(i, 0)
+		j = max(j, i)
+		j = min(j, length)
+		i = min(i, j)
 		return AsValue(string(runes[i:j]))
 	default:
 		logf("Value.Slice() not available for type: %s\n", rv.Kind().String())
-		return AsValue([]int{})
+		return AsValue(nil)
 	}
 }
 
@@ -319,19 +329,19 @@ func (v *Value) Index(i int) *Value {
 	rv := v.getResolvedValue()
 	switch rv.Kind() {
 	case reflect.Array, reflect.Slice:
-		if i >= v.Len() {
+		if i < 0 || i >= rv.Len() {
 			return AsValue(nil)
 		}
 		return AsValue(rv.Index(i).Interface())
 	case reflect.String:
 		runes := []rune(rv.String())
-		if i < len(runes) {
-			return AsValue(string(runes[i]))
+		if i < 0 || i >= len(runes) {
+			return AsValue("")
 		}
-		return AsValue("")
+		return AsValue(string(runes[i]))
 	default:
-		logf("Value.Slice() not available for type: %s\n", rv.Kind().String())
-		return AsValue([]int{})
+		logf("Value.Index() not available for type: %s\n", rv.Kind().String())
+		return AsValue(nil)
 	}
 }
 
@@ -353,13 +363,13 @@ func (v *Value) Contains(other *Value) bool {
 		if !other.val.IsValid() {
 			return false
 		}
-		// Ensure that map key type is equal to other's type.
-		if baseValue.Type().Key() != other.val.Type() {
+		otherResolved := other.getResolvedValue()
+		// Ensure that map key type is equal to the resolved other type.
+		if baseValue.Type().Key() != otherResolved.Type() {
 			return false
 		}
 
-		// Use MapIndex directly - type check already verified key type matches
-		mapValue := baseValue.MapIndex(other.getResolvedValue())
+		mapValue := baseValue.MapIndex(otherResolved)
 		return mapValue.IsValid()
 	case reflect.String:
 		return strings.Contains(baseValue.String(), other.String())
@@ -432,8 +442,9 @@ func (v *Value) GetItem(key *Value) *Value {
 			mapKey = reflect.ValueOf(key.Integer()).Convert(mapKeyType)
 		default:
 			// Try direct conversion if the key type matches
-			if key.val.IsValid() && key.val.Type().ConvertibleTo(mapKeyType) {
-				mapKey = key.val.Convert(mapKeyType)
+			keyResolved := key.getResolvedValue()
+			if keyResolved.IsValid() && keyResolved.Type().ConvertibleTo(mapKeyType) {
+				mapKey = keyResolved.Convert(mapKeyType)
 			} else {
 				return AsValue(nil)
 			}
@@ -611,9 +622,7 @@ func (sk sortedKeys) Less(i, j int) bool {
 	vi := &Value{val: sk[i]}
 	vj := &Value{val: sk[j]}
 	switch {
-	case vi.IsInteger() && vj.IsInteger():
-		return vi.Integer() < vj.Integer()
-	case vi.IsFloat() && vj.IsFloat():
+	case vi.IsNumber() && vj.IsNumber():
 		return vi.Float() < vj.Float()
 	default:
 		return vi.String() < vj.String()
@@ -634,9 +643,7 @@ func (vl valuesList) Less(i, j int) bool {
 	vi := vl[i]
 	vj := vl[j]
 	switch {
-	case vi.IsInteger() && vj.IsInteger():
-		return vi.Integer() < vj.Integer()
-	case vi.IsFloat() && vj.IsFloat():
+	case vi.IsNumber() && vj.IsNumber():
 		return vi.Float() < vj.Float()
 	default:
 		return vi.String() < vj.String()

@@ -221,6 +221,8 @@ wordwrap
 
 iriencode
 {{ "?foo=123&bar=yes"|iriencode }}
+{{ "/path with spaces/file"|iriencode }}
+{{ "https://example.com/ä ö ü"|iriencode }}
 
 linebreaks
 {{ ""|linebreaks|safe }}
@@ -338,6 +340,8 @@ slugify
 {{ "  spaces  around  "|slugify }}
 {{ "multiple---hyphens"|slugify }}
 {{ ""|slugify }}
+{{ "Hello_World"|slugify }}
+{{ "under_score_test"|slugify }}
 
 filesizeformat
 {{ 0|filesizeformat }}

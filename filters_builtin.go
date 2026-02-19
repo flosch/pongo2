@@ -8,6 +8,96 @@ package pongo2
    static (reason: web-framework specific)
 */
 
+/*
+   Notable Django behavior references for filter implementations:
+   ---------------------------------------------------------------
+
+   - title: Django uses a custom algorithm that capitalizes after any non-letter/digit
+     character, then fixes apostrophe and digit cases with regex.
+     Django ref: django/utils/text.py capfirst(), re.sub for apostrophe/digit.
+
+   - center: Padding bias for odd margins follows Python's str.center():
+     left = marg/2 + (marg & width & 1). Both odd → extra on left, else right.
+     Django ref: django/template/defaultfilters.py center() → str.center().
+
+   - slugify: Django preserves underscores in slugs. Underscores are NOT stripped.
+     Django ref: django/utils/text.py slugify().
+
+   - filesizeformat: Uses non-breaking space (U+00A0) between number and unit,
+     singular "byte" (not "bytes") for exactly 1 byte, and "-" prefix for negatives.
+     Django ref: django/template/defaultfilters.py filesizeformat().
+
+   - timesince/timeuntil: Uses calendar-based month/year arithmetic (not fixed
+     365/30 approximations). Shows only adjacent time units. Returns "0 minutes"
+     for reversed dates.
+     Django ref: django/utils/timesince.py.
+
+   - linebreaks: Groups text into paragraphs split by double newlines. Within
+     paragraphs, single newlines become <br />. The paragraph algorithm is:
+     split by 2+ newlines → each paragraph gets <p>...</p>.
+     Django ref: django/utils/html.py linebreaks().
+
+   - unordered_list: Uses tab indentation with depth starting at 1. Items are
+     separated by newlines. Nested sublists get <ul>/<li> on separate lines.
+     Django ref: django/template/defaultfilters.py unordered_list() → list_formatter().
+
+   - escapejs: Escapes characters 0x00-0x1F, \, ', ", `, <, >, &, =, -, ;,
+     U+2028, U+2029 to \uXXXX format (uppercase hex in Django, lowercase in Go).
+     Django ref: django/utils/html.py _js_escapes table.
+
+   - wordwrap: Wraps at character column width (not word count). Uses word-boundary
+     breaking (long words are not split). Preserves existing newlines.
+     Normalizes \r\n and \r to \n before processing. Verified against Django 4.2.
+     Django ref: django/utils/text.py wrap().
+
+   - floatformat: Negative arg means "display N decimal places unless the result
+     would be all zeros." Positive arg always shows exactly N places.
+     Django ref: django/template/defaultfilters.py floatformat().
+
+   - forloop: Django's forloop has counter, counter0, revcounter, revcounter0,
+     first, last, parentloop — but NOT a .length attribute.
+     Django ref: django/template/defaulttags.py ForNode.
+
+   - urlencode: Uses Go's url.QueryEscape. Django difference: Django uses
+     urllib.parse.quote(safe='/') which encodes spaces as %20 and preserves /.
+     Go's url.QueryEscape encodes spaces as + and encodes / as %2F.
+
+   - iriencode: Uses Go's url.QueryEscape for non-IRI characters. Django
+     difference: Django's iri_to_uri() uses urllib.parse.quote() which encodes
+     spaces as %20. Go's url.QueryEscape encodes spaces as +.
+
+   - truncatewords: Verified against Django 4.2 with script. Matches Django's
+     Truncator(value).words(length, truncate=" …") — space before ellipsis is
+     intentional.
+
+   - truncatechars: Verified against Django 4.2 with script.
+
+   - truncatechars_html / truncatewords_html: Returns AsSafeValue() to prevent
+     double-escaping of preserved HTML tags. Django difference: Django uses
+     is_safe=True which preserves input safety status; pongo2 unconditionally
+     marks output as safe. This is more user-friendly for HTML-producing filters.
+
+   - escapejs: Verified against Django 4.2 with script. Uses lowercase hex
+     (\u000d) instead of Django's uppercase (\u000D) — functionally equivalent.
+
+   - phone2numeric: Verified against Django 4.2 with script.
+
+   - divisibleby: Verified against Django 4.2 with script.
+
+   - yesno: Verified against Django 4.2 with script.
+
+   - templatetag: Verified against Django 4.2 with script.
+
+   Intentional differences from Django:
+   - stringformat: Uses Go fmt format verbs instead of Python % formatting.
+   - date: Uses Go time formatting (reference time: Mon Jan 2 15:04:05 MST 2006)
+     instead of Django's PHP-style format characters.
+   - now tag: Uses Go time formatting instead of Django format characters.
+   - lorem tag: Uses static pre-defined paragraphs; Django generates random text
+     from a word list.
+   - firstof tag: Does not support "as variable_name" syntax (feature gap).
+*/
+
 import (
 	"bytes"
 	"encoding/json"
@@ -20,10 +110,10 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"unicode"
 	"unicode/utf8"
 
-	"golang.org/x/text/cases"
-	"golang.org/x/text/language"
+	"golang.org/x/text/unicode/norm"
 )
 
 func mustRegisterFilter(name string, fn FilterFunction) {
@@ -151,6 +241,27 @@ func filterTruncatecharsHelper(s string, newLen int) string {
 		return ellipsis
 	}
 	return string(runes)
+}
+
+// countHTMLTextRunes counts the number of text runes (non-tag characters)
+// in an HTML string. This is used to determine whether truncation is needed.
+func countHTMLTextRunes(value string) int {
+	count := 0
+	inTag := false
+	for _, c := range value {
+		if c == '<' {
+			inTag = true
+			continue
+		}
+		if c == '>' {
+			inTag = false
+			continue
+		}
+		if !inTag {
+			count++
+		}
+	}
+	return count
 }
 
 func filterTruncateHTMLHelper(value string, newOutput *bytes.Buffer, cond func() bool, fn func(c rune, s int, idx int) int, finalize func()) {
@@ -285,6 +396,10 @@ func filterTruncatechars(in *Value, param *Value) (*Value, error) {
 // Truncated strings will end with an ellipsis character ("…") which counts towards the limit.
 // Newlines in the HTML content will be preserved.
 //
+// Verified against Django 4.2 with script.
+// Django difference: Returns AsSafeValue() to prevent double-escaping of preserved
+// HTML tags. Django uses is_safe=True (preserves input safety status) instead.
+//
 // Usage:
 //
 //	{{ "<p>Joel is a slug</p>"|truncatechars_html:7 }}
@@ -292,7 +407,20 @@ func filterTruncatechars(in *Value, param *Value) (*Value, error) {
 // Output: "<p>Joel i…</p>"
 func filterTruncatecharsHTML(in *Value, param *Value) (*Value, error) {
 	value := in.String()
-	newLen := max(param.Integer()-1, 0)
+	maxLen := param.Integer()
+
+	// Count the total number of text runes (excluding HTML tags) to determine
+	// whether truncation is actually needed. Without this, we would always
+	// reserve space for the ellipsis and truncate even when the full text
+	// fits within the limit.
+	totalTextRunes := countHTMLTextRunes(value)
+	if totalTextRunes <= maxLen {
+		// No truncation needed - return original value with tags intact
+		return AsSafeValue(value), nil
+	}
+
+	// Reserve one character position for the ellipsis
+	newLen := max(maxLen-1, 0)
 
 	var newOutput bytes.Buffer
 
@@ -306,7 +434,7 @@ func filterTruncatecharsHTML(in *Value, param *Value) (*Value, error) {
 
 		return idx + s
 	}, func() {
-		if textcounter >= newLen && textcounter < len(value) {
+		if textcounter >= newLen {
 			newOutput.WriteString(ellipsis)
 		}
 	})
@@ -315,13 +443,16 @@ func filterTruncatecharsHTML(in *Value, param *Value) (*Value, error) {
 }
 
 // filterTruncatewords truncates a string after a certain number of words.
-// If truncated, an ellipsis ("...") is appended.
+// If truncated, a space and Unicode ellipsis (" …") is appended.
+//
+// Django reference: django/utils/text.py Truncator.words(truncate=" …")
+// Verified against Django 4.2 with script — space before ellipsis is intentional.
 //
 // Usage:
 //
 //	{{ "Hello beautiful world"|truncatewords:2 }}
 //
-// Output: "Hello beautiful ..."
+// Output: "Hello beautiful …"
 //
 // {{ "Hi"|truncatewords:5 }}
 //
@@ -339,7 +470,7 @@ func filterTruncatewords(in *Value, param *Value) (*Value, error) {
 	}
 
 	if n < len(words) {
-		out = append(out, "...")
+		out = append(out, "\u2026")
 	}
 
 	return AsValue(strings.Join(out, " ")), nil
@@ -349,11 +480,15 @@ func filterTruncatewords(in *Value, param *Value) (*Value, error) {
 // preserving HTML tags. HTML tags are not counted towards the word limit.
 // If truncated, an ellipsis ("...") is appended. Open HTML tags are properly closed.
 //
+// Verified against Django 4.2 with script.
+// Django difference: Returns AsSafeValue() to prevent double-escaping of preserved
+// HTML tags. Django uses is_safe=True (preserves input safety status) instead.
+//
 // Usage:
 //
 //	{{ "<p>Hello beautiful world</p>"|truncatewords_html:2 }}
 //
-// Output: "<p>Hello beautiful ...</p>"
+// Output: "<p>Hello beautiful …</p>"
 func filterTruncatewordsHTML(in *Value, param *Value) (*Value, error) {
 	value := in.String()
 	newLen := max(param.Integer(), 0)
@@ -398,7 +533,7 @@ func filterTruncatewordsHTML(in *Value, param *Value) (*Value, error) {
 		return idx
 	}, func() {
 		if wordcounter >= newLen {
-			newOutput.WriteString("...")
+			newOutput.WriteString("\u2026")
 		}
 	})
 
@@ -420,7 +555,7 @@ func filterTruncatewordsHTML(in *Value, param *Value) (*Value, error) {
 //
 // Output: "&lt;script&gt;alert(&#39;XSS&#39;)&lt;/script&gt;"
 func filterEscape(in *Value, param *Value) (*Value, error) {
-	return AsValue(htmlEscapeReplacer.Replace(in.String())), nil
+	return AsSafeValue(htmlEscapeReplacer.Replace(in.String())), nil
 }
 
 // filterSafe marks a string as safe, meaning it will not be HTML-escaped when
@@ -457,6 +592,11 @@ func filterSafe(in *Value, param *Value) (*Value, error) {
 //
 // Note: This filter escapes backticks, making it safe for JavaScript template
 // literals as well as single/double quoted strings.
+//
+// Django reference: django/utils/html.py _js_escapes table.
+// Verified against Django 4.2 with script.
+// Django difference: uses lowercase hex (\u000d) vs Django's uppercase (\u000D) —
+// functionally equivalent per JavaScript spec.
 //
 // Usage:
 //
@@ -531,7 +671,7 @@ func filterEscapejs(in *Value, param *Value) (*Value, error) {
 		idx += size
 	}
 
-	return AsValue(b.String()), nil
+	return AsSafeValue(b.String()), nil
 }
 
 // filterAdd adds the argument to the value. Works with numbers (integers and floats)
@@ -545,7 +685,7 @@ func filterEscapejs(in *Value, param *Value) (*Value, error) {
 //
 //	{{ 3.5|add:2.1 }}
 //
-// Output: 5.6
+// Output: 5.600000
 //
 // Usage with strings:
 //
@@ -618,7 +758,7 @@ func filterLength(in *Value, param *Value) (*Value, error) {
 //
 //	{{ "Hello"|length_is:5 }}
 //
-// Output: true
+// Output: True
 func filterLengthis(in *Value, param *Value) (*Value, error) {
 	return AsValue(in.Len() == param.Integer()), nil
 }
@@ -668,7 +808,7 @@ func filterDefaultIfNone(in *Value, param *Value) (*Value, error) {
 //
 //	{{ 21|divisibleby:7 }}
 //
-// Output: true
+// Output: True
 //
 //	{% if forloop.Counter|divisibleby:2 %}even{% else %}odd{% endif %}
 func filterDivisibleby(in *Value, param *Value) (*Value, error) {
@@ -720,7 +860,7 @@ const maxFloatFormatDecimals = 1000
 //
 //	{{ 3.14159|floatformat }}
 //
-// Output: "3.14159" (default behavior, trimmed)
+// Output: "3.1" (default: -1 decimal, trailing zeros removed)
 func filterFloatformat(in *Value, param *Value) (*Value, error) {
 	val := in.Float()
 
@@ -776,30 +916,59 @@ func filterFloatformat(in *Value, param *Value) (*Value, error) {
 // Output: 1 (leftmost digit)
 func filterGetdigit(in *Value, param *Value) (*Value, error) {
 	i := param.Integer()
-	l := len(in.String()) // do NOT use in.Len() here!
-	if i <= 0 || i > l {
+	if i <= 0 {
 		return in, nil
 	}
-	return AsValue(in.String()[l-i] - 48), nil
+
+	// Convert to string and validate it contains only digits (and optional leading minus).
+	// This matches Django's behavior: int(value) must succeed, then we work with
+	// the absolute value's digit string.
+	s := in.String()
+
+	// Determine the start of digits (skip optional leading minus sign)
+	start := 0
+	if len(s) > 0 && s[0] == '-' {
+		start = 1
+	}
+	digits := s[start:]
+
+	// Verify all remaining characters are digits; if not, return original value
+	for j := 0; j < len(digits); j++ {
+		if digits[j] < '0' || digits[j] > '9' {
+			return in, nil
+		}
+	}
+
+	l := len(digits)
+	if l == 0 || i > l {
+		return in, nil
+	}
+
+	return AsValue(int(digits[l-i] - '0')), nil
 }
 
 const filterIRIChars = "/#%[]=:;$&()+,!?*@'~"
 
 // filterIriencode encodes an IRI (Internationalized Resource Identifier) for safe
 // use in URLs. Unlike urlencode, it preserves characters that are valid in IRIs
-// (such as /, #, %, etc.) while encoding other special characters.
+// (such as /, #, %, etc.) while encoding other special characters using
+// Go's url.QueryEscape.
+//
+// Django difference: Django's iri_to_uri() uses urllib.parse.quote() which encodes
+// spaces as %20. Go's url.QueryEscape encodes spaces as +. Both are valid
+// percent-encoding for query strings, but %20 is preferred in path segments.
 //
 // Usage:
 //
 //	{{ "https://example.com/path with spaces"|iriencode }}
 //
-// Output: "https://example.com/path%20with%20spaces"
+// Output: "https://example.com/path+with+spaces"
 //
 //	{{ "/search?q=hello world"|iriencode }}
 //
-// Output: "/search?q=hello%20world"
+// Output: "/search?q=hello+world"
 func filterIriencode(in *Value, param *Value) (*Value, error) {
-	var b bytes.Buffer
+	var b strings.Builder
 
 	sin := in.String()
 	for _, r := range sin {
@@ -970,8 +1139,10 @@ func filterCenter(in *Value, param *Value) (*Value, error) {
 		}
 	}
 
-	left := spaces/2 + spaces%2
-	right := spaces / 2
+	// Match Python's str.center() padding bias:
+	// When odd padding, extra space goes left if width is also odd, right otherwise.
+	left := spaces/2 + (spaces & width & 1)
+	right := spaces - left
 
 	return AsValue(fmt.Sprintf("%s%s%s", strings.Repeat(" ", left),
 		in.String(), strings.Repeat(" ", right))), nil
@@ -980,6 +1151,9 @@ func filterCenter(in *Value, param *Value) (*Value, error) {
 // filterDate formats a time.Time value according to the given Go time format string.
 // This filter is also used for the "time" filter (same implementation).
 // The format string uses Go's time formatting reference: Mon Jan 2 15:04:05 MST 2006.
+//
+// Django difference: Django uses PHP-style format characters (e.g., "Y-m-d" for
+// "2024-03-15"); pongo2 uses Go's reference time format instead.
 //
 // Usage:
 //
@@ -1012,11 +1186,11 @@ func filterDate(in *Value, param *Value) (*Value, error) {
 //
 //	{{ "3.14"|float }}
 //
-// Output: 3.14
+// Output: 3.140000
 //
 //	{{ 42|float }}
 //
-// Output: 42.0
+// Output: 42.000000
 func filterFloat(in *Value, param *Value) (*Value, error) {
 	return AsValue(in.Float()), nil
 }
@@ -1042,6 +1216,10 @@ func filterInteger(in *Value, param *Value) (*Value, error) {
 // Single newlines become <br /> tags, and double newlines (blank lines)
 // start a new paragraph with <p>...</p> tags.
 //
+// Uses the same algorithm as Django: split text on two or more consecutive
+// newlines to form paragraphs, then replace remaining single newlines
+// with <br /> within each paragraph.
+//
 // Usage:
 //
 //	{{ "First line\nSecond line"|linebreaks }}
@@ -1050,49 +1228,20 @@ func filterInteger(in *Value, param *Value) (*Value, error) {
 //
 //	{{ "Para 1\n\nPara 2"|linebreaks }}
 //
-// Output: "<p>Para 1</p><p>Para 2</p>"
+// Output: "<p>Para 1</p>\n\n<p>Para 2</p>"
 func filterLinebreaks(in *Value, param *Value) (*Value, error) {
-	if in.Len() == 0 {
-		return in, nil
+	s := normalizeNewlines(in.String())
+
+	// Split on two or more consecutive newlines (paragraph breaks)
+	paras := reDoubleNewline.Split(s, -1)
+
+	var parts []string
+	for _, para := range paras {
+		para = strings.ReplaceAll(para, "\n", "<br />")
+		parts = append(parts, "<p>"+para+"</p>")
 	}
 
-	var b bytes.Buffer
-
-	// Newline = <br />
-	// Double newline = <p>...</p>
-	lines := strings.Split(in.String(), "\n")
-	lenlines := len(lines)
-
-	opened := false
-
-	for idx, line := range lines {
-
-		if !opened {
-			b.WriteString("<p>")
-			opened = true
-		}
-
-		b.WriteString(line)
-
-		if idx < lenlines-1 && strings.TrimSpace(lines[idx]) != "" {
-			// We've not reached the end
-			if strings.TrimSpace(lines[idx+1]) == "" {
-				// Next line is empty
-				if opened {
-					b.WriteString("</p>")
-					opened = false
-				}
-			} else {
-				b.WriteString("<br />")
-			}
-		}
-	}
-
-	if opened {
-		b.WriteString("</p>")
-	}
-
-	return AsValue(b.String()), nil
+	return AsSafeValue(strings.Join(parts, "\n\n")), nil
 }
 
 // filterSplit splits a string by the given separator and returns a list.
@@ -1121,7 +1270,8 @@ func filterSplit(in *Value, param *Value) (*Value, error) {
 //
 // Output: "First line<br />Second line<br />Third line"
 func filterLinebreaksbr(in *Value, param *Value) (*Value, error) {
-	return AsValue(strings.ReplaceAll(in.String(), "\n", "<br />")), nil
+	s := normalizeNewlines(in.String())
+	return AsSafeValue(strings.ReplaceAll(s, "\n", "<br />")), nil
 }
 
 // filterLinenumbers prepends line numbers to each line in the text.
@@ -1137,10 +1287,13 @@ func filterLinebreaksbr(in *Value, param *Value) (*Value, error) {
 //  2. second
 //  3. third
 func filterLinenumbers(in *Value, param *Value) (*Value, error) {
-	lines := strings.Split(in.String(), "\n")
+	s := normalizeNewlines(in.String())
+	lines := strings.Split(s, "\n")
+	// Calculate padding width for zero-padded line numbers (matching Django)
+	width := len(strconv.Itoa(len(lines)))
 	output := make([]string, 0, len(lines))
 	for idx, line := range lines {
-		output = append(output, fmt.Sprintf("%d. %s", idx+1, line))
+		output = append(output, fmt.Sprintf("%0*d. %s", width, idx+1, line))
 	}
 	return AsValue(strings.Join(output, "\n")), nil
 }
@@ -1159,14 +1312,18 @@ func filterLjust(in *Value, param *Value) (*Value, error) {
 	if times > maxCharPadding {
 		return nil, &Error{
 			Sender:    "filter:ljust",
-			OrigError: fmt.Errorf("ljust doesn't support more padding than %c chars", maxCharPadding),
+			OrigError: fmt.Errorf("ljust doesn't support more padding than %d chars", maxCharPadding),
 		}
 	}
 	return AsValue(fmt.Sprintf("%s%s", in.String(), strings.Repeat(" ", times))), nil
 }
 
-// filterUrlencode encodes a string for safe use in a URL query string.
-// Spaces become "+", special characters are percent-encoded.
+// filterUrlencode encodes a string for safe use in a URL query string
+// using Go's url.QueryEscape.
+//
+// Django difference: Django's urlencode uses urllib.parse.quote(safe='/') which
+// encodes spaces as %20 and preserves forward slashes. Go's url.QueryEscape
+// encodes spaces as + and encodes forward slashes as %2F.
 //
 // Usage:
 //
@@ -1174,11 +1331,17 @@ func filterLjust(in *Value, param *Value) (*Value, error) {
 //
 // Output: "hello+world"
 //
-//	{{ "name=John&age=30"|urlencode }}
+//	{{ "http://example.org/path?a=b"|urlencode }}
 //
-// Output: "name%3DJohn%26age%3D30"
+// Output: "http%3A%2F%2Fexample.org%2Fpath%3Fa%3Db"
 func filterUrlencode(in *Value, param *Value) (*Value, error) {
 	return AsValue(url.QueryEscape(in.String())), nil
+}
+
+// normalizeNewlines converts \r\n and lone \r to \n.
+func normalizeNewlines(s string) string {
+	s = strings.ReplaceAll(s, "\r\n", "\n")
+	return strings.ReplaceAll(s, "\r", "\n")
 }
 
 var (
@@ -1218,8 +1381,9 @@ func filterUrlizeHelper(input string, autoescape bool, trunc int) (string, error
 
 		title := raw_url
 
-		if trunc > 1 && len(title) > trunc {
-			title = title[:trunc-1] + ellipsis
+		titleRunes := []rune(title)
+		if trunc > 1 && len(titleRunes) > trunc {
+			title = string(titleRunes[:trunc-1]) + ellipsis
 		}
 
 		if autoescape {
@@ -1240,8 +1404,9 @@ func filterUrlizeHelper(input string, autoescape bool, trunc int) (string, error
 	sout = filterUrlizeEmailRegexp.ReplaceAllStringFunc(sout, func(mail string) string {
 		title := mail
 
-		if trunc > 1 && len(title) > trunc {
-			title = title[:trunc-1] + ellipsis
+		titleRunes := []rune(title)
+		if trunc > 1 && len(titleRunes) > trunc {
+			title = string(titleRunes[:trunc-1]) + ellipsis
 		}
 
 		return fmt.Sprintf(`<a href="mailto:%s">%s</a>`, mail, title)
@@ -1277,7 +1442,7 @@ func filterUrlize(in *Value, param *Value) (*Value, error) {
 		}
 	}
 
-	return AsValue(s), nil
+	return AsSafeValue(s), nil
 }
 
 // filterUrlizetrunc works like urlize but truncates URLs longer than the given
@@ -1287,7 +1452,7 @@ func filterUrlize(in *Value, param *Value) (*Value, error) {
 //
 //	{{ "Check out www.reallylongdomainname.com/path"|urlizetrunc:20 }}
 //
-// Output: '<a href="http://www.reallylongdomainname.com/path" rel="nofollow">www.reallylongdo...</a>'
+// Output: 'Check out <a href="http://www.reallylongdomainname.com/path" rel="nofollow">www.reallylongdomai…</a>'
 func filterUrlizetrunc(in *Value, param *Value) (*Value, error) {
 	s, err := filterUrlizeHelper(in.String(), true, param.Integer())
 	if err != nil {
@@ -1296,11 +1461,14 @@ func filterUrlizetrunc(in *Value, param *Value) (*Value, error) {
 			OrigError: err,
 		}
 	}
-	return AsValue(s), nil
+	return AsSafeValue(s), nil
 }
 
 // filterStringformat formats the value according to the argument, which is a
-// Go fmt-style format specifier. Note: unlike Python, Go uses different format verbs.
+// Go fmt-style format specifier.
+//
+// Django difference: Django uses Python % formatting (e.g., "%.2f"); pongo2 uses
+// Go fmt verbs (e.g., "%.2f" works the same, but "%s" vs "%s" differ in edge cases).
 //
 // Usage:
 //
@@ -1329,6 +1497,7 @@ func filterStringformat(in *Value, param *Value) (*Value, error) {
 //   - [^>] : any char except >
 //
 // - > : closing angle bracket
+var reDoubleNewline = regexp.MustCompile(`\n{2,}`)
 var reStriptags = regexp.MustCompile(`<[a-zA-Z!/?\[](?:"[^"]*"|'[^']*'|[^>])*>`)
 
 // filterStriptags strips all HTML/XML tags from the value, returning plain text.
@@ -1412,6 +1581,10 @@ func filterPhone2numeric(in *Value, param *Value) (*Value, error) {
 // With count=5: "5 walruses."
 func filterPluralize(in *Value, param *Value) (*Value, error) {
 	if in.IsNumber() {
+		// Use Float() comparison instead of Integer() to avoid truncating
+		// floats like 1.5 to 1, which would incorrectly treat them as singular.
+		isPlural := in.Float() != 1
+
 		// Works only on numbers
 		if param.Len() > 0 {
 			endings := strings.Split(param.String(), ",")
@@ -1423,18 +1596,18 @@ func filterPluralize(in *Value, param *Value) (*Value, error) {
 			}
 			if len(endings) == 1 {
 				// 1 argument
-				if in.Integer() != 1 {
+				if isPlural {
 					return AsValue(endings[0]), nil
 				}
 			} else {
-				if in.Integer() != 1 {
+				if isPlural {
 					// 2 arguments
 					return AsValue(endings[1]), nil
 				}
 				return AsValue(endings[0]), nil
 			}
 		} else {
-			if in.Integer() != 1 {
+			if isPlural {
 				// return default 's'
 				return AsValue("s"), nil
 			}
@@ -1547,7 +1720,7 @@ func filterRjust(in *Value, param *Value) (*Value, error) {
 	if padding > maxCharPadding {
 		return nil, &Error{
 			Sender:    "filter:rjust",
-			OrigError: fmt.Errorf("rjust doesn't support more padding than %c chars", maxCharPadding),
+			OrigError: fmt.Errorf("rjust doesn't support more padding than %d chars", maxCharPadding),
 		}
 	}
 	return AsValue(fmt.Sprintf(fmt.Sprintf("%%%ds", padding), in.String())), nil
@@ -1628,8 +1801,18 @@ func filterSlice(in *Value, param *Value) (*Value, error) {
 	return in.Slice(from, to), nil
 }
 
+// reTitleApostrophe matches a lowercase letter followed by an apostrophe and an uppercase letter.
+// Used to fix Python's str.title() behavior with apostrophes, e.g., "It'S" -> "It's".
+var reTitleApostrophe = regexp.MustCompile(`([a-z])'([A-Z])`)
+
+// reTitleDigit matches a digit followed by an uppercase letter.
+// Used to fix titlecase after digits, e.g., "1St" -> "1st".
+var reTitleDigit = regexp.MustCompile(`(\d)([A-Z])`)
+
 // filterTitle converts a string to title case, where the first character of
-// each word is capitalized and the rest are lowercase.
+// each word is capitalized and the rest are lowercase. Matches Django's behavior:
+// capitalizes after any non-alphanumeric character (including underscores and hyphens),
+// but not after apostrophes within words or after digits.
 //
 // Usage:
 //
@@ -1640,12 +1823,47 @@ func filterSlice(in *Value, param *Value) (*Value, error) {
 //	{{ "HELLO WORLD"|title }}
 //
 // Output: "Hello World"
+//
+//	{{ "hello_world"|title }}
+//
+// Output: "Hello_World"
+//
+//	{{ "it's a test"|title }}
+//
+// Output: "It's A Test"
 func filterTitle(in *Value, param *Value) (*Value, error) {
 	if !in.IsString() {
 		return AsValue(""), nil
 	}
-	caser := cases.Title(language.English)
-	return AsValue(caser.String(strings.ToLower(in.String()))), nil
+	s := in.String()
+
+	// Titlecase: capitalize the first letter after any non-alphanumeric character.
+	// This matches Python's str.title() behavior.
+	runes := []rune(s)
+	capitalizeNext := true
+	for i, r := range runes {
+		if !unicode.IsLetter(r) && !unicode.IsDigit(r) {
+			capitalizeNext = true
+		} else if capitalizeNext {
+			runes[i] = unicode.ToUpper(r)
+			capitalizeNext = false
+		} else {
+			runes[i] = unicode.ToLower(r)
+		}
+	}
+	result := string(runes)
+
+	// Fix apostrophe case: "It'S" -> "It's" (Django regex: ([a-z])'([A-Z]))
+	result = reTitleApostrophe.ReplaceAllStringFunc(result, func(m string) string {
+		return strings.ToLower(m)
+	})
+
+	// Fix digit case: "1St" -> "1st" (Django regex: \d([A-Z]))
+	result = reTitleDigit.ReplaceAllStringFunc(result, func(m string) string {
+		return strings.ToLower(m)
+	})
+
+	return AsValue(result), nil
 }
 
 // filterWordcount returns the number of words in the string.
@@ -1664,42 +1882,69 @@ func filterWordcount(in *Value, param *Value) (*Value, error) {
 	return AsValue(len(strings.Fields(in.String()))), nil
 }
 
-// filterWordwrap wraps text at the specified number of words per line.
-// Lines are separated by newline characters.
+// filterWordwrap wraps text at the specified character column width.
+// Lines are broken at word boundaries (words are not split). Existing
+// newlines are preserved. Long words that exceed the width are not broken.
+// \r\n and \r are normalized to \n before processing.
+//
+// Verified against Django 4.2 django.utils.text.wrap().
+// Django ref: django/utils/text.py wrap()
 //
 // Usage:
 //
-//	{{ "one two three four five six"|wordwrap:3 }}
+//	{{ "a b c d e f g h"|wordwrap:5 }}
 //
 // Output:
 //
-//	one two three
-//	four five six
-//
-//	{{ "a b c d e"|wordwrap:2 }}
-//
-// Output:
-//
-//	a b
-//	c d
-//	e
+//	a b c
+//	d e f
+//	g h
 func filterWordwrap(in *Value, param *Value) (*Value, error) {
-	words := strings.Fields(in.String())
-	wordsLen := len(words)
+	s := normalizeNewlines(in.String())
 	wrapAt := param.Integer()
 	if wrapAt <= 0 {
 		return in, nil
 	}
 
-	linecount := wordsLen / wrapAt
-	if wordsLen%wrapAt > 0 {
-		linecount++
+	// Preserve existing line breaks, wrap each line independently.
+	// Long words are not broken (matching Django's break_long_words=False).
+	inputLines := strings.Split(s, "\n")
+	var resultLines []string
+
+	for _, line := range inputLines {
+		if line == "" {
+			resultLines = append(resultLines, line)
+			continue
+		}
+		words := strings.Fields(line)
+		if len(words) == 0 {
+			// Line contains only whitespace; preserve it
+			resultLines = append(resultLines, line)
+			continue
+		}
+
+		var currentLine strings.Builder
+		currentLine.WriteString(words[0])
+		currentLen := utf8.RuneCountInString(words[0])
+
+		for _, word := range words[1:] {
+			wordLen := utf8.RuneCountInString(word)
+			// +1 for the space between words
+			if currentLen+1+wordLen > wrapAt {
+				resultLines = append(resultLines, currentLine.String())
+				currentLine.Reset()
+				currentLine.WriteString(word)
+				currentLen = wordLen
+			} else {
+				currentLine.WriteString(" ")
+				currentLine.WriteString(word)
+				currentLen += 1 + wordLen
+			}
+		}
+		resultLines = append(resultLines, currentLine.String())
 	}
-	lines := make([]string, 0, linecount)
-	for i := 0; i < linecount; i++ {
-		lines = append(lines, strings.Join(words[wrapAt*i:min(wrapAt*(i+1), wordsLen)], " "))
-	}
-	return AsValue(strings.Join(lines, "\n")), nil
+
+	return AsValue(strings.Join(resultLines, "\n")), nil
 }
 
 // filterYesno maps true, false, and nil values to customizable strings.
@@ -1754,6 +1999,9 @@ func filterYesno(in *Value, param *Value) (*Value, error) {
 		choices[1] = customChoices[1]
 		if len(customChoices) == 3 {
 			choices[2] = customChoices[2]
+		} else {
+			// Django: with only 2 args, nil maps to the "no" value (same as false)
+			choices[2] = customChoices[1]
 		}
 	}
 
@@ -1772,8 +2020,8 @@ func filterYesno(in *Value, param *Value) (*Value, error) {
 }
 
 // timeFilterHelper extracts the common logic for timesince/timeuntil filters.
-// When reverse is false, computes timeDiff(inputTime, comparisonTime) (time since).
-// When reverse is true, computes timeDiff(comparisonTime, inputTime) (time until).
+// When reverse is false, computes timesince (elapsed time from d to now).
+// When reverse is true, computes timeuntil (remaining time from now to d).
 func timeFilterHelper(in *Value, param *Value, reverse bool) (*Value, error) {
 	t, isTime := in.Interface().(time.Time)
 	if !isTime {
@@ -1787,10 +2035,21 @@ func timeFilterHelper(in *Value, param *Value, reverse bool) (*Value, error) {
 		}
 	}
 
+	var from, to time.Time
 	if reverse {
-		return AsValue(timeDiff(comparisonTime, t)), nil
+		from, to = comparisonTime, t
+	} else {
+		from, to = t, comparisonTime
 	}
-	return AsValue(timeDiff(t, comparisonTime)), nil
+
+	// If 'from' is after 'to', the direction is wrong: return "0 minutes".
+	// Django: timesince returns "0 minutes" for future dates,
+	// timeuntil returns "0 minutes" for past dates.
+	if to.Before(from) {
+		return AsValue("0 minutes"), nil
+	}
+
+	return AsValue(timeDiff(from, to)), nil
 }
 
 // filterTimesince returns the time elapsed since the given datetime.
@@ -1815,78 +2074,103 @@ func filterTimeuntil(in *Value, param *Value) (*Value, error) {
 	return timeFilterHelper(in, param, true)
 }
 
-// timeDiff calculates the difference between two times and returns a human-readable string.
-func timeDiff(from, to time.Time) string {
-	diff := to.Sub(from)
-	if diff < 0 {
-		diff = -diff
-	}
+// monthsDays maps month index (0-based) to number of days in that month (non-leap year).
+var monthsDays = [12]int{31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31}
 
-	if diff < time.Minute {
+// timeDiff calculates the difference between two times and returns a human-readable string.
+// Uses the same algorithm as Django: calendar-based year/month calculation with a pivot
+// date, and only shows up to two adjacent time units.
+func timeDiff(from, to time.Time) string {
+	since := to.Sub(from)
+	if since < time.Minute {
 		return "0 minutes"
 	}
 
-	years := int(diff / (365 * 24 * time.Hour))
-	diff -= time.Duration(years) * 365 * 24 * time.Hour
+	// Calculate years and months using calendar arithmetic (like Django).
+	totalMonths := (to.Year()-from.Year())*12 + int(to.Month()) - int(from.Month())
+	if from.Day() > to.Day() || (from.Day() == to.Day() && timeOfDay(from) > timeOfDay(to)) {
+		totalMonths--
+	}
+	if totalMonths < 0 {
+		totalMonths = 0
+	}
+	years := totalMonths / 12
+	months := totalMonths % 12
 
-	months := int(diff / (30 * 24 * time.Hour))
-	diff -= time.Duration(months) * 30 * 24 * time.Hour
+	// Create a pivot date shifted by years+months from 'from', then calculate
+	// the remaining duration from pivot to 'to'.
+	var remaining time.Duration
+	if years > 0 || months > 0 {
+		pivotYear := from.Year() + years
+		pivotMonth := int(from.Month()) + months
+		if pivotMonth > 12 {
+			pivotMonth -= 12
+			pivotYear++
+		}
+		maxDay := monthsDays[pivotMonth-1]
+		if pivotMonth == 2 && isLeapYear(pivotYear) {
+			maxDay = 29
+		}
+		pivotDay := from.Day()
+		if pivotDay > maxDay {
+			pivotDay = maxDay
+		}
+		pivot := time.Date(pivotYear, time.Month(pivotMonth), pivotDay,
+			from.Hour(), from.Minute(), from.Second(), 0, from.Location())
+		remaining = to.Sub(pivot)
+		if remaining < 0 {
+			remaining = 0
+		}
+	} else {
+		remaining = since
+	}
 
-	weeks := int(diff / (7 * 24 * time.Hour))
-	diff -= time.Duration(weeks) * 7 * 24 * time.Hour
+	weeks := int(remaining / (7 * 24 * time.Hour))
+	remaining -= time.Duration(weeks) * 7 * 24 * time.Hour
 
-	days := int(diff / (24 * time.Hour))
-	diff -= time.Duration(days) * 24 * time.Hour
+	days := int(remaining / (24 * time.Hour))
+	remaining -= time.Duration(days) * 24 * time.Hour
 
-	hours := int(diff / time.Hour)
-	diff -= time.Duration(hours) * time.Hour
+	hours := int(remaining / time.Hour)
+	remaining -= time.Duration(hours) * time.Hour
 
-	minutes := int(diff / time.Minute)
+	minutes := int(remaining / time.Minute)
 
-	// Build the result with up to two units (like Django)
+	// Collect units in order: years, months, weeks, days, hours, minutes.
+	// Django only shows up to 2 adjacent units (e.g., "1 year, 2 months"
+	// but not "1 year, 3 days" since months would be skipped).
+	type unit struct {
+		value int
+		name  string
+	}
+	units := []unit{
+		{years, "year"},
+		{months, "month"},
+		{weeks, "week"},
+		{days, "day"},
+		{hours, "hour"},
+		{minutes, "minute"},
+	}
+
 	var parts []string
-
-	if years > 0 {
-		if years == 1 {
-			parts = append(parts, "1 year")
-		} else {
-			parts = append(parts, fmt.Sprintf("%d years", years))
+	lastIdx := -2 // track index of last added unit for adjacency check
+	for i, u := range units {
+		if u.value <= 0 {
+			continue
 		}
-	}
-	if months > 0 && len(parts) < 2 {
-		if months == 1 {
-			parts = append(parts, "1 month")
-		} else {
-			parts = append(parts, fmt.Sprintf("%d months", months))
+		// Enforce adjacency: only add if this unit is adjacent to the last one added
+		if len(parts) > 0 && i != lastIdx+1 {
+			break
 		}
-	}
-	if weeks > 0 && len(parts) < 2 {
-		if weeks == 1 {
-			parts = append(parts, "1 week")
-		} else {
-			parts = append(parts, fmt.Sprintf("%d weeks", weeks))
+		if len(parts) >= 2 {
+			break
 		}
-	}
-	if days > 0 && len(parts) < 2 {
-		if days == 1 {
-			parts = append(parts, "1 day")
-		} else {
-			parts = append(parts, fmt.Sprintf("%d days", days))
+		name := u.name
+		if u.value != 1 {
+			name += "s"
 		}
-	}
-	if hours > 0 && len(parts) < 2 {
-		if hours == 1 {
-			parts = append(parts, "1 hour")
-		} else {
-			parts = append(parts, fmt.Sprintf("%d hours", hours))
-		}
-	}
-	if minutes > 0 && len(parts) < 2 {
-		if minutes == 1 {
-			parts = append(parts, "1 minute")
-		} else {
-			parts = append(parts, fmt.Sprintf("%d minutes", minutes))
-		}
+		parts = append(parts, fmt.Sprintf("%d %s", u.value, name))
+		lastIdx = i
 	}
 
 	if len(parts) == 0 {
@@ -1894,6 +2178,18 @@ func timeDiff(from, to time.Time) string {
 	}
 
 	return strings.Join(parts, ", ")
+}
+
+// timeOfDay returns the time-of-day portion as a duration for comparison.
+func timeOfDay(t time.Time) time.Duration {
+	return time.Duration(t.Hour())*time.Hour +
+		time.Duration(t.Minute())*time.Minute +
+		time.Duration(t.Second())*time.Second
+}
+
+// isLeapYear returns true if the given year is a leap year.
+func isLeapYear(year int) bool {
+	return year%4 == 0 && (year%100 != 0 || year%400 == 0)
 }
 
 // filterDictsort sorts a list of maps or structs by the specified key.
@@ -1917,15 +2213,25 @@ func filterDictsortReversed(in *Value, param *Value) (*Value, error) {
 	return dictsortHelper(in, param, true)
 }
 
-// dictsortItems implements sort.Interface for sorting by key
-type dictsortItems []struct {
-	item    *Value
-	sortKey string
+// dictsortItems implements sort.Interface for sorting by key.
+// It uses type-aware comparison: numeric keys are compared numerically,
+// all other keys are compared as strings.
+type dictsortItems struct {
+	entries []struct {
+		item   *Value
+		sortBy *Value
+	}
+	allNumeric bool
 }
 
-func (d dictsortItems) Len() int           { return len(d) }
-func (d dictsortItems) Swap(i, j int)      { d[i], d[j] = d[j], d[i] }
-func (d dictsortItems) Less(i, j int) bool { return d[i].sortKey < d[j].sortKey }
+func (d dictsortItems) Len() int      { return len(d.entries) }
+func (d dictsortItems) Swap(i, j int) { d.entries[i], d.entries[j] = d.entries[j], d.entries[i] }
+func (d dictsortItems) Less(i, j int) bool {
+	if d.allNumeric {
+		return d.entries[i].sortBy.Float() < d.entries[j].sortBy.Float()
+	}
+	return d.entries[i].sortBy.String() < d.entries[j].sortBy.String()
+}
 
 func dictsortHelper(in *Value, param *Value, reverse bool) (*Value, error) {
 	if !in.CanSlice() {
@@ -1937,7 +2243,7 @@ func dictsortHelper(in *Value, param *Value, reverse bool) (*Value, error) {
 	}
 
 	// Collect items with their sort keys
-	var items dictsortItems
+	items := dictsortItems{allNumeric: true}
 
 	in.Iterate(func(idx, count int, k, value *Value) bool {
 		// Get the item (value for maps, key for slices/arrays)
@@ -1947,18 +2253,22 @@ func dictsortHelper(in *Value, param *Value, reverse bool) (*Value, error) {
 		}
 
 		// Get the sort key value using Value methods
-		sortKeyVal := ""
+		sortBy := AsValue("")
 		if item.IsMap() || item.IsStruct() {
 			sortVal := item.GetItem(param)
 			if !sortVal.IsNil() {
-				sortKeyVal = sortVal.String()
+				sortBy = sortVal
 			}
 		}
 
-		items = append(items, struct {
-			item    *Value
-			sortKey string
-		}{item: item, sortKey: sortKeyVal})
+		if items.allNumeric && !sortBy.IsNumber() {
+			items.allNumeric = false
+		}
+
+		items.entries = append(items.entries, struct {
+			item   *Value
+			sortBy *Value
+		}{item: item, sortBy: sortBy})
 		return true
 	}, func() {})
 
@@ -1971,8 +2281,8 @@ func dictsortHelper(in *Value, param *Value, reverse bool) (*Value, error) {
 
 	// Build result
 	var result []any
-	for _, item := range items {
-		result = append(result, item.item.Interface())
+	for _, entry := range items.entries {
+		result = append(result, entry.item.Interface())
 	}
 
 	return AsValue(result), nil
@@ -1987,26 +2297,32 @@ func dictsortHelper(in *Value, param *Value, reverse bool) (*Value, error) {
 // For input: ["States", ["Kansas", ["Lawrence", "Topeka"], "Illinois"]]
 // Output: <li>States<ul><li>Kansas<ul><li>Lawrence</li><li>Topeka</li></ul></li><li>Illinois</li></ul></li>
 //
-// Note: This outputs the inner list items only; you need to wrap it in <ul></ul> tags.
+// filterUnorderedList outputs the inner list items only (without wrapping <ul></ul> tags),
+// with tab indentation matching Django's format. Each nesting level adds one tab.
+//
+// Django reference: django/template/defaultfilters.py list_formatter()
 func filterUnorderedList(in *Value, param *Value) (*Value, error) {
-	var result strings.Builder
-	unorderedListHelper(&result, in, 0)
-	return AsSafeValue(result.String()), nil
+	if !in.IsSliceOrArray() {
+		return AsSafeValue(""), nil
+	}
+	result := unorderedListFormatter(in, 1)
+	return AsSafeValue(result), nil
 }
 
 const maxUnorderedListDepth = 100
 
-func unorderedListHelper(result *strings.Builder, in *Value, depth int) {
-	// Guard against excessive recursion
-	if depth > maxUnorderedListDepth {
-		return
+// unorderedListFormatter formats a nested list with tab indentation, matching Django's
+// list_formatter function. tabs starts at 1 and increments for each nesting level.
+func unorderedListFormatter(in *Value, tabs int) string {
+	if tabs > maxUnorderedListDepth {
+		return ""
 	}
 
-	// Only process actual arrays/slices, not strings
 	if !in.IsSliceOrArray() {
-		return
+		return ""
 	}
 
+	// Collect all items from the list
 	items := make([]*Value, 0)
 	in.Iterate(func(idx, count int, key, value *Value) bool {
 		if value != nil {
@@ -2017,28 +2333,32 @@ func unorderedListHelper(result *strings.Builder, in *Value, depth int) {
 		return true
 	}, func() {})
 
+	indent := strings.Repeat("\t", tabs)
+	var output []string
+
+	// Walk items, pairing each non-list item with its following sublist (if any)
 	for i := 0; i < len(items); i++ {
 		item := items[i]
+
+		// Skip bare sublists at this level (they should only appear after text items)
 		if item.IsSliceOrArray() {
-			// This is a nested list
-			result.WriteString("<ul>")
-			unorderedListHelper(result, item, depth+1)
-			result.WriteString("</ul>")
-		} else {
-			result.WriteString("<li>")
-			// Escape the content
-			escaped, _ := filterEscape(item, nil)
-			result.WriteString(escaped.String())
-			// Check if next item is a list (sublist for this item)
-			if i+1 < len(items) && items[i+1].IsSliceOrArray() {
-				result.WriteString("<ul>")
-				unorderedListHelper(result, items[i+1], depth+1)
-				result.WriteString("</ul>")
-				i++ // Skip the next item since we processed it
-			}
-			result.WriteString("</li>")
+			continue
 		}
+
+		escaped, _ := filterEscape(item, nil)
+		sublist := ""
+
+		// Check if the next item is a sublist for this item
+		if i+1 < len(items) && items[i+1].IsSliceOrArray() {
+			children := unorderedListFormatter(items[i+1], tabs+1)
+			sublist = fmt.Sprintf("\n%s<ul>\n%s\n%s</ul>\n%s", indent, children, indent, indent)
+			i++ // Skip the sublist item
+		}
+
+		output = append(output, fmt.Sprintf("%s<li>%s%s</li>", indent, escaped.String(), sublist))
 	}
+
+	return strings.Join(output, "\n")
 }
 
 // filterSlugify converts a string to a URL-friendly slug.
@@ -2052,15 +2372,24 @@ func unorderedListHelper(result *strings.Builder, in *Value, depth int) {
 // Output: "hello-world"
 func filterSlugify(in *Value, param *Value) (*Value, error) {
 	s := in.String()
+
+	// Apply NFKD normalization to decompose accented characters into their
+	// base form + combining marks (e.g., é → e + ́). This matches Django's
+	// slugify behavior which uses unicodedata.normalize('NFKD') before
+	// encoding to ASCII.
+	s = norm.NFKD.String(s)
+
 	s = strings.ToLower(s)
 
 	// Replace spaces with hyphens
 	s = strings.ReplaceAll(s, " ", "-")
 
-	// Remove non-alphanumeric characters (except hyphens)
+	// Remove non-alphanumeric characters (except hyphens).
+	// After NFKD normalization, combining marks (like accents) are separate
+	// Unicode code points in the Mark category and will be stripped here.
 	var result strings.Builder
 	for _, r := range s {
-		if (r >= 'a' && r <= 'z') || (r >= '0' && r <= '9') || r == '-' {
+		if (r >= 'a' && r <= 'z') || (r >= '0' && r <= '9') || r == '-' || r == '_' {
 			result.WriteRune(r)
 		}
 	}
@@ -2071,24 +2400,29 @@ func filterSlugify(in *Value, param *Value) (*Value, error) {
 		s = strings.ReplaceAll(s, "--", "-")
 	}
 
-	// Trim leading and trailing hyphens
-	s = strings.Trim(s, "-")
+	// Trim leading and trailing hyphens and underscores
+	s = strings.Trim(s, "-_")
 
 	return AsValue(s), nil
 }
 
 // filterFilesizeformat formats a file size in bytes to a human-readable string.
+// Matches Django's behavior: uses non-breaking space (\u00A0) between number and unit,
+// singular "byte" for ±1, and supports negative values.
 //
 // Usage:
 //
 //	{{ 123456789|filesizeformat }}
 //
-// Output: "117.7 MB"
+// Output: "117.7\u00A0MB"
 func filterFilesizeformat(in *Value, param *Value) (*Value, error) {
-	size := float64(in.Integer())
-	if size < 0 {
-		size = 0
+	bytes := in.Integer()
+	negative := bytes < 0
+	if negative {
+		bytes = -bytes
 	}
+
+	size := float64(bytes)
 
 	units := []string{"bytes", "KB", "MB", "GB", "TB", "PB"}
 	unitIdx := 0
@@ -2098,11 +2432,25 @@ func filterFilesizeformat(in *Value, param *Value) (*Value, error) {
 		unitIdx++
 	}
 
+	// Use non-breaking space (\u00A0) between number and unit (Django's avoid_wrapping)
+	const nbsp = "\u00a0"
+	var result string
 	if unitIdx == 0 {
-		return AsValue(fmt.Sprintf("%.0f %s", size, units[unitIdx])), nil
+		// Use singular "byte" for 1 (matching Django's ngettext behavior)
+		unit := "bytes"
+		if bytes == 1 {
+			unit = "byte"
+		}
+		result = fmt.Sprintf("%d%s%s", bytes, nbsp, unit)
+	} else {
+		result = fmt.Sprintf("%.1f%s%s", size, nbsp, units[unitIdx])
 	}
 
-	return AsValue(fmt.Sprintf("%.1f %s", size, units[unitIdx])), nil
+	if negative {
+		result = "-" + result
+	}
+
+	return AsValue(result), nil
 }
 
 // filterSafeseq applies the safe filter to each element in a sequence.
@@ -2169,8 +2517,8 @@ func filterEscapeseq(in *Value, param *Value) (*Value, error) {
 //
 // Output:
 //
-//	<script id="my-data" type="application/json">{"key": "value"}</script>
-//	<script type="application/json">{"key": "value"}</script>
+//	<script id="my-data" type="application/json">{"key":"value"}</script>
+//	<script type="application/json">{"key":"value"}</script>
 func filterJSONScript(in *Value, param *Value) (*Value, error) {
 	var result strings.Builder
 
@@ -2178,7 +2526,7 @@ func filterJSONScript(in *Value, param *Value) (*Value, error) {
 	if param == nil || param.IsNil() || param.String() == "" {
 		result.WriteString(`<script type="application/json">`)
 	} else {
-		elementID := strings.ReplaceAll(param.String(), `"`, `&quot;`)
+		elementID := htmlEscapeReplacer.Replace(param.String())
 		fmt.Fprintf(&result, `<script id="%s" type="application/json">`, elementID)
 	}
 

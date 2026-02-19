@@ -230,19 +230,19 @@ func TestTagWidthratio(t *testing.T) {
 			name:     "simple ratio",
 			template: "{% widthratio 50 100 200 %}",
 			context:  Context{},
-			expected: "101",
+			expected: "100",
 		},
 		{
 			name:     "with variables",
 			template: "{% widthratio value max_value width %}",
 			context:  Context{"value": 50, "max_value": 100, "width": 200},
-			expected: "101",
+			expected: "100",
 		},
 		{
 			name:     "exact ratio",
 			template: "{% widthratio 25 100 200 %}",
 			context:  Context{},
-			expected: "51",
+			expected: "50",
 		},
 	}
 

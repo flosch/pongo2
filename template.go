@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"strings"
+	"sync"
 )
 
 // TemplateWriter is the interface used for writing template output.
@@ -113,6 +114,10 @@ type Template struct {
 	// You can change the options before calling the Execute method.
 	// Includes settings like TrimBlocks and LStripBlocks for whitespace control.
 	Options *Options
+
+	// whitespaceOnce ensures TrimBlocks/LStripBlocks whitespace trimming
+	// is applied exactly once, even under concurrent execution.
+	whitespaceOnce sync.Once
 }
 
 // newTemplateString creates a new template from a byte slice containing template source.
@@ -172,43 +177,52 @@ func newTemplate(set *TemplateSet, name string, isTplString bool, tpl []byte) (*
 	return t, nil
 }
 
+// applyWhitespaceOptions applies TrimBlocks/LStripBlocks whitespace options
+// to the template's token list. This is called once at parse time to avoid
+// race conditions with concurrent template execution.
+//
+// Issue #94 https://github.com/flosch/pongo2/issues/94
+func (tpl *Template) applyWhitespaceOptions() {
+	if !tpl.Options.TrimBlocks && !tpl.Options.LStripBlocks {
+		return
+	}
+
+	prev := &Token{
+		Typ: TokenHTML,
+		Val: "\n",
+	}
+
+	for _, t := range tpl.tokens {
+		if tpl.Options.LStripBlocks {
+			if prev.Typ == TokenHTML && t.Typ != TokenHTML && t.Val == "{%" {
+				prev.Val = strings.TrimRight(prev.Val, "\t ")
+			}
+		}
+
+		if tpl.Options.TrimBlocks {
+			if prev.Typ != TokenHTML && t.Typ == TokenHTML && prev.Val == "%}" {
+				if len(t.Val) > 0 && t.Val[0] == '\n' {
+					t.Val = t.Val[1:]
+				}
+			}
+		}
+
+		prev = t
+	}
+}
+
 // newContextForExecution prepares the template and context for execution.
 // It performs several tasks:
-//  1. Applies TrimBlocks/LStripBlocks whitespace options to tokens
-//  2. Walks up the inheritance chain to find the root parent template
-//  3. Merges global variables with the provided context
-//  4. Validates context keys are valid identifiers
-//  5. Checks for naming conflicts between context keys and macros
+//  1. Walks up the inheritance chain to find the root parent template
+//  2. Merges global variables with the provided context
+//  3. Validates context keys are valid identifiers
+//  4. Checks for naming conflicts between context keys and macros
 //
 // Returns the root parent template to execute, the execution context, and any error.
 func (tpl *Template) newContextForExecution(context Context) (*Template, *ExecutionContext, error) {
-	if tpl.Options.TrimBlocks || tpl.Options.LStripBlocks {
-		// Issue #94 https://github.com/flosch/pongo2/issues/94
-		// If an application configures pongo2 template to trim_blocks,
-		// the first newline after a template tag is removed automatically (like in PHP).
-		prev := &Token{
-			Typ: TokenHTML,
-			Val: "\n",
-		}
-
-		for _, t := range tpl.tokens {
-			if tpl.Options.LStripBlocks {
-				if prev.Typ == TokenHTML && t.Typ != TokenHTML && t.Val == "{%" {
-					prev.Val = strings.TrimRight(prev.Val, "\t ")
-				}
-			}
-
-			if tpl.Options.TrimBlocks {
-				if prev.Typ != TokenHTML && t.Typ == TokenHTML && prev.Val == "%}" {
-					if len(t.Val) > 0 && t.Val[0] == '\n' {
-						t.Val = t.Val[1:len(t.Val)]
-					}
-				}
-			}
-
-			prev = t
-		}
-	}
+	// Apply TrimBlocks/LStripBlocks whitespace options exactly once.
+	// Using sync.Once ensures thread-safety for concurrent execution.
+	tpl.whitespaceOnce.Do(tpl.applyWhitespaceOptions)
 
 	// Determine the parent to be executed (for template inheritance)
 	parent := tpl

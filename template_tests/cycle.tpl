@@ -20,3 +20,4 @@
 '{{ cycleitem }}'
 '{% cycle cycleitem %}'
 '{{ cycleitem }}'
+{% for item in simple.multiple_item_list %}{% cycle "safe" simple.xss %}{% endfor %}

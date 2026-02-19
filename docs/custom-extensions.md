@@ -7,7 +7,7 @@ pongo2 allows you to extend the template engine with custom filters and tags.
 Filters transform variable values. They are functions with the signature:
 
 ```go
-type FilterFunction func(in *Value, param *Value) (out *Value, err *Error)
+type FilterFunction func(in *Value, param *Value) (out *Value, err error)
 ```
 
 ### Registering a Filter
@@ -17,7 +17,7 @@ func init() {
     pongo2.RegisterFilter("double", filterDouble)
 }
 
-func filterDouble(in *pongo2.Value, param *pongo2.Value) (*pongo2.Value, *pongo2.Error) {
+func filterDouble(in *pongo2.Value, param *pongo2.Value) (*pongo2.Value, error) {
     return pongo2.AsValue(in.Integer() * 2), nil
 }
 ```
@@ -35,7 +35,7 @@ func init() {
     pongo2.RegisterFilter("multiply", filterMultiply)
 }
 
-func filterMultiply(in *pongo2.Value, param *pongo2.Value) (*pongo2.Value, *pongo2.Error) {
+func filterMultiply(in *pongo2.Value, param *pongo2.Value) (*pongo2.Value, error) {
     return pongo2.AsValue(in.Integer() * param.Integer()), nil
 }
 ```
@@ -49,7 +49,7 @@ Usage:
 ### Returning Errors
 
 ```go
-func filterDivide(in *pongo2.Value, param *pongo2.Value) (*pongo2.Value, *pongo2.Error) {
+func filterDivide(in *pongo2.Value, param *pongo2.Value) (*pongo2.Value, error) {
     divisor := param.Integer()
     if divisor == 0 {
         return nil, &pongo2.Error{
@@ -66,7 +66,7 @@ func filterDivide(in *pongo2.Value, param *pongo2.Value) (*pongo2.Value, *pongo2
 The `Value` type wraps Go values and provides helper methods:
 
 ```go
-func myFilter(in *pongo2.Value, param *pongo2.Value) (*pongo2.Value, *pongo2.Error) {
+func myFilter(in *pongo2.Value, param *pongo2.Value) (*pongo2.Value, error) {
     // Type checking
     if in.IsString() { /* ... */ }
     if in.IsInteger() { /* ... */ }
@@ -112,7 +112,7 @@ func init() {
 ### Check if Filter Exists
 
 ```go
-if pongo2.FilterExists("myfilter") {
+if pongo2.BuiltinFilterExists("myfilter") {
     // Filter is registered
 }
 ```
@@ -140,7 +140,7 @@ Tags are more complex than filters. They can:
 ### Tag Parser Function
 
 ```go
-type TagParser func(doc *Parser, start *Token, arguments *Parser) (INodeTag, *Error)
+type TagParser func(doc *Parser, start *Token, arguments *Parser) (INodeTag, error)
 ```
 
 Parameters:
@@ -161,12 +161,12 @@ type tagCurrentTimeNode struct {
     format string
 }
 
-func (node *tagCurrentTimeNode) Execute(ctx *pongo2.ExecutionContext, writer pongo2.TemplateWriter) *pongo2.Error {
+func (node *tagCurrentTimeNode) Execute(ctx *pongo2.ExecutionContext, writer pongo2.TemplateWriter) error {
     writer.WriteString(time.Now().Format(node.format))
     return nil
 }
 
-func tagCurrentTimeParser(doc *pongo2.Parser, start *pongo2.Token, arguments *pongo2.Parser) (pongo2.INodeTag, *pongo2.Error) {
+func tagCurrentTimeParser(doc *pongo2.Parser, start *pongo2.Token, arguments *pongo2.Parser) (pongo2.INodeTag, error) {
     node := &tagCurrentTimeNode{
         format: time.RFC3339, // default format
     }
@@ -205,7 +205,7 @@ type tagUppercaseNode struct {
     wrapper *pongo2.NodeWrapper
 }
 
-func (node *tagUppercaseNode) Execute(ctx *pongo2.ExecutionContext, writer pongo2.TemplateWriter) *pongo2.Error {
+func (node *tagUppercaseNode) Execute(ctx *pongo2.ExecutionContext, writer pongo2.TemplateWriter) error {
     // Capture the block content
     var buf bytes.Buffer
     err := node.wrapper.Execute(ctx, &buf)
@@ -218,7 +218,7 @@ func (node *tagUppercaseNode) Execute(ctx *pongo2.ExecutionContext, writer pongo
     return nil
 }
 
-func tagUppercaseParser(doc *pongo2.Parser, start *pongo2.Token, arguments *pongo2.Parser) (pongo2.INodeTag, *pongo2.Error) {
+func tagUppercaseParser(doc *pongo2.Parser, start *pongo2.Token, arguments *pongo2.Parser) (pongo2.INodeTag, error) {
     node := &tagUppercaseNode{}
 
     // Parse until enduppercase
@@ -256,7 +256,7 @@ type tagRepeatNode struct {
     wrapper   *pongo2.NodeWrapper
 }
 
-func (node *tagRepeatNode) Execute(ctx *pongo2.ExecutionContext, writer pongo2.TemplateWriter) *pongo2.Error {
+func (node *tagRepeatNode) Execute(ctx *pongo2.ExecutionContext, writer pongo2.TemplateWriter) error {
     // Evaluate the count expression
     countVal, err := node.countExpr.Evaluate(ctx)
     if err != nil {
@@ -273,7 +273,7 @@ func (node *tagRepeatNode) Execute(ctx *pongo2.ExecutionContext, writer pongo2.T
     return nil
 }
 
-func tagRepeatParser(doc *pongo2.Parser, start *pongo2.Token, arguments *pongo2.Parser) (pongo2.INodeTag, *pongo2.Error) {
+func tagRepeatParser(doc *pongo2.Parser, start *pongo2.Token, arguments *pongo2.Parser) (pongo2.INodeTag, error) {
     node := &tagRepeatNode{}
 
     // Parse the count expression
@@ -368,7 +368,7 @@ if arguments.Peek(pongo2.TokenSymbol, "=") != nil {
 Access template context during execution:
 
 ```go
-func (node *myNode) Execute(ctx *pongo2.ExecutionContext, writer pongo2.TemplateWriter) *pongo2.Error {
+func (node *myNode) Execute(ctx *pongo2.ExecutionContext, writer pongo2.TemplateWriter) error {
     // Read from public context (user-provided)
     user := ctx.Public["user"]
 
@@ -393,7 +393,7 @@ func (node *myNode) Execute(ctx *pongo2.ExecutionContext, writer pongo2.Template
 For tags that create new variable scopes:
 
 ```go
-func (node *myNode) Execute(ctx *pongo2.ExecutionContext, writer pongo2.TemplateWriter) *pongo2.Error {
+func (node *myNode) Execute(ctx *pongo2.ExecutionContext, writer pongo2.TemplateWriter) error {
     // Create child context (inherits parent's variables)
     childCtx := pongo2.NewChildExecutionContext(ctx)
 
@@ -444,7 +444,7 @@ type tagCacheNode struct {
     wrapper  *pongo2.NodeWrapper
 }
 
-func (node *tagCacheNode) Execute(ctx *pongo2.ExecutionContext, writer pongo2.TemplateWriter) *pongo2.Error {
+func (node *tagCacheNode) Execute(ctx *pongo2.ExecutionContext, writer pongo2.TemplateWriter) error {
     // Check cache
     cacheMutex.RLock()
     entry, exists := cache[node.key]
@@ -476,7 +476,7 @@ func (node *tagCacheNode) Execute(ctx *pongo2.ExecutionContext, writer pongo2.Te
     return nil
 }
 
-func tagCacheParser(doc *pongo2.Parser, start *pongo2.Token, arguments *pongo2.Parser) (pongo2.INodeTag, *pongo2.Error) {
+func tagCacheParser(doc *pongo2.Parser, start *pongo2.Token, arguments *pongo2.Parser) (pongo2.INodeTag, error) {
     node := &tagCacheNode{
         duration: 5 * time.Minute, // default
     }

@@ -3,9 +3,12 @@ package pongo2
 import (
 	"bytes"
 	"regexp"
+	"strings"
 )
 
 // tagSpacelessNode represents the {% spaceless %} tag.
+//
+// Verified against Django 4.2 with script.
 //
 // The spaceless tag removes whitespace between HTML tags. It only removes
 // whitespace that appears between closing and opening tags, not whitespace
@@ -58,7 +61,10 @@ func (node *tagSpacelessNode) Execute(ctx *ExecutionContext, writer TemplateWrit
 		return err
 	}
 
-	s := b.String()
+	// Django strips leading/trailing whitespace from the block before
+	// removing whitespace between tags.
+	s := strings.TrimSpace(b.String())
+
 	// Repeat this recursively
 	changed := true
 	for changed {

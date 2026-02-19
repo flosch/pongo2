@@ -17,6 +17,11 @@ var (
 
 // tagLoremNode represents the {% lorem %} tag.
 //
+// Verified against Django 4.2 with script (paragraph separator behavior).
+// Django difference: pongo2 uses static pre-defined paragraphs while Django
+// generates random text from a word list. Paragraph count and separator
+// behavior ("\n\n") matches Django.
+//
 // The lorem tag generates placeholder "Lorem Ipsum" text, useful for
 // prototyping and design mockups.
 //
@@ -97,11 +102,13 @@ func (node *tagLoremNode) Execute(ctx *ExecutionContext, writer TemplateWriter) 
 
 	switch node.method {
 	case "b":
-		return writeLoremItems(writer, node.count, tagLoremParagraphs, "\n", "", "", node.random)
+		// Django: "\n\n".join(paras)
+		return writeLoremItems(writer, node.count, tagLoremParagraphs, "\n\n", "", "", node.random)
 	case "w":
 		return writeLoremItems(writer, node.count, tagLoremWords, " ", "", "", node.random)
 	case "p":
-		return writeLoremItems(writer, node.count, tagLoremParagraphs, "\n", "<p>", "</p>", node.random)
+		// Django: "\n\n".join("<p>%s</p>" % p for p in paras)
+		return writeLoremItems(writer, node.count, tagLoremParagraphs, "\n\n", "<p>", "</p>", node.random)
 	default:
 		return ctx.OrigError(fmt.Errorf("unsupported method: %s", node.method), nil)
 	}

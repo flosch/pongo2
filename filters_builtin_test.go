@@ -106,10 +106,10 @@ func TestTimeDiff(t *testing.T) {
 			expected: "3 weeks",
 		},
 		{
-			name:     "exactly 1 month (30 days)",
+			name:     "30 days within same month (not 1 month)",
 			from:     time.Date(2024, 1, 1, 12, 0, 0, 0, time.UTC),
 			to:       time.Date(2024, 1, 31, 12, 0, 0, 0, time.UTC),
-			expected: "1 month",
+			expected: "4 weeks, 2 days",
 		},
 		{
 			name:     "1 month and weeks",
@@ -139,13 +139,13 @@ func TestTimeDiff(t *testing.T) {
 			name:     "multiple years",
 			from:     time.Date(2022, 1, 1, 12, 0, 0, 0, time.UTC),
 			to:       time.Date(2026, 1, 1, 12, 0, 0, 0, time.UTC),
-			expected: "4 years, 1 day",
+			expected: "4 years",
 		},
 		{
-			name:     "negative difference (from > to) should be absolute",
+			name:     "negative difference (from > to) returns 0 minutes",
 			from:     time.Date(2024, 1, 5, 12, 0, 0, 0, time.UTC),
 			to:       time.Date(2024, 1, 1, 12, 0, 0, 0, time.UTC),
-			expected: "4 days",
+			expected: "0 minutes",
 		},
 		{
 			name:     "only two units shown - years and months only",
@@ -181,7 +181,7 @@ func TestTimeDiff(t *testing.T) {
 			name:     "leap year - spanning leap year Feb 29",
 			from:     time.Date(2024, 2, 29, 0, 0, 0, 0, time.UTC),
 			to:       time.Date(2025, 2, 28, 0, 0, 0, 0, time.UTC),
-			expected: "1 year",
+			expected: "11 months, 4 weeks",
 		},
 		{
 			name:     "sub-second difference returns 0 minutes",
@@ -256,13 +256,13 @@ func TestFilterTimesince(t *testing.T) {
 			name:     "valid time value with valid time argument - years apart",
 			in:       AsValue(time.Date(2020, 3, 15, 10, 30, 0, 0, time.UTC)),
 			param:    AsValue(time.Date(2024, 3, 15, 10, 30, 0, 0, time.UTC)),
-			expected: "4 years, 1 day",
+			expected: "4 years",
 		},
 		{
 			name:     "valid time value with valid time argument - months apart",
 			in:       AsValue(time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC)),
 			param:    AsValue(time.Date(2024, 4, 1, 0, 0, 0, 0, time.UTC)),
-			expected: "3 months, 1 day",
+			expected: "3 months",
 		},
 		{
 			name:     "valid time value with valid time argument - complex duration",
@@ -352,13 +352,13 @@ func TestFilterTimeuntil(t *testing.T) {
 			name:     "valid time value with valid time argument - years apart",
 			in:       AsValue(time.Date(2028, 3, 15, 10, 30, 0, 0, time.UTC)),
 			param:    AsValue(time.Date(2024, 3, 15, 10, 30, 0, 0, time.UTC)),
-			expected: "4 years, 1 day",
+			expected: "4 years",
 		},
 		{
 			name:     "valid time value with valid time argument - months apart",
 			in:       AsValue(time.Date(2024, 7, 1, 0, 0, 0, 0, time.UTC)),
 			param:    AsValue(time.Date(2024, 4, 1, 0, 0, 0, 0, time.UTC)),
-			expected: "3 months, 1 day",
+			expected: "3 months",
 		},
 		{
 			name:     "valid time value with valid time argument - complex duration",
@@ -705,7 +705,7 @@ func TestFilterUnorderedList(t *testing.T) {
 		{
 			name:     "simple flat list",
 			input:    []string{"Item 1", "Item 2", "Item 3"},
-			expected: "<li>Item 1</li><li>Item 2</li><li>Item 3</li>",
+			expected: "\t<li>Item 1</li>\n\t<li>Item 2</li>\n\t<li>Item 3</li>",
 		},
 		{
 			name:     "empty list",
@@ -715,17 +715,17 @@ func TestFilterUnorderedList(t *testing.T) {
 		{
 			name:     "single item",
 			input:    []string{"Only Item"},
-			expected: "<li>Only Item</li>",
+			expected: "\t<li>Only Item</li>",
 		},
 		{
 			name:     "list with HTML escaping",
 			input:    []string{"<script>alert('xss')</script>", "Normal Item"},
-			expected: "<li>&lt;script&gt;alert(&#39;xss&#39;)&lt;/script&gt;</li><li>Normal Item</li>",
+			expected: "\t<li>&lt;script&gt;alert(&#39;xss&#39;)&lt;/script&gt;</li>\n\t<li>Normal Item</li>",
 		},
 		{
 			name:     "list with numbers",
 			input:    []int{1, 2, 3},
-			expected: "<li>1</li><li>2</li><li>3</li>",
+			expected: "\t<li>1</li>\n\t<li>2</li>\n\t<li>3</li>",
 		},
 		{
 			name:     "non-slice input",
@@ -768,7 +768,7 @@ func TestFilterUnorderedListNested(t *testing.T) {
 			name:     "simple list via template",
 			template: "{{ items|unordered_list }}",
 			context:  Context{"items": []string{"A", "B", "C"}},
-			expected: "<li>A</li><li>B</li><li>C</li>",
+			expected: "\t<li>A</li>\n\t<li>B</li>\n\t<li>C</li>",
 		},
 	}
 
@@ -853,9 +853,9 @@ func TestFilterSlugify(t *testing.T) {
 			expected: "hello-world-123",
 		},
 		{
-			name:     "unicode characters removed",
+			name:     "unicode characters normalized via NFKD",
 			input:    "Hello Wörld",
-			expected: "hello-wrld",
+			expected: "hello-world",
 		},
 		{
 			name:     "all special characters",
@@ -924,6 +924,8 @@ func TestFilterSlugify(t *testing.T) {
 }
 
 func TestFilterFilesizeformat(t *testing.T) {
+	// Django uses non-breaking space (\u00a0) between number and unit
+	const nbsp = "\u00a0"
 	tests := []struct {
 		name     string
 		input    int64
@@ -932,77 +934,82 @@ func TestFilterFilesizeformat(t *testing.T) {
 		{
 			name:     "zero bytes",
 			input:    0,
-			expected: "0 bytes",
+			expected: "0" + nbsp + "bytes",
 		},
 		{
-			name:     "one byte",
+			name:     "one byte (singular)",
 			input:    1,
-			expected: "1 bytes",
+			expected: "1" + nbsp + "byte",
+		},
+		{
+			name:     "two bytes (plural)",
+			input:    2,
+			expected: "2" + nbsp + "bytes",
 		},
 		{
 			name:     "bytes range",
 			input:    100,
-			expected: "100 bytes",
+			expected: "100" + nbsp + "bytes",
 		},
 		{
 			name:     "exactly 1KB",
 			input:    1024,
-			expected: "1.0 KB",
+			expected: "1.0" + nbsp + "KB",
 		},
 		{
 			name:     "KB range",
 			input:    1536, // 1.5 KB
-			expected: "1.5 KB",
+			expected: "1.5" + nbsp + "KB",
 		},
 		{
 			name:     "exactly 1MB",
 			input:    1024 * 1024,
-			expected: "1.0 MB",
+			expected: "1.0" + nbsp + "MB",
 		},
 		{
 			name:     "MB range",
 			input:    1024 * 1024 * 5,
-			expected: "5.0 MB",
+			expected: "5.0" + nbsp + "MB",
 		},
 		{
 			name:     "Django example: 123456789",
 			input:    123456789,
-			expected: "117.7 MB",
+			expected: "117.7" + nbsp + "MB",
 		},
 		{
 			name:     "exactly 1GB",
 			input:    1024 * 1024 * 1024,
-			expected: "1.0 GB",
+			expected: "1.0" + nbsp + "GB",
 		},
 		{
 			name:     "GB range",
 			input:    1024 * 1024 * 1024 * 2,
-			expected: "2.0 GB",
+			expected: "2.0" + nbsp + "GB",
 		},
 		{
 			name:     "exactly 1TB",
 			input:    1024 * 1024 * 1024 * 1024,
-			expected: "1.0 TB",
+			expected: "1.0" + nbsp + "TB",
 		},
 		{
 			name:     "exactly 1PB",
 			input:    1024 * 1024 * 1024 * 1024 * 1024,
-			expected: "1.0 PB",
+			expected: "1.0" + nbsp + "PB",
 		},
 		{
 			name:     "large PB value",
 			input:    1024 * 1024 * 1024 * 1024 * 1024 * 5,
-			expected: "5.0 PB",
+			expected: "5.0" + nbsp + "PB",
 		},
 		{
 			name:     "1023 bytes (just under 1KB)",
 			input:    1023,
-			expected: "1023 bytes",
+			expected: "1023" + nbsp + "bytes",
 		},
 		{
 			name:     "fractional KB",
 			input:    2560, // 2.5 KB
-			expected: "2.5 KB",
+			expected: "2.5" + nbsp + "KB",
 		},
 	}
 
@@ -1021,27 +1028,39 @@ func TestFilterFilesizeformat(t *testing.T) {
 }
 
 func TestFilterFilesizeformatNegative(t *testing.T) {
-	// Negative values should be treated as 0
-	result, err := filterFilesizeformat(AsValue(-100), nil)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
+	const nbsp = "\u00a0"
+	// Django supports negative values: formats absolute value, then prepends "-"
+	tests := []struct {
+		input    int
+		expected string
+	}{
+		{-1, "-1" + nbsp + "byte"},
+		{-100, "-100" + nbsp + "bytes"},
+		{-1024, "-1.0" + nbsp + "KB"},
 	}
-
-	if result.String() != "0 bytes" {
-		t.Errorf("filterFilesizeformat(-100) = %q, want %q", result.String(), "0 bytes")
+	for _, tt := range tests {
+		result, err := filterFilesizeformat(AsValue(tt.input), nil)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if result.String() != tt.expected {
+			t.Errorf("filterFilesizeformat(%d) = %q, want %q", tt.input, result.String(), tt.expected)
+		}
 	}
 }
 
 func TestFilterFilesizeformatNonInteger(t *testing.T) {
+	const nbsp = "\u00a0"
 	// String inputs should be converted (or treated as 0)
 	result, err := filterFilesizeformat(AsValue("not a number"), nil)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
+	expected := "0" + nbsp + "bytes"
 	// AsValue("not a number").Integer() returns 0
-	if result.String() != "0 bytes" {
-		t.Errorf("filterFilesizeformat(\"not a number\") = %q, want %q", result.String(), "0 bytes")
+	if result.String() != expected {
+		t.Errorf("filterFilesizeformat(\"not a number\") = %q, want %q", result.String(), expected)
 	}
 }
 
@@ -1049,9 +1068,14 @@ func TestFilterFilesizeformatNonInteger(t *testing.T) {
 func TestDictsortItemsSortInterface(t *testing.T) {
 	t.Run("Len", func(t *testing.T) {
 		items := dictsortItems{
-			{item: AsValue("a"), sortKey: "1"},
-			{item: AsValue("b"), sortKey: "2"},
-			{item: AsValue("c"), sortKey: "3"},
+			entries: []struct {
+				item   *Value
+				sortBy *Value
+			}{
+				{item: AsValue("a"), sortBy: AsValue("1")},
+				{item: AsValue("b"), sortBy: AsValue("2")},
+				{item: AsValue("c"), sortBy: AsValue("3")},
+			},
 		}
 		if items.Len() != 3 {
 			t.Errorf("Len() = %d, want 3", items.Len())
@@ -1065,20 +1089,30 @@ func TestDictsortItemsSortInterface(t *testing.T) {
 
 	t.Run("Swap", func(t *testing.T) {
 		items := dictsortItems{
-			{item: AsValue("a"), sortKey: "1"},
-			{item: AsValue("b"), sortKey: "2"},
+			entries: []struct {
+				item   *Value
+				sortBy *Value
+			}{
+				{item: AsValue("a"), sortBy: AsValue("1")},
+				{item: AsValue("b"), sortBy: AsValue("2")},
+			},
 		}
 		items.Swap(0, 1)
-		if items[0].sortKey != "2" || items[1].sortKey != "1" {
-			t.Errorf("Swap failed: got [%s, %s], want [2, 1]", items[0].sortKey, items[1].sortKey)
+		if items.entries[0].sortBy.String() != "2" || items.entries[1].sortBy.String() != "1" {
+			t.Errorf("Swap failed: got [%s, %s], want [2, 1]", items.entries[0].sortBy.String(), items.entries[1].sortBy.String())
 		}
 	})
 
-	t.Run("Less", func(t *testing.T) {
+	t.Run("Less with string keys", func(t *testing.T) {
 		items := dictsortItems{
-			{item: AsValue("a"), sortKey: "apple"},
-			{item: AsValue("b"), sortKey: "banana"},
-			{item: AsValue("c"), sortKey: "apple"}, // Same as first
+			entries: []struct {
+				item   *Value
+				sortBy *Value
+			}{
+				{item: AsValue("a"), sortBy: AsValue("apple")},
+				{item: AsValue("b"), sortBy: AsValue("banana")},
+				{item: AsValue("c"), sortBy: AsValue("apple")},
+			},
 		}
 
 		if !items.Less(0, 1) {
@@ -1092,19 +1126,28 @@ func TestDictsortItemsSortInterface(t *testing.T) {
 		}
 	})
 
-	t.Run("numeric string comparison", func(t *testing.T) {
+	t.Run("numeric keys sort numerically", func(t *testing.T) {
 		items := dictsortItems{
-			{item: AsValue("a"), sortKey: "10"},
-			{item: AsValue("b"), sortKey: "2"},
-			{item: AsValue("c"), sortKey: "1"},
+			allNumeric: true,
+			entries: []struct {
+				item   *Value
+				sortBy *Value
+			}{
+				{item: AsValue("a"), sortBy: AsValue(10)},
+				{item: AsValue("b"), sortBy: AsValue(2)},
+				{item: AsValue("c"), sortBy: AsValue(1)},
+			},
 		}
 
-		// String comparison: "1" < "10" < "2"
-		if !items.Less(2, 0) { // "1" < "10"
-			t.Error("Less should compare as strings: \"1\" < \"10\"")
+		// Numeric comparison: 1 < 2 < 10
+		if !items.Less(2, 1) { // 1 < 2
+			t.Error("Less should compare numerically: 1 < 2")
 		}
-		if !items.Less(0, 1) { // "10" < "2"
-			t.Error("Less should compare as strings: \"10\" < \"2\"")
+		if !items.Less(1, 0) { // 2 < 10
+			t.Error("Less should compare numerically: 2 < 10")
+		}
+		if items.Less(0, 1) { // 10 > 2
+			t.Error("Less should compare numerically: 10 is not < 2")
 		}
 	})
 }
@@ -1950,7 +1993,7 @@ func TestFilterYesnoCustomOptions(t *testing.T) {
 	}{
 		{"true with 2 args", true, "on,off", "on"},
 		{"false with 2 args", false, "on,off", "off"},
-		{"nil with 2 args uses maybe default", nil, "on,off", "maybe"},
+		{"nil with 2 args maps to no value", nil, "on,off", "off"},
 		{"true with 3 args", true, "yes,no,unknown", "yes"},
 		{"false with 3 args", false, "yes,no,unknown", "no"},
 		{"nil with 3 args", nil, "yes,no,unknown", "unknown"},
@@ -2101,19 +2144,29 @@ func TestUnorderedListWithNestedLists(t *testing.T) {
 		expected string
 	}{
 		{
-			name:     "two levels",
-			input:    []any{"Item 1", []any{"Sub 1", "Sub 2"}},
-			expected: "<li>Item 1<ul><li>Sub 1</li><li>Sub 2</li></ul></li>",
+			name:  "two levels",
+			input: []any{"Item 1", []any{"Sub 1", "Sub 2"}},
+			expected: "\t<li>Item 1\n" +
+				"\t<ul>\n" +
+				"\t\t<li>Sub 1</li>\n" +
+				"\t\t<li>Sub 2</li>\n" +
+				"\t</ul>\n" +
+				"\t</li>",
 		},
 		{
 			name:     "list only contains nested list",
 			input:    []any{[]any{"A", "B"}},
-			expected: "<ul><li>A</li><li>B</li></ul>",
+			expected: "",
 		},
 		{
-			name:     "mixed nested",
-			input:    []any{"Top", []any{"Middle"}, "Bottom"},
-			expected: "<li>Top<ul><li>Middle</li></ul></li><li>Bottom</li>",
+			name:  "mixed nested",
+			input: []any{"Top", []any{"Middle"}, "Bottom"},
+			expected: "\t<li>Top\n" +
+				"\t<ul>\n" +
+				"\t\t<li>Middle</li>\n" +
+				"\t</ul>\n" +
+				"\t</li>\n" +
+				"\t<li>Bottom</li>",
 		},
 	}
 
@@ -2169,6 +2222,296 @@ func TestFilterWordwrapZeroWidth(t *testing.T) {
 			t.Errorf("got %q, want %q", result.String(), input)
 		}
 	})
+}
+
+// TestFilterWordwrapCharacterBased verifies that wordwrap wraps at the given
+// character width, not word count, matching Django's behavior.
+// All expected values verified against Django 4.2 django.utils.text.wrap().
+func TestFilterWordwrapCharacterBased(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		width    int
+		expected string
+	}{
+		// Basic wrapping
+		{
+			name:     "basic wrap",
+			input:    "Joel is a slug",
+			width:    5,
+			expected: "Joel\nis a\nslug",
+		},
+		{
+			name:     "fits on one line",
+			input:    "Joel is a slug",
+			width:    14,
+			expected: "Joel is a slug",
+		},
+		{
+			name:     "wrap at 10",
+			input:    "one two three four",
+			width:    10,
+			expected: "one two\nthree four",
+		},
+		{
+			name:     "empty string",
+			input:    "",
+			width:    5,
+			expected: "",
+		},
+
+		// Word boundary: width exactly fits words
+		{
+			name:     "exact fit three words",
+			input:    "ab cd ef",
+			width:    8,
+			expected: "ab cd ef",
+		},
+		{
+			name:     "one char short of fitting three words",
+			input:    "ab cd ef",
+			width:    7,
+			expected: "ab cd\nef",
+		},
+		{
+			name:     "exact fit two words",
+			input:    "ab cd",
+			width:    5,
+			expected: "ab cd",
+		},
+		{
+			name:     "one char over two words",
+			input:    "ab cde",
+			width:    5,
+			expected: "ab\ncde",
+		},
+		{
+			name:     "word exactly equals width",
+			input:    "abcde fghij",
+			width:    5,
+			expected: "abcde\nfghij",
+		},
+		{
+			name:     "word plus space equals width",
+			input:    "abcde fghij",
+			width:    6,
+			expected: "abcde\nfghij",
+		},
+		{
+			name:     "width equals total string length",
+			input:    "abc def",
+			width:    7,
+			expected: "abc def",
+		},
+		{
+			name:     "width one less than total string length",
+			input:    "abc def",
+			width:    6,
+			expected: "abc\ndef",
+		},
+		{
+			name:     "width one more than total string length",
+			input:    "abc def",
+			width:    8,
+			expected: "abc def",
+		},
+		{
+			name:     "each word exactly at width",
+			input:    "abc def ghi",
+			width:    3,
+			expected: "abc\ndef\nghi",
+		},
+		{
+			name:     "two char words at width 2",
+			input:    "ab cd",
+			width:    2,
+			expected: "ab\ncd",
+		},
+		{
+			name:     "two char words at width 3",
+			input:    "ab cd",
+			width:    3,
+			expected: "ab\ncd",
+		},
+		{
+			name:     "three words wrap boundary at width 5",
+			input:    "ab cd ef",
+			width:    5,
+			expected: "ab cd\nef",
+		},
+		{
+			name:     "three words wrap boundary at width 4",
+			input:    "ab cd ef",
+			width:    4,
+			expected: "ab\ncd\nef",
+		},
+		{
+			name:     "exact fit on boundary width 3",
+			input:    "abc de",
+			width:    3,
+			expected: "abc\nde",
+		},
+		{
+			name:     "exact fit on boundary width 6",
+			input:    "abc de",
+			width:    6,
+			expected: "abc de",
+		},
+
+		// Width = 1 (single char per line for single-char words)
+		{
+			name:     "width 1 with single char words",
+			input:    "a b c",
+			width:    1,
+			expected: "a\nb\nc",
+		},
+		{
+			name:     "width 1 with multi char words",
+			input:    "ab cd",
+			width:    1,
+			expected: "ab\ncd",
+		},
+		{
+			name:     "width 2 with single char words",
+			input:    "a b c d e f",
+			width:    2,
+			expected: "a\nb\nc\nd\ne\nf",
+		},
+		{
+			name:     "width 3 pairs single char words",
+			input:    "a b c d e f",
+			width:    3,
+			expected: "a b\nc d\ne f",
+		},
+
+		// Mid-word: long words that exceed width (not broken)
+		{
+			name:     "single long word exceeds width",
+			input:    "abcdefghij",
+			width:    5,
+			expected: "abcdefghij",
+		},
+		{
+			name:     "long word then short word",
+			input:    "abcdefghij xy",
+			width:    5,
+			expected: "abcdefghij\nxy",
+		},
+		{
+			name:     "short word then long word",
+			input:    "xy abcdefghij",
+			width:    5,
+			expected: "xy\nabcdefghij",
+		},
+		{
+			name:     "all words exceed width",
+			input:    "abcdef ghijkl mnopqr",
+			width:    5,
+			expected: "abcdef\nghijkl\nmnopqr",
+		},
+		{
+			name:     "long word not broken",
+			input:    "superlongword short",
+			width:    5,
+			expected: "superlongword\nshort",
+		},
+		{
+			name:     "word exactly at width then short",
+			input:    "abcde fg",
+			width:    5,
+			expected: "abcde\nfg",
+		},
+		{
+			name:     "word one over width then short",
+			input:    "abcdef gh",
+			width:    5,
+			expected: "abcdef\ngh",
+		},
+		{
+			name:     "single short word",
+			input:    "hi",
+			width:    5,
+			expected: "hi",
+		},
+		{
+			name:     "single word exact width",
+			input:    "hello",
+			width:    5,
+			expected: "hello",
+		},
+		{
+			name:     "single word exceeds width",
+			input:    "toolong",
+			width:    5,
+			expected: "toolong",
+		},
+
+		// Newline preservation
+		{
+			name:     "preserve existing newlines",
+			input:    "ab cd\nef gh",
+			width:    5,
+			expected: "ab cd\nef gh",
+		},
+		{
+			name:     "preserve empty lines",
+			input:    "ab\n\ncd",
+			width:    5,
+			expected: "ab\n\ncd",
+		},
+		{
+			name:     "preserve trailing newline",
+			input:    "ab cd\n",
+			width:    5,
+			expected: "ab cd\n",
+		},
+		{
+			name:     "preserve whitespace-only line",
+			input:    "hello\n   \nworld",
+			width:    5,
+			expected: "hello\n   \nworld",
+		},
+
+		// \r\n and \r normalization (verified against Django 4.2)
+		{
+			name:     "crlf normalized to lf",
+			input:    "ab cd\r\nef gh",
+			width:    5,
+			expected: "ab cd\nef gh",
+		},
+		{
+			name:     "lone cr normalized to lf",
+			input:    "ab\rcd",
+			width:    5,
+			expected: "ab\ncd",
+		},
+
+		// Unicode
+		{
+			name:     "unicode accented chars",
+			input:    "héllo wörld",
+			width:    5,
+			expected: "héllo\nwörld",
+		},
+		{
+			name:     "chinese characters",
+			input:    "你好世界 测试",
+			width:    3,
+			expected: "你好世界\n测试",
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			result, err := filterWordwrap(AsValue(tc.input), AsValue(tc.width))
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if result.String() != tc.expected {
+				t.Errorf("wordwrap(%q, %d) = %q, want %q",
+					tc.input, tc.width, result.String(), tc.expected)
+			}
+		})
+	}
 }
 
 // TestFilterJoinNonSliceable tests join with non-sliceable input
@@ -2241,14 +2584,15 @@ func TestFilterLastEmpty(t *testing.T) {
 	}
 }
 
-// TestFilterLinebreaksEmpty tests linebreaks with empty input
+// TestFilterLinebreaksEmpty tests linebreaks with empty input.
+// Django wraps even empty input in paragraph tags: <p></p>
 func TestFilterLinebreaksEmpty(t *testing.T) {
 	result, err := filterLinebreaks(AsValue(""), nil)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if result.String() != "" {
-		t.Errorf("got %q, want empty string", result.String())
+	if result.String() != "<p></p>" {
+		t.Errorf("got %q, want %q", result.String(), "<p></p>")
 	}
 }
 
@@ -2752,6 +3096,41 @@ func TestFilterCenterSmallerThanInput(t *testing.T) {
 	// Width is 3, input is 5, return unchanged
 	if result.String() != "hello" {
 		t.Errorf("got %q, want %q", result.String(), "hello")
+	}
+}
+
+// TestFilterCenterPaddingDirection verifies that center filter matches
+// Python's str.center() padding bias: extra space goes left when both
+// margin and width are odd, right otherwise.
+func TestFilterCenterPaddingDirection(t *testing.T) {
+	tests := []struct {
+		input    string
+		width    int
+		expected string
+	}{
+		{"test", 19, "        test       "},   // 8 left, 7 right (marg=15, w=19, both odd)
+		{"test", 20, "        test        "},  // 8 left, 8 right (even)
+		{"test2", 19, "       test2       "},  // 7 left, 7 right (even)
+		{"test2", 20, "       test2        "}, // 7 left, 8 right (marg=15, w=20, w even)
+		{"x", 4, " x  "},                      // 1 left, 2 right (marg=3, w=4, w even)
+		{"ab", 5, "  ab "},                    // 2 left, 1 right (marg=3, w=5, both odd)
+	}
+	for _, tc := range tests {
+		result, err := filterCenter(AsValue(tc.input), AsValue(tc.width))
+		if err != nil {
+			t.Fatalf("unexpected error for center(%q, %d): %v", tc.input, tc.width, err)
+		}
+		if result.String() != tc.expected {
+			t.Errorf("center(%q, %d) = %q (left=%d, right=%d), want %q (left=%d, right=%d)",
+				tc.input, tc.width,
+				result.String(),
+				len(result.String())-len(strings.TrimLeft(result.String(), " ")),
+				len(result.String())-len(strings.TrimRight(result.String(), " ")),
+				tc.expected,
+				len(tc.expected)-len(strings.TrimLeft(tc.expected, " ")),
+				len(tc.expected)-len(strings.TrimRight(tc.expected, " ")),
+			)
+		}
 	}
 }
 

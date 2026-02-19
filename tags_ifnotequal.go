@@ -67,7 +67,7 @@ func tagIfNotEqualParser(doc *Parser, start *Token, arguments *Parser) (INodeTag
 	ifnotequalNode.var2 = var2
 
 	if arguments.Remaining() > 0 {
-		return nil, arguments.Error("ifequal only takes 2 arguments.", nil)
+		return nil, arguments.Error("ifnotequal only takes 2 arguments.", nil)
 	}
 
 	// Wrap then/else-blocks

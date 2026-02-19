@@ -1,10 +1,10 @@
 # [pongo](https://en.wikipedia.org/wiki/Pongo_%28genus%29)2
 
-[![PkgGoDev](https://pkg.go.dev/badge/github.com/flosch/pongo2)](https://pkg.go.dev/github.com/flosch/pongo2)
+[![PkgGoDev](https://pkg.go.dev/badge/github.com/flosch/pongo2/v7)](https://pkg.go.dev/github.com/flosch/pongo2/v7)
 [![Build Status](https://schlachterinf.semaphoreci.com/badges/pongo2/branches/master.svg?style=shields&key=4ecde757-d6dd-4db2-8998-c84f55253d8f)](https://schlachterinf.semaphoreci.com/projects/pongo2)
 [![Run on Repl.it](https://repl.it/badge/github/flosch/pongo2)](https://repl.it/github/flosch/pongo2)
 
-pongo2 is a Django-syntax like templating-language ([official website](https://www.schlachter.tech/solutions/pongo2-template-engine/)).
+pongo2 is a Django-syntax like templating-language ([official website](https://pongo2.dev/)).
 
 Install/update using `go get` (no dependencies required by pongo2):
 
@@ -80,10 +80,10 @@ Please use the [issue tracker](https://github.com/flosch/pongo2/issues) if you'r
 - Syntax- and feature-set-compatible with [Django templates](https://docs.djangoproject.com/en/stable/topics/templates/)
 - [Advanced C-like expressions](https://github.com/flosch/pongo2/blob/master/template_tests/expressions.tpl).
 - [Complex function calls within expressions](https://github.com/flosch/pongo2/blob/master/template_tests/function_calls_wrapper.tpl).
-- [Easy API to create new filters and tags](http://godoc.org/github.com/flosch/pongo2#RegisterFilter) ([including parsing arguments](http://godoc.org/github.com/flosch/pongo2#Parser))
+- [Easy API to create new filters and tags](https://pkg.go.dev/github.com/flosch/pongo2/v7#RegisterFilter) ([including parsing arguments](https://pkg.go.dev/github.com/flosch/pongo2/v7#Parser))
 - Additional features:
   - Macros including importing macros from other files (see [template_tests/macro.tpl](https://github.com/flosch/pongo2/blob/master/template_tests/macro.tpl))
-  - [Template sandboxing](https://godoc.org/github.com/flosch/pongo2#TemplateSet) ([directory patterns](http://golang.org/pkg/path/filepath/#Match), banned tags/filters)
+  - [Template sandboxing](https://pkg.go.dev/github.com/flosch/pongo2/v7#TemplateSet) ([directory patterns](http://golang.org/pkg/path/filepath/#Match), banned tags/filters)
 
 ## Caveats
 

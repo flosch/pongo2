@@ -4,6 +4,12 @@ import (
 	"bytes"
 )
 
+// ifchangedState holds the per-execution mutable state for an {% ifchanged %} tag.
+type ifchangedState struct {
+	lastValues  []*Value
+	lastContent []byte
+}
+
 // tagIfchangedNode represents the {% ifchanged %} tag.
 //
 // The ifchanged tag checks if a value has changed from the previous iteration
@@ -45,15 +51,27 @@ import (
 //	{% endfor %}
 type tagIfchangedNode struct {
 	watchedExpr []IEvaluator
-	lastValues  []*Value
-	lastContent []byte
 	thenWrapper *NodeWrapper
 	elseWrapper *NodeWrapper
+}
+
+// getState returns the per-execution ifchanged state for this node,
+// creating it on first access. Each template execution gets its own
+// independent state via ctx.tagState.
+func (node *tagIfchangedNode) getState(ctx *ExecutionContext) *ifchangedState {
+	if s, ok := ctx.tagState[node].(*ifchangedState); ok {
+		return s
+	}
+	s := &ifchangedState{}
+	ctx.tagState[node] = s
+	return s
 }
 
 // Execute checks if watched expressions (or rendered content) have changed
 // since the last call. Renders the then block if changed, else block otherwise.
 func (node *tagIfchangedNode) Execute(ctx *ExecutionContext, writer TemplateWriter) error {
+	state := node.getState(ctx)
+
 	if len(node.watchedExpr) == 0 {
 		// Check against own rendered body
 
@@ -66,12 +84,17 @@ func (node *tagIfchangedNode) Execute(ctx *ExecutionContext, writer TemplateWrit
 		}
 
 		bufBytes := buf.Bytes()
-		if !bytes.Equal(node.lastContent, bufBytes) {
+
+		changed := !bytes.Equal(state.lastContent, bufBytes)
+		if changed {
+			state.lastContent = bufBytes
+		}
+
+		if changed {
 			// Rendered content changed, output it
 			if _, err := writer.Write(bufBytes); err != nil {
 				return err
 			}
-			node.lastContent = bufBytes
 		} else if node.elseWrapper != nil {
 			// Content hasn't changed, render else block if present
 			if err := node.elseWrapper.Execute(ctx, writer); err != nil {
@@ -89,16 +112,16 @@ func (node *tagIfchangedNode) Execute(ctx *ExecutionContext, writer TemplateWrit
 		}
 
 		// Compare old to new values now
-		changed := len(node.lastValues) == 0
+		changed := len(state.lastValues) == 0
 
-		for idx, oldVal := range node.lastValues {
+		for idx, oldVal := range state.lastValues {
 			if !oldVal.EqualValueTo(nowValues[idx]) {
 				changed = true
 				break // we can stop here because ONE value changed
 			}
 		}
 
-		node.lastValues = nowValues
+		state.lastValues = nowValues
 
 		if changed {
 			// Render thenWrapper

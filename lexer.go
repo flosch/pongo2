@@ -329,7 +329,7 @@ func (l *lexer) next() rune {
 	r, w := utf8.DecodeRuneInString(l.input[l.pos:])
 	l.width = w
 	l.pos += l.width
-	l.col += l.width
+	l.col++
 	return r
 }
 
@@ -339,7 +339,7 @@ func (l *lexer) next() rune {
 // doesn't match expected input.
 func (l *lexer) backup() {
 	l.pos -= l.width
-	l.col -= l.width
+	l.col--
 }
 
 // peek returns the next rune without consuming it.

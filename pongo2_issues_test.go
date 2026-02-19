@@ -1,9 +1,15 @@
 package pongo2_test
 
 import (
+	"fmt"
+	"io"
+	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"testing/fstest"
+	"time"
+	"unicode/utf8"
 
 	"github.com/flosch/pongo2/v7"
 )
@@ -31,7 +37,9 @@ func TestIssue151(t *testing.T) {
 }
 
 func TestIssue297(t *testing.T) {
-	tpl, err := pongo2.FromString("Testing: {{ input|wordwrap:4 }}!")
+	// wordwrap wraps at character width (matching Django's behavior),
+	// not at word count.
+	tpl, err := pongo2.FromString("Testing: {{ input|wordwrap:20 }}!")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -41,8 +49,9 @@ func TestIssue297(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if str != "Testing: one two three four\nfive six!" {
-		t.Fatalf("Expected `Testing: one two three four\nfive six!`, but got `%v`.", str)
+	expected := "Testing: one two three four\nfive six!"
+	if str != expected {
+		t.Fatalf("Expected `%s`, but got `%s`.", expected, str)
 	}
 }
 
@@ -494,5 +503,1778 @@ func TestIssue237(t *testing.T) {
 				t.Errorf("expected %q, got %q", tt.expected, result)
 			}
 		})
+	}
+}
+
+func TestBugStringByteIndexing(t *testing.T) {
+	// Bug: String indexing used byte offset instead of rune offset.
+	// For multi-byte UTF-8 characters (e.g., Chinese, emoji), accessing
+	// string[1] would return a garbled byte instead of the second character.
+	// This affects both integer index access (e.g., "var.0") and subscript
+	// access (e.g., "var[idx]").
+
+	tests := []struct {
+		name     string
+		template string
+		context  pongo2.Context
+		expected string
+	}{
+		{
+			name:     "ASCII string index 0",
+			template: `{{ s.0 }}`,
+			context:  pongo2.Context{"s": "hello"},
+			expected: "h",
+		},
+		{
+			name:     "ASCII string index 1",
+			template: `{{ s.1 }}`,
+			context:  pongo2.Context{"s": "hello"},
+			expected: "e",
+		},
+		{
+			name:     "multi-byte string index 0",
+			template: `{{ s.0 }}`,
+			context:  pongo2.Context{"s": "日本語"},
+			expected: "日",
+		},
+		{
+			name:     "multi-byte string index 1",
+			template: `{{ s.1 }}`,
+			context:  pongo2.Context{"s": "日本語"},
+			expected: "本",
+		},
+		{
+			name:     "multi-byte string index 2",
+			template: `{{ s.2 }}`,
+			context:  pongo2.Context{"s": "日本語"},
+			expected: "語",
+		},
+		{
+			name:     "mixed ASCII and multi-byte index",
+			template: `{{ s.1 }}`,
+			context:  pongo2.Context{"s": "aüc"},
+			expected: "ü",
+		},
+		{
+			name:     "subscript access multi-byte string",
+			template: `{{ s[idx] }}`,
+			context:  pongo2.Context{"s": "日本語", "idx": 2},
+			expected: "語",
+		},
+		{
+			name:     "out of bounds returns empty for multi-byte",
+			template: `{{ s.3 }}`,
+			context:  pongo2.Context{"s": "日本語"},
+			expected: "",
+		},
+		{
+			name:     "emoji string indexing",
+			template: `{{ s.1 }}`,
+			context:  pongo2.Context{"s": "A😀B"},
+			expected: "😀",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tpl, err := pongo2.FromString(tt.template)
+			if err != nil {
+				t.Fatalf("failed to parse template: %v", err)
+			}
+
+			result, err := tpl.Execute(tt.context)
+			if err != nil {
+				t.Fatalf("failed to execute template: %v", err)
+			}
+
+			if result != tt.expected {
+				t.Errorf("expected %q, got %q", tt.expected, result)
+			}
+		})
+	}
+}
+
+func TestBugLjustRjustErrorMessage(t *testing.T) {
+	// Bug: ljust and rjust used %c format verb instead of %d in error messages.
+	// With maxCharPadding=10000, %c would render U+2710 (✐) instead of "10000".
+
+	tests := []struct {
+		name            string
+		template        string
+		expectedContain string
+	}{
+		{
+			name:            "ljust error contains number not unicode",
+			template:        `{{ "x"|ljust:20000 }}`,
+			expectedContain: "10000",
+		},
+		{
+			name:            "rjust error contains number not unicode",
+			template:        `{{ "x"|rjust:20000 }}`,
+			expectedContain: "10000",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tpl, err := pongo2.FromString(tt.template)
+			if err != nil {
+				t.Fatalf("failed to parse template: %v", err)
+			}
+
+			_, err = tpl.Execute(nil)
+			if err == nil {
+				t.Fatal("expected an error but got none")
+			}
+
+			errMsg := err.Error()
+			if !strings.Contains(errMsg, tt.expectedContain) {
+				t.Errorf("error message should contain %q, got %q", tt.expectedContain, errMsg)
+			}
+		})
+	}
+}
+
+func TestBugAutoescapeNotRestoredOnError(t *testing.T) {
+	// Bug: tagAutoescapeNode.Execute did not restore ctx.Autoescape when
+	// wrapper.Execute returned an error. The fix uses defer to ensure
+	// the autoescape state is always restored.
+
+	tpl, err := pongo2.FromString(`{% autoescape off %}{{ safe }}{% endautoescape %}{{ unsafe }}`)
+	if err != nil {
+		t.Fatalf("failed to parse template: %v", err)
+	}
+
+	result, err := tpl.Execute(pongo2.Context{
+		"safe":   "<b>bold</b>",
+		"unsafe": "<script>xss</script>",
+	})
+	if err != nil {
+		t.Fatalf("failed to execute template: %v", err)
+	}
+
+	expected := "<b>bold</b>&lt;script&gt;xss&lt;/script&gt;"
+	if result != expected {
+		t.Errorf("expected %q, got %q", expected, result)
+	}
+
+	// Nested autoescape blocks restore correctly.
+	tpl2, err := pongo2.FromString(`{% autoescape off %}{% autoescape on %}{{ inner }}{% endautoescape %}{{ outer }}{% endautoescape %}`)
+	if err != nil {
+		t.Fatalf("failed to parse template: %v", err)
+	}
+
+	result2, err := tpl2.Execute(pongo2.Context{
+		"inner": "<i>inner</i>",
+		"outer": "<b>outer</b>",
+	})
+	if err != nil {
+		t.Fatalf("failed to execute template: %v", err)
+	}
+
+	expected2 := "&lt;i&gt;inner&lt;/i&gt;<b>outer</b>"
+	if result2 != expected2 {
+		t.Errorf("expected %q, got %q", expected2, result2)
+	}
+}
+
+func TestBugLexerColumnMultiByteUTF8(t *testing.T) {
+	// Bug: The lexer incremented col by byte width instead of 1 for each rune.
+	// For multi-byte UTF-8 characters, error column numbers would be wrong.
+
+	tests := []struct {
+		name        string
+		template    string
+		expectedCol string
+	}{
+		{
+			name:        "error column with only ASCII (baseline)",
+			template:    "abc{{ invalid_syntax( }}",
+			expectedCol: "Col 23",
+		},
+		{
+			name:        "error column after multi-byte chars",
+			template:    "日本語{{ invalid_syntax( }}",
+			expectedCol: "Col 23",
+		},
+		{
+			name:        "error column after mixed ASCII and multi-byte",
+			template:    "aüc{{ invalid_syntax( }}",
+			expectedCol: "Col 23",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := pongo2.FromString(tt.template)
+			if err == nil {
+				t.Fatal("expected a parse error but got none")
+			}
+
+			errMsg := err.Error()
+			if !strings.Contains(errMsg, tt.expectedCol) {
+				t.Errorf("error message should contain %q, got %q", tt.expectedCol, errMsg)
+			}
+		})
+	}
+}
+
+func TestBugNegateFloatReturns1Point1(t *testing.T) {
+	// Bug: Negate() returned float64(1.1) instead of float64(1.0) when
+	// negating a zero float value. This was a typo in the source code.
+
+	tpl, err := pongo2.FromString(`{% if not zero_float %}yes{% else %}no{% endif %}`)
+	if err != nil {
+		t.Fatalf("failed to parse template: %v", err)
+	}
+
+	result, err := tpl.Execute(pongo2.Context{"zero_float": 0.0})
+	if err != nil {
+		t.Fatalf("failed to execute template: %v", err)
+	}
+
+	if result != "yes" {
+		t.Errorf("expected %q, got %q", "yes", result)
+	}
+
+	tpl2, err := pongo2.FromString(`{{ zero_float|default:"fallback" }}`)
+	if err != nil {
+		t.Fatalf("failed to parse template: %v", err)
+	}
+
+	result2, err := tpl2.Execute(pongo2.Context{"zero_float": 0.0})
+	if err != nil {
+		t.Fatalf("failed to execute template: %v", err)
+	}
+
+	if result2 != "fallback" {
+		t.Errorf("expected %q, got %q", "fallback", result2)
+	}
+
+	// Test that negated non-zero float gives 0.0
+	v := pongo2.AsValue(3.14)
+	negated := v.Negate()
+	if negated.Float() != 0.0 {
+		t.Errorf("Negate() of non-zero float should be 0.0, got %v", negated.Float())
+	}
+
+	// Test that negated zero float gives 1.0 (not 1.1)
+	v2 := pongo2.AsValue(0.0)
+	negated2 := v2.Negate()
+	if negated2.Float() != 1.0 {
+		t.Errorf("Negate() of zero float should be 1.0, got %v", negated2.Float())
+	}
+}
+
+func TestBugWidthratioDoubleRounding(t *testing.T) {
+	// Bug: widthratio used Ceil(x + 0.5) which double-rounds.
+	// For exact integer results like 50/100*200 = 100.0,
+	// Ceil(100.0 + 0.5) = 101 instead of the correct 100.
+
+	tests := []struct {
+		name     string
+		template string
+		expected string
+	}{
+		{
+			name:     "exact integer result not inflated",
+			template: `{% widthratio 50 100 200 %}`,
+			expected: "100",
+		},
+		{
+			name:     "exact integer result 75/100*400",
+			template: `{% widthratio 75 100 400 %}`,
+			expected: "300",
+		},
+		{
+			name:     "fractional result rounds correctly",
+			template: `{% widthratio 175 200 100 %}`,
+			expected: "88",
+		},
+		{
+			name:     "small fraction rounds down",
+			template: `{% widthratio 1 3 100 %}`,
+			expected: "33",
+		},
+		{
+			name:     "zero value",
+			template: `{% widthratio 0 100 200 %}`,
+			expected: "0",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tpl, err := pongo2.FromString(tt.template)
+			if err != nil {
+				t.Fatalf("failed to parse template: %v", err)
+			}
+
+			result, err := tpl.Execute(nil)
+			if err != nil {
+				t.Fatalf("failed to execute template: %v", err)
+			}
+
+			if result != tt.expected {
+				t.Errorf("expected %q, got %q", tt.expected, result)
+			}
+		})
+	}
+}
+
+func TestBugIfnotequalErrorMessage(t *testing.T) {
+	// Bug: ifnotequal's error message incorrectly says "ifequal" instead of "ifnotequal".
+
+	_, err := pongo2.FromString(`{% ifnotequal a b c %}{% endifnotequal %}`)
+	if err == nil {
+		t.Fatal("expected an error but got none")
+	}
+
+	errMsg := err.Error()
+	if !strings.Contains(errMsg, "ifnotequal") {
+		t.Errorf("error message should mention 'ifnotequal', got %q", errMsg)
+	}
+}
+
+func TestBugCycleSharedState(t *testing.T) {
+	// Bug: tagCycleNode.idx was stored on the AST node, which is shared
+	// across all concurrent executions of the same parsed template.
+	// This caused two problems:
+	// 1. Data race: concurrent idx++ without synchronization
+	// 2. Semantic bug: one execution's cycle position affected another,
+	//    producing wrong output (e.g., "bcabca" instead of "abcabc")
+	//
+	// Each template execution must have independent cycle state.
+
+	tpl, err := pongo2.FromString(`{% for i in items %}{% cycle "a" "b" "c" %}{% endfor %}`)
+	if err != nil {
+		t.Fatalf("failed to parse template: %v", err)
+	}
+
+	ctx := pongo2.Context{"items": []int{1, 2, 3, 4, 5, 6}}
+	const expected = "abcabc"
+
+	// First: verify sequential executions produce consistent results.
+	// With shared state on the node, the second execution would start
+	// where the first left off (idx=6), producing wrong output.
+	for i := range 5 {
+		result, err := tpl.Execute(ctx)
+		if err != nil {
+			t.Fatalf("execution %d: unexpected error: %v", i, err)
+		}
+		if result != expected {
+			t.Errorf("execution %d: got %q, want %q", i, result, expected)
+		}
+	}
+
+	// Second: verify concurrent executions are also correct.
+	var wg sync.WaitGroup
+	for range 20 {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			result, err := tpl.Execute(ctx)
+			if err != nil {
+				t.Errorf("concurrent: unexpected error: %v", err)
+				return
+			}
+			if result != expected {
+				t.Errorf("concurrent: got %q, want %q", result, expected)
+			}
+		}()
+	}
+	wg.Wait()
+}
+
+func TestBugIfchangedSharedState(t *testing.T) {
+	// Bug: tagIfchangedNode.lastValues and lastContent were stored on the
+	// AST node, which is shared across all concurrent executions.
+	// This caused two problems:
+	// 1. Data race: concurrent writes to lastValues/lastContent
+	// 2. Semantic bug: ifchanged compares against state from a DIFFERENT
+	//    execution, so the first item might be suppressed if a previous
+	//    execution ended with the same value.
+	//
+	// Each template execution must have independent ifchanged state.
+
+	tpl, err := pongo2.FromString(`{% for item in items %}{% ifchanged %}{{ item }}{% endifchanged %}{% endfor %}`)
+	if err != nil {
+		t.Fatalf("failed to parse template: %v", err)
+	}
+
+	ctx := pongo2.Context{"items": []string{"a", "a", "b", "b", "c"}}
+	const expected = "abc"
+
+	// First: verify sequential executions produce consistent results.
+	// With shared state, the second execution starts with lastContent="c"
+	// from the first execution, so "a" would be correctly shown (different
+	// from "c"), but the pattern breaks in more complex scenarios.
+	// Use a case where it definitely breaks: items starting with the same
+	// value the previous execution ended with.
+	tplSameEnd, err := pongo2.FromString(`{% for item in items %}{% ifchanged %}{{ item }}{% endifchanged %}{% endfor %}`)
+	if err != nil {
+		t.Fatalf("failed to parse template: %v", err)
+	}
+
+	// Items end with "x", so next execution starting with "x" would skip it
+	ctxEndsX := pongo2.Context{"items": []string{"a", "b", "x"}}
+	ctxStartsX := pongo2.Context{"items": []string{"x", "y", "z"}}
+
+	// First execution ends with lastContent="x"
+	result1, err := tplSameEnd.Execute(ctxEndsX)
+	if err != nil {
+		t.Fatalf("execution 1: unexpected error: %v", err)
+	}
+	if result1 != "abx" {
+		t.Errorf("execution 1: got %q, want %q", result1, "abx")
+	}
+
+	// Second execution should output "x" even though previous ended with "x"
+	result2, err := tplSameEnd.Execute(ctxStartsX)
+	if err != nil {
+		t.Fatalf("execution 2: unexpected error: %v", err)
+	}
+	if result2 != "xyz" {
+		t.Errorf("execution 2: got %q, want %q (ifchanged state leaked from previous execution)", result2, "xyz")
+	}
+
+	// Also verify concurrent executions produce correct results.
+	var wg2 sync.WaitGroup
+	for range 20 {
+		wg2.Add(1)
+		go func() {
+			defer wg2.Done()
+			result, err := tpl.Execute(ctx)
+			if err != nil {
+				t.Errorf("concurrent: unexpected error: %v", err)
+				return
+			}
+			if result != expected {
+				t.Errorf("concurrent: got %q, want %q", result, expected)
+			}
+		}()
+	}
+	wg2.Wait()
+}
+
+func TestBugWidthratioDivisionByZero(t *testing.T) {
+	// Bug: widthratio does not check for division by zero when max=0.
+	// Django returns "0" in this case.
+
+	tests := []struct {
+		name     string
+		template string
+		expected string
+	}{
+		{
+			name:     "max is zero literal",
+			template: `{% widthratio 50 0 200 %}`,
+			expected: "0",
+		},
+		{
+			name:     "max is zero variable",
+			template: `{% widthratio value max_value width %}`,
+			expected: "0",
+		},
+		{
+			name:     "all zeros",
+			template: `{% widthratio 0 0 0 %}`,
+			expected: "0",
+		},
+		{
+			name:     "max zero with as variable",
+			template: `{% widthratio 50 0 200 as result %}{{ result }}`,
+			expected: "0",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tpl, err := pongo2.FromString(tt.template)
+			if err != nil {
+				t.Fatalf("failed to parse template: %v", err)
+			}
+
+			ctx := pongo2.Context{"value": 50, "max_value": 0, "width": 200}
+			result, err := tpl.Execute(ctx)
+			if err != nil {
+				t.Fatalf("failed to execute template: %v", err)
+			}
+
+			if result != tt.expected {
+				t.Errorf("expected %q, got %q", tt.expected, result)
+			}
+		})
+	}
+}
+
+func TestWidthratioBankersRounding(t *testing.T) {
+	tests := []struct {
+		name     string
+		template string
+		context  pongo2.Context
+		expected string
+	}{
+		{
+			name:     "half rounds to even (12.5 -> 12)",
+			template: "{% widthratio 1 4 50 %}",
+			expected: "12",
+		},
+		{
+			name:     "half rounds to even (87.5 -> 88)",
+			template: "{% widthratio 175 200 100 %}",
+			expected: "88",
+		},
+		{
+			name:     "half rounds to even (0.5 -> 0)",
+			template: "{% widthratio 1 200 100 %}",
+			expected: "0",
+		},
+		{
+			name:     "half rounds to even (2.5 -> 2)",
+			template: "{% widthratio 1 20 50 %}",
+			expected: "2",
+		},
+		{
+			name:     "non-half rounds normally (33.33 -> 33)",
+			template: "{% widthratio 1 3 100 %}",
+			expected: "33",
+		},
+		{
+			name:     "exact value (50.0 -> 50)",
+			template: "{% widthratio 50 100 100 %}",
+			expected: "50",
+		},
+		{
+			name:     "zero max_value returns 0",
+			template: "{% widthratio 50 0 100 %}",
+			expected: "0",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tpl, err := pongo2.FromString(tt.template)
+			if err != nil {
+				t.Fatalf("failed to parse template: %v", err)
+			}
+			ctx := tt.context
+			if ctx == nil {
+				ctx = pongo2.Context{}
+			}
+			result, err := tpl.Execute(ctx)
+			if err != nil {
+				t.Fatalf("failed to execute template: %v", err)
+			}
+			if result != tt.expected {
+				t.Errorf("%s\ngot:  %q\nwant: %q", tt.template, result, tt.expected)
+			}
+		})
+	}
+}
+
+func TestBugTruncatecharsHTMLByteVsRuneComparison(t *testing.T) {
+	// Bug: truncatechars_html's finalize function checks `textcounter < len(value)`
+	// where textcounter counts runes but len(value) counts bytes. For multi-byte
+	// UTF-8 strings, the byte length is always greater than the rune count, causing
+	// the ellipsis to be added incorrectly when the full text fits within the limit.
+
+	tests := []struct {
+		name     string
+		template string
+		expected string
+	}{
+		{
+			name:     "multi-byte chars exactly at limit should not add ellipsis",
+			template: `{{ "你好世界"|truncatechars_html:4 }}`,
+			expected: "你好世界", // 4 chars, limit 4, no truncation needed
+		},
+		{
+			name:     "multi-byte chars over limit adds ellipsis",
+			template: `{{ "你好世界天"|truncatechars_html:4 }}`,
+			expected: "你好世…", // 5 chars, limit 4 -> 3 chars + ellipsis
+		},
+		{
+			name:     "ASCII exactly at limit no ellipsis",
+			template: `{{ "abcd"|truncatechars_html:4 }}`,
+			expected: "abcd",
+		},
+		{
+			name:     "multi-byte in HTML at limit",
+			template: `{{ "<p>你好世界</p>"|truncatechars_html:4 }}`,
+			expected: "<p>你好世界</p>", // 4 text chars, limit 4, HTML tags don't count
+		},
+		// Unusual / edge cases with bare angle brackets and malformed HTML
+		{
+			name:     "bare less-than treated as tag opener",
+			template: `{{ "a < b"|truncatechars_html:5 }}`,
+			expected: "a < b", // '<' starts a "tag", ' b' becomes tag content; only 2 text runes ("a" and " "), fits in limit
+		},
+		{
+			name:     "bare greater-than counted as text",
+			template: `{{ "a > b > c"|truncatechars_html:3 }}`,
+			expected: "a …", // countHTMLTextRunes counts 7 text runes (> doesn't start/end tags outside a tag), truncation at 2 chars + ellipsis
+		},
+		{
+			name:     "only less-than sign",
+			template: `{{ "<"|truncatechars_html:5 }}`,
+			expected: "<", // '<' starts tag, no text runes -> no truncation
+		},
+		{
+			name:     "only greater-than sign",
+			template: `{{ ">"|truncatechars_html:5 }}`,
+			expected: ">", // '>' is counted by countHTMLTextRunes as ending tag state (but we're not in tag) -> 0 text runes? Let's check
+		},
+		{
+			name:     "unclosed tag at end no truncation",
+			template: `{{ "hello<br"|truncatechars_html:5 }}`,
+			expected: "hello<br", // 5 text chars "hello" fits limit; early return preserves raw string including unclosed tag
+		},
+		{
+			name:     "self-closing tag not counted",
+			template: `{{ "<br/>hello"|truncatechars_html:5 }}`,
+			expected: "<br/>hello", // 5 text runes, limit 5 -> no truncation
+		},
+		{
+			name:     "nested tags with truncation",
+			template: `{{ "<div><p>hello world</p></div>"|truncatechars_html:7 }}`,
+			expected: "<div><p>hello …</p></div>", // 11 text chars, limit 7 -> 6 chars + ellipsis
+		},
+		{
+			name:     "empty string",
+			template: `{{ ""|truncatechars_html:5 }}`,
+			expected: "", // no text at all
+		},
+		{
+			name:     "only tags no text",
+			template: `{{ "<p><br/></p>"|truncatechars_html:5 }}`,
+			expected: "<p><br/></p>", // 0 text runes, fits in limit
+		},
+		{
+			name:     "limit zero",
+			template: `{{ "hello"|truncatechars_html:0 }}`,
+			expected: "…", // over limit, 0-1 = max(0) -> immediate ellipsis
+		},
+		{
+			name:     "limit one with text",
+			template: `{{ "hi"|truncatechars_html:1 }}`,
+			expected: "…", // 2 text runes > 1, reserve 1 for ellipsis -> 0 chars + ellipsis
+		},
+		{
+			name:     "consecutive angle brackets",
+			template: `{{ "<<>>abc"|truncatechars_html:10 }}`,
+			expected: "<<>>abc", // fits in limit
+		},
+		{
+			name:     "greater-than before less-than no truncation",
+			template: `{{ "a>b<c"|truncatechars_html:10 }}`,
+			expected: "a>b<c", // 2 text runes ("a", "b") fits limit; early return preserves raw string
+		},
+		{
+			name:     "unclosed tag with truncation",
+			template: `{{ "hello world<br"|truncatechars_html:5 }}`,
+			expected: "hell…", // 11 text runes > 5; truncate at 4 + ellipsis; trailing <br without > is consumed but not pushed to stack
+		},
+		{
+			name:     "bare less-than with truncation",
+			template: `{{ "abcde < fgh"|truncatechars_html:4 }}`,
+			expected: "abc…", // '<' starts tag so only "abcde " is 6 text runes by countHTMLTextRunes; truncate at 3 + ellipsis
+		},
+		{
+			name:     "bare greater-than with truncation",
+			template: `{{ "a>bcdefgh"|truncatechars_html:4 }}`,
+			expected: "a>b…", // helper treats '>' as text when not in tag; 9 text runes > 4; truncate at 3 + ellipsis
+		},
+		{
+			name:     "multiple unclosed tags with truncation",
+			template: `{{ "<b><i>hello world</i></b>"|truncatechars_html:8 }}`,
+			expected: "<b><i>hello w…</i></b>", // 11 text chars, limit 8 -> 7 + ellipsis
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tpl, err := pongo2.FromString(tt.template)
+			if err != nil {
+				t.Fatalf("failed to parse template: %v", err)
+			}
+			result, err := tpl.Execute(nil)
+			if err != nil {
+				t.Fatalf("failed to execute template: %v", err)
+			}
+			if result != tt.expected {
+				t.Errorf("expected %q, got %q", tt.expected, result)
+			}
+		})
+	}
+}
+
+func TestBugSlugifyAccentedCharacters(t *testing.T) {
+	// Bug: slugify strips all non-ASCII characters without first normalizing
+	// via NFKD. Django's slugify normalizes accented characters to their base
+	// form (e.g., é → e) before stripping remaining non-ASCII. This means
+	// pongo2 produces "hllo" for "Héllo" instead of Django's "hello".
+
+	tests := []struct {
+		name     string
+		template string
+		expected string
+	}{
+		{
+			name:     "accented e is normalized to e",
+			template: `{{ "Héllo Wörld"|slugify }}`,
+			expected: "hello-world",
+		},
+		{
+			name:     "German umlauts",
+			template: `{{ "Über uns"|slugify }}`,
+			expected: "uber-uns",
+		},
+		{
+			name:     "French accents",
+			template: `{{ "Café résumé"|slugify }}`,
+			expected: "cafe-resume",
+		},
+		{
+			name:     "pure ASCII unchanged",
+			template: `{{ "Hello World"|slugify }}`,
+			expected: "hello-world",
+		},
+		{
+			name:     "CJK characters still stripped",
+			template: `{{ "hello 世界"|slugify }}`,
+			expected: "hello",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tpl, err := pongo2.FromString(tt.template)
+			if err != nil {
+				t.Fatalf("failed to parse template: %v", err)
+			}
+			result, err := tpl.Execute(nil)
+			if err != nil {
+				t.Fatalf("failed to execute template: %v", err)
+			}
+			if result != tt.expected {
+				t.Errorf("expected %q, got %q", tt.expected, result)
+			}
+		})
+	}
+}
+
+func TestBugDictsortNumericFieldStringSorted(t *testing.T) {
+	// dictsort on a numeric field should sort numerically, not lexicographically.
+	// With string sorting, "5" > "30" because '5' > '3', giving wrong order.
+	tests := []struct {
+		name     string
+		template string
+		context  pongo2.Context
+		expected string
+	}{
+		{
+			name:     "single-digit vs multi-digit numeric sorting",
+			template: `{% for item in items|dictsort:"age" %}{{ item.age }}{% if not forloop.Last %},{% endif %}{% endfor %}`,
+			context: pongo2.Context{
+				"items": []map[string]any{
+					{"name": "Charlie", "age": 30},
+					{"name": "Alice", "age": 5},
+					{"name": "Bob", "age": 25},
+				},
+			},
+			expected: "5,25,30",
+		},
+		{
+			name:     "dictsortreversed with numeric field",
+			template: `{% for item in items|dictsortreversed:"age" %}{{ item.age }}{% if not forloop.Last %},{% endif %}{% endfor %}`,
+			context: pongo2.Context{
+				"items": []map[string]any{
+					{"name": "Alice", "age": 5},
+					{"name": "Bob", "age": 25},
+					{"name": "Charlie", "age": 30},
+				},
+			},
+			expected: "30,25,5",
+		},
+		{
+			name:     "float values sorted numerically",
+			template: `{% for item in items|dictsort:"score" %}{{ item.score }}{% if not forloop.Last %},{% endif %}{% endfor %}`,
+			context: pongo2.Context{
+				"items": []map[string]any{
+					{"name": "A", "score": 9.5},
+					{"name": "B", "score": 10.1},
+					{"name": "C", "score": 2.3},
+				},
+			},
+			expected: "2.300000,9.500000,10.100000",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tpl, err := pongo2.FromString(tt.template)
+			if err != nil {
+				t.Fatalf("template parse error: %v", err)
+			}
+			result, err := tpl.Execute(tt.context)
+			if err != nil {
+				t.Fatalf("template execute error: %v", err)
+			}
+			if result != tt.expected {
+				t.Errorf("got %q, want %q", result, tt.expected)
+			}
+		})
+	}
+}
+
+type trackingReadCloser struct {
+	io.Reader
+	closed atomic.Bool
+}
+
+func (t *trackingReadCloser) Close() error {
+	t.closed.Store(true)
+	return nil
+}
+
+// closerTrackingLoader is a TemplateLoader that returns trackingReadCloser
+// so we can verify Close is called after reading.
+type closerTrackingLoader struct {
+	readers []*trackingReadCloser
+}
+
+func (l *closerTrackingLoader) Abs(base, name string) string {
+	return name
+}
+
+func (l *closerTrackingLoader) Get(path string) (io.Reader, error) {
+	rc := &trackingReadCloser{
+		Reader: strings.NewReader("Hello {{ name }}"),
+	}
+	l.readers = append(l.readers, rc)
+	return rc, nil
+}
+
+func TestBugFromFileReaderNotClosed(t *testing.T) {
+	// TemplateSet.FromFile should close the io.Reader returned by the loader
+	// if it implements io.Closer. This prevents resource leaks with loaders
+	// that return file handles (e.g. FSLoader).
+	loader := &closerTrackingLoader{}
+	set := pongo2.NewSet("test-close", loader)
+
+	_, err := set.FromFile("test.html")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if len(loader.readers) == 0 {
+		t.Fatal("expected at least one reader to be created")
+	}
+
+	for i, rc := range loader.readers {
+		if !rc.closed.Load() {
+			t.Errorf("reader %d was not closed after FromFile", i)
+		}
+	}
+}
+
+// recursiveIncludeLoader serves templates that include themselves or each other,
+// used to test that recursive includes fall back to lazy evaluation instead of
+// causing infinite recursion at parse time.
+type recursiveIncludeLoader struct {
+	templates map[string]string
+}
+
+func (l *recursiveIncludeLoader) Abs(base, name string) string {
+	return name
+}
+
+func (l *recursiveIncludeLoader) Get(path string) (io.Reader, error) {
+	content, ok := l.templates[path]
+	if !ok {
+		return nil, fmt.Errorf("template %q not found", path)
+	}
+	return strings.NewReader(content), nil
+}
+
+func TestBugRecursiveIncludeInfiniteLoop(t *testing.T) {
+	// Bug: When template A includes itself (or A includes B which includes A),
+	// the parser would recurse infinitely at parse time because FromFile
+	// called itself through the include tag parser. The fix detects templates
+	// currently being parsed and falls back to lazy evaluation for the
+	// recursive include.
+
+	t.Run("direct self-inclusion parses without hanging", func(t *testing.T) {
+		loader := &recursiveIncludeLoader{templates: map[string]string{
+			"self.html": `{% if stop %}done{% else %}{% include "self.html" with stop=1 %}{% endif %}`,
+		}}
+		set := pongo2.NewSet("test-self", loader)
+
+		tpl, err := set.FromFile("self.html")
+		if err != nil {
+			t.Fatalf("failed to parse self-including template: %v", err)
+		}
+
+		result, err := tpl.Execute(pongo2.Context{})
+		if err != nil {
+			t.Fatalf("failed to execute: %v", err)
+		}
+		if result != "done" {
+			t.Errorf("expected %q, got %q", "done", result)
+		}
+	})
+
+	t.Run("indirect recursion A includes B includes A", func(t *testing.T) {
+		loader := &recursiveIncludeLoader{templates: map[string]string{
+			"a.html": `A{% if not stop %}{% include "b.html" with stop=1 %}{% endif %}`,
+			"b.html": `B{% if not stop %}{% include "a.html" with stop=1 %}{% endif %}`,
+		}}
+		set := pongo2.NewSet("test-indirect", loader)
+
+		tpl, err := set.FromFile("a.html")
+		if err != nil {
+			t.Fatalf("failed to parse: %v", err)
+		}
+
+		result, err := tpl.Execute(pongo2.Context{})
+		if err != nil {
+			t.Fatalf("failed to execute: %v", err)
+		}
+		if result != "AB" {
+			t.Errorf("expected %q, got %q", "AB", result)
+		}
+	})
+
+	t.Run("recursive include with if_exists", func(t *testing.T) {
+		loader := &recursiveIncludeLoader{templates: map[string]string{
+			"page.html": `{% if not done %}content{% include "page.html" if_exists with done=1 %}{% else %}end{% endif %}`,
+		}}
+		set := pongo2.NewSet("test-if-exists", loader)
+
+		tpl, err := set.FromFile("page.html")
+		if err != nil {
+			t.Fatalf("failed to parse: %v", err)
+		}
+
+		result, err := tpl.Execute(pongo2.Context{})
+		if err != nil {
+			t.Fatalf("failed to execute: %v", err)
+		}
+		if result != "contentend" {
+			t.Errorf("expected %q, got %q", "contentend", result)
+		}
+	})
+}
+
+func TestBugGetdigitNonDigitCharacters(t *testing.T) {
+	// Bug: get_digit subtracts 48 (ASCII '0') from a character without checking
+	// if it's a digit. For inputs like "-123", position 4 accesses the '-' char
+	// producing an incorrect result (-3 instead of returning the original value).
+	// Django converts to int first, avoiding this issue.
+
+	tests := []struct {
+		name     string
+		template string
+		context  pongo2.Context
+		expected string
+	}{
+		{
+			name:     "negative number digit beyond digits",
+			template: `{{ val|get_digit:4 }}`,
+			context:  pongo2.Context{"val": "-123"},
+			expected: "-123", // should return original - position exceeds digit count
+		},
+		{
+			name:     "negative number valid digit",
+			template: `{{ val|get_digit:1 }}`,
+			context:  pongo2.Context{"val": "-123"},
+			expected: "3",
+		},
+		{
+			name:     "float string",
+			template: `{{ val|get_digit:1 }}`,
+			context:  pongo2.Context{"val": "12.5"},
+			expected: "12.5", // Django returns original for non-integer strings
+		},
+		{
+			name:     "integer input",
+			template: `{{ val|get_digit:2 }}`,
+			context:  pongo2.Context{"val": 12345},
+			expected: "4",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tpl, err := pongo2.FromString(tt.template)
+			if err != nil {
+				t.Fatalf("failed to parse template: %v", err)
+			}
+
+			result, err := tpl.Execute(tt.context)
+			if err != nil {
+				t.Fatalf("failed to execute template: %v", err)
+			}
+
+			if result != tt.expected {
+				t.Errorf("expected %q, got %q", tt.expected, result)
+			}
+		})
+	}
+}
+
+func TestBugPluralizeFloatTruncation(t *testing.T) {
+	// Bug: pluralize filter uses Integer() which truncates floats like 1.5 to 1,
+	// incorrectly treating them as singular. Django uses float comparison against 1.
+
+	tests := []struct {
+		name     string
+		template string
+		context  pongo2.Context
+		expected string
+	}{
+		{
+			name:     "float 1.5 should pluralize",
+			template: `{{ val|pluralize }}`,
+			context:  pongo2.Context{"val": 1.5},
+			expected: "s",
+		},
+		{
+			name:     "float 1.0 should be singular",
+			template: `{{ val|pluralize }}`,
+			context:  pongo2.Context{"val": 1.0},
+			expected: "",
+		},
+		{
+			name:     "float 0.5 should pluralize",
+			template: `{{ val|pluralize }}`,
+			context:  pongo2.Context{"val": 0.5},
+			expected: "s",
+		},
+		{
+			name:     "int 1 should be singular",
+			template: `{{ val|pluralize }}`,
+			context:  pongo2.Context{"val": 1},
+			expected: "",
+		},
+		{
+			name:     "int 2 should pluralize",
+			template: `{{ val|pluralize }}`,
+			context:  pongo2.Context{"val": 2},
+			expected: "s",
+		},
+		{
+			name:     "float 1.5 with custom suffix",
+			template: `{{ val|pluralize:"y,ies" }}`,
+			context:  pongo2.Context{"val": 1.5},
+			expected: "ies",
+		},
+		{
+			name:     "float 1.0 with custom suffix",
+			template: `{{ val|pluralize:"y,ies" }}`,
+			context:  pongo2.Context{"val": 1.0},
+			expected: "y",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tpl, err := pongo2.FromString(tt.template)
+			if err != nil {
+				t.Fatalf("failed to parse template: %v", err)
+			}
+
+			result, err := tpl.Execute(tt.context)
+			if err != nil {
+				t.Fatalf("failed to execute template: %v", err)
+			}
+
+			if result != tt.expected {
+				t.Errorf("expected %q, got %q", tt.expected, result)
+			}
+		})
+	}
+}
+
+func TestBugUrlizetruncByteVsRuneLength(t *testing.T) {
+	// Bug: urlizetrunc uses len() (byte length) and byte slicing to truncate
+	// URLs, which can split multi-byte UTF-8 characters. Should use rune-based
+	// operations like other truncation filters.
+
+	t.Run("unicode url truncation uses rune length", func(t *testing.T) {
+		result, err := pongo2.ApplyFilter("urlizetrunc", pongo2.AsValue("http://www.例え.com/path"), pongo2.AsValue(15))
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		output := result.String()
+		// The title text should have valid UTF-8, not broken multi-byte chars
+		if !utf8.ValidString(output) {
+			t.Errorf("output contains invalid UTF-8: %q", output)
+		}
+		// The title should contain "例え" (both chars), not just "例" (truncated mid-rune)
+		if !strings.Contains(output, "例え") {
+			t.Errorf("expected output to contain '例え', got %q", output)
+		}
+	})
+}
+
+func TestBugYesnoNilWithTwoArgs(t *testing.T) {
+	// Bug: yesno with 2 custom args ("yeah,nope") should map nil to "nope"
+	// (same as false), but pongo2 returns "maybe" (the default).
+	// Django: None with 2 args converts None to False.
+
+	tests := []struct {
+		name     string
+		template string
+		context  pongo2.Context
+		expected string
+	}{
+		{
+			name:     "nil with two args maps to no",
+			template: `{{ val|yesno:"yeah,nope" }}`,
+			context:  pongo2.Context{"val": nil},
+			expected: "nope",
+		},
+		{
+			name:     "nil with three args maps to maybe",
+			template: `{{ val|yesno:"yeah,nope,dunno" }}`,
+			context:  pongo2.Context{"val": nil},
+			expected: "dunno",
+		},
+		{
+			name:     "nil with no args maps to maybe",
+			template: `{{ val|yesno }}`,
+			context:  pongo2.Context{"val": nil},
+			expected: "maybe",
+		},
+		{
+			name:     "true with two args",
+			template: `{{ val|yesno:"yeah,nope" }}`,
+			context:  pongo2.Context{"val": true},
+			expected: "yeah",
+		},
+		{
+			name:     "false with two args",
+			template: `{{ val|yesno:"yeah,nope" }}`,
+			context:  pongo2.Context{"val": false},
+			expected: "nope",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tpl, err := pongo2.FromString(tt.template)
+			if err != nil {
+				t.Fatalf("failed to parse template: %v", err)
+			}
+			result, err := tpl.Execute(tt.context)
+			if err != nil {
+				t.Fatalf("failed to execute template: %v", err)
+			}
+			if result != tt.expected {
+				t.Errorf("expected %q, got %q", tt.expected, result)
+			}
+		})
+	}
+}
+
+func TestBugLinebreaksbrWindowsNewlines(t *testing.T) {
+	// Bug: linebreaksbr only replaces \n, not \r\n (Windows) or \r (old Mac).
+	// Django normalizes all newline types before processing.
+
+	tests := []struct {
+		name     string
+		template string
+		context  pongo2.Context
+		expected string
+	}{
+		{
+			name:     "windows line endings",
+			template: `{% autoescape off %}{{ text|linebreaksbr }}{% endautoescape %}`,
+			context:  pongo2.Context{"text": "line1\r\nline2\r\nline3"},
+			expected: "line1<br />line2<br />line3",
+		},
+		{
+			name:     "old mac line endings",
+			template: `{% autoescape off %}{{ text|linebreaksbr }}{% endautoescape %}`,
+			context:  pongo2.Context{"text": "line1\rline2\rline3"},
+			expected: "line1<br />line2<br />line3",
+		},
+		{
+			name:     "unix line endings still work",
+			template: `{% autoescape off %}{{ text|linebreaksbr }}{% endautoescape %}`,
+			context:  pongo2.Context{"text": "line1\nline2\nline3"},
+			expected: "line1<br />line2<br />line3",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tpl, err := pongo2.FromString(tt.template)
+			if err != nil {
+				t.Fatalf("failed to parse template: %v", err)
+			}
+			result, err := tpl.Execute(tt.context)
+			if err != nil {
+				t.Fatalf("failed to execute template: %v", err)
+			}
+			if result != tt.expected {
+				t.Errorf("expected %q, got %q", tt.expected, result)
+			}
+		})
+	}
+}
+
+func TestBugLinebreaksWindowsNewlines(t *testing.T) {
+	// Bug: linebreaks filter only splits on \n, not \r\n or \r.
+
+	tests := []struct {
+		name     string
+		template string
+		context  pongo2.Context
+		expected string
+	}{
+		{
+			name:     "windows double newline creates paragraphs",
+			template: `{% autoescape off %}{{ text|linebreaks }}{% endautoescape %}`,
+			context:  pongo2.Context{"text": "para1\r\n\r\npara2"},
+			expected: "<p>para1</p>\n\n<p>para2</p>",
+		},
+		{
+			name:     "windows single newline creates br",
+			template: `{% autoescape off %}{{ text|linebreaks }}{% endautoescape %}`,
+			context:  pongo2.Context{"text": "line1\r\nline2"},
+			expected: "<p>line1<br />line2</p>",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tpl, err := pongo2.FromString(tt.template)
+			if err != nil {
+				t.Fatalf("failed to parse template: %v", err)
+			}
+			result, err := tpl.Execute(tt.context)
+			if err != nil {
+				t.Fatalf("failed to execute template: %v", err)
+			}
+			if result != tt.expected {
+				t.Errorf("expected %q, got %q", tt.expected, result)
+			}
+		})
+	}
+}
+
+func TestBugLinenumbersWindowsNewlines(t *testing.T) {
+	// Bug: linenumbers splits on \n only, not handling \r\n or \r.
+
+	tpl, err := pongo2.FromString(`{% autoescape off %}{{ text|linenumbers }}{% endautoescape %}`)
+	if err != nil {
+		t.Fatalf("failed to parse template: %v", err)
+	}
+
+	result, err := tpl.Execute(pongo2.Context{"text": "line1\r\nline2\r\nline3"})
+	if err != nil {
+		t.Fatalf("failed to execute template: %v", err)
+	}
+
+	expected := "1. line1\n2. line2\n3. line3"
+	if result != expected {
+		t.Errorf("expected %q, got %q", expected, result)
+	}
+}
+
+func TestBugTruncatewordsEllipsis(t *testing.T) {
+	// Django uses unicode ellipsis (…) not three dots (...)
+	tests := []struct {
+		name     string
+		template string
+		context  pongo2.Context
+		expected string
+	}{
+		{
+			name:     "truncatewords uses unicode ellipsis",
+			template: `{{ text|truncatewords:2 }}`,
+			context:  pongo2.Context{"text": "Hello beautiful world"},
+			expected: "Hello beautiful \u2026",
+		},
+		{
+			name:     "truncatewords no truncation no ellipsis",
+			template: `{{ text|truncatewords:5 }}`,
+			context:  pongo2.Context{"text": "Hello world"},
+			expected: "Hello world",
+		},
+		{
+			name:     "truncatewords_html uses unicode ellipsis",
+			template: `{{ text|truncatewords_html:2 }}`,
+			context:  pongo2.Context{"text": "<p>Hello beautiful world</p>"},
+			expected: "<p>Hello beautiful \u2026</p>",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tpl, err := pongo2.FromString(tt.template)
+			if err != nil {
+				t.Fatalf("parse error: %v", err)
+			}
+			result, err := tpl.Execute(tt.context)
+			if err != nil {
+				t.Fatalf("execute error: %v", err)
+			}
+			if result != tt.expected {
+				t.Errorf("got %q, want %q", result, tt.expected)
+			}
+		})
+	}
+}
+
+func TestBugJSONScriptIDEscaping(t *testing.T) {
+	// json_script element_id must be fully HTML-escaped, not just double quotes
+	tests := []struct {
+		name     string
+		template string
+		context  pongo2.Context
+		expected string
+	}{
+		{
+			name:     "angle brackets in id",
+			template: `{{ val|json_script:id }}`,
+			context:  pongo2.Context{"val": "safe", "id": "test<script>"},
+			expected: `<script id="test&lt;script&gt;" type="application/json">"safe"</script>`,
+		},
+		{
+			name:     "ampersand in id",
+			template: `{{ val|json_script:id }}`,
+			context:  pongo2.Context{"val": "safe", "id": "test&foo"},
+			expected: `<script id="test&amp;foo" type="application/json">"safe"</script>`,
+		},
+		{
+			name:     "single quote in id",
+			template: `{{ val|json_script:id }}`,
+			context:  pongo2.Context{"val": "safe", "id": "test'foo"},
+			expected: `<script id="test&#39;foo" type="application/json">"safe"</script>`,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tpl, err := pongo2.FromString(tt.template)
+			if err != nil {
+				t.Fatalf("parse error: %v", err)
+			}
+			result, err := tpl.Execute(tt.context)
+			if err != nil {
+				t.Fatalf("execute error: %v", err)
+			}
+			if result != tt.expected {
+				t.Errorf("got %q, want %q", result, tt.expected)
+			}
+		})
+	}
+}
+
+func TestBugFilterDoubleEscaping(t *testing.T) {
+	// Filters that produce HTML output must return AsSafeValue to prevent
+	// double-escaping when autoescape is enabled (the default).
+	tests := []struct {
+		name     string
+		template string
+		context  pongo2.Context
+		expected string
+	}{
+		{
+			name:     "escape filter not double-escaped",
+			template: `{{ val|escape }}`,
+			context:  pongo2.Context{"val": "<b>test</b>"},
+			expected: "&lt;b&gt;test&lt;/b&gt;",
+		},
+		{
+			name:     "escapejs filter not double-escaped",
+			template: `{{ val|escapejs }}`,
+			context:  pongo2.Context{"val": `he said "hello"`},
+			expected: `he said \u0022hello\u0022`,
+		},
+		{
+			name:     "linebreaks filter not double-escaped",
+			template: `{{ val|linebreaks }}`,
+			context:  pongo2.Context{"val": "hello\nworld"},
+			expected: "<p>hello<br />world</p>",
+		},
+		{
+			name:     "linebreaksbr filter not double-escaped",
+			template: `{{ val|linebreaksbr }}`,
+			context:  pongo2.Context{"val": "hello\nworld"},
+			expected: "hello<br />world",
+		},
+		{
+			name:     "urlize filter not double-escaped",
+			template: `{{ val|urlize }}`,
+			context:  pongo2.Context{"val": "Visit http://example.com"},
+			expected: `Visit <a href="http://example.com" rel="nofollow">http://example.com</a>`,
+		},
+		{
+			name:     "urlizetrunc filter not double-escaped",
+			template: `{{ val|urlizetrunc:15 }}`,
+			context:  pongo2.Context{"val": "Visit http://example.com"},
+			expected: `Visit <a href="http://example.com" rel="nofollow">http://example…</a>`,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tpl, err := pongo2.FromString(tt.template)
+			if err != nil {
+				t.Fatalf("parse error: %v", err)
+			}
+			result, err := tpl.Execute(tt.context)
+			if err != nil {
+				t.Fatalf("execute error: %v", err)
+			}
+			if result != tt.expected {
+				t.Errorf("got %q, want %q", result, tt.expected)
+			}
+		})
+	}
+}
+
+func TestBugIncludeOnlyWithoutWith(t *testing.T) {
+	// Django supports {% include "file" only %} without "with" keyword.
+	// This should include the template with an empty context (no parent variables).
+	fs := fstest.MapFS{
+		"child.html": &fstest.MapFile{Data: []byte("val={{ val }}")},
+	}
+	set := pongo2.NewSet("test", pongo2.NewFSLoader(fs))
+
+	tpl, err := set.FromString(`{% include "child.html" only %}`)
+	if err != nil {
+		t.Fatalf("parse error: %v", err)
+	}
+
+	result, err := tpl.Execute(pongo2.Context{"val": "hello"})
+	if err != nil {
+		t.Fatalf("execute error: %v", err)
+	}
+
+	// With "only", the parent context variable "val" should NOT be passed
+	if result != "val=" {
+		t.Errorf("got %q, want %q (parent context should be excluded with 'only')", result, "val=")
+	}
+}
+
+func TestBugIncludeLazyParseErrorToken(t *testing.T) {
+	// When {% include expression %} has a parse error, the error should
+	// not panic due to nil token. Using an invalid expression to trigger this.
+	fs := fstest.MapFS{
+		"test.html": &fstest.MapFile{Data: []byte("test")},
+	}
+	set := pongo2.NewSet("test", pongo2.NewFSLoader(fs))
+
+	// This should produce a parse error, not a panic
+	_, err := set.FromString(`{% include |invalid %}`)
+	if err == nil {
+		t.Fatal("expected parse error for invalid include expression")
+	}
+}
+
+func TestBugTrimBlocksRaceCondition(t *testing.T) {
+	// TrimBlocks/LStripBlocks token modification must be safe under
+	// concurrent execution. Previously, tokens were mutated without
+	// synchronization, causing a data race.
+	tpl, err := pongo2.FromString("{% if true %}\nhello\n{% endif %}\n")
+	if err != nil {
+		t.Fatalf("parse error: %v", err)
+	}
+	tpl.Options.TrimBlocks = true
+	tpl.Options.LStripBlocks = true
+
+	var wg sync.WaitGroup
+	for range 50 {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			result, err := tpl.Execute(pongo2.Context{})
+			if err != nil {
+				t.Errorf("execute error: %v", err)
+				return
+			}
+			if !strings.Contains(result, "hello") {
+				t.Errorf("unexpected result: %q", result)
+			}
+		}()
+	}
+	wg.Wait()
+}
+
+func TestBugTimesinceDjangoCompat(t *testing.T) {
+	// Bug: timesince/timeuntil used fixed approximations (365 days/year, 30 days/month)
+	// instead of calendar-based arithmetic, didn't enforce adjacency rule, and
+	// didn't handle wrong-direction dates (future for timesince, past for timeuntil).
+
+	tests := []struct {
+		name     string
+		template string
+		context  pongo2.Context
+		expected string
+	}{
+		{
+			name:     "timesince with future date returns 0 minutes",
+			template: `{{ d|timesince:now }}`,
+			context: pongo2.Context{
+				"d":   time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC),
+				"now": time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC),
+			},
+			expected: "0 minutes",
+		},
+		{
+			name:     "timeuntil with past date returns 0 minutes",
+			template: `{{ d|timeuntil:now }}`,
+			context: pongo2.Context{
+				"d":   time.Date(2023, 1, 1, 0, 0, 0, 0, time.UTC),
+				"now": time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC),
+			},
+			expected: "0 minutes",
+		},
+		{
+			name:     "adjacency rule: 2 weeks without hours",
+			template: `{{ d|timesince:now }}`,
+			context: pongo2.Context{
+				"d":   time.Date(2024, 1, 1, 12, 0, 0, 0, time.UTC),
+				"now": time.Date(2024, 1, 15, 15, 0, 0, 0, time.UTC),
+			},
+			expected: "2 weeks",
+		},
+		{
+			name:     "adjacency rule: 1 year without days",
+			template: `{{ d|timesince:now }}`,
+			context: pongo2.Context{
+				"d":   time.Date(2023, 1, 1, 0, 0, 0, 0, time.UTC),
+				"now": time.Date(2024, 1, 6, 0, 0, 0, 0, time.UTC),
+			},
+			expected: "1 year",
+		},
+		{
+			name:     "calendar-based months: Feb 10 to Mar 10",
+			template: `{{ d|timesince:now }}`,
+			context: pongo2.Context{
+				"d":   time.Date(2013, 2, 10, 0, 0, 0, 0, time.UTC),
+				"now": time.Date(2014, 3, 10, 0, 0, 0, 0, time.UTC),
+			},
+			expected: "1 year, 1 month",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tpl, err := pongo2.FromString(tt.template)
+			if err != nil {
+				t.Fatalf("failed to parse template: %v", err)
+			}
+			result, err := tpl.Execute(tt.context)
+			if err != nil {
+				t.Fatalf("failed to execute template: %v", err)
+			}
+			if result != tt.expected {
+				t.Errorf("got %q, want %q", result, tt.expected)
+			}
+		})
+	}
+}
+
+func TestSlugifyPreservesUnderscores(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected string
+	}{
+		{"Hello_World", "hello_world"},
+		{"hello_world_test", "hello_world_test"},
+		{"a_b_c", "a_b_c"},
+		{"under_score", "under_score"},
+		{"_leading", "leading"},
+		{"trailing_", "trailing"},
+		{"__double__", "double"},
+	}
+
+	for _, tt := range tests {
+		tpl, err := pongo2.FromString(`{{ val|slugify }}`)
+		if err != nil {
+			t.Fatalf("failed to parse template: %v", err)
+		}
+		result, err := tpl.Execute(pongo2.Context{"val": tt.input})
+		if err != nil {
+			t.Fatalf("failed to execute template: %v", err)
+		}
+		if result != tt.expected {
+			t.Errorf("slugify(%q) = %q, want %q", tt.input, result, tt.expected)
+		}
+	}
+}
+
+func TestTitleFilterDjangoCompat(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected string
+	}{
+		{"hello world", "Hello World"},
+		{"HELLO WORLD", "Hello World"},
+		{"it's a test", "It's A Test"},
+		{"they're awesome", "They're Awesome"},
+		{"hello-world", "Hello-World"},
+		{"hello_world", "Hello_World"},
+		{"123abc", "123abc"},
+		{"1st place", "1st Place"},
+		{"  hello  world  ", "  Hello  World  "},
+	}
+
+	for _, tt := range tests {
+		tpl, err := pongo2.FromString(`{% autoescape off %}{{ val|title }}{% endautoescape %}`)
+		if err != nil {
+			t.Fatalf("failed to parse template: %v", err)
+		}
+		result, err := tpl.Execute(pongo2.Context{"val": tt.input})
+		if err != nil {
+			t.Fatalf("failed to execute template: %v", err)
+		}
+		if result != tt.expected {
+			t.Errorf("title(%q) = %q, want %q", tt.input, result, tt.expected)
+		}
+	}
+}
+
+func TestUnorderedListDjangoCompat(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    any
+		expected string
+	}{
+		{
+			name:     "flat list",
+			input:    []string{"Item 1", "Item 2", "Item 3"},
+			expected: "\t<li>Item 1</li>\n\t<li>Item 2</li>\n\t<li>Item 3</li>",
+		},
+		{
+			name:     "single item",
+			input:    []string{"Solo"},
+			expected: "\t<li>Solo</li>",
+		},
+		{
+			name:     "empty list",
+			input:    []string{},
+			expected: "",
+		},
+		{
+			name:  "nested list",
+			input: []any{"States", []any{"Kansas", []any{"Lawrence", "Topeka"}, "Illinois"}},
+			expected: "\t<li>States\n" +
+				"\t<ul>\n" +
+				"\t\t<li>Kansas\n" +
+				"\t\t<ul>\n" +
+				"\t\t\t<li>Lawrence</li>\n" +
+				"\t\t\t<li>Topeka</li>\n" +
+				"\t\t</ul>\n" +
+				"\t\t</li>\n" +
+				"\t\t<li>Illinois</li>\n" +
+				"\t</ul>\n" +
+				"\t</li>",
+		},
+		{
+			name:     "escaping",
+			input:    []string{"<script>", "normal", "a&b"},
+			expected: "\t<li>&lt;script&gt;</li>\n\t<li>normal</li>\n\t<li>a&amp;b</li>",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tpl, err := pongo2.FromString(`{{ items|unordered_list }}`)
+			if err != nil {
+				t.Fatalf("failed to parse template: %v", err)
+			}
+			result, err := tpl.Execute(pongo2.Context{"items": tt.input})
+			if err != nil {
+				t.Fatalf("failed to execute template: %v", err)
+			}
+			if result != tt.expected {
+				t.Errorf("unordered_list(%v)\ngot:  %q\nwant: %q", tt.input, result, tt.expected)
+			}
+		})
+	}
+}
+
+func TestMacroDefaultValueConsistency(t *testing.T) {
+	tests := []struct {
+		name     string
+		template string
+		expected string
+	}{
+		{
+			name:     "default value used",
+			template: `{% macro greet(name="World") %}Hello, {{ name }}!{% endmacro %}{{ greet() }}`,
+			expected: "Hello, World!",
+		},
+		{
+			name:     "positional overrides default",
+			template: `{% macro greet(name="World") %}Hello, {{ name }}!{% endmacro %}{{ greet("Go") }}`,
+			expected: "Hello, Go!",
+		},
+		{
+			name:     "multiple defaults mixed with positional",
+			template: `{% macro test(a, b="B", c="C") %}{{ a }}-{{ b }}-{{ c }}{% endmacro %}{{ test("A") }}`,
+			expected: "A-B-C",
+		},
+		{
+			name:     "all positional override defaults",
+			template: `{% macro test(a="X", b="Y") %}{{ a }}-{{ b }}{% endmacro %}{{ test("1", "2") }}`,
+			expected: "1-2",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tpl, err := pongo2.FromString(tt.template)
+			if err != nil {
+				t.Fatalf("failed to parse template: %v", err)
+			}
+			result, err := tpl.Execute(pongo2.Context{})
+			if err != nil {
+				t.Fatalf("failed to execute template: %v", err)
+			}
+			if result != tt.expected {
+				t.Errorf("got %q, want %q", result, tt.expected)
+			}
+		})
+	}
+}
+
+func TestCenterPaddingMatchesPython(t *testing.T) {
+	tests := []struct {
+		input    string
+		width    int
+		expected string
+	}{
+		// Both margin and width odd → extra space on LEFT
+		{"test", 19, "        test       "},
+		{"ab", 5, "  ab "},
+		// Margin odd, width even → extra space on RIGHT
+		{"test2", 20, "       test2        "},
+		{"x", 4, " x  "},
+		// Even margin → symmetric
+		{"test", 20, "        test        "},
+		{"test2", 19, "       test2       "},
+	}
+
+	for _, tt := range tests {
+		tpl, err := pongo2.FromString(fmt.Sprintf(`{{ val|center:%d }}`, tt.width))
+		if err != nil {
+			t.Fatalf("failed to parse template: %v", err)
+		}
+		result, err := tpl.Execute(pongo2.Context{"val": tt.input})
+		if err != nil {
+			t.Fatalf("failed to execute template: %v", err)
+		}
+		if result != tt.expected {
+			t.Errorf("center(%q, %d) = %q, want %q", tt.input, tt.width, result, tt.expected)
+		}
 	}
 }

@@ -11,11 +11,11 @@ Creating a custom tag requires two components:
 
 ```go
 // Tag parser function signature
-type TagParser func(doc *Parser, start *Token, arguments *Parser) (INodeTag, *Error)
+type TagParser func(doc *Parser, start *Token, arguments *Parser) (INodeTag, error)
 
 // Tag node must implement INodeTag (which extends INode)
 type INodeTag interface {
-    Execute(ctx *ExecutionContext, writer TemplateWriter) *Error
+    Execute(ctx *ExecutionContext, writer TemplateWriter) error
 }
 ```
 
@@ -47,12 +47,12 @@ func init() {
 }
 ```
 
-### TagExists
+### BuiltinTagExists
 
-Check if a tag is registered:
+Check if a tag is registered as a built-in:
 
 ```go
-if pongo2.TagExists("cache") {
+if pongo2.BuiltinTagExists("cache") {
     // Tag is available
 }
 ```
@@ -62,7 +62,7 @@ if pongo2.TagExists("cache") {
 The parser function is called at compile time when pongo2 encounters your tag:
 
 ```go
-func myTagParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, *Error)
+func myTagParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, error)
 ```
 
 ### Parameters
@@ -76,7 +76,7 @@ func myTagParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, *Error
 ### Return Values
 
 - `INodeTag` - The compiled tag node (implements `Execute`)
-- `*Error` - Parse error if syntax is invalid, otherwise `nil`
+- `error` - Parse error if syntax is invalid, otherwise `nil`
 
 ## Parsing Arguments
 
@@ -86,15 +86,14 @@ The `arguments` parser provides methods to consume and match tokens.
 
 ```go
 const (
-    TokenError TokenType = iota
-    EOF
-    TokenHTML
-    TokenKeyword      // "in", "and", "or", "not", "true", "false", "as", etc.
-    TokenIdentifier   // Variable names: user, item, counter
-    TokenString       // "hello", 'world'
-    TokenNumber       // 42, 3.14
-    TokenSymbol       // (, ), [, ], {, }, ,, :, =, +, -, etc.
-    TokenNil          // nil, None
+    TokenError      TokenType = iota
+    TokenHTML                          // Raw HTML content
+    TokenKeyword                      // "in", "and", "or", "not", "true", "false", "as", etc.
+    TokenIdentifier                   // Variable names: user, item, counter
+    TokenString                       // "hello", 'world'
+    TokenNumber                       // 42, 3.14
+    TokenSymbol                       // (, ), [, ], {, }, ,, :, =, +, -, etc.
+    TokenNil                          // nil, None
 )
 ```
 
@@ -238,7 +237,7 @@ return nil, arguments.Error("Invalid argument", someToken)
 For tags that wrap content (like `{% if %}...{% endif %}`), use `WrapUntilTag`:
 
 ```go
-func myBlockParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, *Error) {
+func myBlockParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, error) {
     node := &myBlockNode{}
 
     // Parse until "endmyblock" tag
@@ -310,7 +309,7 @@ type ExecutionContext struct {
 ### Reading Context Values
 
 ```go
-func (node *myNode) Execute(ctx *ExecutionContext, writer TemplateWriter) *Error {
+func (node *myNode) Execute(ctx *ExecutionContext, writer TemplateWriter) error {
     // Read from public context (user-provided data)
     if user, ok := ctx.Public["user"]; ok {
         // Use user data
@@ -333,7 +332,7 @@ func (node *myNode) Execute(ctx *ExecutionContext, writer TemplateWriter) *Error
 ### Writing to Context
 
 ```go
-func (node *myNode) Execute(ctx *ExecutionContext, writer TemplateWriter) *Error {
+func (node *myNode) Execute(ctx *ExecutionContext, writer TemplateWriter) error {
     // Set private variable (for internal use)
     ctx.Private["my_counter"] = 0
 
@@ -355,7 +354,7 @@ func (node *myNode) Execute(ctx *ExecutionContext, writer TemplateWriter) *Error
 Create isolated scopes for nested content:
 
 ```go
-func (node *myNode) Execute(ctx *ExecutionContext, writer TemplateWriter) *Error {
+func (node *myNode) Execute(ctx *ExecutionContext, writer TemplateWriter) error {
     // Create child context (inherits parent's variables)
     childCtx := pongo2.NewChildExecutionContext(ctx)
 
@@ -378,7 +377,7 @@ func (node *myNode) Execute(ctx *ExecutionContext, writer TemplateWriter) *Error
 Create errors with template location information:
 
 ```go
-func (node *myNode) Execute(ctx *ExecutionContext, writer TemplateWriter) *Error {
+func (node *myNode) Execute(ctx *ExecutionContext, writer TemplateWriter) error {
     if somethingWrong {
         return ctx.Error("Something went wrong", node.position)
     }
@@ -391,7 +390,7 @@ func (node *myNode) Execute(ctx *ExecutionContext, writer TemplateWriter) *Error
 Debug logging (only active when template set has `Debug: true`):
 
 ```go
-func (node *myNode) Execute(ctx *ExecutionContext, writer TemplateWriter) *Error {
+func (node *myNode) Execute(ctx *ExecutionContext, writer TemplateWriter) error {
     ctx.Logf("Processing item: %v", item)
     return nil
 }
@@ -402,7 +401,7 @@ func (node *myNode) Execute(ctx *ExecutionContext, writer TemplateWriter) *Error
 Check and respect the autoescape setting:
 
 ```go
-func (node *myNode) Execute(ctx *ExecutionContext, writer TemplateWriter) *Error {
+func (node *myNode) Execute(ctx *ExecutionContext, writer TemplateWriter) error {
     content := "<b>Bold</b>"
 
     if ctx.Autoescape {
@@ -430,7 +429,7 @@ type TemplateWriter interface {
 ### Writing Strings
 
 ```go
-func (node *myNode) Execute(ctx *ExecutionContext, writer TemplateWriter) *Error {
+func (node *myNode) Execute(ctx *ExecutionContext, writer TemplateWriter) error {
     writer.WriteString("Hello, World!")
     return nil
 }
@@ -439,7 +438,7 @@ func (node *myNode) Execute(ctx *ExecutionContext, writer TemplateWriter) *Error
 ### Writing Bytes
 
 ```go
-func (node *myNode) Execute(ctx *ExecutionContext, writer TemplateWriter) *Error {
+func (node *myNode) Execute(ctx *ExecutionContext, writer TemplateWriter) error {
     data := []byte("binary data")
     writer.Write(data)
     return nil
@@ -451,7 +450,7 @@ func (node *myNode) Execute(ctx *ExecutionContext, writer TemplateWriter) *Error
 Use a buffer to capture and transform output:
 
 ```go
-func (node *myNode) Execute(ctx *ExecutionContext, writer TemplateWriter) *Error {
+func (node *myNode) Execute(ctx *ExecutionContext, writer TemplateWriter) error {
     var buf bytes.Buffer
 
     // Execute wrapped content into buffer
@@ -494,12 +493,12 @@ type tagNowNode struct {
     format   string
 }
 
-func (node *tagNowNode) Execute(ctx *pongo2.ExecutionContext, writer pongo2.TemplateWriter) *pongo2.Error {
+func (node *tagNowNode) Execute(ctx *pongo2.ExecutionContext, writer pongo2.TemplateWriter) error {
     writer.WriteString(time.Now().Format(node.format))
     return nil
 }
 
-func tagNowParser(doc *pongo2.Parser, start *pongo2.Token, arguments *pongo2.Parser) (pongo2.INodeTag, *pongo2.Error) {
+func tagNowParser(doc *pongo2.Parser, start *pongo2.Token, arguments *pongo2.Parser) (pongo2.INodeTag, error) {
     node := &tagNowNode{
         position: start,
         format:   time.RFC3339, // Default format
@@ -547,7 +546,7 @@ type tagUppercaseNode struct {
     wrapper *pongo2.NodeWrapper
 }
 
-func (node *tagUppercaseNode) Execute(ctx *pongo2.ExecutionContext, writer pongo2.TemplateWriter) *pongo2.Error {
+func (node *tagUppercaseNode) Execute(ctx *pongo2.ExecutionContext, writer pongo2.TemplateWriter) error {
     // Capture block content
     var buf bytes.Buffer
     err := node.wrapper.Execute(ctx, &buf)
@@ -560,7 +559,7 @@ func (node *tagUppercaseNode) Execute(ctx *pongo2.ExecutionContext, writer pongo
     return nil
 }
 
-func tagUppercaseParser(doc *pongo2.Parser, start *pongo2.Token, arguments *pongo2.Parser) (pongo2.INodeTag, *pongo2.Error) {
+func tagUppercaseParser(doc *pongo2.Parser, start *pongo2.Token, arguments *pongo2.Parser) (pongo2.INodeTag, error) {
     // No arguments for this tag
     if arguments.Remaining() > 0 {
         return nil, arguments.Error("uppercase tag takes no arguments", nil)
@@ -610,7 +609,7 @@ type tagRepeatNode struct {
     wrapper   *pongo2.NodeWrapper
 }
 
-func (node *tagRepeatNode) Execute(ctx *pongo2.ExecutionContext, writer pongo2.TemplateWriter) *pongo2.Error {
+func (node *tagRepeatNode) Execute(ctx *pongo2.ExecutionContext, writer pongo2.TemplateWriter) error {
     // Evaluate the count expression at runtime
     countVal, err := node.countExpr.Evaluate(ctx)
     if err != nil {
@@ -633,7 +632,7 @@ func (node *tagRepeatNode) Execute(ctx *pongo2.ExecutionContext, writer pongo2.T
     return nil
 }
 
-func tagRepeatParser(doc *pongo2.Parser, start *pongo2.Token, arguments *pongo2.Parser) (pongo2.INodeTag, *pongo2.Error) {
+func tagRepeatParser(doc *pongo2.Parser, start *pongo2.Token, arguments *pongo2.Parser) (pongo2.INodeTag, error) {
     node := &tagRepeatNode{
         position: start,
     }
@@ -702,7 +701,7 @@ type tagEachNode struct {
     wrapper     *pongo2.NodeWrapper
 }
 
-func (node *tagEachNode) Execute(ctx *pongo2.ExecutionContext, writer pongo2.TemplateWriter) *pongo2.Error {
+func (node *tagEachNode) Execute(ctx *pongo2.ExecutionContext, writer pongo2.TemplateWriter) error {
     // Evaluate the list expression
     listVal, err := node.listExpr.Evaluate(ctx)
     if err != nil {
@@ -742,7 +741,7 @@ func (node *tagEachNode) Execute(ctx *pongo2.ExecutionContext, writer pongo2.Tem
     return nil
 }
 
-func tagEachParser(doc *pongo2.Parser, start *pongo2.Token, arguments *pongo2.Parser) (pongo2.INodeTag, *pongo2.Error) {
+func tagEachParser(doc *pongo2.Parser, start *pongo2.Token, arguments *pongo2.Parser) (pongo2.INodeTag, error) {
     node := &tagEachNode{
         position: start,
     }
@@ -810,7 +809,7 @@ type tagWidgetNode struct {
     args       map[string]pongo2.IEvaluator
 }
 
-func (node *tagWidgetNode) Execute(ctx *pongo2.ExecutionContext, writer pongo2.TemplateWriter) *pongo2.Error {
+func (node *tagWidgetNode) Execute(ctx *pongo2.ExecutionContext, writer pongo2.TemplateWriter) error {
     // Evaluate all arguments
     evaluatedArgs := make(map[string]interface{})
     for name, expr := range node.args {
@@ -845,7 +844,7 @@ func (node *tagWidgetNode) Execute(ctx *pongo2.ExecutionContext, writer pongo2.T
     return nil
 }
 
-func tagWidgetParser(doc *pongo2.Parser, start *pongo2.Token, arguments *pongo2.Parser) (pongo2.INodeTag, *pongo2.Error) {
+func tagWidgetParser(doc *pongo2.Parser, start *pongo2.Token, arguments *pongo2.Parser) (pongo2.INodeTag, error) {
     node := &tagWidgetNode{
         position: start,
         args:     make(map[string]pongo2.IEvaluator),
@@ -919,7 +918,7 @@ type tagSwitchNode struct {
     defaultCase  *pongo2.NodeWrapper
 }
 
-func (node *tagSwitchNode) Execute(ctx *pongo2.ExecutionContext, writer pongo2.TemplateWriter) *pongo2.Error {
+func (node *tagSwitchNode) Execute(ctx *pongo2.ExecutionContext, writer pongo2.TemplateWriter) error {
     // Evaluate switch expression
     switchVal, err := node.expr.Evaluate(ctx)
     if err != nil {
@@ -947,7 +946,7 @@ func (node *tagSwitchNode) Execute(ctx *pongo2.ExecutionContext, writer pongo2.T
     return nil
 }
 
-func tagSwitchParser(doc *pongo2.Parser, start *pongo2.Token, arguments *pongo2.Parser) (pongo2.INodeTag, *pongo2.Error) {
+func tagSwitchParser(doc *pongo2.Parser, start *pongo2.Token, arguments *pongo2.Parser) (pongo2.INodeTag, error) {
     node := &tagSwitchNode{
         position: start,
         cases:    make([]switchCase, 0),
@@ -1059,7 +1058,7 @@ type tagCacheNode struct {
     wrapper  *pongo2.NodeWrapper
 }
 
-func (node *tagCacheNode) Execute(ctx *pongo2.ExecutionContext, writer pongo2.TemplateWriter) *pongo2.Error {
+func (node *tagCacheNode) Execute(ctx *pongo2.ExecutionContext, writer pongo2.TemplateWriter) error {
     // Evaluate cache key
     keyVal, err := node.keyExpr.Evaluate(ctx)
     if err != nil {
@@ -1098,7 +1097,7 @@ func (node *tagCacheNode) Execute(ctx *pongo2.ExecutionContext, writer pongo2.Te
     return nil
 }
 
-func tagCacheParser(doc *pongo2.Parser, start *pongo2.Token, arguments *pongo2.Parser) (pongo2.INodeTag, *pongo2.Error) {
+func tagCacheParser(doc *pongo2.Parser, start *pongo2.Token, arguments *pongo2.Parser) (pongo2.INodeTag, error) {
     node := &tagCacheNode{
         position: start,
         ttl:      5 * time.Minute, // Default TTL
@@ -1147,7 +1146,7 @@ func init() {
 Return errors during parsing for syntax issues:
 
 ```go
-func myTagParser(doc *pongo2.Parser, start *pongo2.Token, arguments *pongo2.Parser) (pongo2.INodeTag, *pongo2.Error) {
+func myTagParser(doc *pongo2.Parser, start *pongo2.Token, arguments *pongo2.Parser) (pongo2.INodeTag, error) {
     // Missing required argument
     if arguments.Remaining() == 0 {
         return nil, arguments.Error("mytag requires an argument", nil)
@@ -1173,7 +1172,7 @@ func myTagParser(doc *pongo2.Parser, start *pongo2.Token, arguments *pongo2.Pars
 Return errors during execution for runtime issues:
 
 ```go
-func (node *myNode) Execute(ctx *pongo2.ExecutionContext, writer pongo2.TemplateWriter) *pongo2.Error {
+func (node *myNode) Execute(ctx *pongo2.ExecutionContext, writer pongo2.TemplateWriter) error {
     val, err := node.expr.Evaluate(ctx)
     if err != nil {
         return err
@@ -1205,12 +1204,12 @@ type Error struct {
 }
 ```
 
-Update error with token position:
+Wrap an existing error with token position info:
 
 ```go
 err := someOperation()
 if err != nil {
-    return err.(*pongo2.Error).updateFromTokenIfNeeded(ctx.template, node.position)
+    return ctx.OrigError(err, node.position)
 }
 ```
 
@@ -1232,7 +1231,7 @@ type myTagNode struct {
 Check all arguments at parse time:
 
 ```go
-func myTagParser(doc *pongo2.Parser, start *pongo2.Token, arguments *pongo2.Parser) (pongo2.INodeTag, *pongo2.Error) {
+func myTagParser(doc *pongo2.Parser, start *pongo2.Token, arguments *pongo2.Parser) (pongo2.INodeTag, error) {
     // Check for required arguments
     if arguments.Remaining() == 0 {
         return nil, arguments.Error("mytag requires at least one argument", nil)
@@ -1255,7 +1254,7 @@ func myTagParser(doc *pongo2.Parser, start *pongo2.Token, arguments *pongo2.Pars
 Prevent variable leakage:
 
 ```go
-func (node *myNode) Execute(ctx *pongo2.ExecutionContext, writer pongo2.TemplateWriter) *pongo2.Error {
+func (node *myNode) Execute(ctx *pongo2.ExecutionContext, writer pongo2.TemplateWriter) error {
     childCtx := pongo2.NewChildExecutionContext(ctx)
     childCtx.Private["local_var"] = value
 
@@ -1286,7 +1285,7 @@ func tagCacheParser(...) { ... }
 Consider empty content, nil values, and type mismatches:
 
 ```go
-func (node *myNode) Execute(ctx *pongo2.ExecutionContext, writer pongo2.TemplateWriter) *pongo2.Error {
+func (node *myNode) Execute(ctx *pongo2.ExecutionContext, writer pongo2.TemplateWriter) error {
     val, err := node.expr.Evaluate(ctx)
     if err != nil {
         return err
@@ -1318,7 +1317,7 @@ func (node *myNode) Execute(ctx *pongo2.ExecutionContext, writer pongo2.Template
 If your tag acquires resources, ensure cleanup:
 
 ```go
-func (node *myNode) Execute(ctx *pongo2.ExecutionContext, writer pongo2.TemplateWriter) *pongo2.Error {
+func (node *myNode) Execute(ctx *pongo2.ExecutionContext, writer pongo2.TemplateWriter) error {
     resource := acquireResource()
     defer resource.Release()
 
@@ -1334,7 +1333,7 @@ func (node *myNode) Execute(ctx *pongo2.ExecutionContext, writer pongo2.Template
 |----------|-------------|
 | `RegisterTag(name, parser)` | Register a new tag |
 | `ReplaceTag(name, parser)` | Replace an existing tag |
-| `TagExists(name)` | Check if tag is registered |
+| `BuiltinTagExists(name)` | Check if a built-in tag is registered |
 
 ### Parser Methods
 
@@ -1368,8 +1367,9 @@ func (node *myNode) Execute(ctx *pongo2.ExecutionContext, writer pongo2.Template
 | `Shared` | Shared across templates |
 | `Autoescape` | HTML escaping enabled |
 | `Error(msg, token)` | Create execution error |
+| `OrigError(err, token)` | Wrap error with position info |
 | `Logf(format, args...)` | Debug logging |
-| `NewChildExecutionContext(ctx)` | Create child context |
+| `NewChildExecutionContext(ctx)` | Create child context (package-level function) |
 
 ### Token Types
 

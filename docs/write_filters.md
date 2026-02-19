@@ -7,7 +7,7 @@ Filters transform values in templates. This guide explains how to create your ow
 All filters must implement the `FilterFunction` type:
 
 ```go
-type FilterFunction func(in *Value, param *Value) (out *Value, err *Error)
+type FilterFunction func(in *Value, param *Value) (out *Value, err error)
 ```
 
 - **in** - The input value being filtered (left side of the pipe)
@@ -28,7 +28,7 @@ func init() {
     pongo2.RegisterFilter("double", filterDouble)
 }
 
-func filterDouble(in *pongo2.Value, param *pongo2.Value) (*pongo2.Value, *pongo2.Error) {
+func filterDouble(in *pongo2.Value, param *pongo2.Value) (*pongo2.Value, error) {
     return pongo2.AsValue(in.Integer() * 2), nil
 }
 ```
@@ -104,7 +104,7 @@ func init() {
     pongo2.RegisterFilter("reverse", filterReverse)
 }
 
-func filterReverse(in *pongo2.Value, param *pongo2.Value) (*pongo2.Value, *pongo2.Error) {
+func filterReverse(in *pongo2.Value, param *pongo2.Value) (*pongo2.Value, error) {
     s := in.String()
     runes := []rune(s)
     for i, j := 0, len(runes)-1; i < j; i, j = i+1, j-1 {
@@ -129,7 +129,7 @@ func init() {
     pongo2.RegisterFilter("repeat", filterRepeat)
 }
 
-func filterRepeat(in *pongo2.Value, param *pongo2.Value) (*pongo2.Value, *pongo2.Error) {
+func filterRepeat(in *pongo2.Value, param *pongo2.Value) (*pongo2.Value, error) {
     s := in.String()
     times := param.Integer()
     if times <= 0 {
@@ -156,7 +156,7 @@ func init() {
     pongo2.RegisterFilter("thousands", filterThousands)
 }
 
-func filterThousands(in *pongo2.Value, param *pongo2.Value) (*pongo2.Value, *pongo2.Error) {
+func filterThousands(in *pongo2.Value, param *pongo2.Value) (*pongo2.Value, error) {
     if !in.IsNumber() {
         // Return input unchanged if not a number
         return in, nil
@@ -206,7 +206,7 @@ func init() {
     pongo2.RegisterFilter("wrap", filterWrap)
 }
 
-func filterWrap(in *pongo2.Value, param *pongo2.Value) (*pongo2.Value, *pongo2.Error) {
+func filterWrap(in *pongo2.Value, param *pongo2.Value) (*pongo2.Value, error) {
     text := in.String()
     tag := "span"
     if !param.IsNil() && param.String() != "" {
@@ -235,7 +235,7 @@ func init() {
     pongo2.RegisterFilter("fromjson", filterFromJSON)
 }
 
-func filterFromJSON(in *pongo2.Value, param *pongo2.Value) (*pongo2.Value, *pongo2.Error) {
+func filterFromJSON(in *pongo2.Value, param *pongo2.Value) (*pongo2.Value, error) {
     var result interface{}
     err := json.Unmarshal([]byte(in.String()), &result)
     if err != nil {
@@ -265,7 +265,7 @@ func init() {
     pongo2.RegisterFilter("shuffle", filterShuffle)
 }
 
-func filterShuffle(in *pongo2.Value, param *pongo2.Value) (*pongo2.Value, *pongo2.Error) {
+func filterShuffle(in *pongo2.Value, param *pongo2.Value) (*pongo2.Value, error) {
     if !in.CanSlice() {
         return in, nil
     }
@@ -304,7 +304,7 @@ func init() {
     pongo2.RegisterFilter("prefix", filterPrefix)
 }
 
-func filterPrefix(in *pongo2.Value, param *pongo2.Value) (*pongo2.Value, *pongo2.Error) {
+func filterPrefix(in *pongo2.Value, param *pongo2.Value) (*pongo2.Value, error) {
     prefix := ">>> " // default
     if !param.IsNil() {
         prefix = param.String()
@@ -350,16 +350,17 @@ Replaces an existing filter. Returns an error if the filter doesn't exist.
 err := pongo2.ReplaceFilter("upper", myUpperFilter)
 ```
 
-### FilterExists
+### BuiltinFilterExists
 
 ```go
-func FilterExists(name string) bool
+func BuiltinFilterExists(name string) bool
 ```
 
-Checks if a filter is registered.
+Checks if a filter is registered as a built-in filter. Use `set.FilterExists()` to check
+filters in a specific template set.
 
 ```go
-if pongo2.FilterExists("myfilter") {
+if pongo2.BuiltinFilterExists("myfilter") {
     // Filter is available
 }
 ```
@@ -367,7 +368,7 @@ if pongo2.FilterExists("myfilter") {
 ### ApplyFilter
 
 ```go
-func ApplyFilter(name string, value *Value, param *Value) (*Value, *Error)
+func ApplyFilter(name string, value *Value, param *Value) (*Value, error)
 ```
 
 Applies a filter programmatically.
@@ -413,7 +414,7 @@ The error will include template location information when displayed to users.
 ### 1. Handle Nil Values Gracefully
 
 ```go
-func filterSafe(in *pongo2.Value, param *pongo2.Value) (*pongo2.Value, *pongo2.Error) {
+func filterSafe(in *pongo2.Value, param *pongo2.Value) (*pongo2.Value, error) {
     if in.IsNil() {
         return pongo2.AsValue(""), nil // Return empty string for nil
     }
@@ -424,7 +425,7 @@ func filterSafe(in *pongo2.Value, param *pongo2.Value) (*pongo2.Value, *pongo2.E
 ### 2. Check Types Before Converting
 
 ```go
-func filterDouble(in *pongo2.Value, param *pongo2.Value) (*pongo2.Value, *pongo2.Error) {
+func filterDouble(in *pongo2.Value, param *pongo2.Value) (*pongo2.Value, error) {
     if !in.IsNumber() {
         return in, nil // Return unchanged if not a number
     }
@@ -445,7 +446,7 @@ return pongo2.AsSafeValue("<b>text</b>"), nil
 ### 4. Validate Parameters
 
 ```go
-func filterTruncate(in *pongo2.Value, param *pongo2.Value) (*pongo2.Value, *pongo2.Error) {
+func filterTruncate(in *pongo2.Value, param *pongo2.Value) (*pongo2.Value, error) {
     if param.IsNil() {
         return nil, &pongo2.Error{
             Sender:    "filter:truncate",
@@ -481,7 +482,7 @@ func init() {
 //   {{ text|markdown }}
 //
 // The output is marked as safe and will not be escaped.
-func filterMarkdown(in *pongo2.Value, param *pongo2.Value) (*pongo2.Value, *pongo2.Error) {
+func filterMarkdown(in *pongo2.Value, param *pongo2.Value) (*pongo2.Value, error) {
     // ...
 }
 ```
@@ -509,7 +510,7 @@ func init() {
 
 // filterInitials extracts initials from a name.
 // Usage: {{ "John Doe"|initials }} -> "JD"
-func filterInitials(in *pongo2.Value, param *pongo2.Value) (*pongo2.Value, *pongo2.Error) {
+func filterInitials(in *pongo2.Value, param *pongo2.Value) (*pongo2.Value, error) {
     words := strings.Fields(in.String())
     var initials strings.Builder
     for _, word := range words {
@@ -522,7 +523,7 @@ func filterInitials(in *pongo2.Value, param *pongo2.Value) (*pongo2.Value, *pong
 
 // filterSlugify converts text to a URL-friendly slug.
 // Usage: {{ "Hello World!"|slugify }} -> "hello-world"
-func filterSlugify(in *pongo2.Value, param *pongo2.Value) (*pongo2.Value, *pongo2.Error) {
+func filterSlugify(in *pongo2.Value, param *pongo2.Value) (*pongo2.Value, error) {
     s := strings.ToLower(in.String())
     var result strings.Builder
     lastWasHyphen := true // Prevent leading hyphen
@@ -543,7 +544,7 @@ func filterSlugify(in *pongo2.Value, param *pongo2.Value) (*pongo2.Value, *pongo
 
 // filterWordCount counts the number of words in text.
 // Usage: {{ "Hello World"|wordcount }} -> 2
-func filterWordCount(in *pongo2.Value, param *pongo2.Value) (*pongo2.Value, *pongo2.Error) {
+func filterWordCount(in *pongo2.Value, param *pongo2.Value) (*pongo2.Value, error) {
     words := strings.Fields(in.String())
     return pongo2.AsValue(len(words)), nil
 }

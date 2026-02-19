@@ -34,15 +34,9 @@ type tagAutoescapeNode struct {
 func (node *tagAutoescapeNode) Execute(ctx *ExecutionContext, writer TemplateWriter) error {
 	old := ctx.Autoescape
 	ctx.Autoescape = node.autoescape
+	defer func() { ctx.Autoescape = old }()
 
-	err := node.wrapper.Execute(ctx, writer)
-	if err != nil {
-		return err
-	}
-
-	ctx.Autoescape = old
-
-	return nil
+	return node.wrapper.Execute(ctx, writer)
 }
 
 // tagAutoescapeParser parses the {% autoescape %} tag.
