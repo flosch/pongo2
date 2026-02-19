@@ -416,6 +416,87 @@ func TestIssue209(t *testing.T) {
 	}
 }
 
+func TestIssue342(t *testing.T) {
+	// Test that adding a numeric string and a number results in arithmetic addition.
+	// Bug: In v6, "10" + 5 returns "105" (string concatenation).
+	// Expected: "10" + 5 should return 15 (arithmetic addition) as in v4.
+	// See: https://github.com/flosch/pongo2/issues/342
+
+	tests := []struct {
+		name     string
+		template string
+		context  pongo2.Context
+		expected string
+	}{
+		{
+			name:     "numeric string + integer",
+			template: "{{ a + b }}",
+			context:  pongo2.Context{"a": "10", "b": 5},
+			expected: "15",
+		},
+		{
+			name:     "integer + numeric string",
+			template: "{{ a + b }}",
+			context:  pongo2.Context{"a": 5, "b": "10"},
+			expected: "15",
+		},
+		{
+			name:     "numeric string + float",
+			template: "{{ a + b }}",
+			context:  pongo2.Context{"a": "10.5", "b": 2.5},
+			expected: "13.000000",
+		},
+		{
+			name:     "float + numeric string",
+			template: "{{ a + b }}",
+			context:  pongo2.Context{"a": 2.5, "b": "10.5"},
+			expected: "13.000000",
+		},
+		{
+			name:     "non-numeric string + integer stays string concatenation",
+			template: "{{ a + b }}",
+			context:  pongo2.Context{"a": "hello", "b": 5},
+			expected: "hello5",
+		},
+		{
+			name:     "integer + non-numeric string stays string concatenation",
+			template: "{{ a + b }}",
+			context:  pongo2.Context{"a": 5, "b": "hello"},
+			expected: "5hello",
+		},
+		{
+			name:     "two strings remain concatenation",
+			template: "{{ a + b }}",
+			context:  pongo2.Context{"a": "hello", "b": "world"},
+			expected: "helloworld",
+		},
+		{
+			name:     "two numeric strings remain concatenation",
+			template: "{{ a + b }}",
+			context:  pongo2.Context{"a": "10", "b": "5"},
+			expected: "105",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tpl, err := pongo2.FromString(tt.template)
+			if err != nil {
+				t.Fatalf("failed to parse template: %v", err)
+			}
+
+			result, err := tpl.Execute(tt.context)
+			if err != nil {
+				t.Fatalf("failed to execute template: %v", err)
+			}
+
+			if result != tt.expected {
+				t.Errorf("expected %q, got %q", tt.expected, result)
+			}
+		})
+	}
+}
+
 func TestIssue237(t *testing.T) {
 	// Test that ifchanged with else clause works correctly when content doesn't change.
 	// Bug: ifchanged without watched expressions would panic or not render else block

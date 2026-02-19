@@ -82,6 +82,19 @@ func (v *Value) IsNumber() bool {
 	return v.IsInteger() || v.IsFloat()
 }
 
+// CanBeNumber checks whether the value is either a number or a string
+// that can be parsed as a number.
+func (v *Value) CanBeNumber() bool {
+	if v.IsNumber() {
+		return true
+	}
+	if v.IsString() {
+		_, err := strconv.ParseFloat(v.getResolvedValue().String(), 64)
+		return err == nil
+	}
+	return false
+}
+
 // IsTime checks whether the underlying value is a time.Time.
 func (v *Value) IsTime() bool {
 	_, ok := v.Interface().(time.Time)
