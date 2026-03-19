@@ -3,6 +3,8 @@ package pongo2
 import (
 	"fmt"
 	"math"
+	"strconv"
+	"strings"
 )
 
 type Expression struct {
@@ -28,6 +30,27 @@ type simpleExpression struct {
 	term1        IEvaluator
 	term2        IEvaluator
 	opToken      *Token
+}
+
+func numericStringValue(v *Value) (float64, bool, bool) {
+	if !v.IsString() {
+		return 0, false, false
+	}
+
+	s := strings.TrimSpace(v.String())
+	if s == "" {
+		return 0, false, false
+	}
+
+	if i, err := strconv.ParseInt(s, 10, 64); err == nil {
+		return float64(i), false, true
+	}
+
+	if f, err := strconv.ParseFloat(s, 64); err == nil {
+		return f, true, true
+	}
+
+	return 0, false, false
 }
 
 type term struct {
@@ -251,6 +274,20 @@ func (expr *simpleExpression) Evaluate(ctx *ExecutionContext) (*Value, error) {
 		}
 		switch expr.opToken.Val {
 		case "+":
+			if (result.IsString() && t2.IsNumber()) || (t2.IsString() && result.IsNumber()) {
+				if leftNum, leftIsFloat, ok := numericStringValue(result); ok {
+					if leftIsFloat || t2.IsFloat() {
+						return AsValue(leftNum + t2.Float()), nil
+					}
+					return AsValue(int(leftNum) + t2.Integer()), nil
+				}
+				if rightNum, rightIsFloat, ok := numericStringValue(t2); ok {
+					if rightIsFloat || result.IsFloat() {
+						return AsValue(result.Float() + rightNum), nil
+					}
+					return AsValue(result.Integer() + int(rightNum)), nil
+				}
+			}
 			if result.IsString() || t2.IsString() {
 				// Result will be a string
 				return AsValue(result.String() + t2.String()), nil

@@ -718,6 +718,24 @@ func TestComplexExpressions(t *testing.T) {
 			context:  Context{},
 			expected: "20",
 		},
+		{
+			name:     "numeric string plus integer (left)",
+			template: "{{ a + b }}",
+			context:  Context{"a": "10", "b": 5},
+			expected: "15",
+		},
+		{
+			name:     "numeric string plus integer (right)",
+			template: "{{ a + b }}",
+			context:  Context{"a": 5, "b": "10"},
+			expected: "15",
+		},
+		{
+			name:     "non-numeric string still concatenates",
+			template: "{{ a + b }}",
+			context:  Context{"a": "x", "b": 5},
+			expected: "x5",
+		},
 	}
 
 	for _, tt := range tests {
