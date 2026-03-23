@@ -1,0 +1,8 @@
+<html><body>
+Hello world!!
+<section class="modal">
+    <header>Modal title</header>
+    <article>Lorem ipsum</article>
+    <footer>Modal footer</footer>
+</section>
+</body></html>
