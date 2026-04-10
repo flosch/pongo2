@@ -29,7 +29,7 @@ func (l *FSLoader) Abs(base, name string) string {
 }
 
 func (l *FSLoader) Get(path string) (io.Reader, error) {
-	return l.fs.Open(path)
+	return l.fs.Open(filepath.ToSlash(path))
 }
 
 // LocalFilesystemLoader represents a local filesystem loader with basic
