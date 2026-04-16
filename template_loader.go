@@ -7,6 +7,7 @@ import (
 	"io/fs"
 	"log"
 	"os"
+	gopath "path"
 	"path/filepath"
 )
 
@@ -25,7 +26,9 @@ func NewFSLoader(fs fs.FS) *FSLoader {
 }
 
 func (l *FSLoader) Abs(base, name string) string {
-	return filepath.Join(filepath.Dir(base), name)
+	// Use path (not filepath) so that fs.FS paths always use forward
+	// slashes, even on Windows where filepath uses backslashes.
+	return gopath.Join(gopath.Dir(base), name)
 }
 
 func (l *FSLoader) Get(path string) (io.Reader, error) {
