@@ -381,7 +381,12 @@ func (vr *variableResolver) resolveIntIndex(current reflect.Value, part *variabl
 func (vr *variableResolver) resolveIdentifier(current reflect.Value, part *variablePart) (reflect.Value, bool, error) {
 	switch current.Kind() {
 	case reflect.Struct:
-		return current.FieldByName(part.s), false, nil
+		field := current.FieldByName(part.s)
+		if field.IsValid() && !field.CanInterface() {
+			// Unexported fields are not accessible from templates (Django renders them empty).
+			return reflect.Value{}, true, nil
+		}
+		return field, false, nil
 	case reflect.Map:
 		return current.MapIndex(reflect.ValueOf(part.s)), false, nil
 	default:
@@ -417,7 +422,12 @@ func (vr *variableResolver) resolveSubscript(
 		}
 		return reflect.Value{}, true, nil
 	case reflect.Struct:
-		return current.FieldByName(sv.String()), false, nil
+		field := current.FieldByName(sv.String())
+		if field.IsValid() && !field.CanInterface() {
+			// Unexported fields are not accessible from templates (Django renders them empty).
+			return reflect.Value{}, true, nil
+		}
+		return field, false, nil
 	case reflect.Map:
 		if sv.IsNil() {
 			return reflect.Value{}, true, nil
