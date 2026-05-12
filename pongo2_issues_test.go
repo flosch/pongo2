@@ -2471,3 +2471,26 @@ func TestBugAndOrPrecedence(t *testing.T) {
 		})
 	}
 }
+
+type issue204Item struct{ index string }
+
+func (i issue204Item) String() string { return "Item-" + i.index }
+
+// Issue #204: accessing an unexported struct field from a template must not panic.
+func TestIssue204UnexportedStructField(t *testing.T) {
+	items := []interface{}{issue204Item{"0"}, issue204Item{"1"}, issue204Item{"2"}}
+
+	for _, tplStr := range []string{
+		`{% for item in items %}{% if item.index %}x{% endif %}{% endfor %}`,
+		`{% for item in items %}{{ item["index"] }}{% endfor %}`,
+		`{% for item in items %}{{ item.index }}{% endfor %}`,
+	} {
+		tpl, err := pongo2.FromString(tplStr)
+		if err != nil {
+			t.Fatalf("parse error for %q: %v", tplStr, err)
+		}
+		if _, err := tpl.Execute(pongo2.Context{"items": items}); err != nil {
+			t.Fatalf("execute error for %q: %v", tplStr, err)
+		}
+	}
+}
