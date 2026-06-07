@@ -53,8 +53,11 @@ func (node *tagIncludeNode) Execute(ctx *ExecutionContext, writer TemplateWriter
 
 	// Fill the context with all data from the parent
 	if !node.only {
-		includeCtx.Update(ctx.Public)
-		includeCtx.Update(ctx.Private)
+		ctx.Public.Range(func(key string, value any) bool {
+			includeCtx[key] = value
+			return true
+		})
+		includeCtx.Update(ctx.Private.flatten())
 	}
 
 	// Put all custom with-pairs into the context

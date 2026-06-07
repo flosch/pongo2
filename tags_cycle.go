@@ -106,7 +106,7 @@ func (node *tagCycleNode) Execute(ctx *ExecutionContext, writer TemplateWriter) 
 		}
 
 		if node.asName != "" {
-			ctx.Private[node.asName] = cycleValue
+			ctx.Private.Set(node.asName, cycleValue)
 		}
 		if !node.silent {
 			// Apply autoescape like Django's render_value_in_context

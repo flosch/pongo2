@@ -42,6 +42,13 @@ type TemplateSet struct {
 	// When true (default), string output will be escaped for safety.
 	autoescape bool
 
+	// SkipContextValidation disables the per-Execute check that every key in the
+	// user-supplied context is a valid identifier. The check is a usability guard
+	// (an invalid key cannot be referenced in a template anyway) and scales with
+	// the size of the context map. Set this to true in hot paths that render with
+	// large contexts and trust their keys. Default false (validation enabled).
+	SkipContextValidation bool
+
 	// Options allow you to change the behavior of template-engine.
 	// You can change the options before calling the Execute method.
 	Options *Options

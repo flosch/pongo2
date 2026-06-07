@@ -300,8 +300,8 @@ type ExecutionContext struct {
     macroDepth int                 // Recursion depth for macros
 
     Autoescape bool                // HTML auto-escaping enabled
-    Public     Context             // User-provided context (read-only by convention)
-    Private    Context             // Internal variables (forloop, macro args, etc.)
+    Public     PublicContext       // User context + set globals (read-only view)
+    Private    Scope               // Internal variables (forloop, macro args, etc.)
     Shared     Context             // Shared across all templates in execution
 }
 ```
@@ -310,13 +310,13 @@ type ExecutionContext struct {
 
 ```go
 func (node *myNode) Execute(ctx *ExecutionContext, writer TemplateWriter) error {
-    // Read from public context (user-provided data)
-    if user, ok := ctx.Public["user"]; ok {
+    // Read from public context (user-provided data + set globals)
+    if user, ok := ctx.Public.Get("user"); ok {
         // Use user data
     }
 
     // Read from private context (internal variables)
-    if counter, ok := ctx.Private["forloop"]; ok {
+    if counter, ok := ctx.Private.Get("forloop"); ok {
         // Inside a for loop
     }
 
@@ -334,16 +334,14 @@ func (node *myNode) Execute(ctx *ExecutionContext, writer TemplateWriter) error 
 ```go
 func (node *myNode) Execute(ctx *ExecutionContext, writer TemplateWriter) error {
     // Set private variable (for internal use)
-    ctx.Private["my_counter"] = 0
+    ctx.Private.Set("my_counter", 0)
 
     // Set shared variable (available in included templates)
     ctx.Shared["breadcrumbs"] = breadcrumbList
 
-    // Update context with map
-    ctx.Private.Update(pongo2.Context{
-        "item":  currentItem,
-        "index": currentIndex,
-    })
+    // Set multiple private variables
+    ctx.Private.Set("item", currentItem)
+    ctx.Private.Set("index", currentIndex)
 
     return nil
 }
@@ -359,7 +357,7 @@ func (node *myNode) Execute(ctx *ExecutionContext, writer TemplateWriter) error 
     childCtx := pongo2.NewChildExecutionContext(ctx)
 
     // Add scoped variables (only visible in child)
-    childCtx.Private["scoped_var"] = someValue
+    childCtx.Private.Set("scoped_var", someValue)
 
     // Execute wrapped content with child context
     err := node.wrapper.Execute(childCtx, writer)
@@ -719,17 +717,17 @@ func (node *tagEachNode) Execute(ctx *pongo2.ExecutionContext, writer pongo2.Tem
         childCtx := pongo2.NewChildExecutionContext(ctx)
 
         // Set item variable
-        childCtx.Private[node.itemName] = listVal.Index(i).Interface()
+        childCtx.Private.Set(node.itemName, listVal.Index(i).Interface())
 
         // Set loop metadata
-        childCtx.Private["eachloop"] = &eachLoop{
+        childCtx.Private.Set("eachloop", &eachLoop{
             Counter:     i + 1,
             Counter0:    i,
             First:       i == 0,
             Last:        i == length-1,
             Revcounter:  length - i,
             Revcounter0: length - i - 1,
-        }
+        })
 
         // Execute body
         err := node.wrapper.Execute(childCtx, writer)
@@ -1256,7 +1254,7 @@ Prevent variable leakage:
 ```go
 func (node *myNode) Execute(ctx *pongo2.ExecutionContext, writer pongo2.TemplateWriter) error {
     childCtx := pongo2.NewChildExecutionContext(ctx)
-    childCtx.Private["local_var"] = value
+    childCtx.Private.Set("local_var", value)
 
     return node.wrapper.Execute(childCtx, writer)
     // local_var is not visible in parent context

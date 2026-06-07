@@ -38,8 +38,11 @@ func (node *tagSSINode) Execute(ctx *ExecutionContext, writer TemplateWriter) er
 	if node.template != nil {
 		// Execute the template within the current context
 		includeCtx := make(Context)
-		includeCtx.Update(ctx.Public)
-		includeCtx.Update(ctx.Private)
+		ctx.Public.Range(func(key string, value any) bool {
+			includeCtx[key] = value
+			return true
+		})
+		includeCtx.Update(ctx.Private.flatten())
 
 		err := node.template.execute(includeCtx, writer)
 		if err != nil {

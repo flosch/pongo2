@@ -57,7 +57,7 @@ func (node *tagWithNode) Execute(ctx *ExecutionContext, writer TemplateWriter) e
 		if err != nil {
 			return err
 		}
-		withctx.Private[key] = val
+		withctx.Private.Set(key, val)
 	}
 
 	return node.wrapper.Execute(withctx, writer)

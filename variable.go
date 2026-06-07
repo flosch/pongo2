@@ -295,11 +295,14 @@ func (vr *variableResolver) resolveArrayDefinition(ctx *ExecutionContext) (*Valu
 }
 
 // lookupInitialValue looks up the first part of the variable in the context.
+// Private (scoped engine data) takes precedence over Public (user data and the
+// set's globals).
 func (vr *variableResolver) lookupInitialValue(ctx *ExecutionContext) reflect.Value {
-	val, inPrivate := ctx.Private[vr.parts[0].s]
-	if !inPrivate {
-		val = ctx.Public[vr.parts[0].s]
+	key := vr.parts[0].s
+	if val, ok := ctx.Private.Get(key); ok {
+		return reflect.ValueOf(val)
 	}
+	val, _ := ctx.Public.Get(key)
 	return reflect.ValueOf(val)
 }
 

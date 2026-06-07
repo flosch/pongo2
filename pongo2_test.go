@@ -94,7 +94,8 @@ func TestImplicitExecCtx(t *testing.T) {
 	res, err := tpl.Execute(pongo2.Context{
 		"Value": val,
 		"ImplicitExec": func(ctx *pongo2.ExecutionContext) string {
-			return ctx.Public["Value"].(string)
+			v, _ := ctx.Public.Get("Value")
+			return v.(string)
 		},
 	})
 	if err != nil {

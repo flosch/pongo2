@@ -68,3 +68,31 @@ func TestCheckForValidIdentifiersWithEmptyKey(t *testing.T) {
 		t.Error("expected error for empty key, got nil")
 	}
 }
+
+func TestSkipContextValidation(t *testing.T) {
+	ctx := Context{
+		"valid_key":    "rendered",
+		"in-valid-key": "ignored", // not a valid identifier
+	}
+
+	set := NewSet("skip-validation", &DummyLoader{})
+	tpl, err := set.FromString("{{ valid_key }}")
+	if err != nil {
+		t.Fatalf("FromString: %v", err)
+	}
+
+	// Default: validation enabled -> the invalid key triggers an error.
+	if _, err := tpl.Execute(ctx); err == nil {
+		t.Error("expected validation error for invalid context key, got nil")
+	}
+
+	// Opt-out: validation skipped -> renders without error.
+	set.SkipContextValidation = true
+	out, err := tpl.Execute(ctx)
+	if err != nil {
+		t.Fatalf("unexpected error with SkipContextValidation: %v", err)
+	}
+	if out != "rendered" {
+		t.Errorf("got %q, want %q", out, "rendered")
+	}
+}

@@ -44,7 +44,7 @@ func (node *tagSetNode) Execute(ctx *ExecutionContext, writer TemplateWriter) er
 		return err
 	}
 
-	ctx.Private[node.name] = value
+	ctx.Private.Set(node.name, value)
 	return nil
 }
 

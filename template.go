@@ -230,22 +230,22 @@ func (tpl *Template) newContextForExecution(context Context) (*Template, *Execut
 		parent = parent.parent
 	}
 
-	// Create context if none is given
-	newContext := make(Context)
-	newContext.Update(tpl.set.Globals)
-
-	if context != nil {
-		newContext.Update(context)
-
-		if len(newContext) > 0 {
-			// Check for context name syntax
-			err := newContext.checkForValidIdentifiers()
+	// The user-supplied context is used directly (no copy); the set's globals
+	// are layered behind it by the execution context's Public view rather than
+	// merged into a fresh map.
+	if len(context) > 0 {
+		// Check for context name syntax (unless the set opts out for performance).
+		if !tpl.set.SkipContextValidation {
+			err := context.checkForValidIdentifiers()
 			if err != nil {
 				return parent, nil, err
 			}
+		}
 
-			// Check for clashes with macro names
-			for k := range newContext {
+		// Check for clashes with macro names. Skip the scan entirely when the
+		// template exports no macros — there is nothing to clash with.
+		if len(tpl.exportedMacros) > 0 {
+			for k := range context {
 				_, has := tpl.exportedMacros[k]
 				if has {
 					return parent, nil, &Error{
@@ -259,7 +259,7 @@ func (tpl *Template) newContextForExecution(context Context) (*Template, *Execut
 	}
 
 	// Create operational context
-	ctx := newExecutionContext(parent, newContext)
+	ctx := newExecutionContext(parent, context)
 
 	return parent, ctx, nil
 }

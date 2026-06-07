@@ -369,11 +369,11 @@ Access template context during execution:
 
 ```go
 func (node *myNode) Execute(ctx *pongo2.ExecutionContext, writer pongo2.TemplateWriter) error {
-    // Read from public context (user-provided)
-    user := ctx.Public["user"]
+    // Read from public context (user-provided + set globals; read-only)
+    user, _ := ctx.Public.Get("user")
 
     // Read/write private context (internal use)
-    ctx.Private["my_counter"] = 0
+    ctx.Private.Set("my_counter", 0)
 
     // Check autoescape setting
     if ctx.Autoescape {
@@ -398,7 +398,7 @@ func (node *myNode) Execute(ctx *pongo2.ExecutionContext, writer pongo2.Template
     childCtx := pongo2.NewChildExecutionContext(ctx)
 
     // Add scoped variables
-    childCtx.Private["loop_var"] = someValue
+    childCtx.Private.Set("loop_var", someValue)
 
     // Execute wrapped content with child context
     return node.wrapper.Execute(childCtx, writer)

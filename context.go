@@ -63,8 +63,8 @@ func (c Context) Update(other Context) Context {
 // to create scoped child contexts within tags.
 //
 // Context hierarchy:
-//   - Public: User data (READ-ONLY)
-//   - Private: Scoped engine data (copied per child context)
+//   - Public: User data + set globals (READ-ONLY view)
+//   - Private: Scoped engine data (layered per child context, not copied)
 //   - Shared: Global state (same instance across all contexts)
 type ExecutionContext struct {
 	// The template being executed (provides config, inheritance, and TemplateSet access).
@@ -77,13 +77,24 @@ type ExecutionContext struct {
 	// The |safe filter bypasses escaping.
 	Autoescape bool
 
-	// User-provided data from Execute(). Treat as READ-ONLY to avoid side effects.
-	Public Context
+	// User-provided data from Execute() overlaying the set's globals. Read-only:
+	// access via Public.Get/Has/Range, never by indexing. The caller's map is
+	// used directly (not copied), so it must not be mutated during rendering.
+	Public PublicContext
+
+	// parent links a child execution context to the one it was derived from,
+	// forming the scope chain walked by Private. nil for a root context.
+	parent *ExecutionContext
+
+	// privateVars holds this context's own private layer. Allocated lazily on
+	// first write. Parent layers are reached through parent, never copied.
+	privateVars Context
 
 	// Engine-managed scoped data (e.g., "forloop" from {% for %}, variables
-	// from {% set %}, or macros). Child contexts receive a copy, enabling
-	// isolated modifications.
-	Private Context
+	// from {% set %}, or macros). A child context layers its own data over the
+	// parent's without copying; writes touch only the child's layer. Access via
+	// Private.Get/Set/Delete/Range, never by indexing.
+	Private Scope
 
 	// Data shared across all contexts during a single render. Use for cross-scope
 	// tag communication.
@@ -102,41 +113,37 @@ var pongo2MetaContext = Context{
 }
 
 func newExecutionContext(tpl *Template, ctx Context) *ExecutionContext {
-	privateCtx := make(Context)
-
-	// Make the pongo2-related funcs/vars available to the context
-	privateCtx["pongo2"] = pongo2MetaContext
-
-	return &ExecutionContext{
+	newctx := &ExecutionContext{
 		template: tpl,
 
-		Public:     ctx,
-		Private:    privateCtx,
-		Shared:     make(Context),
-		Autoescape: tpl.set.autoescape,
-		tagState:   make(map[any]any),
+		// Make the pongo2-related funcs/vars available to the context
+		privateVars: Context{"pongo2": pongo2MetaContext},
+		Public:      PublicContext{vars: ctx, globals: tpl.set.Globals},
+		Shared:      make(Context),
+		Autoescape:  tpl.set.autoescape,
+		tagState:    make(map[any]any),
 	}
+	newctx.Private = Scope{ec: newctx}
+	return newctx
 }
 
 // NewChildExecutionContext creates a new execution context that inherits from
-// a parent context. The child context shares the same Public context and Shared
-// context as the parent, but gets its own Private context (pre-populated with
-// copies of the parent's private data). This is useful for custom tags that need
-// to create isolated scopes while maintaining access to the template's data.
+// a parent context. The child shares the same Public and Shared context as the
+// parent, and layers a fresh, empty Private scope over the parent's (parent data
+// is reached by walking the scope chain, never copied). Writes to the child's
+// Private touch only the child's layer, leaving the parent untouched. Useful for
+// custom tags that need an isolated scope while keeping access to outer data.
 func NewChildExecutionContext(parent *ExecutionContext) *ExecutionContext {
 	newctx := &ExecutionContext{
 		template: parent.template,
+		parent:   parent,
 
 		Public:     parent.Public,
-		Private:    make(Context),
+		Shared:     parent.Shared,
 		Autoescape: parent.Autoescape,
 		tagState:   parent.tagState,
 	}
-	newctx.Shared = parent.Shared
-
-	// Copy all existing private items
-	newctx.Private.Update(parent.Private)
-
+	newctx.Private = Scope{ec: newctx}
 	return newctx
 }
 

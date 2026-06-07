@@ -69,7 +69,7 @@ type tagMacroNode struct {
 // Execute registers the macro as a callable function in the private context.
 // The macro can then be called like {{ macro_name(args) }}.
 func (node *tagMacroNode) Execute(ctx *ExecutionContext, writer TemplateWriter) error {
-	ctx.Private[node.name] = func(args ...*Value) (*Value, error) {
+	ctx.Private.Set(node.name, func(args ...*Value) (*Value, error) {
 		ctx.macroDepth++
 		defer func() {
 			ctx.macroDepth--
@@ -80,7 +80,7 @@ func (node *tagMacroNode) Execute(ctx *ExecutionContext, writer TemplateWriter) 
 		}
 
 		return node.call(ctx, args...)
-	}
+	})
 
 	return nil
 }
@@ -88,22 +88,24 @@ func (node *tagMacroNode) Execute(ctx *ExecutionContext, writer TemplateWriter) 
 // call executes the macro body with the provided arguments and returns the
 // rendered output as a safe value. It creates an isolated context for execution.
 func (node *tagMacroNode) call(ctx *ExecutionContext, args ...*Value) (*Value, error) {
-	argsCtx := make(Context)
+	// Make a context for the macro execution. Declared arguments are written
+	// directly into its private scope (no intermediate map). Default values are
+	// evaluated against the caller's context.
+	macroCtx := NewChildExecutionContext(ctx)
 
 	for k, v := range node.args {
 		if v == nil {
-			// User did not provided a default value
-			argsCtx[k] = nil
-		} else {
-			// Evaluate the default value
-			valueExpr, err := v.Evaluate(ctx)
-			if err != nil {
-				ctx.Logf(err.Error())
-				return AsSafeValue(""), err
-			}
-
-			argsCtx[k] = valueExpr.Interface()
+			// User did not provide a default value
+			macroCtx.Private.Set(k, nil)
+			continue
 		}
+		// Evaluate the default value
+		valueExpr, err := v.Evaluate(ctx)
+		if err != nil {
+			ctx.Logf(err.Error())
+			return AsSafeValue(""), err
+		}
+		macroCtx.Private.Set(k, valueExpr.Interface())
 	}
 
 	if len(args) > len(node.argsOrder) {
@@ -114,14 +116,9 @@ func (node *tagMacroNode) call(ctx *ExecutionContext, args ...*Value) (*Value, e
 		return AsSafeValue(""), err
 	}
 
-	// Make a context for the macro execution
-	macroCtx := NewChildExecutionContext(ctx)
-
-	// Register all arguments in the private context
-	macroCtx.Private.Update(argsCtx)
-
+	// Override with the positional arguments passed by the caller.
 	for idx, argValue := range args {
-		macroCtx.Private[node.argsOrder[idx]] = argValue.Interface()
+		macroCtx.Private.Set(node.argsOrder[idx], argValue.Interface())
 	}
 
 	var b bytes.Buffer
