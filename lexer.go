@@ -4,6 +4,7 @@ package pongo2
 import (
 	"errors"
 	"fmt"
+	"strconv"
 	"strings"
 	"unicode/utf8"
 )
@@ -174,6 +175,12 @@ type lexer struct {
 
 	// start is the byte position where the current token begins.
 	start int
+
+	// tagStart is the byte position of the opening delimiter ({{ or {%) of
+	// the tag/variable currently being lexed. Unlike start, it isn't advanced
+	// as inner tokens are emitted, so it lets error messages quote the whole
+	// offending tag.
+	tagStart int
 
 	// pos is the current byte position in the input (cursor).
 	pos int
@@ -397,6 +404,33 @@ func (l *lexer) errorf(format string, args ...any) lexerStateFn {
 	return nil
 }
 
+// currentTagSnippet returns the source text of the tag/variable currently being
+// lexed, from its opening delimiter up to and including the first closing
+// delimiter (or the end of the input if it is never closed). It is included in
+// lexer errors so the offending tag can be located quickly in large templates.
+// The result is length-limited so an unterminated tag can't flood the message.
+func (l *lexer) currentTagSnippet() string {
+	src := l.input[l.tagStart:]
+
+	// Cut at the first closing delimiter, keeping it in the snippet.
+	end := len(src)
+	for _, closer := range []string{"}}", "%}"} {
+		if i := strings.Index(src, closer); i >= 0 {
+			if e := i + len(closer); e < end {
+				end = e
+			}
+		}
+	}
+	src = src[:end]
+
+	const maxRunes = 40
+	if utf8.RuneCountInString(src) > maxRunes {
+		src = string([]rune(src)[:maxRunes]) + "..."
+	}
+
+	return src
+}
+
 // emitRemainingHTML emits any accumulated HTML content as a TokenHTML.
 // Called before entering a template tag or at end of input to flush
 // any raw HTML that was being collected.
@@ -487,6 +521,7 @@ func (l *lexer) run() {
 			if strings.HasPrefix(l.input[l.pos:], "{{") || // variable
 				strings.HasPrefix(l.input[l.pos:], "{%") { // tag
 				l.emitRemainingHTML()
+				l.tagStart = l.pos
 				l.tokenizeTemplateCode()
 				if l.errored {
 					return
@@ -535,7 +570,7 @@ outer_loop:
 		switch {
 		case l.accept(tokenSpaceChars):
 			if l.value() == "\n" {
-				return l.errorf("Newline not allowed within tag/variable.")
+				return l.errorf("Newline not allowed within tag/variable: %s", strconv.Quote(l.currentTagSnippet()))
 			}
 			l.ignore()
 			continue

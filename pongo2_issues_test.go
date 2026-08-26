@@ -36,6 +36,46 @@ func TestIssue151(t *testing.T) {
 	}
 }
 
+func TestIssue185(t *testing.T) {
+	// A newline inside a tag/variable is a lexer error. The message should
+	// quote the offending tag so it can be found in a large template.
+	tests := []struct {
+		name     string
+		template string
+		expected string
+	}{
+		{
+			name:     "variable",
+			template: "test\r\n{{test\n}}",
+			expected: `"{{test\n}}"`,
+		},
+		{
+			name:     "tag",
+			template: "test\r\n{% if x\n %}yes{% endif %}",
+			expected: `"{% if x\n %}"`,
+		},
+		{
+			name:     "unterminated variable",
+			template: "abc{{ foo\n",
+			expected: `"{{ foo\n"`,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := pongo2.FromString(tt.template)
+			if err == nil {
+				t.Fatal("expected a parse error but got none")
+			}
+
+			errMsg := err.Error()
+			if !strings.Contains(errMsg, tt.expected) {
+				t.Errorf("error message should contain the offending tag %s, got %q", tt.expected, errMsg)
+			}
+		})
+	}
+}
+
 func TestIssue297(t *testing.T) {
 	// wordwrap wraps at character width (matching Django's behavior),
 	// not at word count.
