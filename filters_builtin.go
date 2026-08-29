@@ -1355,64 +1355,82 @@ var (
 )
 
 func filterUrlizeHelper(input string, autoescape bool, trunc int) (string, error) {
-	var soutErr error
-	sout := filterUrlizeURLRegexp.ReplaceAllStringFunc(input, func(raw_url string) string {
-		var prefix string
-		var suffix string
-		if strings.HasPrefix(raw_url, " ") {
-			prefix = " "
+	var out strings.Builder
+	out.Grow(len(input))
+	last := 0
+	for _, match := range filterUrlizeURLRegexp.FindAllStringIndex(input, -1) {
+		writeUrlizeText(&out, input[last:match[0]], autoescape, trunc)
+		if err := writeUrlizeURL(&out, input[match[0]:match[1]], autoescape, trunc); err != nil {
+			return "", err
 		}
-		if strings.HasSuffix(raw_url, " ") {
-			suffix = " "
-		}
+		last = match[1]
+	}
+	writeUrlizeText(&out, input[last:], autoescape, trunc)
+	return out.String(), nil
+}
 
-		raw_url = strings.TrimSpace(raw_url)
+// writeUrlizeText handles only a text run between URL matches. Keeping the
+// mail pass out of generated anchors prevents an address in a URL from
+// corrupting the href that was just emitted.
+func writeUrlizeText(out *strings.Builder, text string, autoescape bool, trunc int) {
+	last := 0
+	for _, match := range filterUrlizeEmailRegexp.FindAllStringIndex(text, -1) {
+		writeUrlizeEscaped(out, text[last:match[0]], autoescape)
+		mail := text[match[0]:match[1]]
+		out.WriteString(`<a href="mailto:`)
+		out.WriteString(mail)
+		out.WriteString(`">`)
+		writeUrlizeEscaped(out, truncateUrlizeTitle(mail, trunc), autoescape)
+		out.WriteString(`</a>`)
+		last = match[1]
+	}
+	writeUrlizeEscaped(out, text[last:], autoescape)
+}
 
-		t, err := ApplyFilter("iriencode", AsValue(raw_url), nil)
-		if err != nil {
-			soutErr = err
-			return ""
-		}
-		url := t.String()
-
-		if !strings.HasPrefix(url, "http") {
-			url = fmt.Sprintf("http://%s", url)
-		}
-
-		title := raw_url
-
-		titleRunes := []rune(title)
-		if trunc > 1 && len(titleRunes) > trunc {
-			title = string(titleRunes[:trunc-1]) + ellipsis
-		}
-
-		if autoescape {
-			t, err := ApplyFilter("escape", AsValue(title), nil)
-			if err != nil {
-				soutErr = err
-				return ""
-			}
-			title = t.String()
-		}
-
-		return fmt.Sprintf(`%s<a href="%s" rel="nofollow">%s</a>%s`, prefix, url, title, suffix)
-	})
-	if soutErr != nil {
-		return "", soutErr
+func writeUrlizeURL(out *strings.Builder, match string, autoescape bool, trunc int) error {
+	prefix, suffix := "", ""
+	if strings.HasPrefix(match, " ") {
+		prefix = " "
+	}
+	if strings.HasSuffix(match, " ") {
+		suffix = " "
+	}
+	rawURL := strings.TrimSpace(match)
+	encoded, err := ApplyFilter("iriencode", AsValue(rawURL), nil)
+	if err != nil {
+		return err
+	}
+	url := encoded.String()
+	if !strings.HasPrefix(url, "http") {
+		url = fmt.Sprintf("http://%s", url)
 	}
 
-	sout = filterUrlizeEmailRegexp.ReplaceAllStringFunc(sout, func(mail string) string {
-		title := mail
+	out.WriteString(prefix)
+	out.WriteString(`<a href="`)
+	out.WriteString(url)
+	out.WriteString(`" rel="nofollow">`)
+	writeUrlizeEscaped(out, truncateUrlizeTitle(rawURL, trunc), autoescape)
+	out.WriteString(`</a>`)
+	out.WriteString(suffix)
+	return nil
+}
 
-		titleRunes := []rune(title)
-		if trunc > 1 && len(titleRunes) > trunc {
-			title = string(titleRunes[:trunc-1]) + ellipsis
-		}
+func writeUrlizeEscaped(out *strings.Builder, text string, autoescape bool) {
+	if autoescape {
+		text = htmlEscapeReplacer.Replace(text)
+	}
+	out.WriteString(text)
+}
 
-		return fmt.Sprintf(`<a href="mailto:%s">%s</a>`, mail, title)
-	})
-
-	return sout, nil
+// truncateUrlizeTitle counts the unescaped URL or mail address. Escaping may
+// expand one character into an entity, but it must not change the visible
+// truncation point.
+func truncateUrlizeTitle(title string, trunc int) string {
+	runes := []rune(title)
+	if trunc > 1 && len(runes) > trunc {
+		return string(runes[:trunc-1]) + ellipsis
+	}
+	return title
 }
 
 // filterUrlize converts URLs and email addresses in plain text into clickable links.
