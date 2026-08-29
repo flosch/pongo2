@@ -409,9 +409,9 @@ func (l *lexer) emitRemainingHTML() {
 // ignoreSingleLineComment skips over a single-line comment {# ... #}.
 // Comments are not emitted as tokens; they are completely discarded.
 // Reports an error if the comment is not closed or contains a newline.
-func (l *lexer) ignoreSingleLineComment() {
+func (l *lexer) ignoreSingleLineComment() bool {
 	if !strings.HasPrefix(l.input[l.pos:], "{#") {
-		return
+		return false
 	}
 
 	l.emitRemainingHTML()
@@ -423,10 +423,10 @@ func (l *lexer) ignoreSingleLineComment() {
 		switch l.peek() {
 		case EOF:
 			l.errorf("Single-line comment not closed.")
-			return
+			return true
 		case '\n':
 			l.errorf("Newline not permitted in a single-line comment.")
-			return
+			return true
 		}
 
 		if strings.HasPrefix(l.input[l.pos:], "#}") {
@@ -438,6 +438,7 @@ func (l *lexer) ignoreSingleLineComment() {
 		l.next()
 	}
 	l.ignore() // ignore whole comment
+	return true
 }
 
 // processVerbatimTag handles {% verbatim %} and {% endverbatim %} tags.
@@ -446,7 +447,7 @@ func (l *lexer) ignoreSingleLineComment() {
 //
 // TODO: Support verbatim tag names as per Django docs:
 // https://docs.djangoproject.com/en/dev/ref/templates/builtins/#verbatim
-func (l *lexer) processVerbatimTag() {
+func (l *lexer) processVerbatimTag() bool {
 	if l.inVerbatim {
 		// end verbatim
 		if strings.HasPrefix(l.input[l.pos:], "{% endverbatim %}") {
@@ -456,6 +457,7 @@ func (l *lexer) processVerbatimTag() {
 			l.col += w
 			l.ignore()
 			l.inVerbatim = false
+			return true
 		}
 	} else if strings.HasPrefix(l.input[l.pos:], "{% verbatim %}") { // tag
 		l.emitRemainingHTML()
@@ -464,7 +466,9 @@ func (l *lexer) processVerbatimTag() {
 		l.pos += w
 		l.col += w
 		l.ignore()
+		return true
 	}
+	return false
 }
 
 // run is the main lexer loop that processes the entire input.
@@ -475,13 +479,21 @@ func (l *lexer) processVerbatimTag() {
 // The loop terminates when EOF is reached or an error occurs.
 func (l *lexer) run() {
 	for {
-		l.processVerbatimTag()
+		// A consumed delimiter leaves the cursor at a byte that may start the
+		// next comment or verbatim region. Re-run the recognition order before
+		// consuming that byte as ordinary text. The consumed guard makes the
+		// restart incapable of spinning without progress.
+		if l.processVerbatimTag() {
+			continue
+		}
 
 		if !l.inVerbatim {
 			// Ignore single-line comments {# ... #}
-			l.ignoreSingleLineComment()
-			if l.errored {
-				return
+			if l.ignoreSingleLineComment() {
+				if l.errored {
+					return
+				}
+				continue
 			}
 
 			if strings.HasPrefix(l.input[l.pos:], "{{") || // variable
