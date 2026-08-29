@@ -2,12 +2,13 @@ package pongo2
 
 import (
 	"bytes"
+	"fmt"
 )
 
-// nodeFilterCall represents a single filter call with its name and optional parameter.
+// nodeFilterCall represents one resolved filter with its optional parameter.
 type nodeFilterCall struct {
-	name      string
 	paramExpr IEvaluator
+	filter    FilterFunction
 }
 
 // tagFilterNode represents the {% filter %} tag.
@@ -76,7 +77,7 @@ func (node *tagFilterNode) Execute(ctx *ExecutionContext, writer TemplateWriter)
 		} else {
 			param = AsValue(nil)
 		}
-		value, err = ctx.template.set.ApplyFilter(call.name, value, param)
+		value, err = call.filter(value, param)
 		if err != nil {
 			return ctx.Error(err.Error(), node.position)
 		}
@@ -111,7 +112,15 @@ func tagFilterParser(doc *Parser, start *Token, arguments *Parser) (INodeTag, er
 		if nameToken == nil {
 			return nil, arguments.Error("Expected a filter name (identifier).", nil)
 		}
-		filterCall.name = nameToken.Val
+		if _, banned := doc.template.set.bannedFilters[nameToken.Val]; banned {
+			return nil, arguments.Error(fmt.Sprintf("Usage of filter '%s' is not allowed (sandbox restriction active).",
+				nameToken.Val), nameToken)
+		}
+		filter, exists := doc.template.set.filters[nameToken.Val]
+		if !exists {
+			return nil, arguments.Error(fmt.Sprintf("Filter '%s' does not exist.", nameToken.Val), nameToken)
+		}
+		filterCall.filter = filter
 
 		if arguments.MatchOne(TokenSymbol, ":") != nil {
 			// Filter parameter
