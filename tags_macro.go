@@ -69,7 +69,14 @@ type tagMacroNode struct {
 // Execute registers the macro as a callable function in the private context.
 // The macro can then be called like {{ macro_name(args) }}.
 func (node *tagMacroNode) Execute(ctx *ExecutionContext, writer TemplateWriter) error {
-	ctx.Private[node.name] = func(args ...*Value) (*Value, error) {
+	ctx.Private[node.name] = node.callable(ctx)
+	return nil
+}
+
+// callable applies the same recursion bound to a macro registered at its
+// definition site and to one registered by an import.
+func (node *tagMacroNode) callable(ctx *ExecutionContext) func(args ...*Value) (*Value, error) {
+	return func(args ...*Value) (*Value, error) {
 		ctx.macroDepth++
 		defer func() {
 			ctx.macroDepth--
@@ -81,8 +88,6 @@ func (node *tagMacroNode) Execute(ctx *ExecutionContext, writer TemplateWriter) 
 
 		return node.call(ctx, args...)
 	}
-
-	return nil
 }
 
 // call executes the macro body with the provided arguments and returns the
