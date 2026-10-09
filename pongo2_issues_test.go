@@ -149,3 +149,30 @@ func TestBugIfchangedSharedState(t *testing.T) {
 	}
 	wg2.Wait()
 }
+
+func TestIssue386(t *testing.T) {
+	// TrimBlocks edits the shared tokens. A second Execute must not
+	// drop another newline.
+	tpl, err := pongo2.FromString("a\n{% if x %}\nb\n{% endif %}\n\nc\n")
+	if err != nil {
+		t.Fatal(err)
+	}
+	tpl.Options.TrimBlocks = true
+	tpl.Options.LStripBlocks = true
+
+	first, err := tpl.Execute(pongo2.Context{"x": true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	const want = "a\nb\n\nc\n"
+	if first != want {
+		t.Fatalf("first render %q, want %q", first, want)
+	}
+	second, err := tpl.Execute(pongo2.Context{"x": true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if second != want {
+		t.Fatalf("second render %q, want %q", second, want)
+	}
+}

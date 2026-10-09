@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"strings"
+	"sync"
 )
 
 type TemplateWriter interface {
@@ -50,6 +51,11 @@ type Template struct {
 	// Options allow you to change the behavior of template-engine.
 	// You can change the options before calling the Execute method.
 	Options *Options
+
+	// whitespaceOnce applies TrimBlocks and LStripBlocks a single time.
+	// Those options edit the shared tokens. Repeating the edit on every
+	// Execute drops another newline (issue 386).
+	whitespaceOnce sync.Once
 }
 
 func newTemplateString(set *TemplateSet, tpl []byte) (*Template, error) {
@@ -96,31 +102,33 @@ func newTemplate(set *TemplateSet, name string, isTplString bool, tpl []byte) (*
 
 func (tpl *Template) newContextForExecution(context Context) (*Template, *ExecutionContext, error) {
 	if tpl.Options.TrimBlocks || tpl.Options.LStripBlocks {
-		// Issue #94 https://github.com/flosch/pongo2/issues/94
-		// If an application configures pongo2 template to trim_blocks,
-		// the first newline after a template tag is removed automatically (like in PHP).
-		prev := &Token{
-			Typ: TokenHTML,
-			Val: "\n",
-		}
-
-		for _, t := range tpl.tokens {
-			if tpl.Options.LStripBlocks {
-				if prev.Typ == TokenHTML && t.Typ != TokenHTML && t.Val == "{%" {
-					prev.Val = strings.TrimRight(prev.Val, "\t ")
-				}
+		tpl.whitespaceOnce.Do(func() {
+			// Issue #94 https://github.com/flosch/pongo2/issues/94
+			// If an application configures pongo2 template to trim_blocks,
+			// the first newline after a template tag is removed automatically (like in PHP).
+			prev := &Token{
+				Typ: TokenHTML,
+				Val: "\n",
 			}
 
-			if tpl.Options.TrimBlocks {
-				if prev.Typ != TokenHTML && t.Typ == TokenHTML && prev.Val == "%}" {
-					if len(t.Val) > 0 && t.Val[0] == '\n' {
-						t.Val = t.Val[1:len(t.Val)]
+			for _, t := range tpl.tokens {
+				if tpl.Options.LStripBlocks {
+					if prev.Typ == TokenHTML && t.Typ != TokenHTML && t.Val == "{%" {
+						prev.Val = strings.TrimRight(prev.Val, "\t ")
 					}
 				}
-			}
 
-			prev = t
-		}
+				if tpl.Options.TrimBlocks {
+					if prev.Typ != TokenHTML && t.Typ == TokenHTML && prev.Val == "%}" {
+						if len(t.Val) > 0 && t.Val[0] == '\n' {
+							t.Val = t.Val[1:len(t.Val)]
+						}
+					}
+				}
+
+				prev = t
+			}
+		})
 	}
 
 	// Determine the parent to be executed (for template inheritance)
