@@ -3,6 +3,7 @@ package pongo2_test
 import (
 	"fmt"
 	"io"
+	"path"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -13,6 +14,44 @@ import (
 
 	"github.com/flosch/pongo2/v7"
 )
+
+type issue313Loader struct{ DummyLoader }
+
+func (issue313Loader) Abs(_, name string) string {
+	return path.Join("/first-loader", name)
+}
+
+func TestIssue313(t *testing.T) {
+	files := fstest.MapFS{"page.tpl": &fstest.MapFile{Data: []byte("hello {{ name }}")}}
+	set := pongo2.NewSet("fallback", &issue313Loader{}, pongo2.NewFSLoader(files))
+	uncached, err := set.FromFile("page.tpl")
+	if err != nil {
+		t.Fatal(err)
+	}
+	first, err := set.FromCache("page.tpl")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, tpl := range []*pongo2.Template{uncached, first} {
+		got, err := tpl.Execute(pongo2.Context{"name": "<world>"})
+		if err != nil || got != "hello &lt;world&gt;" {
+			t.Fatalf("render = %q, %v", got, err)
+		}
+	}
+	second, err := set.FromCache("page.tpl")
+	if err != nil || second != first {
+		t.Fatalf("cache hit returned a different template: %v", err)
+	}
+	set.CleanCache("page.tpl")
+	third, err := set.FromCache("page.tpl")
+	if err != nil || third == first {
+		t.Fatalf("cache invalidation did not reload the template: %v", err)
+	}
+	set.Debug = true
+	if _, err := set.FromCache("page.tpl"); err != nil {
+		t.Fatal(err)
+	}
+}
 
 func TestIssue151(t *testing.T) {
 	tpl, err := pongo2.FromString("{{ mydict.51232_3 }}{{ 12345_123}}{{ 995189baz }}")

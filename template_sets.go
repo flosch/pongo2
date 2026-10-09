@@ -341,7 +341,8 @@ func (set *TemplateSet) FromCache(filename string) (*Template, error) {
 
 	// Cache miss
 	if !has {
-		tpl, err := set.FromFile(cleanedFilename)
+		// Each loader must resolve the original path in its own namespace.
+		tpl, err := set.FromFile(filename)
 		if err != nil {
 			return nil, err
 		}
