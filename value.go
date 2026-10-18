@@ -303,6 +303,11 @@ func (v *Value) Slice(i, j int) *Value {
 	rv := v.getResolvedValue()
 	switch rv.Kind() {
 	case reflect.Array, reflect.Slice:
+		if rv.Kind() == reflect.Array && !rv.CanAddr() {
+			array := reflect.New(rv.Type()).Elem()
+			array.Set(rv)
+			rv = array
+		}
 		length := rv.Len()
 		i = max(i, 0)
 		j = max(j, i)
