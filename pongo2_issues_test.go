@@ -36,6 +36,29 @@ func TestIssue151(t *testing.T) {
 	}
 }
 
+func TestSliceFilterArrayValues(t *testing.T) {
+	memFS := fstest.MapFS{
+		"slice.tpl": &fstest.MapFile{
+			Data: []byte(`{{ items|slice:"1:3"|join:"," }}`),
+		},
+	}
+	set := pongo2.NewSet("slice-array", pongo2.NewFSLoader(memFS))
+	tpl, err := set.FromFile("slice.tpl")
+	if err != nil {
+		t.Fatal(err)
+	}
+	array := [4]int{1, 2, 3, 4}
+	for _, input := range []interface{}{array, &array, []int{1, 2, 3, 4}} {
+		result, err := tpl.Execute(pongo2.Context{"items": input})
+		if err != nil {
+			t.Fatalf("slice filter on %T: %v", input, err)
+		}
+		if result != "2,3" {
+			t.Fatalf("slice filter on %T = %q, want 2,3", input, result)
+		}
+	}
+}
+
 func TestIssue297(t *testing.T) {
 	// wordwrap wraps at character width (matching Django's behavior),
 	// not at word count.
