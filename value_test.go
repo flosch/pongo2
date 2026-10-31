@@ -1,6 +1,7 @@
 package pongo2
 
 import (
+	"math"
 	"testing"
 )
 
@@ -898,5 +899,38 @@ func TestBugSortedKeysMixedIntFloat(t *testing.T) {
 	expected := "1,3,5.500000,10,20.100000,"
 	if result != expected {
 		t.Errorf("got %q, want %q", result, expected)
+	}
+}
+
+func TestIntegerEqualityKeepsFullRange(t *testing.T) {
+	type identifier uint64
+	firstID := identifier(math.MaxUint64)
+	secondID := firstID - 1
+	for _, test := range []struct {
+		name        string
+		left, right any
+		equal       bool
+	}{
+		{"distinct unsigned maxima", uint64(math.MaxUint64), uint64(math.MaxUint64 - 1), false},
+		{"unsigned and signed maxima", uint64(math.MaxUint64), int64(math.MaxInt64), false},
+		{"same unsigned maximum", uint64(math.MaxUint64), uint64(math.MaxUint64), true},
+		{"same signed maximum", int64(math.MaxInt64), int64(math.MaxInt64), true},
+		{"equal signed and unsigned", int64(math.MaxInt64), uint64(math.MaxInt64), true},
+		{"negative and unsigned", int64(-1), uint64(math.MaxUint64), false},
+		{"different signed values", int64(1 << 40), int64(0), false},
+		{"small integer kinds", int8(1), uint16(1), true},
+		{"negative minimum and unsigned", int64(math.MinInt64), uint64(1 << 63), false},
+		{"mixed float", float64(8), int8(8), true},
+		{"pointer aliases", &firstID, &secondID, false},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			left, right := AsValue(test.left), AsValue(test.right)
+			if got := left.EqualValueTo(right); got != test.equal {
+				t.Errorf("EqualValueTo = %v, want %v", got, test.equal)
+			}
+			if got := right.EqualValueTo(left); got != test.equal {
+				t.Errorf("reverse EqualValueTo = %v, want %v", got, test.equal)
+			}
+		})
 	}
 }

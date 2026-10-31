@@ -590,7 +590,7 @@ func (v *Value) EqualValueTo(other *Value) bool {
 			return v.Float() == other.Float()
 		}
 		// Both are integers (includes uint vs int)
-		return v.Integer() == other.Integer()
+		return equalIntegerValues(v.getResolvedValue(), other.getResolvedValue())
 	}
 	if v.IsTime() && other.IsTime() {
 		return v.Time().Equal(other.Time())
@@ -610,6 +610,27 @@ func (v *Value) EqualValueTo(other *Value) bool {
 	return v.val.CanInterface() && other.val.CanInterface() &&
 		v.val.Type().Comparable() && other.val.Type().Comparable() &&
 		v.Interface() == other.Interface()
+}
+
+func equalIntegerValues(first, second reflect.Value) bool {
+	if first.CanInt() {
+		if second.CanInt() {
+			return first.Int() == second.Int()
+		}
+		signed := first.Int()
+		if signed < 0 {
+			return false
+		}
+		return uint64(signed) == second.Uint()
+	}
+	if second.CanInt() {
+		signed := second.Int()
+		if signed < 0 {
+			return false
+		}
+		return first.Uint() == uint64(signed)
+	}
+	return first.Uint() == second.Uint()
 }
 
 type sortedKeys []reflect.Value

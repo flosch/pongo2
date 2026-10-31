@@ -2471,3 +2471,19 @@ func TestBugAndOrPrecedence(t *testing.T) {
 		})
 	}
 }
+
+func TestTemplateIntegerEqualityKeepsFullRange(t *testing.T) {
+	template, err := pongo2.FromString(`{% if left == right %}equal{% else %}different{% endif %}|{% if right in values %}found{% else %}missing{% endif %}`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	output, err := template.Execute(pongo2.Context{
+		"left": uint64(^uint64(0)), "right": uint64(^uint64(0) - 1), "values": []any{uint64(^uint64(0))},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if output != "different|missing" {
+		t.Errorf("output = %q, want different|missing", output)
+	}
+}
